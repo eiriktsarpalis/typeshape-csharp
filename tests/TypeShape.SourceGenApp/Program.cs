@@ -2,7 +2,7 @@
 using TypeShape.Applications.JsonSerializer;
 using TypeShape.Applications.PrettyPrinter;
 
-IType<MyPoco> shape = MetadataGenerationContext.Default.MyPoco;
+IType<MyPoco> shape = SourceGenTypeShapeProvider.Default.MyPoco;
 TypeShapeJsonSerializer<MyPoco> jsonSerializer = TypeShapeJsonSerializer.Create(shape);
 PrettyPrinter<MyPoco> pp = PrettyPrinter.CreatePrinter(shape);
 
@@ -32,7 +32,7 @@ public class MyPoco
     public Dictionary<string, int>? Dict { get; set; }
 }
 
-//[GenerateShape(typeof(MyPoco)]
-public partial class MetadataGenerationContext
+[GenerateShape(typeof(MyPoco))]
+public partial class SourceGenTypeShapeProvider
 {
 }

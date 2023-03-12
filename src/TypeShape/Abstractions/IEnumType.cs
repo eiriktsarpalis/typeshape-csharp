@@ -2,7 +2,7 @@
 
 public interface IEnumType
 {
-    IType EnumType { get; }
+    IType Type { get; }
     IType UnderlyingType { get; }
     object? Accept(IEnumTypeVisitor visitor, object? state);
 }

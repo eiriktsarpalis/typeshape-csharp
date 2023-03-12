@@ -1,5 +1,4 @@
-﻿using TypeShape.Abstractions;
-using TypeShape.Applications.PrettyPrinter;
+﻿using TypeShape.Applications.PrettyPrinter;
 using TypeShape.ReflectionProvider;
 using Xunit;
 
@@ -31,6 +30,7 @@ public abstract class PrettyPrinterTests
         yield return GetPair(new int[] { 1, 2, 3 }, "[1, 2, 3]");
         yield return GetPair(new object(), "{ }");
         yield return GetPair(new SimpleRecord(42), "{ value = 42 }");
+        yield return GetPair(new DerivedClass { X = 1, Y = 2 }, "{ Y = 2, X = 1 }");
         yield return GetPair(new Dictionary<string, string>(), "{ }");
         yield return GetPair(new Dictionary<string, string> { ["key"] = "value" }, "{ [\"key\"] = \"value\" }");
         yield return GetPair(new Dictionary<SimpleRecord, string> { [new SimpleRecord(42)] = "value" }, "{ [{ value = 42 }] = \"value\" }");
@@ -54,4 +54,9 @@ public class PrettyPrinterTests_Reflection : PrettyPrinterTests
 public class PrettyPrinterTests_ReflectionEmit : PrettyPrinterTests
 {
     protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: true);
+}
+
+public class PrettyPrinterTests_SourceGen : PrettyPrinterTests
+{
+    protected override ITypeShapeProvider Provider { get; } = SourceGenTypeShapeProvider.Default;
 }

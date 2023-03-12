@@ -1,6 +1,5 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using TypeShape.Abstractions;
 using TypeShape.Applications.JsonSerializer;
 using TypeShape.ReflectionProvider;
 using Xunit;
@@ -10,6 +9,8 @@ namespace TypeShape.Tests;
 public abstract class JsonTests
 {
     protected abstract ITypeShapeProvider Provider { get; }
+
+    public bool IsReflectionProvider => Provider is ReflectionTypeShapeProvider;
 
     [Theory]
     [MemberData(nameof(TestTypes.GetTestValues), MemberType = typeof(TestTypes))]
@@ -28,6 +29,9 @@ public abstract class JsonTests
     [MemberData(nameof(TestTypes.GetTestValues), MemberType = typeof(TestTypes))]
     public void Roundtrip_Property<T>(T value)
     {
+        if (!IsReflectionProvider)
+            return;
+
         var serializer = GetSerializerUnderTest<PocoWithGenericProperty<T>>();
         PocoWithGenericProperty<T> poco = new PocoWithGenericProperty<T> { Value = value };
 
@@ -42,6 +46,9 @@ public abstract class JsonTests
     [MemberData(nameof(TestTypes.GetTestValues), MemberType = typeof(TestTypes))]
     public void Roundtrip_CollectionElement<T>(T value)
     {
+        if (!IsReflectionProvider)
+            return;
+
         var serializer = GetSerializerUnderTest<List<T>>();
         var list = new List<T> { value, value, value };
 
@@ -56,6 +63,9 @@ public abstract class JsonTests
     [MemberData(nameof(TestTypes.GetTestValues), MemberType = typeof(TestTypes))]
     public void Roundtrip_DictionaryEntry<T>(T value)
     {
+        if (!IsReflectionProvider)
+            return;
+
         var serializer = GetSerializerUnderTest<Dictionary<string, T>>();
         var dict = new Dictionary<string, T> { ["key1"] = value, ["key2"] = value, ["key3"] = value };
 
@@ -129,4 +139,9 @@ public sealed class JsonTests_Reflection : JsonTests
 public sealed class JsonTests_ReflectionEmit : JsonTests
 {
     protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: true);
+}
+
+public sealed class JsonTests_SourceGen : JsonTests
+{
+    protected override ITypeShapeProvider Provider { get; } = SourceGenTypeShapeProvider.Default;
 }

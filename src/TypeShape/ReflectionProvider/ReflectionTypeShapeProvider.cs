@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using TypeShape.Abstractions;
 using TypeShape.ReflectionProvider.MemberAccessors;
 
 namespace TypeShape.ReflectionProvider;

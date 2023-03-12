@@ -2,7 +2,7 @@
 
 public interface INullableType
 {
-    IType NullableType { get; }
+    IType Type { get; }
     IType ElementType { get; }
     object? Accept(INullableTypeVisitor visitor, object? state);
 }

@@ -2,7 +2,7 @@
 
 public interface IEnumerableType
 {
-    IType EnumerableType { get; }
+    IType Type { get; }
     IType ElementType { get; }
     bool IsMutable { get; }
     object? Accept(IEnumerableTypeVisitor visitor, object? state);
@@ -11,7 +11,7 @@ public interface IEnumerableType
 public interface IEnumerableType<TEnumerable, TElement> : IEnumerableType
 {
     Func<TEnumerable, IEnumerable<TElement>> GetGetEnumerable();
-    Setter<TEnumerable, TElement> GetAddDelegate();
+    Setter<TEnumerable, TElement> GetAddElement();
 }
 
 public interface IEnumerableTypeVisitor

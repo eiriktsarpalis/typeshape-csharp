@@ -2,9 +2,9 @@
 
 namespace TypeShape.SourceGenModel;
 
-public class SourceGenConstructor<TDeclaringType, TArgumentState> : IConstructor<TDeclaringType, TArgumentState>
+public sealed class SourceGenConstructor<TDeclaringType, TArgumentState> : IConstructor<TDeclaringType, TArgumentState>
 {
-    public required IType<TDeclaringType> DeclaringType { get; init; }
+    public required IType DeclaringType { get; init; }
     public required int ParameterCount { get; init; }
     public ICustomAttributeProvider? AttributeProvider { get; init; }
 
@@ -14,14 +14,11 @@ public class SourceGenConstructor<TDeclaringType, TArgumentState> : IConstructor
     public Func<TArgumentState>? ArgumentStateConstructorFunc { get; init; }
     public Func<TArgumentState, TDeclaringType>? ParameterizedConstructorFunc { get; init; }
 
-    IType IConstructor.DeclaringType => DeclaringType;
-
-
     public object? Accept(IConstructorVisitor visitor, object? state)
         => visitor.VisitConstructor(this, state);
 
     public IEnumerable<IConstructorParameter> GetParameters()
-        => GetParametersFunc();
+        => GetParametersFunc is null ? Array.Empty<IConstructorParameter>() : GetParametersFunc();
 
     public Func<TDeclaringType> GetDefaultConstructor()
     {

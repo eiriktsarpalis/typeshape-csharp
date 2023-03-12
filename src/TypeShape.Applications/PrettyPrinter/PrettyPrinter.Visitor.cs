@@ -54,11 +54,11 @@ public static partial class PrettyPrinter
                         {
                             sb.Append(' ');
                             propertyPrinters[i](sb, value);
-                            sb.Append(", ");
+                            sb.Append(',');
                         }
 
                         if (propertyPrinters.Length > 0) 
-                            sb.Length -= 2;
+                            sb.Length -= 1;
 
                         sb.Append(" }");
                     });
@@ -129,12 +129,12 @@ public static partial class PrettyPrinter
                     keyPrinter(sb, kvp.Key);
                     sb.Append("] = ");
                     valuePrinter(sb, kvp.Value);
-                    sb.Append(", ");
+                    sb.Append(',');
                     containsEntries = true;
                 }
 
                 if (containsEntries)
-                    sb.Length -= 2;
+                    sb.Length -= 1;
 
                 sb.Append(" }");
             });

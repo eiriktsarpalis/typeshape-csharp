@@ -8,7 +8,7 @@ internal class ReflectionEnumType<TEnum, TUnderlying> : IEnumType<TEnum, TUnderl
     public ReflectionEnumType(ReflectionTypeShapeProvider provider)
         => _provider = provider;
 
-    public IType EnumType => _provider.GetShape<TEnum>();
+    public IType Type => _provider.GetShape<TEnum>();
     public IType UnderlyingType => _provider.GetShape<TUnderlying>();
 
     public object? Accept(IEnumTypeVisitor visitor, object? state)

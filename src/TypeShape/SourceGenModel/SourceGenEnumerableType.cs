@@ -1,28 +1,24 @@
 ﻿namespace TypeShape.SourceGenModel;
 
-public class SourceGenEnumerableType<TEnumerable, TElement> : IEnumerableType<TEnumerable, TElement>
+public sealed class SourceGenEnumerableType<TEnumerable, TElement> : IEnumerableType<TEnumerable, TElement>
 {
-    public required IType<TEnumerable> EnumerableType { get; init; }
+    public required IType Type { get; init; }
+    public required IType ElementType { get; init; }
 
-    public required IType<TElement> ElementType { get; init; }
-
-    public bool IsMutable => AddDelegateFunc is not null;
+    public bool IsMutable => AddElementFunc is not null;
 
     public required Func<TEnumerable, IEnumerable<TElement>> GetEnumerableFunc { get; init; }
-    public Setter<TEnumerable, TElement>? AddDelegateFunc { get; init; }
-
-    IType IEnumerableType.EnumerableType => EnumerableType;
-    IType IEnumerableType.ElementType => ElementType;
+    public Setter<TEnumerable, TElement>? AddElementFunc { get; init; }
 
     public object? Accept(IEnumerableTypeVisitor visitor, object? state)
         => visitor.VisitEnumerableType(this, state);
 
-    public Setter<TEnumerable, TElement> GetAddDelegate()
+    public Setter<TEnumerable, TElement> GetAddElement()
     {
-        if (AddDelegateFunc is null)
+        if (AddElementFunc is null)
             throw new InvalidOperationException();
 
-        return AddDelegateFunc;
+        return AddElementFunc;
     }
 
     public Func<TEnumerable, IEnumerable<TElement>> GetGetEnumerable()

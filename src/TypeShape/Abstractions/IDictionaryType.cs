@@ -2,7 +2,7 @@
 
 public interface IDictionaryType
 {
-    IType DictionaryType { get; }
+    IType Type { get; }
     IType KeyType { get; }
     IType ValueType { get; }
     bool IsMutable { get; }
@@ -13,7 +13,7 @@ public interface IDictionaryType<TDictionary, TKey, TValue> : IDictionaryType
     where TKey : notnull
 {
     Func<TDictionary, IEnumerable<KeyValuePair<TKey, TValue>>> GetGetEnumerable();
-    Setter<TDictionary, KeyValuePair<TKey, TValue>> GetAddDelegate();
+    Setter<TDictionary, KeyValuePair<TKey, TValue>> GetAddKeyValuePair();
 }
 
 public interface IDictionaryTypeVisitor

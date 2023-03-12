@@ -23,7 +23,7 @@ internal sealed class JsonEnumerableConverter<TEnumerable, TElement> : JsonConve
         if (createObject is null)
         {
             ThrowNotSupportedException();
-            [DoesNotReturn] static void ThrowNotSupportedException() => throw new NotSupportedException();
+            [DoesNotReturn] static void ThrowNotSupportedException() => throw new NotSupportedException("Deserialization not support for this type.");
         }
 
         reader.EnsureTokenType(JsonTokenType.StartArray);

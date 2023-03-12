@@ -1,4 +1,4 @@
-﻿namespace TypeShape.Abstractions;
+﻿namespace TypeShape;
 
 public interface ITypeShapeProvider
 {

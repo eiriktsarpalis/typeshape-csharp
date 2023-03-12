@@ -12,7 +12,7 @@ internal class ReflectionEnumerableType<TEnumerable, TElement> : IEnumerableType
     public ReflectionEnumerableType(ReflectionTypeShapeProvider provider)
         => _provider = provider;
 
-    public IType EnumerableType => _provider.GetShape<TEnumerable>();
+    public IType Type => _provider.GetShape<TEnumerable>();
     public IType ElementType => _provider.GetShape<TElement>();
 
     public virtual bool IsMutable => _isMutable ??= DetermineIsMutable();
@@ -39,7 +39,7 @@ internal class ReflectionEnumerableType<TEnumerable, TElement> : IEnumerableType
     public object? Accept(IEnumerableTypeVisitor visitor, object? state)
         => visitor.VisitEnumerableType(this, state);
 
-    public virtual Setter<TEnumerable, TElement> GetAddDelegate()
+    public virtual Setter<TEnumerable, TElement> GetAddElement()
     {
         if (!IsMutable)
         {
@@ -59,7 +59,7 @@ internal sealed class ReflectionCollectionType<TEnumerable, TElement> : Reflecti
 {
     public ReflectionCollectionType(ReflectionTypeShapeProvider provider) : base(provider) { }
     public override bool IsMutable => true;
-    public override Setter<TEnumerable, TElement> GetAddDelegate()
+    public override Setter<TEnumerable, TElement> GetAddElement()
         => static (ref TEnumerable enumerable, TElement element) => enumerable.Add(element);
 }
 
@@ -71,7 +71,7 @@ internal class ReflectionEnumerableType<TEnumerable> : IEnumerableType<TEnumerab
     public ReflectionEnumerableType(ReflectionTypeShapeProvider provider)
         => _provider = provider;
 
-    public IType EnumerableType => _provider.GetShape(typeof(TEnumerable));
+    public IType Type => _provider.GetShape(typeof(TEnumerable));
     public IType ElementType => _provider.GetShape(typeof(object));
 
     public virtual bool IsMutable => _isMutable ??= DetermineIsMutable();
@@ -98,7 +98,7 @@ internal class ReflectionEnumerableType<TEnumerable> : IEnumerableType<TEnumerab
     public object? Accept(IEnumerableTypeVisitor visitor, object? state)
         => visitor.VisitEnumerableType(this, state);
 
-    public virtual Setter<TEnumerable, object?> GetAddDelegate()
+    public virtual Setter<TEnumerable, object?> GetAddElement()
     {
         if (!IsMutable)
         {
@@ -118,6 +118,6 @@ internal sealed class ReflectionListType<TEnumerable> : ReflectionEnumerableType
 {
     public ReflectionListType(ReflectionTypeShapeProvider provider) : base(provider) { }
     public override bool IsMutable => true;
-    public override Setter<TEnumerable, object?> GetAddDelegate()
+    public override Setter<TEnumerable, object?> GetAddElement()
         => static (ref TEnumerable enumerable, object? value) => enumerable.Add(value);
 }

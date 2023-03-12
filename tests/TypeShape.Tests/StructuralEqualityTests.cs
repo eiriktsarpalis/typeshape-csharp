@@ -1,5 +1,4 @@
-﻿using TypeShape.Abstractions;
-using TypeShape.Applications.StructuralEquality;
+﻿using TypeShape.Applications.StructuralEquality;
 using TypeShape.ReflectionProvider;
 using Xunit;
 
@@ -107,4 +106,9 @@ public class StructuralEqualityTests_Reflection : StructuralEqualityTests
 public class StructuralEqualityTests_ReflectionEmit : StructuralEqualityTests
 {
     protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: true);
+}
+
+public class StructuralEqualityTests_SourceGen : StructuralEqualityTests
+{
+    protected override ITypeShapeProvider Provider { get; } = SourceGenTypeShapeProvider.Default;
 }

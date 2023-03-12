@@ -2,8 +2,9 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
-using TypeShape.ReflectionProvider;
+using TypeShape;
 using TypeShape.Applications.JsonSerializer;
+using TypeShape.ReflectionProvider;
 
 //[MemoryDiagnoser]
 public static class JsonData
@@ -21,7 +22,7 @@ public static class JsonData
     public static readonly JsonTypeInfo<MyPoco> StjSourceGenInfo_fastPath = StjContext_FastPath.Default.MyPoco;
 
     public static readonly TypeShapeJsonSerializer<MyPoco> TypeShapeReflection = TypeShapeJsonSerializer.Create(ReflectionTypeShapeProvider.Default.GetShape<MyPoco>());
-    public static readonly TypeShapeJsonSerializer<MyPoco> TypeShapeSourceGen = TypeShapeJsonSerializer.Create(MetadataGenerationContext.Default.MyPoco);
+    public static readonly TypeShapeJsonSerializer<MyPoco> TypeShapeSourceGen = TypeShapeJsonSerializer.Create(SourceGenTypeShapeProvider.Default.MyPoco);
 }
 
 [MemoryDiagnoser]
@@ -68,8 +69,8 @@ public class MyPoco
     public Dictionary<string, int>? Dict { get; set; }
 }
 
-//[GenerateShape(typeof(MyPoco)]
-public partial class MetadataGenerationContext
+[GenerateShape(typeof(MyPoco))]
+public partial class SourceGenTypeShapeProvider
 {
 }
 

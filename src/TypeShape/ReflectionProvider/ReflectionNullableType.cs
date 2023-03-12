@@ -7,7 +7,7 @@ internal class ReflectionNullableType<T> : INullableType<T>
     public ReflectionNullableType(ReflectionTypeShapeProvider provider)
         => _provider = provider;
 
-    public IType NullableType => _provider.GetShape<T?>();
+    public IType Type => _provider.GetShape<T?>();
     public IType ElementType => _provider.GetShape<T>();
 
     public object? Accept(INullableTypeVisitor visitor, object? state)

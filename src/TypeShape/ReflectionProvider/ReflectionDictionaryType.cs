@@ -11,7 +11,7 @@ internal sealed class ReflectionGenericDictionaryType<TDictionary, TKey, TValue>
     public ReflectionGenericDictionaryType(ReflectionTypeShapeProvider provider)
         => _provider = provider;
 
-    public IType DictionaryType => _provider.GetShape(typeof(TDictionary));
+    public IType Type => _provider.GetShape(typeof(TDictionary));
 
     public IType KeyType => _provider.GetShape(typeof(TKey));
 
@@ -22,7 +22,7 @@ internal sealed class ReflectionGenericDictionaryType<TDictionary, TKey, TValue>
     public object? Accept(IDictionaryTypeVisitor visitor, object? state)
         => visitor.VisitDictionaryType(this, state);
 
-    public Setter<TDictionary, KeyValuePair<TKey, TValue>> GetAddDelegate()
+    public Setter<TDictionary, KeyValuePair<TKey, TValue>> GetAddKeyValuePair()
     {
         return static (ref TDictionary dict, KeyValuePair<TKey, TValue> kvp) => dict.Add(kvp);
     }
@@ -42,7 +42,7 @@ internal sealed class ReflectionReadOnlyDictionaryType<TDictionary, TKey, TValue
     public ReflectionReadOnlyDictionaryType(ReflectionTypeShapeProvider provider)
         => _provider = provider;
 
-    public IType DictionaryType => _provider.GetShape(typeof(TDictionary));
+    public IType Type => _provider.GetShape(typeof(TDictionary));
 
     public IType KeyType => _provider.GetShape(typeof(TKey));
 
@@ -53,7 +53,7 @@ internal sealed class ReflectionReadOnlyDictionaryType<TDictionary, TKey, TValue
     public object? Accept(IDictionaryTypeVisitor visitor, object? state)
         => visitor.VisitDictionaryType(this, state);
 
-    public Setter<TDictionary, KeyValuePair<TKey, TValue>> GetAddDelegate()
+    public Setter<TDictionary, KeyValuePair<TKey, TValue>> GetAddKeyValuePair()
     {
         throw new NotSupportedException();
     }
@@ -72,7 +72,7 @@ internal sealed class ReflectionDictionaryType<TDictionary> : IDictionaryType<TD
     public ReflectionDictionaryType(ReflectionTypeShapeProvider provider)
         => _provider = provider;
 
-    public IType DictionaryType => _provider.GetShape(typeof(TDictionary));
+    public IType Type => _provider.GetShape(typeof(TDictionary));
 
     public IType KeyType => _provider.GetShape(typeof(object));
 
@@ -83,7 +83,7 @@ internal sealed class ReflectionDictionaryType<TDictionary> : IDictionaryType<TD
     public object? Accept(IDictionaryTypeVisitor visitor, object? state)
         => visitor.VisitDictionaryType(this, state);
 
-    public Setter<TDictionary, KeyValuePair<object, object?>> GetAddDelegate()
+    public Setter<TDictionary, KeyValuePair<object, object?>> GetAddKeyValuePair()
     {
         return static (ref TDictionary dict, KeyValuePair<object, object?> kvp) => dict.Add(kvp.Key, kvp.Value);
     }

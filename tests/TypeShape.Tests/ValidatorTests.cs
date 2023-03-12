@@ -1,5 +1,4 @@
-﻿using TypeShape.Abstractions;
-using TypeShape.Applications.Validator;
+﻿using TypeShape.Applications.Validator;
 using TypeShape.ReflectionProvider;
 using Xunit;
 
@@ -69,4 +68,9 @@ public class ValidatorTests_Reflection : ValidatorTests
 public class ValidatorTests_ReflectionEmit : ValidatorTests
 {
     protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: true);
+}
+
+public class ValidatorTests_SourceGen : ValidatorTests
+{
+    protected override ITypeShapeProvider Provider { get; } = SourceGenTypeShapeProvider.Default;
 }

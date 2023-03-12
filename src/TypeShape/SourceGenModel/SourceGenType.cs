@@ -1,15 +1,14 @@
 ﻿using System.Reflection;
-using TypeShape.Abstractions;
 
 namespace TypeShape.SourceGenModel;
 
-public class SourceGenType<T> : IType<T>
+public sealed class SourceGenType<T> : IType<T>
 {
     public Type Type => typeof(T);
 
     public required ITypeShapeProvider Provider { get; init; }
     public ICustomAttributeProvider? AttributeProvider { get; init; }
-    public Func<IEnumerable<IConstructor>>? ConstructorsFunc { get; init; }
+    public Func<IEnumerable<IConstructor>>? CreateConstructorsFunc { get; init; }
     public Func<IDictionaryType>? CreateDictionaryTypeFunc { get; init; }
     public Func<IEnumerableType>? CreateEnumerableTypeFunc { get; init; }
     public Func<IEnumType>? CreateEnumTypeFunc { get; init; }
@@ -46,7 +45,7 @@ public class SourceGenType<T> : IType<T>
         if (nonPublic)
             throw new NotSupportedException();
 
-        return ConstructorsFunc is null ? Array.Empty<IConstructor>() : ConstructorsFunc();
+        return CreateConstructorsFunc is null ? Array.Empty<IConstructor>() : CreateConstructorsFunc();
     }
 
     public IDictionaryType GetDictionaryType()
