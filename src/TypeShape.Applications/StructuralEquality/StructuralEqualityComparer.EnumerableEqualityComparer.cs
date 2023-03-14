@@ -5,12 +5,12 @@ namespace TypeShape.Applications.StructuralEquality;
 
 public static partial class StructuralEqualityComparer
 {
-    private sealed class EnumerableEqualityComparer<TEnumerable, TElement> : IEqualityComparer<TEnumerable>
+    private sealed class EnumerableEqualityComparer<TEnumerable, TElement> : EqualityComparer<TEnumerable>
     {
         public IEqualityComparer<TElement>? ElementComparer { get; set; }
         public Func<TEnumerable, IEnumerable<TElement>>? GetEnumerable { get; set; }
 
-        public bool Equals(TEnumerable? x, TEnumerable? y)
+        public override bool Equals(TEnumerable? x, TEnumerable? y)
         {
             Debug.Assert(ElementComparer != null);
             Debug.Assert(GetEnumerable != null);
@@ -23,7 +23,7 @@ public static partial class StructuralEqualityComparer
             return GetEnumerable(x).SequenceEqual(GetEnumerable(y), ElementComparer);
         }
 
-        public int GetHashCode([DisallowNull] TEnumerable obj)
+        public override int GetHashCode([DisallowNull] TEnumerable obj)
         {
             Debug.Assert(ElementComparer != null);
             Debug.Assert(GetEnumerable != null);

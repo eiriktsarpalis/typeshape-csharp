@@ -5,14 +5,14 @@ namespace TypeShape.Applications.StructuralEquality;
 
 public static partial class StructuralEqualityComparer
 {
-    private sealed class DictionaryEqualityComparer<TDictionary, TKey, TValue> : IEqualityComparer<TDictionary>
+    private sealed class DictionaryEqualityComparer<TDictionary, TKey, TValue> : EqualityComparer<TDictionary>
         where TKey : notnull
     {
         public Func<TDictionary, IEnumerable<KeyValuePair<TKey, TValue>>>? GetEnumerable { get; set; }
         public IEqualityComparer<TKey>? KeyComparer { get; set; }
         public IEqualityComparer<TValue>? ValueComparer { get; set; }
 
-        public bool Equals(TDictionary? x, TDictionary? y)
+        public override bool Equals(TDictionary? x, TDictionary? y)
         {
             Debug.Assert(GetEnumerable != null);
             Debug.Assert(KeyComparer != null);
@@ -23,6 +23,7 @@ public static partial class StructuralEqualityComparer
                 return x is null && y is null;
             }
 
+            // TODO move specializations to Visitor
             if (typeof(Dictionary<TKey, TValue>).IsAssignableFrom(typeof(TDictionary)))
             {
                 Dictionary<TKey, TValue> xDict = (Dictionary<TKey, TValue>)(object)x!;
@@ -44,7 +45,7 @@ public static partial class StructuralEqualityComparer
 
                 return AreEqual(new(xDict, KeyComparer), yDict);
             }
-
+            
             IEnumerable<KeyValuePair<TKey, TValue>> xEnum = GetEnumerable(x);
             IEnumerable<KeyValuePair<TKey, TValue>> yEnum = GetEnumerable(y);
 
@@ -75,7 +76,7 @@ public static partial class StructuralEqualityComparer
             return true;
         }
 
-        public int GetHashCode([DisallowNull] TDictionary obj)
+        public override int GetHashCode([DisallowNull] TDictionary obj)
         {
             Debug.Assert(GetEnumerable != null);
             Debug.Assert(KeyComparer != null);

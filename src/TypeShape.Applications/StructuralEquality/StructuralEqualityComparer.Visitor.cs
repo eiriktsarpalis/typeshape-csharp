@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Collections;
+using System.Runtime.CompilerServices;
 
 namespace TypeShape.Applications.StructuralEquality;
 
@@ -6,11 +7,11 @@ public static partial class StructuralEqualityComparer
 {
     private class Visitor : ITypeShapeVisitor
     {
-        private readonly Dictionary<Type, object> _cache = new();
+        private readonly Dictionary<Type, IEqualityComparer> _cache = new();
 
         public object? VisitType<T>(IType<T> type, object? state)
         {
-            if (_cache.TryGetValue(type.Type, out object? result))
+            if (_cache.TryGetValue(type.Type, out IEqualityComparer? result))
             {
                 return result;
             }
@@ -20,6 +21,13 @@ public static partial class StructuralEqualityComparer
                 typeof(T) == typeof(string))
             {
                 return EqualityComparer<T>.Default;
+            }
+
+            if (typeof(T) == typeof(object))
+            {
+                var objectCmp = new PolymorphicObjectEqualityComparer(this, type.Provider);
+                _cache.Add(typeof(T), objectCmp);
+                return objectCmp;
             }
 
             switch (type.Kind)
@@ -95,6 +103,18 @@ public static partial class StructuralEqualityComparer
         public object? VisitConstructorParameter<TArgumentState, TParameter>(IConstructorParameter<TArgumentState, TParameter> parameter, object? state)
         {
             throw new NotImplementedException();
+        }
+
+        public IEqualityComparer GetPolymorphicEqualityComparer(Type runtimeType, ITypeShapeProvider provider)
+        {
+            if (_cache.TryGetValue(runtimeType, out IEqualityComparer? comparer))
+                return comparer;
+
+            IType? shape = provider.GetShape(runtimeType);
+            if (shape is null)
+                throw new NotSupportedException(runtimeType.GetType().ToString());
+
+            return (IEqualityComparer)shape.Accept(this, null)!;
         }
     }
 }

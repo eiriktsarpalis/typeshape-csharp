@@ -24,7 +24,7 @@ internal sealed class ReflectionGenericDictionaryType<TDictionary, TKey, TValue>
 
     public Setter<TDictionary, KeyValuePair<TKey, TValue>> GetAddKeyValuePair()
     {
-        return static (ref TDictionary dict, KeyValuePair<TKey, TValue> kvp) => dict.Add(kvp);
+        return static (ref TDictionary dict, KeyValuePair<TKey, TValue> kvp) => dict[kvp.Key] = kvp.Value;
     }
 
     public Func<TDictionary, IEnumerable<KeyValuePair<TKey, TValue>>> GetGetEnumerable()
@@ -85,7 +85,7 @@ internal sealed class ReflectionDictionaryType<TDictionary> : IDictionaryType<TD
 
     public Setter<TDictionary, KeyValuePair<object, object?>> GetAddKeyValuePair()
     {
-        return static (ref TDictionary dict, KeyValuePair<object, object?> kvp) => dict.Add(kvp.Key, kvp.Value);
+        return static (ref TDictionary dict, KeyValuePair<object, object?> kvp) => dict[kvp.Key] = kvp.Value;
     }
 
     public Func<TDictionary, IEnumerable<KeyValuePair<object, object?>>> GetGetEnumerable()
