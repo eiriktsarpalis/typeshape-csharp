@@ -17,8 +17,9 @@ public sealed partial class ModelGenerator
         return type.GetMembers()
             .OfType<IMethodSymbol>()
             .Where(ctor =>
-                ctor is { MethodKind: MethodKind.Constructor, DeclaredAccessibility: Accessibility.Public } &&
-                ctor.Parameters.All(p => IsSupportedType(p.Type)))
+                ctor is { MethodKind: MethodKind.Constructor } &&
+                ctor.Parameters.All(p => IsSupportedType(p.Type)) &&
+                IsAccessibleFromGeneratedType(ctor))
             .Where(ctor =>
                 // For collection types only emit the default & copy constructors
                 collectionInterface is null ||
@@ -30,7 +31,7 @@ public sealed partial class ModelGenerator
 
     private ConstructorModel MapConstructor(TypeId typeId, IMethodSymbol constructor)
     {
-        Debug.Assert(constructor.MethodKind is MethodKind.Constructor && constructor.DeclaredAccessibility is Accessibility.Public);
+        Debug.Assert(constructor.MethodKind is MethodKind.Constructor && IsAccessibleFromGeneratedType(constructor));
 
         var parameters = new List<ConstructorParameterModel>();
         foreach (IParameterSymbol param in constructor.Parameters)

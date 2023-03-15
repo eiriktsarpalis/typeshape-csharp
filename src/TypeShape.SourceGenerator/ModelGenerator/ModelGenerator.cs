@@ -1,7 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Diagnostics;
 using TypeShape.SourceGenerator.Helpers;
 using TypeShape.SourceGenerator.Model;
 
@@ -16,6 +15,7 @@ public sealed partial class ModelGenerator
     private readonly SemanticModel _semanticModel;
     private readonly CancellationToken _cancellationToken;
     private readonly ClassDeclarationSyntax _classDeclarationSyntax;
+    private readonly ITypeSymbol _declaredTypeSymbol;
 
     private readonly Dictionary<ITypeSymbol, TypeModel> _generatedTypes = new(SymbolEqualityComparer.Default);
     private readonly Queue<ITypeSymbol> _typesToGenerate = new();
@@ -32,6 +32,7 @@ public sealed partial class ModelGenerator
         _cancellationToken = cancellationToken;
         _semanticModel = compilation.GetSemanticModel(classDeclarationSyntax.SyntaxTree);
 
+        _declaredTypeSymbol = _semanticModel.GetDeclaredSymbol(classDeclarationSyntax, cancellationToken)!;
         _iReadOnlyDictionaryOfTKeyTValue = _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Generic.IReadOnlyDictionary`2");
         _iDictionaryOfTKeyTValue = _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Generic.IDictionary`2");
         _iDictionary = _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.IDictionary");
@@ -46,16 +47,13 @@ public sealed partial class ModelGenerator
 
     public TypeShapeProviderModel Compile()
     {
-        INamedTypeSymbol? typeSymbol = _semanticModel.GetDeclaredSymbol(_classDeclarationSyntax, _cancellationToken) as INamedTypeSymbol;
-        Debug.Assert(typeSymbol != null);
-
         ReadConfigurationFromAttributes();
         TraverseTypeGraph();
 
         return new TypeShapeProviderModel
         {
-            Name = typeSymbol!.Name,
-            Namespace = FormatNamespace(typeSymbol),
+            Name = _declaredTypeSymbol.Name,
+            Namespace = FormatNamespace(_declaredTypeSymbol),
             ProvidedTypes = _generatedTypes.Values.OrderBy(type => type.Id.FullyQualifiedName).ToImmutableArrayEq(),
             TypeDeclaration = ResolveDeclarationHeader(_classDeclarationSyntax, out ImmutableArrayEq<string>? containingTypes),
             ContainingTypes = containingTypes,
@@ -112,9 +110,9 @@ public sealed partial class ModelGenerator
 
             INamedTypeSymbol attributeTypeSymbol = attributeSymbol.ContainingType;
             if (attributeTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == GenerateShapeAttributeFQN &&
-                ReadTypeSymbolFromGenerateShapeAttribute(attributeSyntax) is ITypeSymbol typeSymbol)
+                ReadTypeSymbolFromGenerateShapeAttribute(attributeSyntax) is { } typeSymbol)
             {
-                if (!IsSupportedType(typeSymbol))
+                if (!IsSupportedType(typeSymbol) || !IsAccessibleFromGeneratedType(typeSymbol))
                 {
                     ReportDiagnostic(
                         Diagnostic.Create(TypeNotSupported, attributeSyntax.GetLocation(), typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)));
@@ -210,6 +208,9 @@ public sealed partial class ModelGenerator
 
         return null;
     }
+
+    private bool IsAccessibleFromGeneratedType(ISymbol symbol)
+        => _semanticModel.Compilation.IsSymbolAccessibleWithin(symbol, _declaredTypeSymbol);
 
     private static bool IsSupportedType(ITypeSymbol typeSymbol)
         => typeSymbol.TypeKind is not (TypeKind.Pointer or TypeKind.Error) &&

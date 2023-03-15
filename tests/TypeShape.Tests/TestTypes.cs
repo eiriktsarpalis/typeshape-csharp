@@ -140,7 +140,7 @@ public class PocoWithListAndDictionaryProps
     public Dictionary<string, int>? Dict { get; set; }
 }
 
-public class LinkedList<T>
+internal class LinkedList<T>
 {
     public T? Value { get; set; }
     public LinkedList<T>? Next { get; set; }
@@ -299,7 +299,7 @@ public record RecordWith42ConstructorParameters(
 [GenerateShape(typeof(RecordWith21ConstructorParameters))]
 [GenerateShape(typeof(RecordWith42ConstructorParameters))]
 [GenerateShape(typeof(RecordWithNullableDefaultEnum))]
-public partial class SourceGenTypeShapeProvider
+internal partial class SourceGenTypeShapeProvider
 { }
 
 internal partial class Outer1
@@ -307,6 +307,9 @@ internal partial class Outer1
     public partial class Outer2
     {
         [GenerateShape(typeof(int))]
-        public partial class Nested { }
+        [GenerateShape(typeof(Private))]
+        private partial class Nested { }
+
+        private class Private { }
     }
 }

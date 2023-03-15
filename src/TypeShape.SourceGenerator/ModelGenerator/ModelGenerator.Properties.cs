@@ -22,14 +22,14 @@ public sealed partial class ModelGenerator
         {
             foreach (ISymbol member in current.GetMembers())
             {
-                if (member is IPropertySymbol { IsStatic: false, IsIndexer: false, DeclaredAccessibility: Accessibility.Public } ps &&
-                    IsSupportedType(ps.Type))
+                if (member is IPropertySymbol { IsStatic: false, IsIndexer: false } ps &&
+                    IsSupportedType(ps.Type) && IsAccessibleFromGeneratedType(ps))
                 {
                     list.Add(MapProperty(typeId, ps));
                 }
                 else if (
-                    member is IFieldSymbol { IsStatic: false, DeclaredAccessibility: Accessibility.Public } fs &&
-                    IsSupportedType(fs.Type))
+                    member is IFieldSymbol { IsStatic: false } fs &&
+                    IsSupportedType(fs.Type) && IsAccessibleFromGeneratedType(fs))
                 {
                     list.Add(MapField(typeId, fs));
                 }

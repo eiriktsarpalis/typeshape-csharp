@@ -118,8 +118,8 @@ public sealed partial class ModelGenerator
         IMethodSymbol? addMethod = type.GetMembers()
             .OfType<IMethodSymbol>()
             .FirstOrDefault(method =>
-                method is { DeclaredAccessibility: Accessibility.Public, IsStatic: false, ReturnsVoid: true,
-                            Name: "Add" or "Enqueue" or "Push", Parameters.Length: 1 } &&
+                method is { IsStatic: false, ReturnsVoid: true, Name: "Add" or "Enqueue" or "Push", Parameters.Length: 1 } &&
+                IsAccessibleFromGeneratedType(method) &&
                 SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, elementType));
 
         return new EnumerableTypeModel
@@ -175,8 +175,9 @@ public sealed partial class ModelGenerator
         bool hasSettableIndexer = type.GetMembers()
             .OfType<IPropertySymbol>()
             .Any(prop =>
-                prop is { DeclaredAccessibility: Accessibility.Public, IsStatic: false, IsIndexer: true, Parameters.Length: 1, SetMethod: { } } 
-                && SymbolEqualityComparer.Default.Equals(prop.Parameters[0].Type, keyType));
+                prop is { IsStatic: false, IsIndexer: true, Parameters.Length: 1, SetMethod: { } } &&
+                SymbolEqualityComparer.Default.Equals(prop.Parameters[0].Type, keyType) &&
+                IsAccessibleFromGeneratedType(prop));
 
         return new DictionaryTypeModel
         {
