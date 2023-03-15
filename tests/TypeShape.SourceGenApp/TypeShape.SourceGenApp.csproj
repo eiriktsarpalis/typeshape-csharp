@@ -9,10 +9,9 @@
   </PropertyGroup>
 
   <PropertyGroup>
-	<PublishAot>true</PublishAot>
 	<PublishReadyToRun>true</PublishReadyToRun>
 	<SelfContained>true</SelfContained>
-	<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+	<PublishAot>true</PublishAot>
   </PropertyGroup>
 
   <ItemGroup>

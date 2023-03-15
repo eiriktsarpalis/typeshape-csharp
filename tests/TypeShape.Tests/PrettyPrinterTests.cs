@@ -27,20 +27,54 @@ public abstract class PrettyPrinterTests
         yield return GetPair((int?)null, "null");
         yield return GetPair((int?)42, "42");
         yield return GetPair(MyEnum.A, "\"A\"");
-        yield return GetPair(Array.Empty<int>(), "[]");
-        yield return GetPair(new int[] { 1, 2, 3 }, "[1, 2, 3]");
-        yield return GetPair(new object(), "{ }");
-        yield return GetPair(new SimpleRecord(42), "{ value = 42 }");
-        yield return GetPair(new DerivedClass { X = 1, Y = 2 }, "{ Y = 2, X = 1 }");
-        yield return GetPair(new Dictionary<string, string>(), "{ }");
-        yield return GetPair(new Dictionary<string, string> { ["key"] = "value" }, "{ [\"key\"] = \"value\" }");
-        yield return GetPair(new Dictionary<SimpleRecord, string> { [new SimpleRecord(42)] = "value" }, "{ [{ value = 42 }] = \"value\" }");
+        yield return GetPair(Array.Empty<int>(), "new Int32[] { }");
+        yield return GetPair(new int[] { 1, 2, 3 }, "new Int32[] { 1, 2, 3 }");
+        yield return GetPair(new object(), "new Object()");
+        yield return GetPair(new SimpleRecord(42), 
+            """
+            new SimpleRecord
+            {
+              value = 42
+            }
+            """);
+        yield return GetPair(new DerivedClass { X = 1, Y = 2 }, 
+            """
+            new DerivedClass
+            {
+              Y = 2,
+              X = 1
+            }
+            """);
+        yield return GetPair(new Dictionary<string, string>(), "new Dictionary`2()");
+        yield return GetPair(
+            new Dictionary<string, string> { ["key"] = "value" }, 
+            """
+            new Dictionary`2
+            {
+              ["key"] = "value"
+            }
+            """);
         
-        yield return GetPair(ImmutableArray.Create(1,2,3), "[1, 2, 3]");
-        yield return GetPair(ImmutableList.Create("1", "2", "3"), "[\"1\", \"2\", \"3\"]");
-        yield return GetPair(ImmutableQueue.Create(1, 2, 3), "[1, 2, 3]");
-        yield return GetPair(ImmutableDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }), "{ [\"key\"] = \"value\" }");
-        yield return GetPair(ImmutableSortedDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }), "{ [\"key\"] = \"value\" }");
+        yield return GetPair(ImmutableArray.Create(1,2,3), """new ImmutableArray`1 { 1, 2, 3 }""");
+        yield return GetPair(ImmutableList.Create("1", "2", "3"), """new ImmutableList`1 { "1", "2", "3" }""");
+        yield return GetPair(ImmutableQueue.Create(1, 2, 3), """new ImmutableQueue`1 { 1, 2, 3 }""");
+        yield return GetPair(
+            ImmutableDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }),
+            """
+            new ImmutableDictionary`2
+            {
+              ["key"] = "value"
+            }
+            """);
+
+        yield return GetPair(
+            ImmutableSortedDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }), 
+            """
+            new ImmutableSortedDictionary`2
+            {
+              ["key"] = "value"
+            }
+            """);
 
         static object?[] GetPair<T>(T? value, string expected) => new object?[] { value, expected };
     }
@@ -49,7 +83,7 @@ public abstract class PrettyPrinterTests
     {
         IType<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
-        return PrettyPrinter.CreatePrinter(shape);
+        return PrettyPrinter.Create(shape);
     }
 }
 

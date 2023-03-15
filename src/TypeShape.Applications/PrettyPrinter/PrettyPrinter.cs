@@ -3,13 +3,13 @@
 using System.Text;
 using TypeShape;
 
-public delegate void PrettyPrinter<T>(StringBuilder builder, T value);
+public delegate void PrettyPrinter<T>(StringBuilder builder, int indentation, T value);
 
 public static partial class PrettyPrinter
 {
     private readonly static Visitor s_Builder = new();
 
-    public static PrettyPrinter<T> CreatePrinter<T>(IType<T> type)
+    public static PrettyPrinter<T> Create<T>(IType<T> type)
     {
         return (PrettyPrinter<T>)s_Builder.VisitType(type, null)!;
     }
@@ -17,7 +17,7 @@ public static partial class PrettyPrinter
     public static string PrettyPrint<T>(this PrettyPrinter<T> pp, T value)
     {
         var sb = new StringBuilder();
-        pp(sb, value);
+        pp(sb, 0, value);
         return sb.ToString();
     }
 }

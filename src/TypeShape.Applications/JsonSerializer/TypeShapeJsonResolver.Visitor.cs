@@ -31,12 +31,12 @@ public partial class TypeShapeJsonResolver
             [typeof(object)] = new JsonObjectConverter(),
         };
 
-        private readonly Dictionary<Type, JsonConverter> _cache = new();
+        private readonly Dictionary<Type, JsonConverter> _visited = new();
 
         public object? VisitType<T>(IType<T> type, object? state)
         {
             if (s_defaultConverters.TryGetValue(type.Type, out JsonConverter? result) ||
-                _cache.TryGetValue(type.Type, out result))
+                _visited.TryGetValue(type.Type, out result))
             {
                 return result;
             }
@@ -62,7 +62,7 @@ public partial class TypeShapeJsonResolver
                 default:
                     Debug.Assert(type.Kind == TypeKind.None);
                     JsonObjectConverter<T> objectConverter = new();
-                    _cache.Add(type.Type, objectConverter);
+                    _visited.Add(type.Type, objectConverter);
 
                     IConstructor? ctor = type
                         .GetConstructors(nonPublic: false)
@@ -109,13 +109,13 @@ public partial class TypeShapeJsonResolver
             if (typeof(TEnumerable) == typeof(TElement[]))
             {
                 JsonArrayConverter<TElement> arrayConverter = new();
-                _cache.Add(enumerableType.Type.Type, arrayConverter);
+                _visited.Add(enumerableType.Type.Type, arrayConverter);
                 arrayConverter.ElementConverter = (JsonConverter<TElement>)enumerableType.ElementType.Accept(this, null)!;
                 return arrayConverter;
             }
 
             JsonEnumerableConverter<TEnumerable, TElement> collectionConverter = new();
-            _cache.Add(enumerableType.Type.Type, collectionConverter);
+            _visited.Add(enumerableType.Type.Type, collectionConverter);
 
             collectionConverter.ElementConverter = (JsonConverter<TElement>)enumerableType.ElementType.Accept(this, null)!;
             collectionConverter.GetEnumerable = enumerableType.GetGetEnumerable();
@@ -141,7 +141,7 @@ public partial class TypeShapeJsonResolver
             where TKey : notnull
         {
             JsonDictionaryConverter<TDictionary, TKey, TValue> dictionaryConverter = new();
-            _cache.Add(dictionaryType.Type.Type, dictionaryConverter);
+            _visited.Add(dictionaryType.Type.Type, dictionaryConverter);
 
             dictionaryConverter.KeyConverter = (JsonConverter<TKey>)dictionaryType.KeyType.Accept(this, null)!;
             dictionaryConverter.ValueConverter = (JsonConverter<TValue>)dictionaryType.ValueType.Accept(this, null)!;
@@ -168,7 +168,7 @@ public partial class TypeShapeJsonResolver
         public object? VisitNullable<T>(INullableType<T> nullableType, object? state) where T : struct
         {
             JsonNullableConverter<T> converter = new();
-            _cache.Add(nullableType.Type.Type, converter);
+            _visited.Add(nullableType.Type.Type, converter);
             converter.ElementConverter = (JsonConverter<T>)nullableType.ElementType.Accept(this, null)!;
             return converter;
         }

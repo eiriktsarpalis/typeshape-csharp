@@ -1,22 +1,25 @@
 ﻿using TypeShape;
 using TypeShape.Applications.JsonSerializer;
 using TypeShape.Applications.PrettyPrinter;
+using TypeShape.Applications.RandomGenerator;
+using TypeShape.Applications.StructuralEquality;
 
 IType<MyPoco> shape = SourceGenTypeShapeProvider.Default.MyPoco;
+
+RandomGenerator<MyPoco> generator = RandomGenerator.Create(shape);
+PrettyPrinter<MyPoco> printer = PrettyPrinter.Create(shape);
 TypeShapeJsonSerializer<MyPoco> jsonSerializer = TypeShapeJsonSerializer.Create(shape);
-PrettyPrinter<MyPoco> pp = PrettyPrinter.CreatePrinter(shape);
+IEqualityComparer<MyPoco> equalityComparer = StructuralEqualityComparer.Create(shape);
 
-var value = new MyPoco(@string: "myString")
-{
-    List = new() { 1, 2, 3 },
-    Dict = new() { ["key1"] = 42, ["key2"] = -1 },
-};
+MyPoco randomValue = generator.GenerateValue(size: 64, seed: 12);
+Console.WriteLine("Generated pseudo-random value:");
+Console.WriteLine(printer.PrettyPrint(randomValue));
 
-string json = jsonSerializer.Serialize(value);
-Console.WriteLine(json);
-value = jsonSerializer.Deserialize(json)!;
+string json = jsonSerializer.Serialize(randomValue);
+Console.WriteLine($"Serialized to JSON: {json}");
 
-Console.WriteLine(pp.PrettyPrint(value));
+MyPoco? deserializedValue = jsonSerializer.Deserialize(json);
+Console.WriteLine($"Deserialized value equals original: {equalityComparer.Equals(randomValue, deserializedValue)}");
 
 public class MyPoco
 {
@@ -28,7 +31,7 @@ public class MyPoco
 
     public bool Bool { get; }
     public string String { get; }
-    public List<int>? List { get; set; }
+    public int[]? Array { get; set; }
     public Dictionary<string, int>? Dict { get; set; }
 }
 

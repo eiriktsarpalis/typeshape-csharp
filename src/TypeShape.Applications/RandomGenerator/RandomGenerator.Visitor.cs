@@ -8,11 +8,11 @@ public partial class RandomGenerator
 
     private sealed class Visitor : ITypeShapeVisitor
     {
-        private Dictionary<Type, object> _generators = new(CreateDefaultGenerators());
+        private Dictionary<Type, object> _visited = new(CreateDefaultGenerators());
 
         public object? VisitType<T>(IType<T> type, object? state)
         {
-            if (_generators.TryGetValue(typeof(T), out object? result))
+            if (_visited.TryGetValue(typeof(T), out object? result))
             {
                 Debug.Assert(result is RandomGenerator<T> or DelayedResultValueHolder<T>);
                 return result is DelayedResultValueHolder<T> delayedHolder
@@ -21,7 +21,7 @@ public partial class RandomGenerator
             }
             else
             {
-                _generators.Add(typeof(T), new DelayedResultValueHolder<T>());
+                _visited.Add(typeof(T), new DelayedResultValueHolder<T>());
             }
 
             switch (type.Kind)
@@ -207,29 +207,29 @@ public partial class RandomGenerator
 
         private RandomGenerator<T> CacheResult<T>(RandomGenerator<T> generator)
         {
-            var holder = (DelayedResultValueHolder<T>)_generators[typeof(T)];
+            var holder = (DelayedResultValueHolder<T>)_visited[typeof(T)];
             holder.Result = generator;
             return generator;
         }
 
         private static IEnumerable<KeyValuePair<Type, object>> CreateDefaultGenerators()
         {
-            yield return Create((random, size) => NextBoolean(random));
+            yield return Create((random, _) => NextBoolean(random));
 
-            yield return Create((random, size) => (byte)random.Next(0, size));
-            yield return Create((random, size) => (ushort)random.Next(0, size));
-            yield return Create((random, size) => (char)random.Next(0, size));
-            yield return Create((random, size) => (uint)random.Next(0, size));
-            yield return Create((random, size) => (ulong)random.Next(0, size));
+            yield return Create((random, _) => (byte)random.Next(0, byte.MaxValue));
+            yield return Create((random, _) => (ushort)random.Next(0, ushort.MaxValue));
+            yield return Create((random, _) => (char)random.Next(0, char.MaxValue));
+            yield return Create((random, _) => (uint)random.Next());
+            yield return Create((random, _) => (ulong)random.Next());
 
-            yield return Create((random, size) => (sbyte)random.Next(-size, size));
-            yield return Create((random, size) => (short)random.Next(-size, size));
-            yield return Create((random, size) => random.Next(-size, size));
-            yield return Create((random, size) => (long)random.Next(-size, size));
+            yield return Create((random, _) => (sbyte)random.Next(sbyte.MinValue, sbyte.MaxValue));
+            yield return Create((random, _) => (short)random.Next(short.MinValue, short.MaxValue));
+            yield return Create((random, _) => random.Next());
+            yield return Create((random, _) => NextLong(random));
             
-            yield return Create((random, size) => NextSign(random) * size * random.NextDouble());
-            yield return Create((random, size) => (float)(NextSign(random) * size * random.NextDouble()));
-            yield return Create((random, size) => (decimal)(NextSign(random) * size * random.NextDouble()));
+            yield return Create((random, size) => (random.NextDouble() - 0.5) * size);
+            yield return Create((random, size) => (float)((random.NextDouble() - 0.5) * size));
+            yield return Create((random, size) => (decimal)((random.NextDouble() - 0.5) * size));
 
             yield return Create((random, _) => new TimeSpan(NextLong(random)));
             yield return Create((random, _) => new DateTime(NextLong(random, DateTime.MinValue.Ticks, DateTime.MaxValue.Ticks)));
@@ -237,14 +237,14 @@ public partial class RandomGenerator
 
             yield return Create((random, size) =>
             {
-                byte[] bytes = new byte[random.Next(0, size)];
+                byte[] bytes = new byte[random.Next(0, Math.Max(7, size))];
                 random.NextBytes(bytes);
                 return bytes;
             });
 
             yield return Create((random, size) =>
             {
-                int length = random.Next(0, size);
+                int length = random.Next(0, Math.Max(7, size));
                 return string.Create(length, random, PopulateSpan);
                 static void PopulateSpan(Span<char> chars, Random random)
                 {
@@ -263,7 +263,7 @@ public partial class RandomGenerator
                 {
                     0 => NextBoolean(random),
                     1 => random.Next(-size, size),
-                    2 => NextSign(random) * size * random.NextDouble(),
+                    2 => (random.NextDouble() - 0.5) * size,
                     3 => NextString(random, size),
                     _ => new TimeSpan(NextLong(random)),
                 };
@@ -276,12 +276,11 @@ public partial class RandomGenerator
         private static long NextLong(Random random) => ((long)random.Next() << 32) | (long)random.Next();
         private static long NextLong(Random random, long min, long max) => Math.Clamp(NextLong(random), min, max);
         private static bool NextBoolean(Random random) => random.Next(0, 2) != 0;
-        private static int NextSign(Random random) => random.Next(1, 3) * 2 - 3;
         private static string NextString(Random random, int size)
         {
             int length = random.Next(0, size);
-            return string.Create(length, random, PopulateSpan);
-            static void PopulateSpan(Span<char> chars, Random random)
+            return string.Create(length, random, Populate);
+            static void Populate(Span<char> chars, Random random)
             {
                 const string CharPool = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
                 for (int i = 0; i < chars.Length; i++)

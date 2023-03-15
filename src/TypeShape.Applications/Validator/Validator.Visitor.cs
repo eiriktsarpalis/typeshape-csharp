@@ -8,6 +8,7 @@ public static partial class Validator
     {
         public object? VisitType<T>(IType<T> type, object? state)
         {
+            // Recursive type handling omitted for simplicity.
             switch (type.Kind)
             {
                 case TypeKind kind when (kind.HasFlag(TypeKind.Dictionary)):

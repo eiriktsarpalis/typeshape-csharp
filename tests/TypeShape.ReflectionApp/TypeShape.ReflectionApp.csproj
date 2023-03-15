@@ -7,6 +7,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <PublishReadyToRun>true</PublishReadyToRun>
+	<PublishSingleFile>true</PublishSingleFile>
+	<SelfContained>true</SelfContained>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\TypeShape\TypeShape.csproj" />
     <ProjectReference Include="..\..\src\TypeShape.Applications\TypeShape.Applications.csproj" />
