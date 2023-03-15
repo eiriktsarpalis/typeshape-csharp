@@ -91,7 +91,7 @@ internal class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         return CreateDelegate<Setter<TDeclaringType, TPropertyType>>(dynamicMethod);
     }
 
-    public Setter<TEnumerable, TElement> CreateCollectionAddDelegate<TEnumerable, TElement>(MethodInfo methodInfo)
+    public Setter<TEnumerable, TElement> CreateEnumerableAddDelegate<TEnumerable, TElement>(MethodInfo methodInfo)
     {
         DynamicMethod dynamicMethod = CreateDynamicMethod(methodInfo.Name, typeof(void), new[] { typeof(TEnumerable).MakeByRefType(), typeof(TElement) });
         ILGenerator generator = dynamicMethod.GetILGenerator();
@@ -115,6 +115,37 @@ internal class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
 
         generator.Emit(OpCodes.Ret);
         return CreateDelegate<Setter<TEnumerable, TElement>>(dynamicMethod);
+    }
+
+    public Setter<TDictionary, KeyValuePair<TKey, TValue>> CreateDictionaryAddDelegate<TDictionary, TKey, TValue>(MethodInfo methodInfo)
+    {
+        Type keyValuePairTy = typeof(KeyValuePair<TKey, TValue>);
+        DynamicMethod dynamicMethod = CreateDynamicMethod(methodInfo.Name, typeof(void), new[] { typeof(TDictionary).MakeByRefType(), keyValuePairTy });
+        ILGenerator generator = dynamicMethod.GetILGenerator();
+
+        generator.Emit(OpCodes.Ldarg_0);
+        if (!typeof(TDictionary).IsValueType)
+        {
+            generator.Emit(OpCodes.Ldind_Ref);
+        }
+
+        generator.Emit(OpCodes.Ldarga_S, 1);
+        generator.Emit(OpCodes.Call, keyValuePairTy.GetMethod("get_Key", BindingFlags.Public | BindingFlags.Instance)!);
+
+        generator.Emit(OpCodes.Ldarga_S, 1);
+        generator.Emit(OpCodes.Call, keyValuePairTy.GetMethod("get_Value", BindingFlags.Public | BindingFlags.Instance)!);
+
+        if (typeof(TDictionary).IsValueType)
+        {
+            generator.Emit(OpCodes.Call, methodInfo);
+        }
+        else
+        {
+            generator.Emit(OpCodes.Callvirt, methodInfo);
+        }
+
+        generator.Emit(OpCodes.Ret);
+        return CreateDelegate<Setter<TDictionary, KeyValuePair<TKey, TValue>>>(dynamicMethod);
     }
 
     public Func<TDeclaringType> CreateDefaultConstructor<TDeclaringType>(ConstructorInfo? ctorInfo)

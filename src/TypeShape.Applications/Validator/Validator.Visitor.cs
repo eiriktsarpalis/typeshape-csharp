@@ -59,7 +59,7 @@ public static partial class Validator
             where TKey : notnull
         {
             var valueValidator = (Validator<TValue>)dictionaryType.ValueType.Accept(this, null)!;
-            Func<TDictionary, IEnumerable<KeyValuePair<TKey, TValue>>> getEnumerable = dictionaryType.GetGetEnumerable();
+            Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getDictionary = dictionaryType.GetGetDictionary();
             return new Validator<TDictionary>((Func<object?, bool> isNodeValid, TDictionary dict, List<string> path, ref List<string>? errors) =>
             {
                 if (!isNodeValid(dict))
@@ -68,7 +68,7 @@ public static partial class Validator
                     errors.Add($"Value in path {string.Join(".", path)} is not valid.");
                 }
 
-                foreach (var kvp in getEnumerable(dict))
+                foreach (var kvp in getDictionary(dict))
                 {
                     path.Add(kvp.Key.ToString()!);
                     valueValidator(isNodeValid, kvp.Value, path, ref errors);

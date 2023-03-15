@@ -1,5 +1,5 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Reflection;
 
 namespace TypeShape.Tests;
@@ -276,6 +276,11 @@ public record RecordWith42ConstructorParameters(
 [GenerateShape(typeof(GenericRecord<string>))]
 [GenerateShape(typeof(GenericRecord<GenericRecord<bool>>))]
 [GenerateShape(typeof(GenericRecord<GenericRecord<int>>))]
+[GenerateShape(typeof(ImmutableArray<int>))]
+[GenerateShape(typeof(ImmutableList<string>))]
+[GenerateShape(typeof(ImmutableQueue<int>))]
+[GenerateShape(typeof(ImmutableDictionary<string, string>))]
+[GenerateShape(typeof(ImmutableSortedDictionary<string, string>))]
 [GenerateShape(typeof(ComplexStruct))]
 [GenerateShape(typeof(ComplexStructWithProperties))]
 [GenerateShape(typeof(StructWithDefaultCtor))]

@@ -1,4 +1,5 @@
-﻿using TypeShape.Applications.PrettyPrinter;
+﻿using System.Collections.Immutable;
+using TypeShape.Applications.PrettyPrinter;
 using TypeShape.ReflectionProvider;
 using Xunit;
 
@@ -34,6 +35,12 @@ public abstract class PrettyPrinterTests
         yield return GetPair(new Dictionary<string, string>(), "{ }");
         yield return GetPair(new Dictionary<string, string> { ["key"] = "value" }, "{ [\"key\"] = \"value\" }");
         yield return GetPair(new Dictionary<SimpleRecord, string> { [new SimpleRecord(42)] = "value" }, "{ [{ value = 42 }] = \"value\" }");
+        
+        yield return GetPair(ImmutableArray.Create(1,2,3), "[1, 2, 3]");
+        yield return GetPair(ImmutableList.Create("1", "2", "3"), "[\"1\", \"2\", \"3\"]");
+        yield return GetPair(ImmutableQueue.Create(1, 2, 3), "[1, 2, 3]");
+        yield return GetPair(ImmutableDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }), "{ [\"key\"] = \"value\" }");
+        yield return GetPair(ImmutableSortedDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }), "{ [\"key\"] = \"value\" }");
 
         static object?[] GetPair<T>(T? value, string expected) => new object?[] { value, expected };
     }

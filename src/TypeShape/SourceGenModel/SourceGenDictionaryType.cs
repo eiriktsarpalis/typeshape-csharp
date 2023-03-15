@@ -7,7 +7,7 @@ public sealed class SourceGenDictionaryType<TDictionary, TKey, TValue> : IDictio
     public required IType KeyType { get; init; }
     public required IType ValueType { get; init; }
 
-    public required Func<TDictionary, IEnumerable<KeyValuePair<TKey, TValue>>> GetEnumerableFunc { get; init; }
+    public required Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> GetDictionaryFunc { get; init; }
     public Setter<TDictionary, KeyValuePair<TKey, TValue>>? AddKeyValuePairFunc { get; init; }
 
     public bool IsMutable => AddKeyValuePairFunc is not null;
@@ -23,6 +23,6 @@ public sealed class SourceGenDictionaryType<TDictionary, TKey, TValue> : IDictio
         return AddKeyValuePairFunc;
     }
 
-    public Func<TDictionary, IEnumerable<KeyValuePair<TKey, TValue>>> GetGetEnumerable()
-        => GetEnumerableFunc;
+    public Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> GetGetDictionary()
+        => GetDictionaryFunc;
 }

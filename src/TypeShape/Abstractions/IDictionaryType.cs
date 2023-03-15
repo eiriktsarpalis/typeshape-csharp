@@ -12,7 +12,7 @@ public interface IDictionaryType
 public interface IDictionaryType<TDictionary, TKey, TValue> : IDictionaryType
     where TKey : notnull
 {
-    Func<TDictionary, IEnumerable<KeyValuePair<TKey, TValue>>> GetGetEnumerable();
+    Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> GetGetDictionary();
     Setter<TDictionary, KeyValuePair<TKey, TValue>> GetAddKeyValuePair();
 }
 

@@ -48,17 +48,30 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
         };
     }
 
-    public Setter<TEnumerable, TElement> CreateCollectionAddDelegate<TEnumerable, TElement>(MethodInfo addMethod)
+    public Setter<TEnumerable, TElement> CreateEnumerableAddDelegate<TEnumerable, TElement>(MethodInfo addMethod)
     {
         return !typeof(TEnumerable).IsValueType
         ? (ref TEnumerable enumerable, TElement element) => addMethod.Invoke(enumerable, new object?[] { element })
         : (ref TEnumerable enumerable, TElement element) =>
         {
             object boxed = enumerable!;
-            addMethod.Invoke(enumerable, new object?[] { element });
+            addMethod.Invoke(boxed, new object?[] { element });
             enumerable = (TEnumerable)boxed;
         };
     }
+
+    public Setter<TDictionary, KeyValuePair<TKey, TValue>> CreateDictionaryAddDelegate<TDictionary, TKey, TValue>(MethodInfo addMethod)
+    {
+        return !typeof(TDictionary).IsValueType
+        ? (ref TDictionary dict, KeyValuePair<TKey, TValue> entry) => addMethod.Invoke(dict, new object?[] { entry.Key, entry.Value })
+        : (ref TDictionary dict, KeyValuePair<TKey, TValue> entry) =>
+        {
+            object boxed = dict!;
+            addMethod.Invoke(boxed, new object?[] { entry.Key, entry.Value });
+            dict = (TDictionary)boxed;
+        };
+    }
+
     public Func<TDeclaringType> CreateDefaultConstructor<TDeclaringType>(ConstructorInfo? ctorInfo)
     {
         Debug.Assert(ctorInfo != null || typeof(TDeclaringType).IsValueType);

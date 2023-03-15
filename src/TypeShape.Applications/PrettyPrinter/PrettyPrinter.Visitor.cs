@@ -109,7 +109,7 @@ public static partial class PrettyPrinter
         public object? VisitDictionaryType<TDictionary, TKey, TValue>(IDictionaryType<TDictionary, TKey, TValue> dictionaryType, object? state)
             where TKey : notnull
         {
-            Func<TDictionary, IEnumerable<KeyValuePair<TKey, TValue>>> enumerableGetter = dictionaryType.GetGetEnumerable();
+            Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> dictionaryGetter = dictionaryType.GetGetDictionary();
             PrettyPrinter<TKey> keyPrinter = (PrettyPrinter<TKey>)dictionaryType.KeyType.Accept(this, null)!;
             PrettyPrinter<TValue> valuePrinter = (PrettyPrinter<TValue>)dictionaryType.ValueType.Accept(this, null)!;
 
@@ -123,7 +123,7 @@ public static partial class PrettyPrinter
 
                 bool containsEntries = false;
                 sb.Append('{');
-                foreach (KeyValuePair<TKey, TValue> kvp in enumerableGetter(value))
+                foreach (KeyValuePair<TKey, TValue> kvp in dictionaryGetter(value))
                 {
                     sb.Append(" [");
                     keyPrinter(sb, kvp.Key);

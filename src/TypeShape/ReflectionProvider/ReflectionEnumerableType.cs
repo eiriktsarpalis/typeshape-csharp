@@ -47,7 +47,7 @@ internal class ReflectionEnumerableType<TEnumerable, TElement> : IEnumerableType
         }
 
         Debug.Assert(_addMethod != null);
-        return _provider.MemberAccessor.CreateCollectionAddDelegate<TEnumerable, TElement>(_addMethod);
+        return _provider.MemberAccessor.CreateEnumerableAddDelegate<TEnumerable, TElement>(_addMethod);
     }
 
     public Func<TEnumerable, IEnumerable<TElement>> GetGetEnumerable()
@@ -106,7 +106,7 @@ internal class ReflectionEnumerableType<TEnumerable> : IEnumerableType<TEnumerab
         }
 
         Debug.Assert(_addMethod != null);
-        return _provider.MemberAccessor.CreateCollectionAddDelegate<TEnumerable, object?>(_addMethod);
+        return _provider.MemberAccessor.CreateEnumerableAddDelegate<TEnumerable, object?>(_addMethod);
     }
 
     public Func<TEnumerable, IEnumerable<object?>> GetGetEnumerable()

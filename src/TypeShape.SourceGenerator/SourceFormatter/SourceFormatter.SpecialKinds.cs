@@ -84,29 +84,30 @@ internal static partial class SourceFormatter
                     Type = {{dictionaryType.Type.GeneratedPropertyName}},
                     KeyType = {{dictionaryType.KeyType.GeneratedPropertyName}},
                     ValueType = {{dictionaryType.ValueType.GeneratedPropertyName}},
-                    GetEnumerableFunc = {{FormatGetEnumerableFunc(dictionaryType)}},
+                    GetDictionaryFunc = {{FormatGetDictionaryFunc(dictionaryType)}},
                     AddKeyValuePairFunc = {{FormatKeyValuePairFunc(dictionaryType)}},
                 };
             }
             """);
 
-        static string FormatGetEnumerableFunc(DictionaryTypeModel dictionaryType)
+        static string FormatGetDictionaryFunc(DictionaryTypeModel dictionaryType)
         {
             return dictionaryType.Kind switch
             {
-                DictionaryKind.IDictionaryOfKV or
                 DictionaryKind.IReadOnlyDictionaryOfKV => "static obj => obj",
-                DictionaryKind.IDictionary => "static obj => from entry in global::System.Linq.Enumerable.Cast<global::System.Collections.DictionaryEntry>(obj) select new global::System.Collections.Generic.KeyValuePair<object, object?>(entry.Key, entry.Value)",
+                DictionaryKind.IDictionaryOfKV => $"static obj => global::TypeShape.SourceGenModel.CollectionHelpers.AsReadOnlyDictionary<{dictionaryType.Type.FullyQualifiedName}, {dictionaryType.KeyType.FullyQualifiedName}, {dictionaryType.ValueType.FullyQualifiedName}>(obj)",
+                DictionaryKind.IDictionary => "static obj => global::TypeShape.SourceGenModel.CollectionHelpers.AsReadOnlyDictionary(obj)",
                 _ => throw new ArgumentException(dictionaryType.Kind.ToString()),
             };
         }
 
         static string FormatKeyValuePairFunc(DictionaryTypeModel enumerableType)
         {
-            return enumerableType.Kind switch
+            return enumerableType switch
             {
-                DictionaryKind.IDictionaryOfKV => $"static (ref {enumerableType.Type.FullyQualifiedName} dict, KeyValuePair<{enumerableType.KeyType.FullyQualifiedName}, {enumerableType.ValueType.FullyQualifiedName}> kvp) => dict[kvp.Key] = kvp.Value",
-                DictionaryKind.IDictionary => $"static (ref {enumerableType.Type.FullyQualifiedName} dict, KeyValuePair<object, object?> kvp) => dict[kvp.Key] = kvp.Value",
+                { HasSettableIndexer: true } or
+                { Kind: DictionaryKind.IDictionaryOfKV } => $"static (ref {enumerableType.Type.FullyQualifiedName} dict, KeyValuePair<{enumerableType.KeyType.FullyQualifiedName}, {enumerableType.ValueType.FullyQualifiedName}> kvp) => dict[kvp.Key] = kvp.Value",
+                { Kind: DictionaryKind.IDictionary } => $"static (ref {enumerableType.Type.FullyQualifiedName} dict, KeyValuePair<object, object?> kvp) => dict[kvp.Key] = kvp.Value",
                 _ => "null",
             };
         }

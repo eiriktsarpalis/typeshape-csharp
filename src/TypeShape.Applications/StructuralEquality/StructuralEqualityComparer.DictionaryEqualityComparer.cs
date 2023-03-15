@@ -5,16 +5,16 @@ namespace TypeShape.Applications.StructuralEquality;
 
 public static partial class StructuralEqualityComparer
 {
-    private sealed class DictionaryEqualityComparer<TDictionary, TKey, TValue> : EqualityComparer<TDictionary>
+    private class DictionaryEqualityComparer<TDictionary, TKey, TValue> : EqualityComparer<TDictionary>
         where TKey : notnull
     {
-        public Func<TDictionary, IEnumerable<KeyValuePair<TKey, TValue>>>? GetEnumerable { get; set; }
+        public Func<TDictionary, IReadOnlyDictionary<TKey, TValue>>? GetDictionary { get; set; }
         public IEqualityComparer<TKey>? KeyComparer { get; set; }
         public IEqualityComparer<TValue>? ValueComparer { get; set; }
 
         public override bool Equals(TDictionary? x, TDictionary? y)
         {
-            Debug.Assert(GetEnumerable != null);
+            Debug.Assert(GetDictionary != null);
             Debug.Assert(KeyComparer != null);
             Debug.Assert(ValueComparer != null);
 
@@ -23,46 +23,39 @@ public static partial class StructuralEqualityComparer
                 return x is null && y is null;
             }
 
-            // TODO move specializations to Visitor
-            if (typeof(Dictionary<TKey, TValue>).IsAssignableFrom(typeof(TDictionary)))
-            {
-                Dictionary<TKey, TValue> xDict = (Dictionary<TKey, TValue>)(object)x!;
-                Dictionary<TKey, TValue> yDict = (Dictionary<TKey, TValue>)(object)y!;
+            IReadOnlyDictionary<TKey, TValue> xDict = GetDictionary(x);
+            IReadOnlyDictionary<TKey, TValue> yDict = GetDictionary(y);
 
-                if (xDict.Count != yDict.Count)
-                {
-                    return false;
-                }
-
-                if (xDict.Comparer == KeyComparer)
-                {
-                    return AreEqual(xDict, yDict);
-                }
-                else if (yDict.Comparer == KeyComparer)
-                {
-                    return AreEqual(yDict, xDict);
-                }
-
-                return AreEqual(new(xDict, KeyComparer), yDict);
-            }
-            
-            IEnumerable<KeyValuePair<TKey, TValue>> xEnum = GetEnumerable(x);
-            IEnumerable<KeyValuePair<TKey, TValue>> yEnum = GetEnumerable(y);
-
-            if (xEnum.TryGetNonEnumeratedCount(out int xCount) &&
-                yEnum.TryGetNonEnumeratedCount(out int yCount) &&
-                xCount != yCount)
+            if (xDict.Count != yDict.Count)
             {
                 return false;
             }
 
-            return AreEqual(new(xEnum, KeyComparer), yEnum);
+            return AreEqual(new(xDict, KeyComparer), yDict);
         }
 
-        private bool AreEqual(Dictionary<TKey, TValue> dict, IEnumerable<KeyValuePair<TKey, TValue>> entries)
+        public override int GetHashCode([DisallowNull] TDictionary obj)
         {
+            Debug.Assert(GetDictionary != null);
+            Debug.Assert(KeyComparer != null);
             Debug.Assert(ValueComparer != null);
-            Debug.Assert(dict.Comparer == KeyComparer);
+
+            int hashCode = 0;
+            foreach (KeyValuePair<TKey, TValue> kvp in GetDictionary(obj))
+            {
+                int keyHash = kvp.Key is null ? 0 : KeyComparer.GetHashCode(kvp.Key);
+                int valueHash = kvp.Value is null ? 0 : ValueComparer.GetHashCode(kvp.Value);
+                hashCode ^= HashCode.Combine(keyHash, valueHash);
+            }
+
+            return hashCode;
+        }
+
+        protected bool AreEqual(Dictionary<TKey, TValue> dict, IReadOnlyDictionary<TKey, TValue> entries)
+        {
+            Debug.Assert(KeyComparer == dict.Comparer);
+            Debug.Assert(ValueComparer != null);
+            Debug.Assert(dict.Count == entries.Count);
 
             foreach (KeyValuePair<TKey, TValue> entry in entries)
             {
@@ -75,22 +68,36 @@ public static partial class StructuralEqualityComparer
 
             return true;
         }
+    }
 
-        public override int GetHashCode([DisallowNull] TDictionary obj)
+    private sealed class DictionaryOfKVEqualityComparer<TKey, TValue> : DictionaryEqualityComparer<Dictionary<TKey, TValue>, TKey, TValue>
+        where TKey : notnull
+    {
+        public override bool Equals(Dictionary<TKey, TValue>? x, Dictionary<TKey, TValue>? y)
         {
-            Debug.Assert(GetEnumerable != null);
             Debug.Assert(KeyComparer != null);
             Debug.Assert(ValueComparer != null);
 
-            int hashCode = 0;
-            foreach (KeyValuePair<TKey, TValue> kvp in GetEnumerable(obj))
+            if (x is null || y is null)
             {
-                int keyHash = kvp.Key is null ? 0 : KeyComparer.GetHashCode(kvp.Key);
-                int valueHash = kvp.Value is null ? 0 : ValueComparer.GetHashCode(kvp.Value);
-                hashCode ^= HashCode.Combine(keyHash, valueHash);
+                return x is null && y is null;
             }
 
-            return hashCode;
+            if (x.Count != y.Count)
+            {
+                return false;
+            }
+
+            if (x.Comparer == KeyComparer)
+            {
+                return AreEqual(x, y);
+            }
+            else if (y.Comparer == KeyComparer)
+            {
+                return AreEqual(y, x);
+            }
+
+            return AreEqual(new(x, KeyComparer), y);
         }
     }
 }

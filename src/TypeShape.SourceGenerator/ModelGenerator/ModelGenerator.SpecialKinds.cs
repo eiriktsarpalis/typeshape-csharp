@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using System.Diagnostics;
 using TypeShape.SourceGenerator.Model;
 
 namespace TypeShape.SourceGenerator;
@@ -11,12 +12,12 @@ public sealed partial class ModelGenerator
         out NullableTypeModel? nullableType,
         out DictionaryTypeModel? dictionaryType,
         out EnumerableTypeModel? enumerableType,
-        out ITypeSymbol? implementedCollectionType)
+        out ITypeSymbol? resolvedCollectionInterface)
     {
         nullableType = null;
         dictionaryType = null;
         enumerableType = null;
-        implementedCollectionType = null;
+        resolvedCollectionInterface = null;
 
         if ((enumType = MapEnum(typeId, type)) != null)
         {
@@ -28,12 +29,12 @@ public sealed partial class ModelGenerator
             return true;
         }
 
-        if ((dictionaryType = MapDictionary(typeId, type, out implementedCollectionType)) != null)
+        if ((dictionaryType = MapDictionary(typeId, type, out resolvedCollectionInterface)) != null)
         {
             return true;
         }
 
-        if ((enumerableType = MapEnumerable(typeId, type, out implementedCollectionType)) != null)
+        if ((enumerableType = MapEnumerable(typeId, type, out resolvedCollectionInterface)) != null)
         {
             return true;
         }
@@ -65,11 +66,11 @@ public sealed partial class ModelGenerator
         };
     }
 
-    private EnumerableTypeModel? MapEnumerable(TypeId typeId, ITypeSymbol type, out ITypeSymbol? enumerableInterface)
+    private EnumerableTypeModel? MapEnumerable(TypeId typeId, ITypeSymbol type, out ITypeSymbol? resolvedInterface)
     {
         ITypeSymbol? elementType = null;
         EnumerableKind kind = default;
-        enumerableInterface = null;
+        resolvedInterface = null;
 
         if (type is IArrayTypeSymbol array)
         {
@@ -88,7 +89,7 @@ public sealed partial class ModelGenerator
                 i.OriginalDefinition.SpecialType is SpecialType.System_Collections_Generic_ICollection_T &&
                 SymbolEqualityComparer.Default.Equals(i.TypeArguments[0], elementType));
 
-            enumerableInterface = collectionOfT ?? enumerableOfT;
+            resolvedInterface = collectionOfT ?? enumerableOfT;
             kind = collectionOfT is { } ? EnumerableKind.ICollectionOfT : EnumerableKind.IEnumerableOfT;
         }
         else if (
@@ -97,12 +98,12 @@ public sealed partial class ModelGenerator
         {
             if (_iList is { } ilist && type.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, ilist)))
             {
-                enumerableInterface = ilist;
+                resolvedInterface = ilist;
                 kind = EnumerableKind.IList;
             }
             else
             {
-                enumerableInterface = enumerable;
+                resolvedInterface = enumerable;
                 kind = EnumerableKind.IEnumerable;
             }
 
@@ -114,8 +115,6 @@ public sealed partial class ModelGenerator
             return null;
         }
 
-        TypeId elementTypeId = GetOrCreateTypeId(elementType);
-
         IMethodSymbol? addMethod = type.GetMembers()
             .OfType<IMethodSymbol>()
             .FirstOrDefault(method =>
@@ -126,63 +125,66 @@ public sealed partial class ModelGenerator
         return new EnumerableTypeModel
         {
             Type = typeId,
-            ElementType = elementTypeId,
+            ElementType = GetOrCreateTypeId(elementType),
             Kind = kind,
             AddElementMethod = addMethod?.Name
         };
     }
 
-    private DictionaryTypeModel? MapDictionary(TypeId typeId, ITypeSymbol type, out ITypeSymbol? dictionaryInterface)
+    private DictionaryTypeModel? MapDictionary(TypeId typeId, ITypeSymbol type, out ITypeSymbol? resolvedInterface)
     {
-        dictionaryInterface = null;
+        ITypeSymbol? keyType = null;
+        ITypeSymbol? valueType = null;
+        DictionaryKind kind = default;
+        resolvedInterface = null;
 
-        if (_iDictionaryOfTKeyTValue is { } genericIDict &&
-            type.AllInterfaces.FirstOrDefault(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, genericIDict)) is { } genericIDictInstance)
-        {
-            TypeId keyType = GetOrCreateTypeId(genericIDictInstance.TypeArguments[0]);
-            TypeId valueType = GetOrCreateTypeId(genericIDictInstance.TypeArguments[1]);
-            dictionaryInterface = genericIDictInstance;
-
-            return new DictionaryTypeModel
-            {
-                Type = typeId,
-                KeyType = keyType,
-                ValueType = valueType,
-                Kind = DictionaryKind.IDictionaryOfKV,
-            };
-        }
-        else if (
-            _iReadOnlyDictionaryOfTKeyTValue is { } genericReadOnlyIDict &&
+        if (_iReadOnlyDictionaryOfTKeyTValue is { } genericReadOnlyIDict &&
             type.AllInterfaces.FirstOrDefault(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, genericReadOnlyIDict)) is { } genericReadOnlyIDictInstance)
         {
-            TypeId keyType = GetOrCreateTypeId(genericReadOnlyIDictInstance.TypeArguments[0]);
-            TypeId valueType = GetOrCreateTypeId(genericReadOnlyIDictInstance.TypeArguments[1]);
-            dictionaryInterface = genericReadOnlyIDictInstance;
-
-            return new DictionaryTypeModel
-            {
-                Type = typeId,
-                KeyType = keyType,
-                ValueType = valueType,
-                Kind = DictionaryKind.IReadOnlyDictionaryOfKV,
-            };
+            keyType = genericReadOnlyIDictInstance.TypeArguments[0];
+            valueType = genericReadOnlyIDictInstance.TypeArguments[1];
+            kind = DictionaryKind.IReadOnlyDictionaryOfKV;
+            resolvedInterface = genericReadOnlyIDictInstance;
+        }
+        else if (
+            _iDictionaryOfTKeyTValue is { } genericIDict &&
+            type.AllInterfaces.FirstOrDefault(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, genericIDict)) is { } genericIDictInstance)
+        {
+            keyType = genericIDictInstance.TypeArguments[0];
+            valueType = genericIDictInstance.TypeArguments[1];
+            kind = DictionaryKind.IDictionaryOfKV;
+            resolvedInterface = genericIDictInstance;
         }
         else if (
             _iDictionary is { } iDictionary &&
             type.AllInterfaces.FirstOrDefault(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, iDictionary)) is { })
         {
-            TypeId objectType = GetOrCreateTypeId(_semanticModel.Compilation.ObjectType);
-            dictionaryInterface = iDictionary;
-
-            return new DictionaryTypeModel
-            {
-                Type = typeId,
-                KeyType = objectType,
-                ValueType = objectType,
-                Kind = DictionaryKind.IDictionary,
-            };
+            keyType = _semanticModel.Compilation.ObjectType;
+            valueType = _semanticModel.Compilation.ObjectType;
+            kind = DictionaryKind.IDictionary;
+            resolvedInterface = iDictionary;
         }
 
-        return null;
+        if (keyType is null)
+        {
+            return null;
+        }
+
+        Debug.Assert(valueType != null);
+
+        bool hasSettableIndexer = type.GetMembers()
+            .OfType<IPropertySymbol>()
+            .Any(prop =>
+                prop is { DeclaredAccessibility: Accessibility.Public, IsStatic: false, IsIndexer: true, Parameters.Length: 1, SetMethod: { } } 
+                && SymbolEqualityComparer.Default.Equals(prop.Parameters[0].Type, keyType));
+
+        return new DictionaryTypeModel
+        {
+            Type = typeId,
+            KeyType = GetOrCreateTypeId(keyType),
+            ValueType = GetOrCreateTypeId(valueType!),
+            HasSettableIndexer = hasSettableIndexer,
+            Kind = kind,
+        };
     }
 }

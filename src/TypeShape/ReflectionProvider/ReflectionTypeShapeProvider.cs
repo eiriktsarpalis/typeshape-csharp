@@ -125,12 +125,13 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
                 {
                     dictionaryTypeTy = typeof(ReflectionGenericDictionaryType<,,>)
                         .MakeGenericType(type, genericArgs[0], genericArgs[1]);
-                    break;
                 }
                 else if (genericInterfaceTy == typeof(IReadOnlyDictionary<,>))
                 {
                     dictionaryTypeTy = typeof(ReflectionReadOnlyDictionaryType<,,>)
                         .MakeGenericType(type, genericArgs[0], genericArgs[1]);
+
+                    break; // IReadOnlyDictionary takes precedence over IDictionary
                 }
             }
         }

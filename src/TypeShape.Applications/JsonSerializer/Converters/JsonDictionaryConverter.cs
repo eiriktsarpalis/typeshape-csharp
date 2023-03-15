@@ -9,7 +9,7 @@ internal sealed class JsonDictionaryConverter<TDictionary, TKey, TValue> : JsonC
 {
     internal JsonConverter<TKey>? KeyConverter { get; set; }
     internal JsonConverter<TValue>? ValueConverter { get; set; }
-    internal Func<TDictionary, IEnumerable<KeyValuePair<TKey, TValue>>>? GetEnumerable { get; set; }
+    internal Func<TDictionary, IReadOnlyDictionary<TKey, TValue>>? GetDictionary { get; set; }
     internal Func<TDictionary>? CreateObject { get; set; }
     internal Setter<TDictionary, KeyValuePair<TKey, TValue>>? AddDelegate { get; set; }
 
@@ -24,7 +24,8 @@ internal sealed class JsonDictionaryConverter<TDictionary, TKey, TValue> : JsonC
         if (createObject is null)
         {
             ThrowNotSupportedException();
-            [DoesNotReturn] static void ThrowNotSupportedException() => throw new NotSupportedException();
+            [DoesNotReturn] static void ThrowNotSupportedException() 
+                => throw new NotSupportedException($"Type {typeof(TDictionary)} does not support deserialization.");
         }
 
         reader.EnsureTokenType(JsonTokenType.StartObject);
@@ -57,7 +58,7 @@ internal sealed class JsonDictionaryConverter<TDictionary, TKey, TValue> : JsonC
 
     public override void Write(Utf8JsonWriter writer, TDictionary value, JsonSerializerOptions options)
     {
-        Debug.Assert(GetEnumerable != null);
+        Debug.Assert(GetDictionary != null);
         Debug.Assert(KeyConverter != null);
         Debug.Assert(ValueConverter != null);
 
@@ -71,7 +72,7 @@ internal sealed class JsonDictionaryConverter<TDictionary, TKey, TValue> : JsonC
         JsonConverter<TValue> valueConverter = ValueConverter;
 
         writer.WriteStartObject();
-        foreach (KeyValuePair<TKey, TValue> kvp in GetEnumerable(value))
+        foreach (KeyValuePair<TKey, TValue> kvp in GetDictionary(value))
         {
             //keyConverter.WriteAsPropertyName(writer, kvp.Key, options);
             writer.WritePropertyName(kvp.Key!.ToString()!);

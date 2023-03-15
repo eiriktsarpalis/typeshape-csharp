@@ -1,4 +1,6 @@
 ﻿using System.Collections;
+using System.Diagnostics;
+using System.Reflection;
 
 namespace TypeShape.ReflectionProvider;
 
@@ -27,9 +29,9 @@ internal sealed class ReflectionGenericDictionaryType<TDictionary, TKey, TValue>
         return static (ref TDictionary dict, KeyValuePair<TKey, TValue> kvp) => dict[kvp.Key] = kvp.Value;
     }
 
-    public Func<TDictionary, IEnumerable<KeyValuePair<TKey, TValue>>> GetGetEnumerable()
+    public Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> GetGetDictionary()
     {
-        return static dict => dict;
+        return static dict => SourceGenModel.CollectionHelpers.AsReadOnlyDictionary<TDictionary, TKey, TValue>(dict);
     }
 }
 
@@ -48,17 +50,42 @@ internal sealed class ReflectionReadOnlyDictionaryType<TDictionary, TKey, TValue
 
     public IType ValueType => _provider.GetShape(typeof(TValue));
 
-    public bool IsMutable => false;
+    public bool IsMutable => _isMutable ??= DetermineIsMutable();
+    private MethodInfo? _addMethod;
+    private bool? _isMutable;
+
+    private bool DetermineIsMutable()
+    {
+        foreach (MethodInfo methodInfo in typeof(TDictionary).GetMethods(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (methodInfo.Name is "set_Item" or "Add" &&
+                methodInfo.ReturnType == typeof(void) &&
+                methodInfo.GetParameters() is [ParameterInfo p1, ParameterInfo p2] &&
+                p1.ParameterType == typeof(TKey) && p2.ParameterType == typeof(TValue))
+            {
+                _addMethod = methodInfo;
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     public object? Accept(IDictionaryTypeVisitor visitor, object? state)
         => visitor.VisitDictionaryType(this, state);
 
     public Setter<TDictionary, KeyValuePair<TKey, TValue>> GetAddKeyValuePair()
     {
-        throw new NotSupportedException();
+        if (!IsMutable)
+        {
+            throw new InvalidOperationException();
+        }
+
+        Debug.Assert(_addMethod != null);
+        return _provider.MemberAccessor.CreateDictionaryAddDelegate<TDictionary, TKey, TValue>(_addMethod);
     }
 
-    public Func<TDictionary, IEnumerable<KeyValuePair<TKey, TValue>>> GetGetEnumerable()
+    public Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> GetGetDictionary()
     {
         return static dict => dict;
     }
@@ -88,15 +115,6 @@ internal sealed class ReflectionDictionaryType<TDictionary> : IDictionaryType<TD
         return static (ref TDictionary dict, KeyValuePair<object, object?> kvp) => dict[kvp.Key] = kvp.Value;
     }
 
-    public Func<TDictionary, IEnumerable<KeyValuePair<object, object?>>> GetGetEnumerable()
-    {
-        return GetEnumerable;
-        static IEnumerable<KeyValuePair<object, object?>> GetEnumerable(TDictionary dict)
-        {
-            foreach (DictionaryEntry entry in dict)
-            {
-                yield return new(entry.Key, entry.Value);
-            }
-        }
-    }
+    public Func<TDictionary, IReadOnlyDictionary<object, object?>> GetGetDictionary()
+        => static obj => SourceGenModel.CollectionHelpers.AsReadOnlyDictionary(obj);
 }

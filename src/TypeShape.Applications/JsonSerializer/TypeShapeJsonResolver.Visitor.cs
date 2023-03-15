@@ -145,7 +145,7 @@ public partial class TypeShapeJsonResolver
 
             dictionaryConverter.KeyConverter = (JsonConverter<TKey>)dictionaryType.KeyType.Accept(this, null)!;
             dictionaryConverter.ValueConverter = (JsonConverter<TValue>)dictionaryType.ValueType.Accept(this, null)!;
-            dictionaryConverter.GetEnumerable = dictionaryType.GetGetEnumerable();
+            dictionaryConverter.GetDictionary = dictionaryType.GetGetDictionary();
 
             if (dictionaryType.IsMutable)
             {
@@ -156,7 +156,7 @@ public partial class TypeShapeJsonResolver
 
                 if (defaultCtor != null)
                 {
-                    JsonConstructor<TDictionary> constructor = (JsonConstructor<TDictionary>)defaultCtor.Accept(this, null)!;
+                    var constructor = (JsonConstructor<TDictionary>)defaultCtor.Accept(this, null)!;
                     dictionaryConverter.CreateObject = constructor.DefaultConstructor;
                     dictionaryConverter.AddDelegate = dictionaryType.GetAddKeyValuePair();
                 }
