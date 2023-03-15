@@ -16,7 +16,7 @@ The repo consists of the following projects:
   * A [reflection provider](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape/ReflectionProvider) implementation.
   * The [model classes](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape/SourceGenModel) used by the source generator.
 * The [`TypeShape.SourceGenerator`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.SourceGenerator) implementation.
-  * Defines an incremental source generator following an activation model identical to `System.Text.Json`.
+  * Defines an incremental source generator following a [triggering model](https://github.com/eiriktsarpalis/typeshape-csharp/blob/7f517209fd34cf80b5ba83b21306c6e8bf836ae9/tests/TypeShape.SourceGenApp/Program.cs#L38-L41) identical to `System.Text.Json`.
 * [`TypeShape.Applications`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Applications) containing generic program examples:
   * A serializer generator targeting System.Text.Json's `JsonConverter`,
   * A simple pretty-printer for .NET values,
@@ -57,10 +57,15 @@ when compared with the System.Text.Json's metadata serializer. As expected, fast
 
 ## Advantages & Disadvantages
 
-The obvious advantage is low barrier of entry when porting to NativeAOT: you don't need to write your own source generator for every datatype-generic component.
+The library has a number of advantages:
 
-At the same time the approach has a number of drawbacks, namely:
+1. Low barrier of entry when porting to NativeAOT: you get a source generator for free so don't need to write your own.
+2. The same source generator/type model can be used reused across multiple components, in theory meaning reduced compile times and static footprints.
+3. Reusable/consistent handling of the .NET/C# type system across components: struct vs class semantics, inheritance, virtual properties, init & required properties, etc.
+
+At the same time the approach also has a number of drawbacks, namely:
 
 1. Mapping the type model to any particular datatype-generic component needs to happen at runtime, which incurs one-off startup costs.
 2. The type model is defined using generic interfaces, which should have impact on the static footprint of a trimmed application.
 3. Whether using reflection or source gen, member access is driven using delegates is slower than direct access in inlined, "fast-path" serializers.
+4. At present there is no mechanism for filtering generated member accessors at compile time.
