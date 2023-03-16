@@ -11,7 +11,7 @@ public static partial class PrettyPrinter
 
     public static PrettyPrinter<T> Create<T>(IType<T> type)
     {
-        return (PrettyPrinter<T>)s_Builder.VisitType(type, null)!;
+        return (PrettyPrinter<T>)type.Accept(s_Builder, null)!;
     }
 
     public static string PrettyPrint<T>(this PrettyPrinter<T> pp, T value)

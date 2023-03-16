@@ -11,7 +11,7 @@ public static partial class Validator
     private static readonly Visitor s_Visitor = new();
 
     public static Validator<T> Create<T>(IType<T> type) 
-        => (Validator<T>)s_Visitor.VisitType(type, null)!;
+        => (Validator<T>)type.Accept(s_Visitor, null)!;
 
     public static bool TryValidate<T>(
         this Validator<T> validator, T value, 
