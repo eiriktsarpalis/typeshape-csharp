@@ -296,6 +296,8 @@ public record RecordWith42ConstructorParameters(
 [GenerateShape(typeof(RecordWithNullableDefaultParams2))]
 [GenerateShape(typeof(RecordWithEnumAndNullableParams))]
 [GenerateShape(typeof(LinkedList<int>))]
+//[GenerateShape(typeof((int, string, bool)))] // TODO tuple support
+[GenerateShape(typeof(LinkedList<SimpleRecord>))]
 [GenerateShape(typeof(RecordWith21ConstructorParameters))]
 [GenerateShape(typeof(RecordWith42ConstructorParameters))]
 [GenerateShape(typeof(RecordWithNullableDefaultEnum))]
