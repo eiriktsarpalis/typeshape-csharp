@@ -53,7 +53,7 @@ Here's a [benchmark](https://github.com/eiriktsarpalis/typeshape-csharp/blob/mai
 |  Deserialize_TypeShapeSourceGen |   906.5 ns | 14.53 ns | 13.59 ns |  0.53 |    0.01 | 0.0601 |     608 B |        0.56 |
 
 Even though both serializers target the same underlying `JsonConverter` infrastructure, the TypeShape implementation is ~30% faster for serialization and ~90% for deserialization,
-when compared with the System.Text.Json's metadata serializer. As expected, fast-path serialization is still fastest since its implementation is fully inlined.
+when compared with System.Text.Json's metadata serializer. As expected, fast-path serialization is still fastest since its implementation is fully inlined.
 
 ## Advantages & Disadvantages
 
