@@ -25,13 +25,23 @@ internal static partial class SourceFormatter
                     DeclaringType = {{constructor.DeclaringType.GeneratedPropertyName}},
                     ParameterCount = {{constructor.Parameters.Count}},
                     GetParametersFunc = {{(constructor.Parameters.Count == 0 ? "null" : FormatConstructorParameterFactoryName(type, i))}},
+                    DefaultConstructorFunc = {{FormatDefaultCtor(constructor)}},
                     ArgumentStateConstructorFunc = static () => {{FormatArgumentStateCtorExpr(constructor)}},
                     ParameterizedConstructorFunc = static state => new {{type.Id.FullyQualifiedName}}({{FormatParameterizedCtorArgumentsExpr(constructor)}}),
-                    DefaultConstructorFunc = {{FormatDefaultCtor(constructor)}},
+                    AttributeProviderFunc = {{FormatAttributeProviderFunc(constructor)}},
                 };
                 """);
 
             i++;
+
+            static string FormatAttributeProviderFunc(ConstructorModel constructor)
+            {
+                string parameterTypes = constructor.Parameters.Count == 0
+                    ? "Array.Empty<Type>()"
+                    : $$"""new[] { {{string.Join(", ", constructor.Parameters.Select(p => $"typeof({p.ParameterType.FullyQualifiedName})"))}} }""";
+
+                return $"static () => typeof({constructor.DeclaringType.FullyQualifiedName}).GetConstructor({InstanceBindingFlagsConstMember}, {parameterTypes})";
+            }
 
             static string FormatArgumentStateCtorExpr(ConstructorModel constructor)
                 => constructor.Parameters.Count switch
@@ -95,10 +105,20 @@ internal static partial class SourceFormatter
                     HasDefaultValue = {{FormatBool(parameter.HasDefaultValue)}},
                     DefaultValue = {{FormatDefaultValueExpr(parameter)}},
                     Setter = static (ref {{constructor.ConstructorArgumentStateFQN}} state, {{parameter.ParameterType.FullyQualifiedName}} value) => state = {{FormatSetterBody(constructor, parameter)}},
+                    AttributeProviderFunc = {{FormatAttributeProviderFunc(constructor, parameter)}},
                 };
                 """);
 
             i++;
+
+            static string FormatAttributeProviderFunc(ConstructorModel constructor, ConstructorParameterModel parameter)
+            {
+                string parameterTypes = constructor.Parameters.Count == 0
+                    ? "Array.Empty<Type>()"
+                    : $$"""new[] { {{string.Join(", ", constructor.Parameters.Select(p => $"typeof({p.ParameterType.FullyQualifiedName})"))}} }""";
+
+                return $"static () => typeof({constructor.DeclaringType.FullyQualifiedName}).GetConstructor({InstanceBindingFlagsConstMember}, {parameterTypes})?.GetParameters()[{parameter.Position}]";
+            }
 
             static string FormatSetterBody(ConstructorModel constructor, ConstructorParameterModel parameter)
                 => constructor.Parameters.Count switch

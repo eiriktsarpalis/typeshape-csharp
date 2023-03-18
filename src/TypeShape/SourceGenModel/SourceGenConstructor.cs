@@ -6,7 +6,8 @@ public sealed class SourceGenConstructor<TDeclaringType, TArgumentState> : ICons
 {
     public required IType DeclaringType { get; init; }
     public required int ParameterCount { get; init; }
-    public ICustomAttributeProvider? AttributeProvider { get; init; }
+    public Func<ICustomAttributeProvider?>? AttributeProviderFunc { get; init; }
+    public ICustomAttributeProvider? AttributeProvider => AttributeProviderFunc is { } f ? f() : null;
 
     public required Func<IEnumerable<IConstructorParameter>> GetParametersFunc { get; init; }
 

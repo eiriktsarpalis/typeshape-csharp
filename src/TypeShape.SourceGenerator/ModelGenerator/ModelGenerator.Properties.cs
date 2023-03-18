@@ -50,8 +50,8 @@ public sealed partial class ModelGenerator
             Name = property.Name,
             DeclaringType = typeId,
             PropertyType = GetOrCreateTypeId(property.Type),
-            EmitGetter = property.GetMethod != null,
-            EmitSetter = property.SetMethod is IMethodSymbol { IsInitOnly: false },
+            EmitGetter = property.GetMethod is { } getter && IsAccessibleFromGeneratedType(getter),
+            EmitSetter = property.SetMethod is IMethodSymbol { IsInitOnly: false } setter && IsAccessibleFromGeneratedType(setter),
             IsRequired = property.IsRequired,
             IsInitOnly = property.SetMethod is IMethodSymbol { IsInitOnly: true },
         };

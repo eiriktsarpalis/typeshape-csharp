@@ -7,6 +7,8 @@ namespace TypeShape.SourceGenerator;
 
 internal static partial class SourceFormatter
 {
+    private const string InstanceBindingFlagsConstMember = "InstanceBindingFlags";
+
     public static void FormatProvider(SourceProductionContext context, TypeShapeProviderModel provider)
     {
         context.CancellationToken.ThrowIfCancellationRequested();
@@ -29,6 +31,9 @@ internal static partial class SourceFormatter
         writer.WriteStartBlock();
 
         writer.WriteLine($$"""
+            private const global::System.Reflection.BindingFlags {{InstanceBindingFlagsConstMember}} = 
+                global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance;
+
             public {{provider.Name}}() { }
 
             public static {{provider.Name}} Default => _default ??= new();

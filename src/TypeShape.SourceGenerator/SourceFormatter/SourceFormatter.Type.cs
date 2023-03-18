@@ -36,6 +36,7 @@ internal static partial class SourceFormatter
                 return new global::TypeShape.SourceGenModel.SourceGenType<{{type.Id.FullyQualifiedName}}>
                 {
                     Provider = this,
+                    AttributeProvider = typeof({{type.Id.FullyQualifiedName}}),
                     CreatePropertiesFunc = {{FormatNull(propertiesFactoryMethodName)}},
                     CreateConstructorsFunc = {{FormatNull(constructorFactoryMethodName)}},
                     CreateEnumTypeFunc = {{FormatNull(enumFactoryMethodName)}},

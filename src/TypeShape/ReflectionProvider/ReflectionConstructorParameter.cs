@@ -14,6 +14,7 @@ internal sealed class ReflectionConstructorParameter<TArgumentState, TParameter>
         Position = parameterInfo.Position;
         _constructorArity = constructorArity;
         _provider = provider;
+        AttributeProvider = parameterInfo;
 
         if (parameterInfo.HasDefaultValue)
         {
@@ -29,6 +30,7 @@ internal sealed class ReflectionConstructorParameter<TArgumentState, TParameter>
     public bool HasDefaultValue { get; }
     public TParameter? DefaultValue => (TParameter?)_defaultValue;
     object? IConstructorParameter.DefaultValue => _defaultValue;
+    public ICustomAttributeProvider? AttributeProvider { get; }
 
     public Setter<TArgumentState, TParameter> GetSetter()
         => _provider.MemberAccessor.CreateConstructorArgumentStateSetter<TArgumentState, TParameter>(Position, _constructorArity);

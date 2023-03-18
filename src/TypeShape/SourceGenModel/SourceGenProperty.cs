@@ -5,7 +5,8 @@ namespace TypeShape.SourceGenModel;
 public sealed class SourceGenProperty<TDeclaringType, TPropertyType> : IProperty<TDeclaringType, TPropertyType>
 {
     public required string Name { get; init; }
-    public ICustomAttributeProvider? AttributeProvider { get; init; }
+    public Func<ICustomAttributeProvider?>? AttributeProviderFunc { get; init; }
+    public ICustomAttributeProvider? AttributeProvider => AttributeProviderFunc is { } f ? f() : null;
 
     public required IType DeclaringType { get; init; }
     public required IType PropertyType { get; init; }

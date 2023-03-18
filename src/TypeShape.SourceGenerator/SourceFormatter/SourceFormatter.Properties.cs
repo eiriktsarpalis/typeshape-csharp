@@ -27,13 +27,22 @@ internal static partial class SourceFormatter
                     PropertyType = {{property.PropertyType.GeneratedPropertyName}},
                     Getter = {{(property.EmitGetter ? $"static (ref {type.Id.FullyQualifiedName} obj) => obj.{property.Name}" : "null")}},
                     Setter = {{(property.EmitSetter ? $"static (ref {type.Id.FullyQualifiedName} obj, {property.PropertyType.FullyQualifiedName} value) => obj.{property.Name} = value" : "null")}},
+                    AttributeProviderFunc = {{FormatAttributeProviderFunc()}},
                     IsRequired = {{FormatBool(property.IsRequired)}},
                     IsInitOnly = {{FormatBool(property.IsInitOnly)}},
                     IsField = {{FormatBool(property.IsField)}},
                 };
                 """);
+
+            string FormatAttributeProviderFunc()
+            {
+                return property.IsField
+                    ? $"static () => typeof({type.Id.FullyQualifiedName}).GetField(\"{property.Name}\", {InstanceBindingFlagsConstMember})"
+                    : $"static () => typeof({type.Id.FullyQualifiedName}).GetProperty(\"{property.Name}\", {InstanceBindingFlagsConstMember})";
+            }
         }
 
         writer.WriteEndBlock();
+
     }
 }
