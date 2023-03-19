@@ -14,37 +14,41 @@ public sealed partial class ModelGenerator
             return ImmutableArrayEq<PropertyModel>.Empty;
         }
 
-        var list = new List<PropertyModel>();
+        return ResolvePropertyAndFieldSymbols(type)
+            .Select(member => member is IPropertySymbol p ? MapProperty(typeId, p) : MapField(typeId, (IFieldSymbol)member))
+            .ToImmutableArrayEq();
+    }
 
+    private IEnumerable<ISymbol> ResolvePropertyAndFieldSymbols(ITypeSymbol type)
+    {
         // TODO interface hierarchies
 
         for (ITypeSymbol? current = type; current != null; current = current.BaseType)
         {
-            foreach (ISymbol member in current.GetMembers())
+            var members = current.GetMembers()
+                .Where(m => m.Kind is SymbolKind.Field or SymbolKind.Property)
+                .OrderByDescending(m => m.Kind is SymbolKind.Property); // for consistency with reflection, sort properties ahead of fields
+            
+            foreach (ISymbol member in members) 
             {
                 if (member is IPropertySymbol { IsStatic: false, IsIndexer: false } ps &&
                     IsSupportedType(ps.Type) && IsAccessibleFromGeneratedType(ps))
                 {
-                    list.Add(MapProperty(typeId, ps));
+                    yield return ps;
                 }
                 else if (
                     member is IFieldSymbol { IsStatic: false } fs &&
                     IsSupportedType(fs.Type) && IsAccessibleFromGeneratedType(fs))
                 {
-                    list.Add(MapField(typeId, fs));
+                    yield return fs;
                 }
             }
         }
-
-        return list.ToImmutableArrayEq();
     }
 
     private PropertyModel MapProperty(TypeId typeId, IPropertySymbol property)
     {
         Debug.Assert(!property.IsStatic && !property.IsIndexer);
-
-        // TODO required & init-only member handling as constructor parameters
-
         return new PropertyModel
         {
             Name = property.Name,
@@ -52,19 +56,12 @@ public sealed partial class ModelGenerator
             PropertyType = GetOrCreateTypeId(property.Type),
             EmitGetter = property.GetMethod is { } getter && IsAccessibleFromGeneratedType(getter),
             EmitSetter = property.SetMethod is IMethodSymbol { IsInitOnly: false } setter && IsAccessibleFromGeneratedType(setter),
-            IsRequired = property.IsRequired,
-            IsInitOnly = property.SetMethod is IMethodSymbol { IsInitOnly: true },
         };
     }
 
     private PropertyModel MapField(TypeId typeId, IFieldSymbol field)
     {
         Debug.Assert(!field.IsStatic);
-
-        // TODO required & init-only member handling as constructor parameters
-
-        _typesToGenerate.Enqueue(field.Type);
-
         return new PropertyModel
         {
             Name = field.Name,
@@ -72,8 +69,6 @@ public sealed partial class ModelGenerator
             PropertyType = GetOrCreateTypeId(field.Type),
             EmitGetter = true,
             EmitSetter = !field.IsReadOnly,
-            IsRequired = field.IsRequired,
-            IsInitOnly = field.IsReadOnly,
             IsField = true,
         };
     }

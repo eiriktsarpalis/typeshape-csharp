@@ -28,8 +28,6 @@ internal static partial class SourceFormatter
                     Getter = {{(property.EmitGetter ? $"static (ref {type.Id.FullyQualifiedName} obj) => obj.{property.Name}" : "null")}},
                     Setter = {{(property.EmitSetter ? $"static (ref {type.Id.FullyQualifiedName} obj, {property.PropertyType.FullyQualifiedName} value) => obj.{property.Name} = value" : "null")}},
                     AttributeProviderFunc = {{FormatAttributeProviderFunc()}},
-                    IsRequired = {{FormatBool(property.IsRequired)}},
-                    IsInitOnly = {{FormatBool(property.IsInitOnly)}},
                     IsField = {{FormatBool(property.IsField)}},
                 };
                 """);

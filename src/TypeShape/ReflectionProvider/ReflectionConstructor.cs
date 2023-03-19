@@ -6,29 +6,26 @@ namespace TypeShape.ReflectionProvider;
 internal sealed class ReflectionConstructor<TDeclaringType, TArgumentState> : IConstructor<TDeclaringType, TArgumentState>
 {
     private readonly ReflectionTypeShapeProvider _provider;
-    private readonly ConstructorInfo? _constructorInfo;
-    private readonly ParameterInfo[] _parameters;
+    private readonly ConstructorShapeInfo _shapeInfo;
 
-    public ReflectionConstructor(ReflectionTypeShapeProvider provider, ConstructorInfo? constructorInfo, ParameterInfo[] parameters)
+    public ReflectionConstructor(ReflectionTypeShapeProvider provider, ConstructorShapeInfo shapeInfo)
     {
-        Debug.Assert(constructorInfo != null || (typeof(TDeclaringType).IsValueType && parameters.Length == 0));
+        _shapeInfo = shapeInfo;
         _provider = provider;
-        _constructorInfo = constructorInfo;
-        _parameters = parameters;
     }
 
     public IType DeclaringType => _provider.GetShape<TDeclaringType>();
-    public int ParameterCount => _parameters.Length;
-    public ICustomAttributeProvider? AttributeProvider => _constructorInfo;
+    public int ParameterCount => _shapeInfo.TotalParameters;
+    public ICustomAttributeProvider? AttributeProvider => _shapeInfo.ConstructorInfo;
 
     public object? Accept(IConstructorVisitor visitor, object? state)
         => visitor.VisitConstructor(this, state);
 
     public Func<TArgumentState> GetArgumentStateConstructor()
-        => _provider.MemberAccessor.CreateConstructorArgumentStateCtor<TArgumentState>(_parameters);
+        => _provider.MemberAccessor.CreateConstructorArgumentStateCtor<TArgumentState>(_shapeInfo);
 
     public Func<TArgumentState, TDeclaringType> GetParameterizedConstructor()
-        => _provider.MemberAccessor.CreateParameterizedConstructor<TArgumentState, TDeclaringType>(_constructorInfo, _parameters);
+        => _provider.MemberAccessor.CreateParameterizedConstructor<TArgumentState, TDeclaringType>(_shapeInfo);
 
     public Func<TDeclaringType> GetDefaultConstructor()
     {
@@ -37,17 +34,57 @@ internal sealed class ReflectionConstructor<TDeclaringType, TArgumentState> : IC
             throw new InvalidOperationException();
         }
 
-        return _provider.MemberAccessor.CreateDefaultConstructor<TDeclaringType>(_constructorInfo);
+        return _provider.MemberAccessor.CreateDefaultConstructor<TDeclaringType>(_shapeInfo);
     }
 
     public IEnumerable<IConstructorParameter> GetParameters()
     {
-        if (_constructorInfo is null)
-            yield break;
+        ConstructorShapeInfo shapeInfo = _shapeInfo;
 
-        foreach (ParameterInfo parameterInfo in _constructorInfo.GetParameters())
+        foreach (ParameterInfo parameterInfo in shapeInfo.Parameters)
         {
-            yield return _provider.CreateConstructorParameter(typeof(TArgumentState), parameterInfo, _parameters.Length);
+            yield return _provider.CreateConstructorParameter(typeof(TArgumentState), shapeInfo, parameterInfo);
+        }
+
+        int i = shapeInfo.Parameters.Length;
+        foreach (MemberInitializerInfo member in shapeInfo.MemberInitializers)
+        {
+            yield return _provider.CreateConstructorParameter(typeof(TArgumentState), shapeInfo, member, i++);
         }
     }
+}
+
+internal sealed class ConstructorShapeInfo
+{
+    public ConstructorShapeInfo(Type declaringType, ConstructorInfo? constructorInfo, ParameterInfo[] parameters, MemberInitializerInfo[] memberInitializers)
+    {
+        Debug.Assert(constructorInfo != null || (declaringType.IsValueType && parameters.Length == 0));
+        DeclaringType = declaringType;
+        ConstructorInfo = constructorInfo;
+        Parameters = parameters;
+        MemberInitializers = memberInitializers;
+        TotalParameters = parameters.Length + memberInitializers.Length;
+    }
+
+    public Type DeclaringType { get; }
+    public ConstructorInfo? ConstructorInfo { get;}
+    public ParameterInfo[] Parameters { get; }
+    public MemberInitializerInfo[] MemberInitializers { get; }
+    public int TotalParameters { get; }
+}
+
+internal sealed class MemberInitializerInfo
+{
+    public MemberInitializerInfo(MemberInfo member, bool isRequired, bool isInitOnly)
+    {
+        Member = member;
+        IsRequired = isRequired;
+        IsInitOnly = isInitOnly;
+        Type = member.MemberType();
+    }
+
+    public MemberInfo Member { get; }
+    public Type Type { get; }
+    public bool IsRequired { get; }
+    public bool IsInitOnly { get; }
 }

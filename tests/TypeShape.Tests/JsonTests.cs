@@ -116,7 +116,7 @@ public abstract class JsonTests
     }
 
     private static string ToJsonBaseline<T>(T? value) => JsonSerializer.Serialize(value, s_baselineOptions);
-    private static JsonSerializerOptions s_baselineOptions = new()
+    private static readonly JsonSerializerOptions s_baselineOptions = new()
     { 
         Converters = { new JsonStringEnumConverter() },
         IncludeFields = true,

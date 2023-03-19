@@ -70,4 +70,17 @@ internal static class RoslynHelpers
 
         return false;
     }
+
+    public static bool IsAutoProperty(this IPropertySymbol property)
+    {
+        return property.ContainingType.GetMembers()
+            .OfType<IFieldSymbol>()
+            .Any(field => SymbolEqualityComparer.Default.Equals(field.AssociatedSymbol, property));
+    }
+
+    public static bool HasSetsRequiredMembersAttribute(this IMethodSymbol constructor)
+    {
+        Debug.Assert(constructor.MethodKind is MethodKind.Constructor);
+        return constructor.GetAttributes().Any(attr => attr.AttributeClass?.GetFullyQualifiedName() == "global::System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute");
+    }
 }

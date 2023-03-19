@@ -15,20 +15,17 @@ internal sealed class ReflectionProperty<TDeclaringType, TPropertyType> : IPrope
 
         _provider = provider;
         _memberInfo = memberInfo;
-        IsRequired = memberInfo.IsRequired();
 
         if (memberInfo is FieldInfo f)
         {
             HasGetter = true;
-            HasSetter = true;
-            IsInitOnly = f.IsInitOnly;
+            HasSetter = !f.IsInitOnly;
             IsField = true;
         }
         else if (memberInfo is PropertyInfo p)
         {
             HasGetter = p.CanRead && (nonPublic || p.GetMethod!.IsPublic);
-            HasSetter = p.CanWrite && (nonPublic || p.SetMethod!.IsPublic);
-            IsInitOnly = p.IsInitOnly();
+            HasSetter = p.CanWrite && (nonPublic || p.SetMethod!.IsPublic) && !p.IsInitOnly();
         }
     }
 
@@ -37,8 +34,6 @@ internal sealed class ReflectionProperty<TDeclaringType, TPropertyType> : IPrope
     public IType DeclaringType => _provider.GetShape<TDeclaringType>();
     public IType PropertyType => _provider.GetShape<TPropertyType>();
 
-    public bool IsRequired { get; }
-    public bool IsInitOnly { get; }
     public bool IsField { get; }
 
     public bool HasGetter { get; }

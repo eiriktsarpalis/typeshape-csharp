@@ -27,6 +27,13 @@ internal sealed class ReflectionType<T> : IType<T>
 
         BindingFlags flags = GetInstanceBindingFlags(nonPublic);
 
+        MemberInitializerInfo[] requiredOrInitOnlyMembers = GetMembers(nonPublic, includeFields: true)
+            .Select(m => (member: m, isRequired: m.IsRequired(), isInitOnly: m.IsInitOnly()))
+            .Where(m => m.isRequired || m.isInitOnly)
+            .Select(m => new MemberInitializerInfo(m.member, m.isRequired, m.isInitOnly))
+            .ToArray();
+
+        bool isRecord = typeof(T).IsRecord();
         bool isDefaultConstructorFound = false;
         foreach (ConstructorInfo constructorInfo in typeof(T).GetConstructors(flags))
         {
@@ -36,13 +43,43 @@ internal sealed class ReflectionType<T> : IType<T>
                 continue;
             }
 
-            yield return _provider.CreateConstructor(typeof(T), constructorInfo, parameters);
+            if (isRecord && constructorInfo.GetParameters() is [ParameterInfo parameter] &&
+                parameter.ParameterType == typeof(T))
+            {
+                // Skip the copy constructor in record types
+                continue;
+            }
+
+            var memberInitializers = new List<MemberInitializerInfo>();
+            HashSet<(Type ParameterType, string? Name)>? parameterSet = isRecord ? parameters.Select(p => (p.ParameterType, p.Name)).ToHashSet() : null;
+            bool setsRequiredMembers = constructorInfo.SetsRequiredMembers();
+
+            foreach (MemberInitializerInfo memberInitializer in requiredOrInitOnlyMembers)
+            {
+                if (setsRequiredMembers && memberInitializer.IsRequired)
+                {
+                    continue;
+                }
+
+                // In records, deduplicate any init auto-properties whose signature matches the constructor parameters.
+                if (!memberInitializer.IsRequired && memberInitializer.Member.IsAutoPropertyWithSetter() &&
+                    parameterSet?.Contains((memberInitializer.Type, memberInitializer.Member.Name)) == true)
+                {
+                    continue;
+                }
+
+                memberInitializers.Add(memberInitializer);
+            }
+
+            var ctorShapeInfo = new ConstructorShapeInfo(typeof(T), constructorInfo, parameters, memberInitializers.ToArray());
+            yield return _provider.CreateConstructor(ctorShapeInfo);
             isDefaultConstructorFound |= parameters.Length == 0;
         }
 
         if (typeof(T).IsValueType && !isDefaultConstructorFound)
         {
-            yield return _provider.CreateConstructor(typeof(T), constructorInfo: null, Array.Empty<ParameterInfo>());
+            var ctorShapeInfo = new ConstructorShapeInfo(typeof(T), constructorInfo: null, Array.Empty<ParameterInfo>(), requiredOrInitOnlyMembers);
+            yield return _provider.CreateConstructor(ctorShapeInfo);
         }
     }
 

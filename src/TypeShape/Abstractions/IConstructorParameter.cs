@@ -9,6 +9,7 @@ public interface IConstructorParameter
     string? Name { get; }
     bool HasDefaultValue { get; }
     object? DefaultValue { get; }
+    bool IsRequired { get; }
     ICustomAttributeProvider? AttributeProvider { get; }
     object? Accept(IConstructorParameterVisitor visitor, object? state);
 }

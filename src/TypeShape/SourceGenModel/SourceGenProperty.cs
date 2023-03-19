@@ -16,9 +16,6 @@ public sealed class SourceGenProperty<TDeclaringType, TPropertyType> : IProperty
 
     public bool HasGetter => Getter is not null;
     public bool HasSetter => Setter is not null;
-
-    public bool IsRequired { get; init; }
-    public bool IsInitOnly { get; init; }
     public bool IsField { get; init; }
 
     public object? Accept(IPropertyVisitor visitor, object? state)

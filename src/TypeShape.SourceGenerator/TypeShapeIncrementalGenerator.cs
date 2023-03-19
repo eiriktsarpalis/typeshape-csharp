@@ -10,7 +10,7 @@ public sealed class TypeShapeIncrementalGenerator : IIncrementalGenerator
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
 #if LAUNCH_DEBUGGER
-        Debugger.Launch();
+        System.Diagnostics.Debugger.Launch();
 #endif
         IncrementalValuesProvider<TypeShapeProviderModel> generationModels = context.SyntaxProvider
             .ForAttributeWithMetadataName(

@@ -15,9 +15,6 @@ public interface IProperty
 
     bool HasGetter { get; }
     bool HasSetter { get; }
-
-    bool IsRequired { get; }
-    bool IsInitOnly { get; }
     bool IsField { get; }
 
     object? Accept(IPropertyVisitor visitor, object? state);

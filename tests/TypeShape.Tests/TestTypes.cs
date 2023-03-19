@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace TypeShape.Tests;
@@ -62,28 +63,68 @@ public static class TestTypes
         yield return new ComplexStructWithProperties { Real = 0, Im = 1 };
         yield return new StructWithDefaultCtor();
 
-        // TODO fix sourcegen support for init & required properties
-        //yield return new ClassWithRequiredAndInitOnlyProperties
-        //{
-        //    RequiredAndInitOnlyString = "str1",
-        //    RequiredString = "str2",
-        //    InitOnlyString = "str3",
+        yield return new ClassWithReadOnlyField();
+        yield return new ClassWithRequiredField { x = 42 };
+        yield return new StructWithRequiredField { x = 42 };
+        yield return new ClassWithRequiredProperty { X = 42 };
+        yield return new StructWithRequiredProperty { X = 42 };
+        yield return new StructWithRequiredPropertyAndDefaultCtor { y = 2 };
+        yield return new StructWithRequiredFieldAndDefaultCtor { y = 2 };
 
-        //    RequiredAndInitOnlyInt = 1,
-        //    RequiredInt = 2,
-        //    InitOnlyInt = 3,
-        //};
+        yield return new ClassWithSetsRequiredMembersCtor(42);
+        yield return new StructWithSetsRequiredMembersCtor(42);
 
-        //yield return new StructWithRequiredAndInitOnlyProperties
-        //{
-        //    RequiredAndInitOnlyString = "str1",
-        //    RequiredString = "str2",
-        //    InitOnlyString = "str3",
+        yield return new ClassWithRequiredAndInitOnlyProperties
+        {
+            RequiredAndInitOnlyString = "str1",
+            RequiredString = "str2",
+            InitOnlyString = "str3",
 
-        //    RequiredAndInitOnlyInt = 1,
-        //    RequiredInt = 2,
-        //    InitOnlyInt = 3,
-        //};
+            RequiredAndInitOnlyInt = 1,
+            RequiredInt = 2,
+            InitOnlyInt = 3,
+
+            requiredField = true,
+        };
+
+        yield return new StructWithRequiredAndInitOnlyProperties
+        {
+            RequiredAndInitOnlyString = "str1",
+            RequiredString = "str2",
+            InitOnlyString = "str3",
+
+            RequiredAndInitOnlyInt = 1,
+            RequiredInt = 2,
+            InitOnlyInt = 3,
+
+            requiredField = true,
+        };
+
+        yield return new ClassRecordWithRequiredAndInitOnlyProperties(1, 2, 3)
+        {
+            RequiredAndInitOnlyString = "str1",
+            RequiredString = "str2",
+            InitOnlyString = "str3",
+
+            RequiredAndInitOnlyInt = 1,
+            RequiredInt = 2,
+            InitOnlyInt = 3,
+
+            requiredField = true,
+        };
+
+        yield return new StructRecordWithRequiredAndInitOnlyProperties(1, 2, 3)
+        {
+            RequiredAndInitOnlyString = "str1",
+            RequiredString = "str2",
+            InitOnlyString = "str3",
+
+            RequiredAndInitOnlyInt = 1,
+            RequiredInt = 2,
+            InitOnlyInt = 3,
+
+            requiredField = true,
+        };
 
         yield return new ClassRecord(0, 1, 2, 3);
         yield return new StructRecord(0, 1, 2, 3);
@@ -123,6 +164,54 @@ public static class TestTypes
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2");
+
+        yield return new RecordWith42ConstructorParametersAndRequiredProperties(
+            "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
+            "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
+            "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
+            "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
+            "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
+            "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2")
+        {
+            requiredField = 42,
+            RequiredProperty = "str"
+        };
+
+        yield return new StructRecordWith42ConstructorParametersAndRequiredProperties(
+            "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
+            "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
+            "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
+            "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
+            "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
+            "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2")
+        {
+            requiredField = 42,
+            RequiredProperty = "str"
+        };
+
+        yield return new ClassWith40RequiredMembers
+        { 
+            r00 = 00, r01 = 01, r02 = 02, r03 = 03, r04 = 04, r05 = 05, r06 = 06, r07 = 07, r08 = 08, r09 = 09, 
+            r10 = 10, r11 = 11, r12 = 12, r13 = 13, r14 = 14, r15 = 15, r16 = 16, r17 = 17, r18 = 18, r19 = 19,
+            r20 = 20, r21 = 21, r22 = 22, r23 = 23, r24 = 24, r25 = 25, r26 = 26, r27 = 27, r28 = 28, r29 = 29, 
+            r30 = 30, r31 = 31, r32 = 32, r33 = 33, r34 = 34, r35 = 35, r36 = 36, r37 = 37, r38 = 38, r39 = 39,
+        };
+
+        yield return new StructWith40RequiredMembers
+        { 
+            r00 = 00, r01 = 01, r02 = 02, r03 = 03, r04 = 04, r05 = 05, r06 = 06, r07 = 07, r08 = 08, r09 = 09, 
+            r10 = 10, r11 = 11, r12 = 12, r13 = 13, r14 = 14, r15 = 15, r16 = 16, r17 = 17, r18 = 18, r19 = 19,
+            r20 = 20, r21 = 21, r22 = 22, r23 = 23, r24 = 24, r25 = 25, r26 = 26, r27 = 27, r28 = 28, r29 = 29, 
+            r30 = 30, r31 = 31, r32 = 32, r33 = 33, r34 = 34, r35 = 35, r36 = 36, r37 = 37, r38 = 38, r39 = 39,
+        };
+
+        yield return new StructWith40RequiredMembersAndDefaultCtor
+        { 
+            r00 = 00, r01 = 01, r02 = 02, r03 = 03, r04 = 04, r05 = 05, r06 = 06, r07 = 07, r08 = 08, r09 = 09, 
+            r10 = 10, r11 = 11, r12 = 12, r13 = 13, r14 = 14, r15 = 15, r16 = 16, r17 = 17, r18 = 18, r19 = 19,
+            r20 = 20, r21 = 21, r22 = 22, r23 = 23, r24 = 24, r25 = 25, r26 = 26, r27 = 27, r28 = 28, r29 = 29, 
+            r30 = 30, r31 = 31, r32 = 32, r33 = 33, r34 = 34, r35 = 35, r36 = 36, r37 = 37, r38 = 38, r39 = 39,
+        };
     }
 }
 
@@ -177,6 +266,43 @@ public class DerivedClass : BaseClass
     public int Y { get; set; }
 }
 
+public class ClassWithRequiredField
+{
+    public required int x;
+}
+
+public struct StructWithRequiredField
+{
+    public required int x;
+}
+
+public class ClassWithRequiredProperty
+{
+    public required int X { get; set; }
+}
+
+public struct StructWithRequiredProperty
+{
+    public required int X { get; set; }
+}
+
+public class ClassWithReadOnlyField
+{
+    public readonly int field = 42;
+}
+
+public struct StructWithRequiredPropertyAndDefaultCtor
+{
+    public StructWithRequiredPropertyAndDefaultCtor() { }
+    public required int y { get; set; }
+}
+
+public struct StructWithRequiredFieldAndDefaultCtor
+{
+    public StructWithRequiredFieldAndDefaultCtor() { }
+    public required int y;
+}
+
 public class ClassWithRequiredAndInitOnlyProperties
 {
     public required string RequiredAndInitOnlyString { get; init; }
@@ -186,6 +312,9 @@ public class ClassWithRequiredAndInitOnlyProperties
     public required int RequiredAndInitOnlyInt { get; init; }
     public required int RequiredInt { get; set; }
     public int InitOnlyInt { get; init; }
+
+    public required bool requiredField;
+
 }
 
 public struct StructWithRequiredAndInitOnlyProperties
@@ -197,6 +326,68 @@ public struct StructWithRequiredAndInitOnlyProperties
     public required int RequiredAndInitOnlyInt { get; init; }
     public required int RequiredInt { get; set; }
     public int InitOnlyInt { get; init; }
+
+    public required bool requiredField;
+}
+
+public class ClassWithSetsRequiredMembersCtor
+{
+    private int _value;
+
+    [SetsRequiredMembers]
+    public ClassWithSetsRequiredMembersCtor(int value)
+    {
+        _value = value;
+    }
+
+    public required int Value 
+    {
+        get => _value;
+        init => throw new NotSupportedException();
+    }
+}
+
+public struct StructWithSetsRequiredMembersCtor
+{
+    private int _value;
+
+    [SetsRequiredMembers]
+    public StructWithSetsRequiredMembersCtor(int value)
+    {
+        _value = value;
+    }
+
+    public required int Value
+    { 
+        get => _value;
+        init => throw new NotSupportedException();
+    }
+}
+
+public record ClassRecordWithRequiredAndInitOnlyProperties(int x, int y, int z)
+{
+    public required string RequiredAndInitOnlyString { get; init; }
+    public required string RequiredString { get; set; }
+    public string? InitOnlyString { get; init; }
+
+    public required int RequiredAndInitOnlyInt { get; init; }
+    public required int RequiredInt { get; set; }
+    public int InitOnlyInt { get; init; }
+
+    public required bool requiredField;
+}
+
+public record struct StructRecordWithRequiredAndInitOnlyProperties(int x, int y, int z)
+{
+    public required string RequiredAndInitOnlyString { get; init; }
+    public required string RequiredString { get; set; }
+    public string? InitOnlyString { get; init; }
+
+    public required int RequiredAndInitOnlyInt { get; init; }
+    public required int RequiredInt { get; set; }
+    public int InitOnlyInt { get; init; }
+
+    public required bool requiredField;
 }
 
 public record ParameterlessRecord();
@@ -235,6 +426,55 @@ public record RecordWith42ConstructorParameters(
     string x22, int x23, bool x24, TimeSpan x25, DateTime x26, int x27, string x28,
     string x29, int x30, bool x31, TimeSpan x32, DateTime x33, int x34, string x35,
     string x36, int x37, bool x38, TimeSpan x39, DateTime x40, int x41, string x42);
+
+public record RecordWith42ConstructorParametersAndRequiredProperties(
+    string x01, int x02, bool x03, TimeSpan x04, DateTime x05, int x06, string x07,
+    string x08, int x09, bool x10, TimeSpan x11, DateTime x12, int x13, string x14,
+    string x15, int x16, bool x17, TimeSpan x18, DateTime x19, int x20, string x21,
+    string x22, int x23, bool x24, TimeSpan x25, DateTime x26, int x27, string x28,
+    string x29, int x30, bool x31, TimeSpan x32, DateTime x33, int x34, string x35,
+    string x36, int x37, bool x38, TimeSpan x39, DateTime x40, int x41, string x42)
+{
+    public required int requiredField;
+    public required string RequiredProperty { get; set; }
+}
+
+public record StructRecordWith42ConstructorParametersAndRequiredProperties(
+    string x01, int x02, bool x03, TimeSpan x04, DateTime x05, int x06, string x07,
+    string x08, int x09, bool x10, TimeSpan x11, DateTime x12, int x13, string x14,
+    string x15, int x16, bool x17, TimeSpan x18, DateTime x19, int x20, string x21,
+    string x22, int x23, bool x24, TimeSpan x25, DateTime x26, int x27, string x28,
+    string x29, int x30, bool x31, TimeSpan x32, DateTime x33, int x34, string x35,
+    string x36, int x37, bool x38, TimeSpan x39, DateTime x40, int x41, string x42)
+{
+    public required int requiredField;
+    public required string RequiredProperty { get; set; }
+}
+
+public struct ClassWith40RequiredMembers
+{
+    public required int r00; public required int r01; public required int r02; public required int r03; public required int r04; public required int r05; public required int r06; public required int r07; public required int r08; public required int r09;
+    public required int r10; public required int r11; public required int r12; public required int r13; public required int r14; public required int r15; public required int r16; public required int r17; public required int r18; public required int r19;
+    public required int r20; public required int r21; public required int r22; public required int r23; public required int r24; public required int r25; public required int r26; public required int r27; public required int r28; public required int r29;
+    public required int r30; public required int r31; public required int r32; public required int r33; public required int r34; public required int r35; public required int r36; public required int r37; public required int r38; public required int r39;
+}
+
+public struct StructWith40RequiredMembers
+{
+    public required int r00; public required int r01; public required int r02; public required int r03; public required int r04; public required int r05; public required int r06; public required int r07; public required int r08; public required int r09;
+    public required int r10; public required int r11; public required int r12; public required int r13; public required int r14; public required int r15; public required int r16; public required int r17; public required int r18; public required int r19;
+    public required int r20; public required int r21; public required int r22; public required int r23; public required int r24; public required int r25; public required int r26; public required int r27; public required int r28; public required int r29;
+    public required int r30; public required int r31; public required int r32; public required int r33; public required int r34; public required int r35; public required int r36; public required int r37; public required int r38; public required int r39;
+}
+
+public struct StructWith40RequiredMembersAndDefaultCtor
+{
+    public StructWith40RequiredMembersAndDefaultCtor() { }
+    public required int r00; public required int r01; public required int r02; public required int r03; public required int r04; public required int r05; public required int r06; public required int r07; public required int r08; public required int r09;
+    public required int r10; public required int r11; public required int r12; public required int r13; public required int r14; public required int r15; public required int r16; public required int r17; public required int r18; public required int r19;
+    public required int r20; public required int r21; public required int r22; public required int r23; public required int r24; public required int r25; public required int r26; public required int r27; public required int r28; public required int r29;
+    public required int r30; public required int r31; public required int r32; public required int r33; public required int r34; public required int r35; public required int r36; public required int r37; public required int r38; public required int r39;
+}
 
 
 [GenerateShape(typeof(object))]
@@ -284,9 +524,19 @@ public record RecordWith42ConstructorParameters(
 [GenerateShape(typeof(ComplexStruct))]
 [GenerateShape(typeof(ComplexStructWithProperties))]
 [GenerateShape(typeof(StructWithDefaultCtor))]
-// TODO fix sourcegen support for init & required properties
-//[GenerateShape(typeof(ClassWithRequiredAndInitOnlyProperties))]
-//[GenerateShape(typeof(StructWithRequiredAndInitOnlyProperties))]
+[GenerateShape(typeof(ClassWithReadOnlyField))]
+[GenerateShape(typeof(ClassWithRequiredField))]
+[GenerateShape(typeof(StructWithRequiredField))]
+[GenerateShape(typeof(ClassWithRequiredProperty))]
+[GenerateShape(typeof(StructWithRequiredProperty))]
+[GenerateShape(typeof(ClassWithRequiredAndInitOnlyProperties))]
+[GenerateShape(typeof(StructWithRequiredAndInitOnlyProperties))]
+[GenerateShape(typeof(ClassRecordWithRequiredAndInitOnlyProperties))]
+[GenerateShape(typeof(StructRecordWithRequiredAndInitOnlyProperties))]
+[GenerateShape(typeof(StructWithRequiredPropertyAndDefaultCtor))]
+[GenerateShape(typeof(StructWithRequiredFieldAndDefaultCtor))]
+[GenerateShape(typeof(ClassWithSetsRequiredMembersCtor))]
+[GenerateShape(typeof(StructWithSetsRequiredMembersCtor))]
 [GenerateShape(typeof(ClassRecord))]
 [GenerateShape(typeof(StructRecord))]
 [GenerateShape(typeof(LargeClassRecord))]
@@ -300,6 +550,11 @@ public record RecordWith42ConstructorParameters(
 [GenerateShape(typeof(LinkedList<SimpleRecord>))]
 [GenerateShape(typeof(RecordWith21ConstructorParameters))]
 [GenerateShape(typeof(RecordWith42ConstructorParameters))]
+[GenerateShape(typeof(RecordWith42ConstructorParametersAndRequiredProperties))]
+[GenerateShape(typeof(StructRecordWith42ConstructorParametersAndRequiredProperties))]
+[GenerateShape(typeof(ClassWith40RequiredMembers))]
+[GenerateShape(typeof(StructWith40RequiredMembers))]
+[GenerateShape(typeof(StructWith40RequiredMembersAndDefaultCtor))]
 [GenerateShape(typeof(RecordWithNullableDefaultEnum))]
 internal partial class SourceGenTypeShapeProvider
 { }

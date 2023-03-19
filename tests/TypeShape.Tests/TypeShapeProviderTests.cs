@@ -44,24 +44,60 @@ public abstract class TypeShapeProviderTests
         foreach (IConstructor constructor in shape.GetConstructors(nonPublic: SupportsNonPublicMembers))
         {
             ICustomAttributeProvider? attributeProvider = constructor.AttributeProvider;
-            
+
+            ParameterInfo[] parameters;
             if (attributeProvider is null)
             {
                 Assert.True(typeof(T).IsValueType);
-                Assert.Equal(0, constructor.ParameterCount);
-                Assert.Empty(constructor.GetParameters());
-                continue;
+                parameters = Array.Empty<ParameterInfo>();
+            }
+            else
+            {
+                ConstructorInfo ctorInfo = Assert.IsAssignableFrom<ConstructorInfo>(attributeProvider);
+                Assert.Equal(typeof(T), ctorInfo.DeclaringType);
+                Assert.Equal(constructor.ParameterCount, constructor.ParameterCount);
+                parameters = ctorInfo.GetParameters();
             }
 
-            ConstructorInfo ctorInfo = Assert.IsAssignableFrom<ConstructorInfo>(attributeProvider);
-            Assert.Equal(typeof(T), ctorInfo.DeclaringType);
-            Assert.Equal(constructor.ParameterCount, constructor.ParameterCount);
-
-            ParameterInfo[] parameters = ctorInfo.GetParameters();
-            foreach ((IConstructorParameter ctorParam, ParameterInfo paramInfo) in constructor.GetParameters().Zip(parameters))
+            int i = 0;
+            foreach (IConstructorParameter ctorParam in constructor.GetParameters())
             {
-                Assert.Equal(ctorParam.ParameterType.Type, paramInfo.ParameterType);
-                Assert.Equal(paramInfo, ctorParam.AttributeProvider);
+                if (i < parameters.Length)
+                {
+                    ParameterInfo actualParameter = parameters[i];
+                    Assert.Equal(actualParameter.Position, ctorParam.Position);
+                    Assert.Equal(actualParameter.ParameterType, ctorParam.ParameterType.Type);
+                    Assert.Equal(actualParameter.Name, ctorParam.Name);
+                    Assert.Equal(actualParameter.HasDefaultValue, ctorParam.HasDefaultValue);
+
+                    ParameterInfo paramInfo = Assert.IsAssignableFrom<ParameterInfo>(ctorParam.AttributeProvider);
+                    Assert.Equal(actualParameter.Position, paramInfo.Position);
+                    Assert.Equal(actualParameter.Name, paramInfo.Name);
+                    Assert.Equal(actualParameter.ParameterType, paramInfo.ParameterType);
+                }
+                else
+                {
+                    MemberInfo memberInfo = Assert.IsAssignableFrom<MemberInfo>(ctorParam.AttributeProvider);
+
+                    Assert.Equal(typeof(T), memberInfo.DeclaringType);
+                    Assert.Equal(memberInfo.Name, ctorParam.Name);
+                    Assert.False(ctorParam.HasDefaultValue);
+                    Assert.Equal(i, ctorParam.Position);
+                    Assert.True(memberInfo is PropertyInfo or FieldInfo);
+
+                    if (memberInfo is PropertyInfo p)
+                    {
+                        Assert.Equal(p.PropertyType, ctorParam.ParameterType.Type);
+                        Assert.NotNull(p.SetMethod);
+                    }
+                    else if (memberInfo is FieldInfo f)
+                    {
+                        Assert.Equal(f.FieldType, ctorParam.ParameterType.Type);
+                        Assert.False(f.IsInitOnly);
+                    }
+                }
+
+                i++;
             }
         }
     }

@@ -62,17 +62,23 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
         return (IProperty)Activator.CreateInstance(reflectionPropertyType, this, memberInfo, nonPublic)!;
     }
 
-    internal IConstructor CreateConstructor(Type declaringType, ConstructorInfo? constructorInfo, ParameterInfo[] parameters)
+    internal IConstructor CreateConstructor(ConstructorShapeInfo shapeInfo)
     {
-        Type argumentStateType = MemberAccessor.CreateConstructorArgumentStateType(parameters);
-        Type reflectionConstructorType = typeof(ReflectionConstructor<,>).MakeGenericType(declaringType, argumentStateType);
-        return (IConstructor)Activator.CreateInstance(reflectionConstructorType, this, constructorInfo, parameters)!;
+        Type argumentStateType = MemberAccessor.CreateConstructorArgumentStateType(shapeInfo);
+        Type reflectionConstructorType = typeof(ReflectionConstructor<,>).MakeGenericType(shapeInfo.DeclaringType, argumentStateType);
+        return (IConstructor)Activator.CreateInstance(reflectionConstructorType, this, shapeInfo)!;
     }
 
-    internal IConstructorParameter CreateConstructorParameter(Type constructorArgumentState, ParameterInfo parameterInfo, int constructorArity)
+    internal IConstructorParameter CreateConstructorParameter(Type constructorArgumentState, ConstructorShapeInfo shapeInfo, ParameterInfo parameterInfo)
     {
         Type reflectionConstructorParameterType = typeof(ReflectionConstructorParameter<,>).MakeGenericType(constructorArgumentState, parameterInfo.ParameterType);
-        return (IConstructorParameter)Activator.CreateInstance(reflectionConstructorParameterType, this, parameterInfo, constructorArity)!;
+        return (IConstructorParameter)Activator.CreateInstance(reflectionConstructorParameterType, this, shapeInfo, parameterInfo)!;
+    }
+
+    internal IConstructorParameter CreateConstructorParameter(Type constructorArgumentState, ConstructorShapeInfo shapeInfo, MemberInitializerInfo memberInitializer, int position)
+    {
+        Type reflectionConstructorParameterType = typeof(ReflectionConstructorParameter<,>).MakeGenericType(constructorArgumentState, memberInitializer.Type);
+        return (IConstructorParameter)Activator.CreateInstance(reflectionConstructorParameterType, this, shapeInfo, memberInitializer, position)!;
     }
 
     internal IEnumerableType CreateEnumerableType(Type type)

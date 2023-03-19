@@ -10,9 +10,18 @@ internal static class ReflectionHelpers
         return !(type == typeof(void) || type.IsPointer || type.IsByRef || type.IsByRefLike || type.ContainsGenericParameters);
     }
 
-    public static bool IsInitOnly(this PropertyInfo propertyInfo)
+    public static bool IsRecord(this Type type)
+        => type.GetMethod("<Clone>$", BindingFlags.Public | BindingFlags.Instance) is not null;
+
+    public static bool IsCompilerGenerated(this MemberInfo memberInfo)
+        => memberInfo.CustomAttributes.Any(static attr => attr.AttributeType.FullName == "System.Runtime.CompilerServices.CompilerGeneratedAttribute");
+
+    public static bool IsAutoPropertyWithSetter(this MemberInfo memberInfo)
+        => memberInfo is PropertyInfo { SetMethod: { } setter } && setter.IsCompilerGenerated();
+
+    public static bool IsInitOnly(this MemberInfo memberInfo)
     {
-        return propertyInfo.SetMethod is MethodInfo setter &&
+        return memberInfo is PropertyInfo { SetMethod: { } setter } &&
             setter.ReturnParameter
                 .GetRequiredCustomModifiers()
                 .Any(static modifier => modifier.FullName == "System.Runtime.CompilerServices.IsExternalInit");
@@ -22,6 +31,17 @@ internal static class ReflectionHelpers
     {
         Debug.Assert(memberInfo is FieldInfo or PropertyInfo);
         return memberInfo.CustomAttributes.Any(static attr => attr.AttributeType.FullName == "System.Runtime.CompilerServices.RequiredMemberAttribute");
+    }
+
+    public static bool SetsRequiredMembers(this ConstructorInfo ctorInfo)
+    {
+        return ctorInfo.CustomAttributes.Any(static attr => attr.AttributeType.FullName == "System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute");
+    }
+
+    public static Type MemberType(this MemberInfo memberInfo)
+    {
+        Debug.Assert(memberInfo is FieldInfo or PropertyInfo);
+        return memberInfo is FieldInfo f ? f.FieldType : ((PropertyInfo)memberInfo).PropertyType;
     }
 
     public static object? GetDefaultValueNormalized(this ParameterInfo parameterInfo, bool convertToParameterType = true)
