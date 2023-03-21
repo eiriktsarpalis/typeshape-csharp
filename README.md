@@ -29,11 +29,15 @@ The repo consists of the following projects:
 
 For a quick end-to-end overview of how the programming model works, I would recommend looking at the [PrettyPrinter](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Applications/PrettyPrinter) example. At just below 300 loc, it is the simplest component defined in the repo. You can use the console apps found in the `tests` folder to experiment with the implementation.
 
-## Performance
+## Case Study: Writing a JSON serializer
+
+The repo includes a [JSON serializer](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Applications/JsonSerializer) example that uses TypeShape to generate System.Text.Json `JsonConverter<T>` instances for given types. The implementation offers [functional parity](https://github.com/eiriktsarpalis/typeshape-csharp/blob/main/tests/TypeShape.Tests/JsonTests.cs) with STJ in supported types.
+
+### Performance
 
 Here's a [benchmark](https://github.com/eiriktsarpalis/typeshape-csharp/blob/main/tests/TypeShape.Benchmarks/JsonBenchmark.cs) comparing `System.Text.Json` with the included TypeShape generator:
 
-### Serialization
+#### Serialization
 
 |                          Method |     Mean |    Error |   StdDev | Ratio | RatioSD |   Gen0 | Allocated | Alloc Ratio |
 |-------------------------------- |---------:|---------:|---------:|------:|--------:|-------:|----------:|------------:|
@@ -43,7 +47,7 @@ Here's a [benchmark](https://github.com/eiriktsarpalis/typeshape-csharp/blob/mai
 |   Serialize_TypeShapeReflection | 495.9 ns |  6.45 ns |  6.03 ns |  0.80 |    0.01 | 0.0267 |     272 B |        0.56 |
 |    Serialize_TypeShapeSourceGen | 459.4 ns |  3.82 ns |  3.57 ns |  0.74 |    0.01 | 0.0267 |     272 B |        0.56 |
 
-### Deserialization
+#### Deserialization
 
 |                          Method |       Mean |    Error |   StdDev | Ratio | RatioSD |   Gen0 | Allocated | Alloc Ratio |
 |-------------------------------- |-----------:|---------:|---------:|------:|--------:|-------:|----------:|------------:|
