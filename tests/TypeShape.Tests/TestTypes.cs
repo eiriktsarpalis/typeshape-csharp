@@ -67,8 +67,12 @@ public static class TestTypes
         yield return Create(new BaseClass { X = 1 });
         yield return Create(new DerivedClass { X = 1, Y = 2 });
 
-        yield return Create<IDerivedInterface>(new DerivedImplementation { X = 1, Y = 2 });
-        yield return Create<IDiamondInterface>(new DiamondImplementation { X = 1, Y = 2, Z = 3, W = 4, T = 5 });
+        var value = new DiamondImplementation { X = 1, Y = 2, Z = 3, W = 4, T = 5 };
+        yield return Create<IBaseInterface>(value);
+        yield return Create<IDerivedInterface>(value);
+        yield return Create<IDerived2Interface>(value);
+        yield return Create<IDerived3Interface>(value);
+        yield return Create<IDiamondInterface>(value);
 
         yield return Create(new ParameterlessRecord());
         yield return Create(new ParameterlessStructRecord());
@@ -311,13 +315,6 @@ public interface IDerived3Interface : IBaseInterface
 public interface IDiamondInterface : IDerivedInterface, IDerived2Interface, IDerived3Interface
 {
     public int T { get; set; }
-}
-
-
-public class DerivedImplementation : IDerivedInterface
-{
-    public int X { get; set; }
-    public int Y { get; set; }
 }
 
 public class DiamondImplementation : IDiamondInterface
@@ -573,6 +570,8 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 [GenerateShape(typeof(DerivedClass))]
 [GenerateShape(typeof(IBaseInterface))]
 [GenerateShape(typeof(IDerivedInterface))]
+[GenerateShape(typeof(IDerived2Interface))]
+[GenerateShape(typeof(IDerived3Interface))]
 [GenerateShape(typeof(IDiamondInterface))]
 [GenerateShape(typeof(ParameterlessRecord))]
 [GenerateShape(typeof(ParameterlessStructRecord))]

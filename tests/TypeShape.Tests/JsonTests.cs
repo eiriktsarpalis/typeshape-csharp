@@ -121,20 +121,6 @@ public abstract class JsonTests
         Assert.Null(deserializedValue);
     }
 
-    [Fact]
-    public void Roundtrip_DiamondInterface()
-    {
-        // Extract to bespoke test until STJ ordering issue is addressed.
-
-        var serializer = GetSerializerUnderTest<IDiamondInterface>();
-        IDiamondInterface value = new DiamondImplementation { X = 1, Y = 2, Z = 3, W = 4, T = 5 };
-
-        string json = serializer.Serialize(value);
-        Assert.Equal("""{"T":5,"W":4,"Z":3,"Y":2,"X":1}""", json);
-
-        Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
-    }
-
     public class PocoWithGenericProperty<T>
     { 
         public T? Value { get; set; }
