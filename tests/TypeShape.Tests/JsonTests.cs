@@ -13,81 +13,108 @@ public abstract class JsonTests
     public bool IsReflectionProvider => Provider is ReflectionTypeShapeProvider;
 
     [Theory]
-    [MemberData(nameof(TestTypes.GetTestValues), MemberType = typeof(TestTypes))]
-    public void Roundtrip_Value<T>(T value)
+    [MemberData(nameof(GetTestCases))]
+    public void Roundtrip_Value<T>(TestCase<T> testCase)
     {
         var serializer = GetSerializerUnderTest<T>();
 
-        string json = serializer.Serialize(value);
-        Assert.Equal(ToJsonBaseline(value), json);
+        string json = serializer.Serialize(testCase.Value);
+        Assert.Equal(ToJsonBaseline(testCase.Value), json);
 
-        T? deserializedValue = serializer.Deserialize(json);
-        Assert.Equal(json, ToJsonBaseline(deserializedValue));
+        if (testCase.IsAbstractClass)
+        {
+            Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
+        }
+        else
+        {
+            T? deserializedValue = serializer.Deserialize(json);
+            Assert.Equal(json, ToJsonBaseline(deserializedValue));
+        }
     }
 
     [Theory]
-    [MemberData(nameof(TestTypes.GetTestValues), MemberType = typeof(TestTypes))]
-    public void Roundtrip_Property<T>(T value)
+    [MemberData(nameof(GetTestCases))]
+    public void Roundtrip_Property<T>(TestCase<T> testCase)
     {
         if (!IsReflectionProvider)
             return;
 
         var serializer = GetSerializerUnderTest<PocoWithGenericProperty<T>>();
-        PocoWithGenericProperty<T> poco = new PocoWithGenericProperty<T> { Value = value };
+        PocoWithGenericProperty<T> poco = new PocoWithGenericProperty<T> { Value = testCase.Value };
 
         string json = serializer.Serialize(poco);
         Assert.Equal(ToJsonBaseline(poco), json);
 
-        PocoWithGenericProperty<T> deserializedValue = serializer.Deserialize(json)!;
-        Assert.Equal(json, ToJsonBaseline(deserializedValue));
+        if (testCase.IsAbstractClass)
+        {
+            Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
+        }
+        else
+        {
+            PocoWithGenericProperty<T>? deserializedValue = serializer.Deserialize(json);
+            Assert.Equal(json, ToJsonBaseline(deserializedValue));
+        }
     }
 
     [Theory]
-    [MemberData(nameof(TestTypes.GetTestValues), MemberType = typeof(TestTypes))]
-    public void Roundtrip_CollectionElement<T>(T value)
+    [MemberData(nameof(GetTestCases))]
+    public void Roundtrip_CollectionElement<T>(TestCase<T> testCase)
     {
         if (!IsReflectionProvider)
             return;
 
         var serializer = GetSerializerUnderTest<List<T>>();
-        var list = new List<T> { value, value, value };
+        var list = new List<T> { testCase.Value, testCase.Value, testCase.Value };
 
         string json = serializer.Serialize(list);
         Assert.Equal(ToJsonBaseline(list), json);
 
-        List<T> deserializedValue = serializer.Deserialize(json)!;
-        Assert.Equal(json, ToJsonBaseline(deserializedValue));
+        if (testCase.IsAbstractClass)
+        {
+            Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
+        }
+        else
+        {
+            List<T>? deserializedValue = serializer.Deserialize(json);
+            Assert.Equal(json, ToJsonBaseline(deserializedValue));
+        }
     }
 
     [Theory]
-    [MemberData(nameof(TestTypes.GetTestValues), MemberType = typeof(TestTypes))]
-    public void Roundtrip_DictionaryEntry<T>(T value)
+    [MemberData(nameof(GetTestCases))]
+    public void Roundtrip_DictionaryEntry<T>(TestCase<T> testCase)
     {
         if (!IsReflectionProvider)
             return;
 
         var serializer = GetSerializerUnderTest<Dictionary<string, T>>();
-        var dict = new Dictionary<string, T> { ["key1"] = value, ["key2"] = value, ["key3"] = value };
+        var dict = new Dictionary<string, T> { ["key1"] = testCase.Value, ["key2"] = testCase.Value, ["key3"] = testCase.Value };
 
         string json = serializer.Serialize(dict);
         Assert.Equal(ToJsonBaseline(dict), json);
 
-        Dictionary<string, T> deserializedValue = serializer.Deserialize(json)!;
-        Assert.Equal(json, ToJsonBaseline(deserializedValue));
+        if (testCase.IsAbstractClass)
+        {
+            Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
+        }
+        else
+        {
+            Dictionary<string, T>? deserializedValue = serializer.Deserialize(json);
+            Assert.Equal(json, ToJsonBaseline(deserializedValue));
+        }
     }
 
     [Theory]
-    [MemberData(nameof(TestTypes.GetTestValues), MemberType = typeof(TestTypes))]
-    public void Roundtrip_Null<T>(T value)
+    [MemberData(nameof(GetTestCases))]
+    public void Roundtrip_Null<T>(TestCase<T> testCase)
     {
-        _ = value;
+        _ = testCase.Value;
         if (default(T) is not null)
             return;
 
         var serializer = GetSerializerUnderTest<T>();
-        value = default!;
 
-        string json = serializer.Serialize(value);
+        string json = serializer.Serialize(default!);
         Assert.Equal("null", json);
 
         T? deserializedValue = serializer.Deserialize(json);
@@ -95,25 +122,29 @@ public abstract class JsonTests
     }
 
     [Fact]
-    public void Roundtrip_RecordWithNullableDefaultEnum()
+    public void Roundtrip_DiamondInterface()
     {
-        // Can't use STJ as baseline for this type due to 
-        // https://github.com/dotnet/runtime/issues/68647
+        // Extract to bespoke test until STJ ordering issue is addressed.
 
-        var serializer = GetSerializerUnderTest<RecordWithNullableDefaultEnum>();
-        var value = new RecordWithNullableDefaultEnum();
+        var serializer = GetSerializerUnderTest<IDiamondInterface>();
+        IDiamondInterface value = new DiamondImplementation { X = 1, Y = 2, Z = 3, W = 4, T = 5 };
 
         string json = serializer.Serialize(value);
-        Assert.Equal("""{"flags":"A, B"}""", json);
+        Assert.Equal("""{"T":5,"W":4,"Z":3,"Y":2,"X":1}""", json);
 
-        value = serializer.Deserialize("{}")!;
-        Assert.Equal(MyEnum.A | MyEnum.B, value.flags);
+        Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
     }
 
     public class PocoWithGenericProperty<T>
     { 
         public T? Value { get; set; }
     }
+
+    public static IEnumerable<object[]> GetTestCases()
+        => TestTypes.GetTestCasesCore()
+            .Where(tc => tc is not TestCase<IDiamondInterface>) // Extract to bespoke test until STJ ordering issue is addressed.
+            .Select(tc => new object[] { tc })
+            .ToArray();
 
     private static string ToJsonBaseline<T>(T? value) => JsonSerializer.Serialize(value, s_baselineOptions);
     private static readonly JsonSerializerOptions s_baselineOptions = new()

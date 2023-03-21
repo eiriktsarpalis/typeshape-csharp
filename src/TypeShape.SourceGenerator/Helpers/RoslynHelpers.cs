@@ -83,4 +83,25 @@ internal static class RoslynHelpers
         Debug.Assert(constructor.MethodKind is MethodKind.Constructor);
         return constructor.GetAttributes().Any(attr => attr.AttributeClass?.GetFullyQualifiedName() == "global::System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute");
     }
+
+    public static INamedTypeSymbol[] GetSortedTypeHierarchy(this INamedTypeSymbol type)
+    {
+        if (type.TypeKind != TypeKind.Interface)
+        {
+            var list = new List<INamedTypeSymbol>();
+            for (INamedTypeSymbol? current = type; current != null; current = current.BaseType)
+            {
+                list.Add(current);
+            }
+
+            return list.ToArray();
+        }
+        else
+        {
+            // Interface hierarchies support multiple inheritance.
+            // For consistency with class hierarchy resolution order,
+            // sort topologically from most derived to least derived.
+            return CommonHelpers.TraverseGraphWithTopologicalSort<INamedTypeSymbol>(type, static t => t.AllInterfaces, SymbolEqualityComparer.Default);
+        }
+    }
 }

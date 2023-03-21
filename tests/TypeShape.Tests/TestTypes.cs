@@ -5,76 +5,94 @@ using System.Reflection;
 
 namespace TypeShape.Tests;
 
+public sealed record TestCase<T>(T Value) : ITestCase
+{
+    Type ITestCase.Type => typeof(T);
+    object? ITestCase.Value => Value;
+    public bool IsAbstractClass => typeof(T).IsInterface && !typeof(IEnumerable).IsAssignableFrom(typeof(T));
+}
+
+public interface ITestCase
+{
+    public Type Type { get; }
+    public object? Value { get; }
+    public bool IsAbstractClass { get; }
+}
+
 public static class TestTypes
 {
-    public static IEnumerable<object[]> GetTestValues()
-        => GetTestValuesCore().Select(value => new object[] { value });
-    
-    public static IEnumerable<object> GetTestValuesCore()
+
+    public static IEnumerable<object[]> GetTestCases()
+        => GetTestCasesCore().Select(value => new object[] { value });
+
+    public static IEnumerable<ITestCase> GetTestCasesCore()
     {
-        yield return new object();
-        yield return false;
-        yield return "";
-        yield return "stringValue";
-        yield return sbyte.MinValue;
-        yield return short.MinValue;
-        yield return int.MinValue;
-        yield return long.MinValue;
-        yield return byte.MaxValue;
-        yield return ushort.MaxValue;
-        yield return uint.MaxValue;
-        yield return ulong.MaxValue;
-        yield return 3.14f;
-        yield return 3.14d;
-        yield return 3.14M;
-        yield return DateTime.MaxValue;
-        yield return TimeSpan.MaxValue;
-        yield return BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+        yield return Create(new object());
+        yield return Create(false);
+        yield return Create("");
+        yield return Create("stringValue");
+        yield return Create(sbyte.MinValue);
+        yield return Create(short.MinValue);
+        yield return Create(int.MinValue);
+        yield return Create(long.MinValue);
+        yield return Create(byte.MaxValue);
+        yield return Create(ushort.MaxValue);
+        yield return Create(uint.MaxValue);
+        yield return Create(ulong.MaxValue);
+        yield return Create(3.14f);
+        yield return Create(3.14d);
+        yield return Create(3.14M);
+        yield return Create(DateTime.MaxValue);
+        yield return Create(TimeSpan.MaxValue);
+        yield return Create(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 
-        yield return new int[] { };
-        yield return new int[] { 1, 2, 3 };
-        yield return new int[][] { new int[] { 1, 0, 0 }, new int[] { 0, 1, 0 }, new int[] { 0, 0, 1 } };
-        yield return new List<string> { "1", "2", "3" };
-        yield return new List<byte>();
-        yield return new Queue<int>(new int[] { 1, 2, 3 });
-        yield return new Dictionary<string, int> { ["key1"] = 42, ["key2"] = -1 };
-        yield return new HashSet<string> { "apple", "orange", "banana" };
-        yield return new Hashtable { ["key1"] = 42 };
-        yield return new ArrayList { 1, 2, 3 };
+        yield return Create(new int[] { });
+        yield return Create(new int[] { 1, 2, 3 });
+        yield return Create(new int[][] { new int[] { 1, 0, 0 }, new int[] { 0, 1, 0 }, new int[] { 0, 0, 1 } });
+        yield return Create(new List<string> { "1", "2", "3" });
+        yield return Create(new List<byte>());
+        yield return Create(new Queue<int>(new int[] { 1, 2, 3 }));
+        yield return Create(new Dictionary<string, int> { ["key1"] = 42, ["key2"] = -1 });
+        yield return Create(new HashSet<string> { "apple", "orange", "banana" });
+        yield return Create(new Hashtable { ["key1"] = 42 });
+        yield return Create(new ArrayList { 1, 2, 3 });
 
-        yield return new PocoWithListAndDictionaryProps(@string: "myString")
+        yield return Create(new PocoWithListAndDictionaryProps(@string: "myString")
         {
             List = new() { 1, 2, 3 },
             Dict = new() { ["key1"] = 42, ["key2"] = -1 },
-        };
+        });
 
-        yield return new BaseClass { X = 1 };
-        yield return new DerivedClass { X = 1, Y = 2 };
+        yield return Create(new BaseClass { X = 1 });
+        yield return Create(new DerivedClass { X = 1, Y = 2 });
 
-        yield return new ParameterlessRecord();
-        yield return new ParameterlessStructRecord();
+        yield return Create<IDerivedInterface>(new DerivedImplementation { X = 1, Y = 2 });
+        yield return Create<IDiamondInterface>(new DiamondImplementation { X = 1, Y = 2, Z = 3, W = 4, T = 5 });
 
-        yield return new SimpleRecord(42);
-        yield return new GenericRecord<int>(42);
-        yield return new GenericRecord<string>("str");
-        yield return new GenericRecord<GenericRecord<bool>>(new GenericRecord<bool>(true));
+        yield return Create(new ParameterlessRecord());
+        yield return Create(new ParameterlessStructRecord());
 
-        yield return new ComplexStruct { real = 0, im = 1 };
-        yield return new ComplexStructWithProperties { Real = 0, Im = 1 };
-        yield return new StructWithDefaultCtor();
+        yield return Create(new SimpleRecord(42));
+        yield return Create(new GenericRecord<int>(42));
+        yield return Create(new GenericRecord<string>("str"));
+        yield return Create(new GenericRecord<GenericRecord<bool>>(new GenericRecord<bool>(true)));
 
-        yield return new ClassWithReadOnlyField();
-        yield return new ClassWithRequiredField { x = 42 };
-        yield return new StructWithRequiredField { x = 42 };
-        yield return new ClassWithRequiredProperty { X = 42 };
-        yield return new StructWithRequiredProperty { X = 42 };
-        yield return new StructWithRequiredPropertyAndDefaultCtor { y = 2 };
-        yield return new StructWithRequiredFieldAndDefaultCtor { y = 2 };
+        yield return Create(new ComplexStruct { real = 0, im = 1 });
+        yield return Create(new ComplexStructWithProperties { Real = 0, Im = 1 });
+        yield return Create(new StructWithDefaultCtor());
 
-        yield return new ClassWithSetsRequiredMembersCtor(42);
-        yield return new StructWithSetsRequiredMembersCtor(42);
+        yield return Create(new ClassWithReadOnlyField());
+        yield return Create(new ClassWithRequiredField { x = 42 });
+        yield return Create(new StructWithRequiredField { x = 42 });
+        yield return Create(new ClassWithRequiredProperty { X = 42 });
+        yield return Create(new StructWithRequiredProperty { X = 42 });
+        yield return Create(new StructWithRequiredPropertyAndDefaultCtor { y = 2 });
+        yield return Create(new StructWithRequiredFieldAndDefaultCtor { y = 2 });
 
-        yield return new ClassWithRequiredAndInitOnlyProperties
+        yield return Create(new ClassWithSetsRequiredMembersCtor(42));
+        yield return Create(new StructWithSetsRequiredMembersCtor(42));
+
+        yield return Create(new ClassWithRequiredAndInitOnlyProperties
         {
             RequiredAndInitOnlyString = "str1",
             RequiredString = "str2",
@@ -85,9 +103,9 @@ public static class TestTypes
             InitOnlyInt = 3,
 
             requiredField = true,
-        };
+        });
 
-        yield return new StructWithRequiredAndInitOnlyProperties
+        yield return Create(new StructWithRequiredAndInitOnlyProperties
         {
             RequiredAndInitOnlyString = "str1",
             RequiredString = "str2",
@@ -98,9 +116,9 @@ public static class TestTypes
             InitOnlyInt = 3,
 
             requiredField = true,
-        };
+        });
 
-        yield return new ClassRecordWithRequiredAndInitOnlyProperties(1, 2, 3)
+        yield return Create(new ClassRecordWithRequiredAndInitOnlyProperties(1, 2, 3)
         {
             RequiredAndInitOnlyString = "str1",
             RequiredString = "str2",
@@ -111,9 +129,9 @@ public static class TestTypes
             InitOnlyInt = 3,
 
             requiredField = true,
-        };
+        });
 
-        yield return new StructRecordWithRequiredAndInitOnlyProperties(1, 2, 3)
+        yield return Create(new StructRecordWithRequiredAndInitOnlyProperties(1, 2, 3)
         {
             RequiredAndInitOnlyString = "str1",
             RequiredString = "str2",
@@ -124,21 +142,22 @@ public static class TestTypes
             InitOnlyInt = 3,
 
             requiredField = true,
-        };
+        });
 
-        yield return new ClassRecord(0, 1, 2, 3);
-        yield return new StructRecord(0, 1, 2, 3);
-        yield return new LargeClassRecord();
+        yield return Create(new ClassRecord(0, 1, 2, 3));
+        yield return Create(new StructRecord(0, 1, 2, 3));
+        yield return Create(new LargeClassRecord());
 
-        yield return new RecordWithDefaultParams();
-        yield return new RecordWithDefaultParams2();
+        yield return Create(new RecordWithDefaultParams());
+        yield return Create(new RecordWithDefaultParams2());
 
-        yield return new RecordWithNullableDefaultParams();
-        yield return new RecordWithNullableDefaultParams2();
+        yield return Create(new RecordWithNullableDefaultParams());
+        yield return Create(new RecordWithNullableDefaultParams2());
 
-        yield return new RecordWithEnumAndNullableParams(MyEnum.A, MyEnum.C);
+        yield return Create(new RecordWithEnumAndNullableParams(MyEnum.A, MyEnum.C));
+        yield return Create(new RecordWithNullableDefaultEnum());
 
-        yield return new LinkedList<int>
+        yield return Create(new LinkedList<int>
         {
             Value = 1,
             Next = new()
@@ -150,22 +169,22 @@ public static class TestTypes
                     Next = null,
                 }
             }
-        };
+        });
 
-        yield return new RecordWith21ConstructorParameters(
+        yield return Create(new RecordWith21ConstructorParameters(
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
-            "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2");
+            "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2"));
 
-        yield return new RecordWith42ConstructorParameters(
+        yield return Create(new RecordWith42ConstructorParameters(
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
-            "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2");
+            "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2"));
 
-        yield return new RecordWith42ConstructorParametersAndRequiredProperties(
+        yield return Create(new RecordWith42ConstructorParametersAndRequiredProperties(
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
@@ -175,9 +194,9 @@ public static class TestTypes
         {
             requiredField = 42,
             RequiredProperty = "str"
-        };
+        });
 
-        yield return new StructRecordWith42ConstructorParametersAndRequiredProperties(
+        yield return Create(new StructRecordWith42ConstructorParametersAndRequiredProperties(
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
@@ -187,31 +206,33 @@ public static class TestTypes
         {
             requiredField = 42,
             RequiredProperty = "str"
-        };
+        });
 
-        yield return new ClassWith40RequiredMembers
+        yield return Create(new ClassWith40RequiredMembers
         { 
             r00 = 00, r01 = 01, r02 = 02, r03 = 03, r04 = 04, r05 = 05, r06 = 06, r07 = 07, r08 = 08, r09 = 09, 
             r10 = 10, r11 = 11, r12 = 12, r13 = 13, r14 = 14, r15 = 15, r16 = 16, r17 = 17, r18 = 18, r19 = 19,
             r20 = 20, r21 = 21, r22 = 22, r23 = 23, r24 = 24, r25 = 25, r26 = 26, r27 = 27, r28 = 28, r29 = 29, 
             r30 = 30, r31 = 31, r32 = 32, r33 = 33, r34 = 34, r35 = 35, r36 = 36, r37 = 37, r38 = 38, r39 = 39,
-        };
+        });
 
-        yield return new StructWith40RequiredMembers
+        yield return Create(new StructWith40RequiredMembers
         { 
             r00 = 00, r01 = 01, r02 = 02, r03 = 03, r04 = 04, r05 = 05, r06 = 06, r07 = 07, r08 = 08, r09 = 09, 
             r10 = 10, r11 = 11, r12 = 12, r13 = 13, r14 = 14, r15 = 15, r16 = 16, r17 = 17, r18 = 18, r19 = 19,
             r20 = 20, r21 = 21, r22 = 22, r23 = 23, r24 = 24, r25 = 25, r26 = 26, r27 = 27, r28 = 28, r29 = 29, 
             r30 = 30, r31 = 31, r32 = 32, r33 = 33, r34 = 34, r35 = 35, r36 = 36, r37 = 37, r38 = 38, r39 = 39,
-        };
+        });
 
-        yield return new StructWith40RequiredMembersAndDefaultCtor
+        yield return Create(new StructWith40RequiredMembersAndDefaultCtor
         { 
             r00 = 00, r01 = 01, r02 = 02, r03 = 03, r04 = 04, r05 = 05, r06 = 06, r07 = 07, r08 = 08, r09 = 09, 
             r10 = 10, r11 = 11, r12 = 12, r13 = 13, r14 = 14, r15 = 15, r16 = 16, r17 = 17, r18 = 18, r19 = 19,
             r20 = 20, r21 = 21, r22 = 22, r23 = 23, r24 = 24, r25 = 25, r26 = 26, r27 = 27, r28 = 28, r29 = 29, 
             r30 = 30, r31 = 31, r32 = 32, r33 = 33, r34 = 34, r35 = 35, r36 = 36, r37 = 37, r38 = 38, r39 = 39,
-        };
+        });
+
+        static TestCase<T> Create<T>(T value) => new TestCase<T>(value);
     }
 }
 
@@ -264,6 +285,47 @@ public class BaseClass
 public class DerivedClass : BaseClass
 {
     public int Y { get; set; }
+}
+
+public interface IBaseInterface
+{
+    public int X { get; set; }
+}
+
+public interface IDerivedInterface : IBaseInterface
+{
+    public int Y { get; set; }
+}
+
+public interface IDerived2Interface : IBaseInterface
+{ 
+    public int Z { get; set; }
+}
+
+public interface IDerived3Interface : IBaseInterface
+{
+    public int W { get; set; }
+}
+
+public interface IDiamondInterface : IDerivedInterface, IDerived2Interface, IDerived3Interface
+{
+    public int T { get; set; }
+}
+
+
+public class DerivedImplementation : IDerivedInterface
+{
+    public int X { get; set; }
+    public int Y { get; set; }
+}
+
+public class DiamondImplementation : IDiamondInterface
+{
+    public int X { get; set; }
+    public int Y { get; set; }
+    public int Z { get; set; }
+    public int W { get; set; }
+    public int T { get; set; }
 }
 
 public class ClassWithRequiredField
@@ -476,7 +538,6 @@ public struct StructWith40RequiredMembersAndDefaultCtor
     public required int r30; public required int r31; public required int r32; public required int r33; public required int r34; public required int r35; public required int r36; public required int r37; public required int r38; public required int r39;
 }
 
-
 [GenerateShape(typeof(object))]
 [GenerateShape(typeof(bool))]
 [GenerateShape(typeof(string))]
@@ -509,6 +570,9 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 [GenerateShape(typeof(PocoWithListAndDictionaryProps))]
 [GenerateShape(typeof(BaseClass))]
 [GenerateShape(typeof(DerivedClass))]
+[GenerateShape(typeof(IBaseInterface))]
+[GenerateShape(typeof(IDerivedInterface))]
+[GenerateShape(typeof(IDiamondInterface))]
 [GenerateShape(typeof(ParameterlessRecord))]
 [GenerateShape(typeof(ParameterlessStructRecord))]
 [GenerateShape(typeof(SimpleRecord))]

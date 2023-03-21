@@ -93,26 +93,27 @@ internal sealed class ReflectionType<T> : IType<T>
 
     private static IEnumerable<MemberInfo> GetMembers(bool nonPublic, bool includeFields)
     {
-        // TODO handle interface hierarchies
-
         BindingFlags flags = GetInstanceBindingFlags(nonPublic);
 
-        foreach (PropertyInfo propertyInfo in typeof(T).GetProperties(flags))
+        foreach (Type current in typeof(T).GetSortedTypeHierarchy())
         {
-            if (propertyInfo.GetIndexParameters().Length == 0 &&
-                propertyInfo.PropertyType.CanBeGenericArgument())
+            foreach (PropertyInfo propertyInfo in current.GetProperties(flags))
             {
-                yield return propertyInfo;
-            }
-        }
-
-        if (includeFields)
-        {
-            foreach (FieldInfo fieldInfo in typeof(T).GetFields(flags))
-            {
-                if (fieldInfo.FieldType.CanBeGenericArgument())
+                if (propertyInfo.GetIndexParameters().Length == 0 &&
+                    propertyInfo.PropertyType.CanBeGenericArgument())
                 {
-                    yield return fieldInfo;
+                    yield return propertyInfo;
+                }
+            }
+
+            if (includeFields)
+            {
+                foreach (FieldInfo fieldInfo in current.GetFields(flags))
+                {
+                    if (fieldInfo.FieldType.CanBeGenericArgument())
+                    {
+                        yield return fieldInfo;
+                    }
                 }
             }
         }

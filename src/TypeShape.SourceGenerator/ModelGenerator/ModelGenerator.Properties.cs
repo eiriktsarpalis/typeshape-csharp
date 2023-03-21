@@ -21,9 +21,12 @@ public sealed partial class ModelGenerator
 
     private IEnumerable<ISymbol> ResolvePropertyAndFieldSymbols(ITypeSymbol type)
     {
-        // TODO interface hierarchies
+        if (type is not INamedTypeSymbol namedType)
+        {
+            yield break;
+        }
 
-        for (ITypeSymbol? current = type; current != null; current = current.BaseType)
+        foreach (ITypeSymbol current in namedType.GetSortedTypeHierarchy())
         {
             var members = current.GetMembers()
                 .Where(m => m.Kind is SymbolKind.Field or SymbolKind.Property)
@@ -53,6 +56,7 @@ public sealed partial class ModelGenerator
         {
             Name = property.Name,
             DeclaringType = typeId,
+            DeclaringInterfaceType = property.ContainingType.TypeKind is TypeKind.Interface ? CreateTypeId(property.ContainingType) : null,
             PropertyType = GetOrCreateTypeId(property.Type),
             EmitGetter = property.GetMethod is { } getter && IsAccessibleFromGeneratedType(getter),
             EmitSetter = property.SetMethod is IMethodSymbol { IsInitOnly: false } setter && IsAccessibleFromGeneratedType(setter),
@@ -66,6 +70,7 @@ public sealed partial class ModelGenerator
         {
             Name = field.Name,
             DeclaringType = typeId,
+            DeclaringInterfaceType = null,
             PropertyType = GetOrCreateTypeId(field.Type),
             EmitGetter = true,
             EmitSetter = !field.IsReadOnly,

@@ -76,4 +76,21 @@ internal static class ReflectionHelpers
 
         return defaultValue;
     }
+
+    public static Type[] GetSortedTypeHierarchy(this Type type)
+    {
+        if (!type.IsInterface)
+        {
+            // No need to walk the class hierarchy in reflection,
+            // all members are reported in the current type.
+            return new[] { type };
+        }
+        else
+        {
+            // Interface hierarchies support multiple inheritance.
+            // For consistency with class hierarchy resolution order,
+            // sort topologically from most derived to least derived.
+            return CommonHelpers.TraverseGraphWithTopologicalSort(type, static t => t.GetInterfaces());
+        }
+    }
 }

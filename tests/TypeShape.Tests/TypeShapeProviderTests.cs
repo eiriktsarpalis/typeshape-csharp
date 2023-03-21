@@ -10,11 +10,11 @@ public abstract class TypeShapeProviderTests
     protected abstract bool SupportsNonPublicMembers { get; }
 
     [Theory]
-    [MemberData(nameof(TestTypes.GetTestValues), MemberType = typeof(TestTypes))]
-    public void ReturnsExpectedAttributeProviders<T>(T value)
+    [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
+    public void ReturnsExpectedAttributeProviders<T>(TestCase<T> testCase)
     {
+        _ = testCase; // not used here
         IType<T> shape = Provider.GetShape<T>()!;
-        _ = value; // not used here
 
         Assert.Equal(typeof(T), shape.AttributeProvider);
 
@@ -33,7 +33,7 @@ public abstract class TypeShapeProviderTests
             else
             {
                 PropertyInfo propertyInfo = Assert.IsAssignableFrom<PropertyInfo>(attributeProvider);
-                Assert.Equal(typeof(T), propertyInfo.ReflectedType);
+                Assert.True(propertyInfo.DeclaringType!.IsAssignableFrom(typeof(T)));
                 Assert.Equal(property.Name, propertyInfo.Name);
                 Assert.Equal(property.PropertyType.Type, propertyInfo.PropertyType);
                 Assert.True(!property.HasGetter || propertyInfo.CanRead);

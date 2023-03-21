@@ -27,16 +27,17 @@ internal static partial class SourceFormatter
                     PropertyType = {{property.PropertyType.GeneratedPropertyName}},
                     Getter = {{(property.EmitGetter ? $"static (ref {type.Id.FullyQualifiedName} obj) => obj.{property.Name}" : "null")}},
                     Setter = {{(property.EmitSetter ? $"static (ref {type.Id.FullyQualifiedName} obj, {property.PropertyType.FullyQualifiedName} value) => obj.{property.Name} = value" : "null")}},
-                    AttributeProviderFunc = {{FormatAttributeProviderFunc()}},
+                    AttributeProviderFunc = {{FormatAttributeProviderFunc(property)}},
                     IsField = {{FormatBool(property.IsField)}},
                 };
                 """);
 
-            string FormatAttributeProviderFunc()
+            static string FormatAttributeProviderFunc(PropertyModel property)
             {
+                TypeId declaringType = property.DeclaringInterfaceType ?? property.DeclaringType;
                 return property.IsField
-                    ? $"static () => typeof({type.Id.FullyQualifiedName}).GetField(\"{property.Name}\", {InstanceBindingFlagsConstMember})"
-                    : $"static () => typeof({type.Id.FullyQualifiedName}).GetProperty(\"{property.Name}\", {InstanceBindingFlagsConstMember})";
+                    ? $"static () => typeof({declaringType.FullyQualifiedName}).GetField(\"{property.Name}\", {InstanceBindingFlagsConstMember})"
+                    : $"static () => typeof({declaringType.FullyQualifiedName}).GetProperty(\"{property.Name}\", {InstanceBindingFlagsConstMember})";
             }
         }
 

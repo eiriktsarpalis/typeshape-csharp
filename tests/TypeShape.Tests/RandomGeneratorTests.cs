@@ -10,10 +10,15 @@ public abstract class RandomGeneratorTests
     protected abstract ITypeShapeProvider Provider { get; }
 
     [Theory]
-    [MemberData(nameof(TestTypes.GetTestValues), MemberType = typeof(TestTypes))]
-    public void ProducesDeterministicRandomValues<T>(T value)
+    [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
+    public void ProducesDeterministicRandomValues<T>(TestCase<T> testCase)
     {
-        _ = value; // ignore the value
+        _ = testCase; // ignore the value
+        if (testCase.IsAbstractClass)
+        {
+            return; // Random value generation not supported
+        }
+
         (RandomGenerator<T> generator, IEqualityComparer<T> comparer) = GetGeneratorAndEqualityComparer<T>();
 
         const int Seed = 42;

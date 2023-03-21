@@ -36,19 +36,19 @@ public abstract class CounterTests
 
     [Theory]
     [MemberData(nameof(GetEqualValues))]
-    public void EqualValuesReturnEqualCount<T>(T left, T right)
+    public void EqualValuesReturnEqualCount<T>(TestCase<T> left, TestCase<T> right)
     {
         Func<T, long> counter = GetCounterUnderTest<T>();
 
-        long leftCount = counter(left);
-        long rightCount = counter(right);
+        long leftCount = counter(left.Value);
+        long rightCount = counter(right.Value);
 
         Assert.Equal(leftCount, rightCount);
     }
 
     public static IEnumerable<object[]> GetEqualValues()
-        => TestTypes.GetTestValuesCore()
-            .Zip(TestTypes.GetTestValuesCore(), (l, r) => new object[] { l, r });
+        => TestTypes.GetTestCasesCore()
+            .Zip(TestTypes.GetTestCasesCore(), (l, r) => new object[] { l, r });
 
     protected Func<T, long> GetCounterUnderTest<T>()
     {
