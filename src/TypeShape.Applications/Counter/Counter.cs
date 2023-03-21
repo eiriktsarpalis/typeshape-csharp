@@ -22,12 +22,6 @@ public static class Counter
             if (TryGetVisitedValue<T>() is { } result)
                 return result;
 
-            if (typeof(T).IsPrimitive || typeof(T) == typeof(string) || typeof(T).IsEnum || 
-                typeof(T) == typeof(Guid) || typeof(T) == typeof(DateTime) || typeof(T) == typeof(TimeSpan))
-            {
-                return CacheResult<T>(static _ => 1);
-            }
-
             switch (type.Kind)
             {
                 case TypeKind.Nullable:
@@ -75,6 +69,9 @@ public static class Counter
             var elementTypeCounter = (Func<TElement, long>)enumerableType.ElementType.Accept(this, null)!;
             return CacheResult<TEnumerable>(enumerable =>
             {
+                if (enumerable is null)
+                    return 0;
+
                 long count = 1;
                 foreach (TElement element in enumerableGetter(enumerable))
                     count += elementTypeCounter(element);
@@ -89,6 +86,9 @@ public static class Counter
             var valueTypeCounter = (Func<TValue, long>)dictionaryType.ValueType.Accept(this, null)!;
             return CacheResult<TDictionary>(dict =>
             {
+                if (dict is null)
+                    return 0;
+
                 long count = 1;
                 foreach (KeyValuePair<TKey, TValue> kvp in dictionaryGetter(dict))
                 {

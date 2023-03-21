@@ -93,6 +93,11 @@ internal sealed class ReflectionType<T> : IType<T>
 
     private static IEnumerable<MemberInfo> GetMembers(bool nonPublic, bool includeFields)
     {
+        if (s_disallowPropertyResolution)
+        {
+            yield break;
+        }
+
         BindingFlags flags = GetInstanceBindingFlags(nonPublic);
 
         foreach (Type current in typeof(T).GetSortedTypeHierarchy())
@@ -120,16 +125,44 @@ internal sealed class ReflectionType<T> : IType<T>
     }
 
     public IEnumerableType GetEnumerableType()
-        => _provider.CreateEnumerableType(typeof(T));
+    {
+        if ((Kind & TypeKind.Enumerable) == 0)
+        {
+            throw new InvalidOperationException();
+        }
+
+        return _provider.CreateEnumerableType(typeof(T));
+    }
 
     public IDictionaryType GetDictionaryType()
-        => _provider.CreateDictionaryType(typeof(T));
+    {
+        if ((Kind & TypeKind.Dictionary) == 0)
+        {
+            throw new InvalidOperationException();
+        }
+
+        return _provider.CreateDictionaryType(typeof(T));
+    }
 
     public IEnumType GetEnumType()
-        => _provider.CreateEnumType(typeof(T));
+    {
+        if ((Kind & TypeKind.Enum) == 0)
+        {
+            throw new InvalidOperationException();
+        }
+
+        return _provider.CreateEnumType(typeof(T));
+    }
 
     public INullableType GetNullableType()
-        => _provider.CreateNullableType(typeof(T));
+    {
+        if ((Kind & TypeKind.Nullable) == 0)
+        {
+            throw new InvalidOperationException();
+        }
+
+        return _provider.CreateNullableType(typeof(T));
+    }
 
     private static TypeKind GetTypeKind()
     {
@@ -146,7 +179,7 @@ internal sealed class ReflectionType<T> : IType<T>
             return TypeKind.Enum;
         }
 
-        if (typeof(IEnumerable).IsAssignableFrom(type))
+        if (typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string))
         {
             kind |= TypeKind.Enumerable;
         }
@@ -179,4 +212,27 @@ internal sealed class ReflectionType<T> : IType<T>
         => nonPublic 
         ? BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance
         : BindingFlags.Public | BindingFlags.Instance;
+
+    private readonly static bool s_disallowPropertyResolution = DisallowPropertyResolution();
+    private static bool DisallowPropertyResolution()
+    {
+        Type type = typeof(T);
+        return type.IsPrimitive ||
+            type.IsEnum ||
+            type.IsArray ||
+            type == typeof(object) ||
+            type == typeof(string) ||
+            type == typeof(DateTime) ||
+            type == typeof(DateTimeOffset) ||
+            type == typeof(DateOnly) ||
+            type == typeof(TimeSpan) ||
+            type == typeof(TimeOnly) ||
+            type == typeof(Guid) ||
+            type == typeof(decimal) ||
+            type == typeof(Version) ||
+            type == typeof(Uri) ||
+            ReflectionHelpers.IsNullable<T>() ||
+            typeof(MemberInfo).IsAssignableFrom(type) ||
+            typeof(Delegate).IsAssignableFrom(type);
+    }
 }

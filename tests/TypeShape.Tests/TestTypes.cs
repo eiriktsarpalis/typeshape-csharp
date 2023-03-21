@@ -2,6 +2,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using static TypeShape.Tests.ValidationTests;
 
 namespace TypeShape.Tests;
 
@@ -620,6 +621,10 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 [GenerateShape(typeof(StructWith40RequiredMembers))]
 [GenerateShape(typeof(StructWith40RequiredMembersAndDefaultCtor))]
 [GenerateShape(typeof(RecordWithNullableDefaultEnum))]
+[GenerateShape(typeof(BindingModel))]
+[GenerateShape(typeof(List<BindingModel>))]
+[GenerateShape(typeof(GenericRecord<BindingModel>))]
+[GenerateShape(typeof(Dictionary<string, BindingModel>))]
 internal partial class SourceGenTypeShapeProvider
 { }
 

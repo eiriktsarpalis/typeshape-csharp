@@ -5,6 +5,11 @@ namespace TypeShape.ReflectionProvider;
 
 internal static class ReflectionHelpers
 {
+    public static bool IsNullable<T>()
+    {
+        return default(T) is null && typeof(T).IsValueType;
+    }
+
     public static bool CanBeGenericArgument(this Type type)
     {
         return !(type == typeof(void) || type.IsPointer || type.IsByRef || type.IsByRefLike || type.ContainsGenericParameters);

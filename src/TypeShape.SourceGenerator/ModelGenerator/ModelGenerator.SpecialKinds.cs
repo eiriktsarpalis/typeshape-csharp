@@ -72,6 +72,11 @@ public sealed partial class ModelGenerator
         EnumerableKind kind = default;
         resolvedInterface = null;
 
+        if (type.SpecialType is SpecialType.System_String)
+        {
+            return null;
+        }
+
         if (type is IArrayTypeSymbol array)
         {
             if (array.Rank > 1)
