@@ -1,37 +1,55 @@
 ﻿using TypeShape;
 using TypeShape.Applications.JsonSerializer;
 using TypeShape.Applications.PrettyPrinter;
-using TypeShape.Applications.RandomGenerator;
-using TypeShape.Applications.StructuralEquality;
+using TypeShape.Applications.Validation;
 using TypeShape.ReflectionProvider;
 
-IType<MyPoco> shape = ReflectionTypeShapeProvider.Default.GetShape<MyPoco>();
+IType<BindingModel> shape = ReflectionTypeShapeProvider.Default.GetShape<BindingModel>();
 
-RandomGenerator<MyPoco> generator = RandomGenerator.Create(shape);
-PrettyPrinter<MyPoco> printer = PrettyPrinter.Create(shape);
-TypeShapeJsonSerializer<MyPoco> jsonSerializer = TypeShapeJsonSerializer.Create(shape);
-IEqualityComparer<MyPoco> equalityComparer = StructuralEqualityComparer.Create(shape);
+TypeShapeJsonSerializer<BindingModel> jsonSerializer = TypeShapeJsonSerializer.Create(shape);
+Validator<BindingModel> validator = Validator.Create(shape);
+PrettyPrinter<BindingModel> printer = PrettyPrinter.Create(shape);
 
-MyPoco randomValue = generator.GenerateValue(size: 64, seed: 12);
-Console.WriteLine("Generated pseudo-random value:");
-Console.WriteLine(printer.PrettyPrint(randomValue));
-
-string json = jsonSerializer.Serialize(randomValue);
-Console.WriteLine($"Serialized to JSON: {json}");
-
-MyPoco? deserializedValue = jsonSerializer.Deserialize(json);
-Console.WriteLine($"Deserialized value equals original: {equalityComparer.Equals(randomValue, deserializedValue)}");
-
-public class MyPoco
-{
-    public MyPoco(bool @bool = true, string @string = "str")
+string json = """
     {
-        Bool = @bool;
-        String = @string;
+        "Id" : null,
+        "Components" : ["1"],
+        "Sample" : 1.15,
+        "PhoneNumber" : "NaN"
     }
+    """;
 
-    public bool Bool { get; }
-    public string String { get; }
-    public int[]? Array { get; set; }
-    public Dictionary<string, int>? Dict { get; set; }
+BindingModel? model = jsonSerializer.Deserialize(json);
+
+Console.WriteLine("Deserialized value:");
+Console.WriteLine(printer.PrettyPrint(model));
+Console.WriteLine();
+
+if (validator.TryValidate(model, out List<string>? errors))
+{
+    Console.WriteLine("No validation errors found");
+}
+else
+{
+    Console.WriteLine("Found validation errors: ");
+    foreach (string error in errors)
+    {
+        Console.WriteLine(error);
+    }
+    Console.WriteLine();
+}
+
+public record BindingModel
+{
+    [Required]
+    public string? Id { get; set; }
+
+    [Length(Min = 2, Max = 5)]
+    public List<string>? Components { get; set; }
+
+    [Range<double>(Min = 0, Max = 1)]
+    public double Sample { get; set; }
+
+    [RegularExpression(Pattern = @"^\+?[0-9]{7,14}$")]
+    public string? PhoneNumber { get; set; }
 }
