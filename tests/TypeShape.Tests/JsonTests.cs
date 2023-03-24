@@ -140,7 +140,7 @@ public abstract class JsonTests
     };
 
 
-    private TypeShapeJsonSerializer<T> GetSerializerUnderTest<T>()
+    protected TypeShapeJsonSerializer<T> GetSerializerUnderTest<T>()
     {
         IType<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
@@ -161,4 +161,21 @@ public sealed class JsonTests_ReflectionEmit : JsonTests
 public sealed class JsonTests_SourceGen : JsonTests
 {
     protected override ITypeShapeProvider Provider { get; } = SourceGenTypeShapeProvider.Default;
+
+    [Fact]
+    public void LongTuples_SerializedAsFlatJson()
+    {
+        // Tuples should be serialized as flat JSON, without exposing "Rest" fields.
+        // TODO add support in reflection.
+
+        var serializer = GetSerializerUnderTest<(int x1, int x2, int x3, int x4, int x5, int x6, int x7, int x8, int)>();
+        var value = (x1: 1, x2: 2, x3: 3, x4: 4, x5: 5, x6: 6, x7: 7, x8: 8, 9);
+        string expectedJson = """{"Item1":1,"Item2":2,"Item3":3,"Item4":4,"Item5":5,"Item6":6,"Item7":7,"Item8":8,"Item9":9}""";
+
+        string json = serializer.Serialize(value);
+        Assert.Equal(expectedJson, json);
+
+        var deserializedValue = serializer.Deserialize(json);
+        Assert.Equal(value, deserializedValue);
+    }
 }

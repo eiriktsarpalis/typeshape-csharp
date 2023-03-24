@@ -12,4 +12,5 @@ public sealed record TypeModel
     public required NullableTypeModel? NullableType { get; init; }
     public required EnumerableTypeModel? EnumerableType { get; init; }
     public required DictionaryTypeModel? DictionaryType { get; init; }
+    public required bool IsTupleType { get; init; }
 }

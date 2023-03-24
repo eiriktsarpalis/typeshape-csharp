@@ -26,6 +26,16 @@ public sealed partial class ModelGenerator
             yield break;
         }
 
+        if (namedType.IsTupleType)
+        {
+            foreach (IFieldSymbol symbol in namedType.TupleElements)
+            {
+                yield return symbol;
+            }
+
+            yield break;
+        }
+
         foreach (ITypeSymbol current in namedType.GetSortedTypeHierarchy())
         {
             var members = current.GetMembers()
@@ -57,7 +67,7 @@ public sealed partial class ModelGenerator
             Name = property.Name,
             DeclaringType = typeId,
             DeclaringInterfaceType = property.ContainingType.TypeKind is TypeKind.Interface ? CreateTypeId(property.ContainingType) : null,
-            PropertyType = GetOrCreateTypeId(property.Type),
+            PropertyType = EnqueueForGeneration(property.Type),
             EmitGetter = property.GetMethod is { } getter && IsAccessibleFromGeneratedType(getter),
             EmitSetter = property.SetMethod is IMethodSymbol { IsInitOnly: false } setter && IsAccessibleFromGeneratedType(setter),
         };
@@ -71,7 +81,7 @@ public sealed partial class ModelGenerator
             Name = field.Name,
             DeclaringType = typeId,
             DeclaringInterfaceType = null,
-            PropertyType = GetOrCreateTypeId(field.Type),
+            PropertyType = EnqueueForGeneration(field.Type),
             EmitGetter = true,
             EmitSetter = !field.IsReadOnly,
             IsField = true,

@@ -18,6 +18,12 @@ public abstract class TypeShapeProviderTests
 
         Assert.Equal(typeof(T), shape.AttributeProvider);
 
+        if (testCase.IsTuple)
+        {
+            // tuples don't report attribute metadata.
+            return;
+        }
+
         foreach (IProperty property in shape.GetProperties(nonPublic: SupportsNonPublicMembers, includeFields: true))
         {
             ICustomAttributeProvider? attributeProvider = property.AttributeProvider;

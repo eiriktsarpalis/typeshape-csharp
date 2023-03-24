@@ -2,6 +2,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using static TypeShape.Tests.ValidationTests;
 
 namespace TypeShape.Tests;
@@ -11,6 +12,7 @@ public sealed record TestCase<T>(T Value) : ITestCase
     Type ITestCase.Type => typeof(T);
     object? ITestCase.Value => Value;
     public bool IsAbstractClass => typeof(T).IsInterface && !typeof(IEnumerable).IsAssignableFrom(typeof(T));
+    public bool IsTuple => Value is ITuple;
 }
 
 public interface ITestCase
@@ -85,6 +87,12 @@ public static class TestTypes
         yield return Create(new ComplexStruct { real = 0, im = 1 });
         yield return Create(new ComplexStructWithProperties { Real = 0, Im = 1 });
         yield return Create(new StructWithDefaultCtor());
+
+        yield return Create(new ValueTuple<int>(42));
+        yield return Create((42, "string"));
+        yield return Create((IntValue: 42, StringValue: "string", BoolValue: true));
+        yield return Create((IntValue: 42, StringValue: "string", (1, 0)));
+        yield return Create(new Dictionary<int, (int, int)> { [0] = (1,1) });
 
         yield return Create(new ClassWithReadOnlyField());
         yield return Create(new ClassWithRequiredField { x = 42 });
@@ -610,7 +618,13 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 [GenerateShape(typeof(RecordWithNullableDefaultParams2))]
 [GenerateShape(typeof(RecordWithEnumAndNullableParams))]
 [GenerateShape(typeof(LinkedList<int>))]
-//[GenerateShape(typeof((int, string, bool)))] // TODO tuple support
+[GenerateShape(typeof(ValueTuple<int>))]
+[GenerateShape(typeof(ValueTuple<int, string>))]
+[GenerateShape(typeof((int Value, string X)))]
+[GenerateShape(typeof((int IntValue, string StringValue, bool BoolValue)))]
+[GenerateShape(typeof((int IntValue, string StringValue, (int, int))))]
+[GenerateShape(typeof((int x1, int x2, int x3, int x4, int x5, int x6, int x7, int x8, int)))]
+[GenerateShape(typeof(Dictionary<int, (int, int)>))]
 [GenerateShape(typeof(LinkedList<SimpleRecord?>))]
 [GenerateShape(typeof(RecordWith21ConstructorParameters))]
 [GenerateShape(typeof(RecordWith42ConstructorParameters))]

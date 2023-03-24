@@ -20,7 +20,7 @@ internal static partial class SourceFormatter
             if (i > 0)
                 writer.WriteLine();
 
-            string constructorArgumentStateFQN = FormatConstructorArgumentStateFQN(constructor);
+            string constructorArgumentStateFQN = FormatConstructorArgumentStateFQN(type, constructor);
             argumentStateFQNs.Add(constructorArgumentStateFQN);
 
             writer.WriteLine($$"""
@@ -30,16 +30,21 @@ internal static partial class SourceFormatter
                     ParameterCount = {{constructor.TotalArity}},
                     GetParametersFunc = {{(constructor.TotalArity == 0 ? "null" : FormatConstructorParameterFactoryName(type, i))}},
                     DefaultConstructorFunc = {{FormatDefaultCtor(constructor)}},
-                    ArgumentStateConstructorFunc = static () => {{FormatArgumentStateCtorExpr(constructor)}},
-                    ParameterizedConstructorFunc = static state => {{FormatParameterizedCtorExpr(constructor, "state")}},
-                    AttributeProviderFunc = {{FormatAttributeProviderFunc(constructor)}},
+                    ArgumentStateConstructorFunc = static () => {{FormatArgumentStateCtorExpr(constructor, constructorArgumentStateFQN)}},
+                    ParameterizedConstructorFunc = static state => {{FormatParameterizedCtorExpr(type, constructor, "state")}},
+                    AttributeProviderFunc = {{FormatAttributeProviderFunc(type, constructor)}},
                 };
                 """);
 
             i++;
 
-            static string FormatAttributeProviderFunc(ConstructorModel constructor)
+            static string FormatAttributeProviderFunc(TypeModel type, ConstructorModel constructor)
             {
+                if (type.IsTupleType)
+                {
+                    return "null";
+                }
+
                 string parameterTypes = constructor.Parameters.Count == 0
                     ? "Array.Empty<Type>()"
                     : $$"""new[] { {{string.Join(", ", constructor.Parameters.Select(p => $"typeof({p.ParameterType.FullyQualifiedName})"))}} }""";
@@ -47,17 +52,24 @@ internal static partial class SourceFormatter
                 return $"static () => typeof({constructor.DeclaringType.FullyQualifiedName}).GetConstructor({InstanceBindingFlagsConstMember}, {parameterTypes})";
             }
 
-            static string FormatArgumentStateCtorExpr(ConstructorModel constructor)
+            static string FormatArgumentStateCtorExpr(ConstructorModel constructor, string constructorArgumentStateFQN)
                 => (constructor.Parameters.Count, constructor.MemberInitializers.Count) switch
                 {
                     (0, 0) => "null",
                     (1, 0) => FormatDefaultValueExpr(constructor.Parameters[0]),
                     (0, 1) => FormatDefaultValueExpr(constructor.MemberInitializers[0]),
-                    (_, _) => $"({string.Join(", ", constructor.Parameters.Concat(constructor.MemberInitializers).Select(FormatDefaultValueExpr))})"
+                    _ when (!constructor.Parameters.Any(p => p.HasDefaultValue)) => $"default({constructorArgumentStateFQN})",
+                    _ => $"({string.Join(", ", constructor.Parameters.Concat(constructor.MemberInitializers).Select(FormatDefaultValueExpr))})"
                 };
 
-            static string FormatParameterizedCtorExpr(ConstructorModel constructor, string stateVar)
+            static string FormatParameterizedCtorExpr(TypeModel type, ConstructorModel constructor, string stateVar)
             {
+                if (type.IsTupleType && constructor.TotalArity > 1)
+                {
+                    // Just return the argument state
+                    return stateVar;
+                }
+
                 return (constructor.Parameters.Count, constructor.MemberInitializers.Count) switch
                 {
                     (0, 0) => $$"""new {{constructor.DeclaringType.FullyQualifiedName}}()""",
@@ -88,7 +100,7 @@ internal static partial class SourceFormatter
             if (constructor.TotalArity > 0)
             {
                 writer.WriteLine();
-                FormatConstructorParameterFactory(writer, FormatConstructorParameterFactoryName(type, i), constructor, argumentStateFQNs[i]);
+                FormatConstructorParameterFactory(writer, type, FormatConstructorParameterFactoryName(type, i), constructor, argumentStateFQNs[i]);
             }
 
             i++;
@@ -98,7 +110,7 @@ internal static partial class SourceFormatter
             $"CreateConstructorParameters_{type.Id.GeneratedPropertyName}_{constructorIndex}";
     }
 
-    private static void FormatConstructorParameterFactory(SourceWriter writer, string methodName, ConstructorModel constructor, string constructorArgumentStateFQN)
+    private static void FormatConstructorParameterFactory(SourceWriter writer, TypeModel type, string methodName, ConstructorModel constructor, string constructorArgumentStateFQN)
     {
         writer.WriteLine($"private global::System.Collections.Generic.IEnumerable<global::TypeShape.IConstructorParameter> {methodName}()");
         writer.WriteStartBlock();
@@ -119,14 +131,19 @@ internal static partial class SourceFormatter
                     HasDefaultValue = {{FormatBool(parameter.HasDefaultValue)}},
                     DefaultValue = {{FormatDefaultValueExpr(parameter)}},
                     Setter = static (ref {{constructorArgumentStateFQN}} state, {{parameter.ParameterType.FullyQualifiedName}} value) => state = {{FormatSetterBody(constructor, parameter)}},
-                    AttributeProviderFunc = {{FormatAttributeProviderFunc(constructor, parameter)}},
+                    AttributeProviderFunc = {{FormatAttributeProviderFunc(type, constructor, parameter)}},
                 };
                 """);
 
             i++;
 
-            static string FormatAttributeProviderFunc(ConstructorModel constructor, ConstructorParameterModel parameter)
+            static string FormatAttributeProviderFunc(TypeModel type, ConstructorModel constructor, ConstructorParameterModel parameter)
             {
+                if (type.IsTupleType)
+                {
+                    return "null";
+                }
+
                 if (parameter.IsMemberInitializer)
                 {
                     return $"static () => typeof({constructor.DeclaringType.FullyQualifiedName}).GetMember(\"{parameter.Name}\", {InstanceBindingFlagsConstMember})[0]";
@@ -174,8 +191,14 @@ internal static partial class SourceFormatter
             : literalExpr;
     }
 
-    private static string FormatConstructorArgumentStateFQN(ConstructorModel constructorModel)
+    private static string FormatConstructorArgumentStateFQN(TypeModel type, ConstructorModel constructorModel)
     {
+        if (type.IsTupleType && constructorModel.TotalArity > 1)
+        {
+            // For tuple types, just use the type as the argument state.
+            return constructorModel.DeclaringType.FullyQualifiedName;
+        }
+
         return (constructorModel.Parameters.Count, constructorModel.MemberInitializers.Count) switch
         {
             (0, 0) => "object?",

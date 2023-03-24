@@ -18,7 +18,7 @@ public sealed partial class ModelGenerator
     private readonly ITypeSymbol _declaredTypeSymbol;
 
     private readonly Dictionary<ITypeSymbol, TypeModel> _generatedTypes = new(SymbolEqualityComparer.Default);
-    private readonly Queue<ITypeSymbol> _typesToGenerate = new();
+    private readonly Queue<(TypeId, ITypeSymbol)> _typesToGenerate = new();
     private readonly List<Diagnostic> _diagnostics = new();
 
     private readonly ITypeSymbol? _iReadOnlyDictionaryOfTKeyTValue;
@@ -67,19 +67,17 @@ public sealed partial class ModelGenerator
         {
             _cancellationToken.ThrowIfCancellationRequested();
 
-            ITypeSymbol type = _typesToGenerate.Dequeue();
+            (TypeId typeId, ITypeSymbol type) = _typesToGenerate.Dequeue();
             if (!_generatedTypes.ContainsKey(type))
             {
-                TypeModel generatedType = MapType(type);
+                TypeModel generatedType = MapType(typeId, type);
                 _generatedTypes.Add(type, generatedType);
             }
         }
     }
 
-    private TypeModel MapType(ITypeSymbol type)
+    private TypeModel MapType(TypeId typeId, ITypeSymbol type)
     {
-        TypeId typeId = CreateTypeId(type);
-
         bool isSpecialTypeKind = TryResolveSpecialTypeKinds(typeId, type,
             out EnumTypeModel? enumType,
             out NullableTypeModel? nullableType, 
@@ -96,6 +94,7 @@ public sealed partial class ModelGenerator
             NullableType = nullableType,
             EnumerableType = enumerableType,
             DictionaryType = dictionaryType,
+            IsTupleType = type.IsTupleType,
         };
     }
 
@@ -115,12 +114,12 @@ public sealed partial class ModelGenerator
                 if (!IsSupportedType(typeSymbol) || !IsAccessibleFromGeneratedType(typeSymbol))
                 {
                     ReportDiagnostic(
-                        Diagnostic.Create(TypeNotSupported, attributeSyntax.GetLocation(), typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)));
+                        Diagnostic.Create(TypeNotSupported, attributeSyntax.GetLocationTrimmed(), typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)));
 
                     continue;
                 }
 
-                _typesToGenerate.Enqueue(typeSymbol);
+                EnqueueForGeneration(typeSymbol);
             }
         }
     }
@@ -140,23 +139,28 @@ public sealed partial class ModelGenerator
         return null;
     }
 
-    private TypeId GetOrCreateTypeId(ITypeSymbol type)
+    private TypeId EnqueueForGeneration(ITypeSymbol type)
     {
+        type = _semanticModel.Compilation.EraseCompilerMetadata(type);
+
         if (_generatedTypes.TryGetValue(type, out TypeModel? generated))
         {
             return generated.Id;
         }
 
-        _typesToGenerate.Enqueue(type); // schedule nested type for generation
-        return CreateTypeId(type);
+        TypeId typeId = CreateTypeId(type);
+        _typesToGenerate.Enqueue((typeId, type));
+        return typeId;
     }
 
     private static TypeId CreateTypeId(ITypeSymbol type)
-        => new TypeId
+    {
+        return new TypeId
         {
             FullyQualifiedName = type.GetFullyQualifiedName(),
             GeneratedPropertyName = type.GetGeneratedPropertyName(),
         };
+    }
 
     private string ResolveDeclarationHeader(ClassDeclarationSyntax classSyntax, out ImmutableArrayEq<string> parentHeaders)
     {
@@ -171,7 +175,7 @@ public sealed partial class ModelGenerator
 
         if (hierarchyNotPartial)
         {
-            ReportDiagnostic(Diagnostic.Create(ProviderTypeNotPartial, classSyntax.GetLocation(), classSyntax.Identifier));
+            ReportDiagnostic(Diagnostic.Create(ProviderTypeNotPartial, classSyntax.GetLocationTrimmed(), classSyntax.Identifier));
         }
 
         parentHeaders = parents != null ? parentHeaders = parents.ToImmutableArrayEq() : ImmutableArrayEq<string>.Empty;

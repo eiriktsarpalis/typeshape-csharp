@@ -50,7 +50,7 @@ public sealed partial class ModelGenerator
         return new EnumTypeModel
         {
             Type = typeId,
-            UnderlyingType = GetOrCreateTypeId(((INamedTypeSymbol)type).EnumUnderlyingType!),
+            UnderlyingType = EnqueueForGeneration(((INamedTypeSymbol)type).EnumUnderlyingType!),
         };
     }
 
@@ -62,7 +62,7 @@ public sealed partial class ModelGenerator
         return new NullableTypeModel
         {
             Type = typeId,
-            ElementType = GetOrCreateTypeId(((INamedTypeSymbol)type).TypeArguments[0]),
+            ElementType = EnqueueForGeneration(((INamedTypeSymbol)type).TypeArguments[0]),
         };
     }
 
@@ -130,7 +130,7 @@ public sealed partial class ModelGenerator
         return new EnumerableTypeModel
         {
             Type = typeId,
-            ElementType = GetOrCreateTypeId(elementType),
+            ElementType = EnqueueForGeneration(elementType),
             Kind = kind,
             AddElementMethod = addMethod?.Name
         };
@@ -187,8 +187,8 @@ public sealed partial class ModelGenerator
         return new DictionaryTypeModel
         {
             Type = typeId,
-            KeyType = GetOrCreateTypeId(keyType),
-            ValueType = GetOrCreateTypeId(valueType!),
+            KeyType = EnqueueForGeneration(keyType),
+            ValueType = EnqueueForGeneration(valueType!),
             HasSettableIndexer = hasSettableIndexer,
             Kind = kind,
         };
