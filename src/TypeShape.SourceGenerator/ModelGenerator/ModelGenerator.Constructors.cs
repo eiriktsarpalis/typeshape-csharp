@@ -88,7 +88,7 @@ public sealed partial class ModelGenerator
             Name = parameter.Name,
             Position = parameter.Ordinal,
             ParameterType = typeId,
-            IsRequired = true,
+            IsRequired = !parameter.HasExplicitDefaultValue,
             IsMemberInitializer = false,
             IsAutoProperty = false,
             HasDefaultValue = parameter.HasExplicitDefaultValue,

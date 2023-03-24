@@ -13,12 +13,15 @@ internal sealed class ReflectionConstructorParameter<TArgumentState, TParameter>
         Name = parameterInfo.Name;
         Position = parameterInfo.Position;
         AttributeProvider = parameterInfo;
-        IsRequired = true;
 
         if (parameterInfo.HasDefaultValue)
         {
             _defaultValue = parameterInfo.GetDefaultValueNormalized();
             HasDefaultValue = true;
+        }
+        else
+        {
+            IsRequired = true;
         }
 
         _ctorShapeInfo = ctorShapeInfo;
