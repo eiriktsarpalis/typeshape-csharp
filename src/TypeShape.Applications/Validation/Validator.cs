@@ -5,7 +5,7 @@ namespace TypeShape.Applications.Validation;
 /// <summary>
 /// Delegate containing a recursive validator walking the object graph for validation attributes.
 /// </summary>
-public delegate void Validator<in T>(T value, List<string> path, ref List<string>? errors);
+public delegate void Validator<in T>(T? value, List<string> path, ref List<string>? errors);
 
 public static partial class Validator
 {
@@ -21,7 +21,7 @@ public static partial class Validator
     /// <summary>
     /// Runs validation against the provided value.
     /// </summary>
-    public static bool TryValidate<T>(this Validator<T> validator, T value, [NotNullWhen(false)] out List<string>? errors)
+    public static bool TryValidate<T>(this Validator<T> validator, T? value, [NotNullWhen(false)] out List<string>? errors)
     {
         errors = null;
         var path = new List<string>();

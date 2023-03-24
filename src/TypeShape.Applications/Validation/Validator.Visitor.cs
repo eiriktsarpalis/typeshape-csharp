@@ -36,7 +36,7 @@ public static partial class Validator
                         .Select(prop => (prop.Name, (Validator<T>)prop.Accept(this, state)!))
                         .ToArray();
 
-                    return CacheResult((T value, List<string> path, ref List<string>? errors) =>
+                    return CacheResult((T? value, List<string> path, ref List<string>? errors) =>
                     {
                         if (value is null)
                         {
@@ -64,8 +64,10 @@ public static partial class Validator
 
             var propertyTypeValidator = (Validator<TPropertyType>)property.PropertyType.Accept(this, null)!;
             Getter<TDeclaringType, TPropertyType> getter = property.GetGetter();
-            return new Validator<TDeclaringType>((TDeclaringType obj, List<string> path, ref List<string>? errors) =>
+            return new Validator<TDeclaringType>((TDeclaringType? obj, List<string> path, ref List<string>? errors) =>
             {
+                Debug.Assert(obj != null);
+
                 // Step 1. get the property value
                 TPropertyType propertyValue = getter(ref obj);
 
@@ -92,7 +94,7 @@ public static partial class Validator
         {
             var valueValidator = (Validator<TValue>)dictionaryType.ValueType.Accept(this, null)!;
             Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getDictionary = dictionaryType.GetGetDictionary();
-            return CacheResult((TDictionary dict, List<string> path, ref List<string>? errors) =>
+            return CacheResult((TDictionary? dict, List<string> path, ref List<string>? errors) =>
             {
                 if (dict is null)
                 {
@@ -112,7 +114,7 @@ public static partial class Validator
         {
             Func<TEnumerable, IEnumerable<TElement>> getEnumerable = enumerableType.GetGetEnumerable();
             var elementValidator = (Validator<TElement>)enumerableType.ElementType.Accept(this, null)!;
-            return CacheResult((TEnumerable enumerable, List<string> path, ref List<string>? errors) =>
+            return CacheResult((TEnumerable? enumerable, List<string> path, ref List<string>? errors) =>
             {
                 if (enumerable is null)
                 {
@@ -183,7 +185,7 @@ public static partial class Validator
             private Validator<T>? _result;
             public Validator<T> Result
             {
-                get => _result ?? ((T value, List<string> path, ref List<string>? errors) => _result!(value, path, ref errors));
+                get => _result ?? ((T? value, List<string> path, ref List<string>? errors) => _result!(value, path, ref errors));
                 set => _result = value;
             }
         }

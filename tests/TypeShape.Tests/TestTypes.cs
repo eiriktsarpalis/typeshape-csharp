@@ -611,7 +611,7 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 [GenerateShape(typeof(RecordWithEnumAndNullableParams))]
 [GenerateShape(typeof(LinkedList<int>))]
 //[GenerateShape(typeof((int, string, bool)))] // TODO tuple support
-[GenerateShape(typeof(LinkedList<SimpleRecord>))]
+[GenerateShape(typeof(LinkedList<SimpleRecord?>))]
 [GenerateShape(typeof(RecordWith21ConstructorParameters))]
 [GenerateShape(typeof(RecordWith42ConstructorParameters))]
 [GenerateShape(typeof(RecordWith42ConstructorParametersAndRequiredProperties))]

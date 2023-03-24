@@ -7,10 +7,10 @@ public static class Counter
     // Defines the simplest possible generic traversal application:
     // walks the object graph returning a count of the number of nodes encountered.
 
-    public static Func<T, long> Create<T>(IType<T> shape)
+    public static Func<T?, long> Create<T>(IType<T> shape)
     {
         var visitor = new Visitor();
-        return (Func<T, long>)shape.Accept(visitor, null)!;
+        return (Func<T?, long>)shape.Accept(visitor, null)!;
     }
 
     private sealed class Visitor : ITypeShapeVisitor
@@ -115,7 +115,7 @@ public static class Counter
             throw new NotImplementedException();
         }
 
-        private Func<T, long> CacheResult<T>(Func<T, long> counter)
+        private Func<T?, long> CacheResult<T>(Func<T?, long> counter)
         {
             ((DelayedResultHolder<T>)_visited[typeof(T)]).Result = counter;
             return counter;
@@ -137,8 +137,8 @@ public static class Counter
 
         private sealed class DelayedResultHolder<T>
         {
-            private Func<T, long>? _result;
-            public Func<T, long> Result
+            private Func<T?, long>? _result;
+            public Func<T?, long> Result
             {
                 get => _result ??= (t => _result!(t));
                 set => _result = value;

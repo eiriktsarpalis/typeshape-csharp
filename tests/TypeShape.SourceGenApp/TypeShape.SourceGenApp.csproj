@@ -5,7 +5,9 @@
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
 	<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-    <Nullable>enable</Nullable>
+	<Nullable>enable</Nullable>
+	<WarningsAsErrors>Nullable</WarningsAsErrors>
+	<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <PropertyGroup>
