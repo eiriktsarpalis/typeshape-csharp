@@ -23,7 +23,19 @@ internal sealed class ReflectionType<T> : IType<T>
     public IEnumerable<IConstructor> GetConstructors(bool nonPublic)
     {
         if (typeof(T).IsAbstract)
+        {
             yield break;
+        }
+
+        if (typeof(T).IsNestedValueTupleRepresentation())
+        {
+            ConstructorShapeInfo shapeInfo = ReflectionHelpers.BuildValueTupleConstructorShapeInfo(typeof(T));
+            yield return _provider.CreateConstructor(shapeInfo);
+
+            ConstructorShapeInfo defaultCtorInfo = CreateDefaultConstructor(memberInitializers: null);
+            yield return _provider.CreateConstructor(defaultCtorInfo);
+            yield break;
+        }
 
         BindingFlags flags = GetInstanceBindingFlags(nonPublic);
 
@@ -42,6 +54,8 @@ internal sealed class ReflectionType<T> : IType<T>
             {
                 continue;
             }
+
+            ConstructorParameterInfo[] parameterShapes = parameters.Select(p => new ConstructorParameterInfo(p)).ToArray();
 
             if (isRecord && constructorInfo.GetParameters() is [ParameterInfo parameter] &&
                 parameter.ParameterType == typeof(T))
@@ -62,8 +76,8 @@ internal sealed class ReflectionType<T> : IType<T>
                 }
 
                 // In records, deduplicate any init auto-properties whose signature matches the constructor parameters.
-                if (!memberInitializer.IsRequired && memberInitializer.Member.IsAutoPropertyWithSetter() &&
-                    parameterSet?.Contains((memberInitializer.Type, memberInitializer.Member.Name)) == true)
+                if (!memberInitializer.IsRequired && memberInitializer.MemberInfo.IsAutoPropertyWithSetter() &&
+                    parameterSet?.Contains((memberInitializer.Type, memberInitializer.Name)) == true)
                 {
                     continue;
                 }
@@ -71,23 +85,36 @@ internal sealed class ReflectionType<T> : IType<T>
                 memberInitializers.Add(memberInitializer);
             }
 
-            var ctorShapeInfo = new ConstructorShapeInfo(typeof(T), constructorInfo, parameters, memberInitializers.ToArray());
+            var ctorShapeInfo = new ConstructorShapeInfo(typeof(T), constructorInfo, parameterShapes, memberInitializers.ToArray());
             yield return _provider.CreateConstructor(ctorShapeInfo);
             isDefaultConstructorFound |= parameters.Length == 0;
         }
 
         if (typeof(T).IsValueType && !isDefaultConstructorFound)
         {
-            var ctorShapeInfo = new ConstructorShapeInfo(typeof(T), constructorInfo: null, Array.Empty<ParameterInfo>(), requiredOrInitOnlyMembers);
+            ConstructorShapeInfo ctorShapeInfo = CreateDefaultConstructor(requiredOrInitOnlyMembers);
             yield return _provider.CreateConstructor(ctorShapeInfo);
         }
+        
+        static ConstructorShapeInfo CreateDefaultConstructor(MemberInitializerInfo[]? memberInitializers)
+            => new(typeof(T), constructorInfo: null, Array.Empty<ConstructorParameterInfo>(), memberInitializers);
     }
 
     public IEnumerable<IProperty> GetProperties(bool nonPublic, bool includeFields)
     {
+        if (typeof(T).IsNestedValueTupleRepresentation())
+        {
+            foreach (var field in ReflectionHelpers.EnumerateTupleFieldPaths(typeof(T)))
+            {
+                yield return _provider.CreateProperty(typeof(T), field.FieldInfo, field.ParentFields, logicalName: field.LogicalName, nonPublic: false);
+            }
+
+            yield break;
+        }
+
         foreach (MemberInfo memberInfo in GetMembers(nonPublic, includeFields))
         {
-            yield return _provider.CreateProperty(typeof(T), memberInfo, nonPublic);
+            yield return _provider.CreateProperty(typeof(T), memberInfo, parentMembers:null, nonPublic);
         }
     }
 

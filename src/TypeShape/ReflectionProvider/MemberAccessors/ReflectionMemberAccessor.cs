@@ -5,46 +5,96 @@ namespace TypeShape.ReflectionProvider.MemberAccessors;
 
 internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
 {
-    public Getter<TDeclaringType, TPropertyType> CreateGetter<TDeclaringType, TPropertyType>(MemberInfo memberInfo)
+    public Getter<TDeclaringType, TPropertyType> CreateGetter<TDeclaringType, TPropertyType>(MemberInfo memberInfo, MemberInfo[]? parentMembers)
     {
         Debug.Assert(memberInfo is PropertyInfo or FieldInfo);
 
-        return memberInfo switch
+        if (parentMembers is null or { Length: 0 })
         {
-            PropertyInfo p => (ref TDeclaringType obj) => (TPropertyType)p.GetValue(obj)!,
-            FieldInfo f => (ref TDeclaringType obj) => (TPropertyType)f.GetValue(obj)!,
-            _ => default!,
+            return memberInfo switch
+            {
+                PropertyInfo p => (ref TDeclaringType obj) => (TPropertyType)p.GetValue(obj)!,
+                FieldInfo f => (ref TDeclaringType obj) => (TPropertyType)f.GetValue(obj)!,
+                _ => default!,
+            };
+        }
+
+        Debug.Assert(typeof(TDeclaringType).IsNestedValueTupleRepresentation());
+        Debug.Assert(memberInfo is FieldInfo);
+        Debug.Assert(parentMembers is FieldInfo[]);
+
+        var fieldInfo = (FieldInfo)memberInfo;
+        var parentFields = (FieldInfo[])parentMembers;
+        return (ref TDeclaringType obj) =>
+        {
+            object boxedObj = obj!;
+            for (int i = 0; i < parentFields.Length; i++)
+            {
+                boxedObj = parentFields[i].GetValue(boxedObj)!;
+            }
+
+            return (TPropertyType)fieldInfo.GetValue(boxedObj)!;
         };
     }
 
-    public Setter<TDeclaringType, TPropertyType> CreateSetter<TDeclaringType, TPropertyType>(MemberInfo memberInfo)
+    public Setter<TDeclaringType, TPropertyType> CreateSetter<TDeclaringType, TPropertyType>(MemberInfo memberInfo, MemberInfo[]? parentMembers)
     {
         Debug.Assert(memberInfo is PropertyInfo or FieldInfo);
 
-        return memberInfo switch
+        if (parentMembers is null or { Length: 0 })
         {
-            PropertyInfo p =>
-                !typeof(TDeclaringType).IsValueType
-                ? (ref TDeclaringType obj, TPropertyType value) => p.SetValue(obj, value)
-                : (ref TDeclaringType obj, TPropertyType value) =>
-                {
-                    object? boxedObj = obj;
-                    p.SetValue(boxedObj, value);
-                    obj = (TDeclaringType)boxedObj!;
-                }
-            ,
+            return memberInfo switch
+            {
+                PropertyInfo p =>
+                    !typeof(TDeclaringType).IsValueType
+                    ? (ref TDeclaringType obj, TPropertyType value) => p.SetValue(obj, value)
+                    : (ref TDeclaringType obj, TPropertyType value) =>
+                    {
+                        object? boxedObj = obj;
+                        p.SetValue(boxedObj, value);
+                        obj = (TDeclaringType)boxedObj!;
+                    }
+                ,
 
-            FieldInfo f =>
-                !typeof(TDeclaringType).IsValueType
-                ? (ref TDeclaringType obj, TPropertyType value) => f.SetValue(obj, value)
-                : (ref TDeclaringType obj, TPropertyType value) =>
-                {
-                    object? boxedObj = obj;
-                    f.SetValue(boxedObj, value);
-                    obj = (TDeclaringType)boxedObj!;
-                }
-            ,
-            _ => default!,
+                FieldInfo f =>
+                    !typeof(TDeclaringType).IsValueType
+                    ? (ref TDeclaringType obj, TPropertyType value) => f.SetValue(obj, value)
+                    : (ref TDeclaringType obj, TPropertyType value) =>
+                    {
+                        object? boxedObj = obj;
+                        f.SetValue(boxedObj, value);
+                        obj = (TDeclaringType)boxedObj!;
+                    }
+                ,
+
+                _ => default!,
+            };
+        }
+
+        Debug.Assert(typeof(TDeclaringType).IsNestedValueTupleRepresentation());
+        Debug.Assert(memberInfo is FieldInfo);
+        Debug.Assert(parentMembers is FieldInfo[]);
+
+        var fieldInfo = (FieldInfo)memberInfo;
+        var parentFields = (FieldInfo[])parentMembers;
+        return (ref TDeclaringType obj, TPropertyType value) =>
+        {
+            object?[] boxedValues = new object[parentFields.Length + 1];
+            boxedValues[0] = obj;
+
+            for (int i = 0; i < parentFields.Length; i++)
+            {
+                boxedValues[i + 1] = parentFields[i].GetValue(boxedValues[i]);
+            }
+
+            fieldInfo.SetValue(boxedValues[^1], value);
+
+            for (int i = parentFields.Length - 1; i >= 0; i--)
+            {
+                parentFields[i].SetValue(boxedValues[i], boxedValues[i + 1]);
+            }
+
+            obj = (TDeclaringType)boxedValues[0]!;
         };
     }
 
@@ -121,9 +171,47 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
 
     public Func<TArgumentState, TDeclaringType> CreateParameterizedConstructor<TArgumentState, TDeclaringType>(ConstructorShapeInfo shapeInfo)
     {
-        Debug.Assert(shapeInfo.ConstructorInfo != null || typeof(TDeclaringType).IsValueType && shapeInfo.Parameters.Length == 0);
         MemberInitializerInfo[] memberInitializers = shapeInfo.MemberInitializers;
 
+        if (shapeInfo.NestedTupleCtor != null)
+        {
+            Debug.Assert(memberInitializers.Length == 0);
+            Debug.Assert(typeof(TArgumentState) == typeof(object?[]));
+
+            List<(ConstructorInfo, int)> ctorStack = new();
+            for (ConstructorShapeInfo? ctorInfo = shapeInfo; ctorInfo != null; ctorInfo = ctorInfo.NestedTupleCtor)
+            {
+                Debug.Assert(ctorInfo.ConstructorInfo != null);
+                ctorStack.Add((ctorInfo.ConstructorInfo, ctorInfo.Parameters.Length));
+            }
+
+            ctorStack.Reverse();
+
+            return (Func<TArgumentState, TDeclaringType>)(object)(new Func<object?[], TDeclaringType>(state =>
+            {
+                object? result = null;
+                int i = state.Length;
+                foreach ((ConstructorInfo ctorInfo, int arity) in ctorStack)
+                {
+                    object?[] localParams;
+                    if (i == state.Length)
+                    {
+                        localParams = state[^arity..];
+                    }
+                    else
+                    {
+                        localParams = new object?[arity + 1];
+                        state.AsSpan(i - arity, arity).CopyTo(localParams);
+                        localParams[arity] = result;
+                    }
+
+                    result = ctorInfo.Invoke(localParams);
+                    i -= arity;
+                }
+
+                return (TDeclaringType)result!;
+            }));
+        }
         if (memberInitializers.Length == 0)
         {
             Debug.Assert(typeof(TArgumentState) == typeof(object?[]));
@@ -158,7 +246,8 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
             {
                 for (int i = 0; i < memberInitializers.Length; i++)
                 {
-                    MemberInfo member = memberInitializers[i].Member;
+                    MemberInfo member = memberInitializers[i].MemberInfo;
+
                     if (member is PropertyInfo prop)
                     {
                         prop.SetValue(obj, memberArgs[i]);
@@ -212,6 +301,6 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
         }
     }
 
-    private static object?[] GetDefaultParameterArray(ParameterInfo[] parameters)
-        => parameters.Select(p => p.GetDefaultValueNormalized()).ToArray();
+    private static object?[] GetDefaultParameterArray(ConstructorParameterInfo[] parameters)
+        => parameters.Select(p => p.DefaultValue).ToArray();
 }

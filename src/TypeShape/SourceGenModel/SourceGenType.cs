@@ -43,7 +43,7 @@ public sealed class SourceGenType<T> : IType<T>
     public IEnumerable<IConstructor> GetConstructors(bool nonPublic)
     {
         if (nonPublic)
-            throw new NotSupportedException();
+            throw new InvalidOperationException();
 
         return CreateConstructorsFunc is null ? Array.Empty<IConstructor>() : CreateConstructorsFunc();
     }
@@ -51,7 +51,7 @@ public sealed class SourceGenType<T> : IType<T>
     public IDictionaryType GetDictionaryType()
     {
         if (CreateDictionaryTypeFunc is null)
-            throw new NotSupportedException();
+            throw new InvalidOperationException();
 
         return CreateDictionaryTypeFunc();
     }
@@ -59,7 +59,7 @@ public sealed class SourceGenType<T> : IType<T>
     public IEnumerableType GetEnumerableType()
     {
         if (CreateEnumerableTypeFunc is null)
-            throw new NotSupportedException();
+            throw new InvalidOperationException();
 
         return CreateEnumerableTypeFunc();
     }
@@ -67,7 +67,7 @@ public sealed class SourceGenType<T> : IType<T>
     public IEnumType GetEnumType()
     {
         if (CreateEnumTypeFunc is null)
-            throw new NotSupportedException();
+            throw new InvalidOperationException();
 
         return CreateEnumTypeFunc();
     }
@@ -75,7 +75,7 @@ public sealed class SourceGenType<T> : IType<T>
     public INullableType GetNullableType()
     {
         if (CreateNullableTypeFunc is null)
-            throw new NotSupportedException();
+            throw new InvalidOperationException();
 
         return CreateNullableTypeFunc();
     }
@@ -83,7 +83,7 @@ public sealed class SourceGenType<T> : IType<T>
     public IEnumerable<IProperty> GetProperties(bool nonPublic, bool includeFields)
     {
         if (nonPublic)
-            throw new NotSupportedException();
+            throw new InvalidOperationException();
 
         var properties = CreatePropertiesFunc is null ? Array.Empty<IProperty>() : CreatePropertiesFunc();
         return includeFields ? properties : properties.Where(prop => !prop.IsField);

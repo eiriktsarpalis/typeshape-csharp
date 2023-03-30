@@ -42,7 +42,7 @@ public partial class RandomGenerator
                 .ToArray();
 
             return type.GetConstructors(nonPublic: false)
-                .OrderBy(ctor => ctor.ParameterCount)
+                .OrderByDescending(ctor => ctor.ParameterCount)
                 .Select(ctor => ctor.Accept(this, propertySetters))
                 .First();
         }
@@ -242,19 +242,7 @@ public partial class RandomGenerator
                 return bytes;
             });
 
-            yield return Create((random, size) =>
-            {
-                int length = random.Next(0, Math.Max(7, size));
-                return string.Create(length, random, PopulateSpan);
-                static void PopulateSpan(Span<char> chars, Random random)
-                {
-                    const string CharPool = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-                    for (int i = 0; i < chars.Length; i++)
-                    {
-                        chars[i] = CharPool[random.Next(0, CharPool.Length)];
-                    }
-                }
-            });
+            yield return Create(NextString);
 
             // TODO implement proper polymorphism
             yield return Create<object>((random, size) =>
@@ -278,7 +266,7 @@ public partial class RandomGenerator
         private static bool NextBoolean(Random random) => random.Next(0, 2) != 0;
         private static string NextString(Random random, int size)
         {
-            int length = random.Next(0, size);
+            int length = random.Next(0, Math.Max(7, size));
             return string.Create(length, random, Populate);
             static void Populate(Span<char> chars, Random random)
             {

@@ -94,7 +94,7 @@ public sealed partial class ModelGenerator
             NullableType = nullableType,
             EnumerableType = enumerableType,
             DictionaryType = dictionaryType,
-            IsTupleType = type.IsTupleType,
+            IsTupleType = type.IsNonTrivialTupleType(),
         };
     }
 

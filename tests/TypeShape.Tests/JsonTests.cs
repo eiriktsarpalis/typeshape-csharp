@@ -16,6 +16,11 @@ public abstract class JsonTests
     [MemberData(nameof(GetTestCases))]
     public void Roundtrip_Value<T>(TestCase<T> testCase)
     {
+        if (testCase.IsLongTuple)
+        {
+            return; // The STJ baseline doesn't support long tuples -- run in dedicated test below.
+        }
+
         var serializer = GetSerializerUnderTest<T>();
 
         string json = serializer.Serialize(testCase.Value);
@@ -37,7 +42,14 @@ public abstract class JsonTests
     public void Roundtrip_Property<T>(TestCase<T> testCase)
     {
         if (!IsReflectionProvider)
+        {
             return;
+        }
+
+        if (testCase.IsLongTuple)
+        {
+            return; // The STJ baseline doesn't support long tuples -- run in dedicated test below.
+        }
 
         var serializer = GetSerializerUnderTest<PocoWithGenericProperty<T>>();
         PocoWithGenericProperty<T> poco = new PocoWithGenericProperty<T> { Value = testCase.Value };
@@ -61,7 +73,14 @@ public abstract class JsonTests
     public void Roundtrip_CollectionElement<T>(TestCase<T> testCase)
     {
         if (!IsReflectionProvider)
+        {
             return;
+        }
+
+        if (testCase.IsLongTuple)
+        {
+            return; // The STJ baseline doesn't support long tuples -- run in dedicated test below.
+        }
 
         var serializer = GetSerializerUnderTest<List<T>>();
         var list = new List<T> { testCase.Value, testCase.Value, testCase.Value };
@@ -85,7 +104,14 @@ public abstract class JsonTests
     public void Roundtrip_DictionaryEntry<T>(TestCase<T> testCase)
     {
         if (!IsReflectionProvider)
+        {
             return;
+        }
+
+        if (testCase.IsLongTuple)
+        {
+            return; // The STJ baseline doesn't support long tuples -- run in dedicated test below.
+        }
 
         var serializer = GetSerializerUnderTest<Dictionary<string, T>>();
         var dict = new Dictionary<string, T> { ["key1"] = testCase.Value, ["key2"] = testCase.Value, ["key3"] = testCase.Value };
@@ -108,9 +134,11 @@ public abstract class JsonTests
     [MemberData(nameof(GetTestCases))]
     public void Roundtrip_Null<T>(TestCase<T> testCase)
     {
-        _ = testCase.Value;
+        _ = testCase.Value; // not used in this test
         if (default(T) is not null)
+        {
             return;
+        }
 
         var serializer = GetSerializerUnderTest<T>();
 
@@ -119,6 +147,35 @@ public abstract class JsonTests
 
         T? deserializedValue = serializer.Deserialize(json);
         Assert.Null(deserializedValue);
+    }
+
+    [Theory]
+    [MemberData(nameof(GetLongTuplesAndExpectedJson))]
+    public void LongTuples_SerializedAsFlatJson<Tuple>(Tuple tuple, string expectedJson)
+    {
+        // Tuples should be serialized as flat JSON, without exposing "Rest" fields.
+
+        var serializer = GetSerializerUnderTest<Tuple>();
+
+        string json = serializer.Serialize(tuple);
+        Assert.Equal(expectedJson, json);
+
+        var deserializedValue = serializer.Deserialize(json);
+        Assert.Equal(tuple, deserializedValue);
+    }
+
+    public static IEnumerable<object?[]> GetLongTuplesAndExpectedJson()
+    {
+        yield return Wrap(
+            (x1: 1, x2: 2, x3: 3, x4: 4, x5: 5, x6: 6, x7: 7, x8: 8, x9: 9),
+            """{"Item1":1,"Item2":2,"Item3":3,"Item4":4,"Item5":5,"Item6":6,"Item7":7,"Item8":8,"Item9":9}""");
+
+        yield return Wrap(
+            (x1: 1, x2: 2, x3: 3, x4: 4, x5: 5, x6: 6, x7: 7, x8: 8, x9: 9, x10: 10, x11: 11, x12: 12, x13: 13, x14: 14, x15: 15, x16: 16, x17: 17, x18: 18, x19:19, x20:20, x21:21, x22:22, x23:23, x24:24, x25:25, x26:26, x27:27, x28:28, x29:29, x30:30),
+            """{"Item1":1,"Item2":2,"Item3":3,"Item4":4,"Item5":5,"Item6":6,"Item7":7,"Item8":8,"Item9":9,"Item10":10,"Item11":11,"Item12":12,"Item13":13,"Item14":14,"Item15":15,"Item16":16,"Item17":17,"Item18":18,"Item19":19,"Item20":20,"Item21":21,"Item22":22,"Item23":23,"Item24":24,"Item25":25,"Item26":26,"Item27":27,"Item28":28,"Item29":29,"Item30":30}""");
+
+        static object?[] Wrap<Tuple>(Tuple tuple, string expectedJson)
+            => new object?[] { tuple, expectedJson };
     }
 
     public class PocoWithGenericProperty<T>
@@ -161,21 +218,4 @@ public sealed class JsonTests_ReflectionEmit : JsonTests
 public sealed class JsonTests_SourceGen : JsonTests
 {
     protected override ITypeShapeProvider Provider { get; } = SourceGenTypeShapeProvider.Default;
-
-    [Fact]
-    public void LongTuples_SerializedAsFlatJson()
-    {
-        // Tuples should be serialized as flat JSON, without exposing "Rest" fields.
-        // TODO add support in reflection.
-
-        var serializer = GetSerializerUnderTest<(int x1, int x2, int x3, int x4, int x5, int x6, int x7, int x8, int)>();
-        var value = (x1: 1, x2: 2, x3: 3, x4: 4, x5: 5, x6: 6, x7: 7, x8: 8, 9);
-        string expectedJson = """{"Item1":1,"Item2":2,"Item3":3,"Item4":4,"Item5":5,"Item6":6,"Item7":7,"Item8":8,"Item9":9}""";
-
-        string json = serializer.Serialize(value);
-        Assert.Equal(expectedJson, json);
-
-        var deserializedValue = serializer.Deserialize(json);
-        Assert.Equal(value, deserializedValue);
-    }
 }

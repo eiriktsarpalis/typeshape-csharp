@@ -41,50 +41,58 @@ internal sealed class ReflectionConstructor<TDeclaringType, TArgumentState> : IC
     {
         ConstructorShapeInfo shapeInfo = _shapeInfo;
 
-        foreach (ParameterInfo parameterInfo in shapeInfo.Parameters)
+        for (int i = 0; i < shapeInfo.TotalParameters; i++)
         {
-            yield return _provider.CreateConstructorParameter(typeof(TArgumentState), shapeInfo, parameterInfo);
-        }
-
-        int i = shapeInfo.Parameters.Length;
-        foreach (MemberInitializerInfo member in shapeInfo.MemberInitializers)
-        {
-            yield return _provider.CreateConstructorParameter(typeof(TArgumentState), shapeInfo, member, i++);
+            yield return _provider.CreateConstructorParameter(typeof(TArgumentState), shapeInfo, i);
         }
     }
 }
 
 internal sealed class ConstructorShapeInfo
 {
-    public ConstructorShapeInfo(Type declaringType, ConstructorInfo? constructorInfo, ParameterInfo[] parameters, MemberInitializerInfo[] memberInitializers)
+    public ConstructorShapeInfo(
+        Type declaringType, 
+        ConstructorInfo? constructorInfo, 
+        ConstructorParameterInfo[] parameters, 
+        MemberInitializerInfo[]? memberInitializers = null, 
+        ConstructorShapeInfo? nestedTupleCtor = null)
     {
         Debug.Assert(constructorInfo != null || (declaringType.IsValueType && parameters.Length == 0));
         DeclaringType = declaringType;
         ConstructorInfo = constructorInfo;
         Parameters = parameters;
-        MemberInitializers = memberInitializers;
-        TotalParameters = parameters.Length + memberInitializers.Length;
+        MemberInitializers = memberInitializers ?? Array.Empty<MemberInitializerInfo>();
+        NestedTupleCtor = nestedTupleCtor;
+        TotalParameters = Parameters.Length + MemberInitializers.Length + (NestedTupleCtor?.TotalParameters ?? 0);
     }
 
     public Type DeclaringType { get; }
     public ConstructorInfo? ConstructorInfo { get;}
-    public ParameterInfo[] Parameters { get; }
-    public MemberInitializerInfo[] MemberInitializers { get; }
     public int TotalParameters { get; }
-}
+    public ConstructorParameterInfo[] Parameters { get; }
+    public MemberInitializerInfo[] MemberInitializers { get; }
+    public ConstructorShapeInfo? NestedTupleCtor { get; }
+    public bool IsNestedValueTuple => NestedTupleCtor != null;
 
-internal sealed class MemberInitializerInfo
-{
-    public MemberInitializerInfo(MemberInfo member, bool isRequired, bool isInitOnly)
+    public IConstructorParameterInfo this[int i]
     {
-        Member = member;
-        IsRequired = isRequired;
-        IsInitOnly = isInitOnly;
-        Type = member.MemberType();
-    }
+        get
+        {
+            Debug.Assert(i < TotalParameters);
 
-    public MemberInfo Member { get; }
-    public Type Type { get; }
-    public bool IsRequired { get; }
-    public bool IsInitOnly { get; }
+            if (i < Parameters.Length)
+            {
+                return Parameters[i];
+            }
+
+            i -= Parameters.Length;
+            if (i < MemberInitializers.Length)
+            {
+                return MemberInitializers[i];
+            }
+
+            Debug.Assert(NestedTupleCtor != null);
+            return NestedTupleCtor[i - MemberInitializers.Length];
+        }
+    }
 }

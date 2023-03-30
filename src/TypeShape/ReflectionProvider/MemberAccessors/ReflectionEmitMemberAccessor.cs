@@ -6,12 +6,10 @@ namespace TypeShape.ReflectionProvider.MemberAccessors;
 
 internal class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
 {
-    // The maximum constructor arity for which to use ValueTuples when representing argument state.
-    private const int MaxValueTupleArity = 21;
-
-    public Getter<TDeclaringType, TPropertyType> CreateGetter<TDeclaringType, TPropertyType>(MemberInfo memberInfo)
+    public Getter<TDeclaringType, TPropertyType> CreateGetter<TDeclaringType, TPropertyType>(MemberInfo memberInfo, MemberInfo[]? parentMembers)
     {
         Debug.Assert(memberInfo is FieldInfo or MemberInfo);
+        Debug.Assert(parentMembers is null || typeof(TDeclaringType).IsNestedValueTupleRepresentation());
 
         DynamicMethod dynamicMethod = CreateDynamicMethod(memberInfo.Name, typeof(TPropertyType), new[] { typeof(TDeclaringType).MakeByRefType() });
         ILGenerator generator = dynamicMethod.GetILGenerator();
@@ -22,36 +20,60 @@ internal class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
             generator.Emit(OpCodes.Ldind_Ref);
         }
 
-        switch (memberInfo)
+        if (parentMembers != null)
         {
-            case PropertyInfo prop:
-                MethodInfo getter = prop.GetGetMethod(true)!;
-                if (typeof(TDeclaringType).IsValueType)
-                {
-                    generator.EmitCall(OpCodes.Call, getter, null);
-                }
-                else
-                {
-                    generator.EmitCall(OpCodes.Callvirt, getter, null);
-                }
-                break;
-
-            case FieldInfo field:
-                generator.Emit(OpCodes.Ldfld, field);
-                break;
-
-            default:
-                Debug.Fail("Unreachable code");
-                break;
+            foreach (MemberInfo parent in parentMembers)
+            {
+                EmitGet(parent, isParentMember: true);
+            }
         }
 
+        EmitGet(memberInfo, isParentMember: false);
         generator.Emit(OpCodes.Ret);
+
         return CreateDelegate<Getter<TDeclaringType, TPropertyType>>(dynamicMethod);
+
+        void EmitGet(MemberInfo member, bool isParentMember)
+        {
+            switch (member)
+            {
+                case PropertyInfo prop:
+                    Debug.Assert(prop.CanRead);
+                    Debug.Assert(!isParentMember || !prop.DeclaringType!.IsValueType);
+
+                    MethodInfo getter = prop.GetGetMethod(true)!;
+                    if (getter.DeclaringType!.IsValueType)
+                    {
+                        generator.EmitCall(OpCodes.Call, getter, null);
+                    }
+                    else
+                    {
+                        generator.EmitCall(OpCodes.Callvirt, getter, null);
+                    }
+                    break;
+
+                case FieldInfo field:
+                    if (isParentMember)
+                    {
+                        generator.Emit(OpCodes.Ldflda, field);
+                    }
+                    else
+                    {
+                        generator.Emit(OpCodes.Ldfld, field);
+                    }
+                    break;
+
+                default:
+                    Debug.Fail("Unreachable code");
+                    break;
+            }
+        }
     }
 
-    public Setter<TDeclaringType, TPropertyType> CreateSetter<TDeclaringType, TPropertyType>(MemberInfo memberInfo)
+    public Setter<TDeclaringType, TPropertyType> CreateSetter<TDeclaringType, TPropertyType>(MemberInfo memberInfo, MemberInfo[]? parentMembers)
     {
         Debug.Assert(memberInfo is FieldInfo or MemberInfo);
+        Debug.Assert(parentMembers is null || typeof(TDeclaringType).IsNestedValueTupleRepresentation());
 
         DynamicMethod dynamicMethod = CreateDynamicMethod(memberInfo.Name, typeof(void), new[] { typeof(TDeclaringType).MakeByRefType(), typeof(TPropertyType) });
         ILGenerator generator = dynamicMethod.GetILGenerator();
@@ -62,11 +84,23 @@ internal class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
             generator.Emit(OpCodes.Ldind_Ref);
         }
 
+        if (parentMembers != null)
+        {
+            Debug.Assert(parentMembers is FieldInfo[]);
+            foreach (FieldInfo parentField in (FieldInfo[])parentMembers)
+            {
+                Debug.Assert(parentField.DeclaringType!.IsValueType);
+                Debug.Assert(parentField.FieldType!.IsValueType);
+                generator.Emit(OpCodes.Ldflda, parentField);
+            }
+        }
+
         generator.Emit(OpCodes.Ldarg_1);
 
         switch (memberInfo)
         {
             case PropertyInfo prop:
+                Debug.Assert(prop.CanRead);
                 MethodInfo setter = prop.GetSetMethod(true)!;
                 if (typeof(TDeclaringType).IsValueType)
                 {
@@ -167,7 +201,12 @@ internal class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
 
     public Type CreateConstructorArgumentStateType(ConstructorShapeInfo shapeInfo)
     {
-        Type[] allParameterTypes = shapeInfo.Parameters.Select(p => p.ParameterType)
+        if (shapeInfo.IsNestedValueTuple)
+        {
+            return shapeInfo.DeclaringType;
+        }
+
+        Type[] allParameterTypes = shapeInfo.Parameters.Select(p => p.Type)
             .Concat(shapeInfo.MemberInitializers.Select(m => m.Type))
             .ToArray();
 
@@ -175,26 +214,30 @@ internal class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         {
             0 => typeof(object),
             1 => allParameterTypes[0],
-            <= MaxValueTupleArity => CreateValueTupleType(allParameterTypes),
-            _ => typeof(object?[]),
+            _ => ReflectionHelpers.CreateValueTupleType(allParameterTypes),
         };
     }
 
     public Func<TArgumentState> CreateConstructorArgumentStateCtor<TArgumentState>(ConstructorShapeInfo shapeInfo)
     {
-        if (shapeInfo.TotalParameters == 0)
+        if (shapeInfo.IsNestedValueTuple)
+        {
+            Debug.Assert(typeof(TArgumentState) == shapeInfo.DeclaringType);
+            return static () => default!;
+        }
+        else if (shapeInfo.TotalParameters == 0)
         {
             Debug.Assert(typeof(TArgumentState) == typeof(object));
             return static () => default!;
         }
         else if (shapeInfo.TotalParameters == 1)
         {
-            if (shapeInfo.Parameters is [ParameterInfo parameter])
+            if (shapeInfo.Parameters is [ConstructorParameterInfo parameter])
             {
-                Debug.Assert(typeof(TArgumentState) == parameter.ParameterType);
+                Debug.Assert(typeof(TArgumentState) == parameter.Type);
                 if (parameter.HasDefaultValue)
                 {
-                    TArgumentState argumentState = (TArgumentState)parameter.GetDefaultValueNormalized()!;
+                    TArgumentState argumentState = (TArgumentState)parameter.DefaultValue!;
                     return () => argumentState;
                 }
                 else
@@ -208,24 +251,24 @@ internal class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
                 return static () => default!;
             }
         }
-        else if (shapeInfo.TotalParameters <= MaxValueTupleArity)
+        else
         {
-            Debug.Assert(typeof(TArgumentState).FullName!.StartsWith("System.ValueTuple`"));
+            Debug.Assert(typeof(TArgumentState).IsValueTupleType());
 
             DynamicMethod dynamicMethod = CreateDynamicMethod("ctorArgumentStateCtor", typeof(TArgumentState), Array.Empty<Type>());
             ILGenerator generator = dynamicMethod.GetILGenerator();
 
             // Load the default constructor arguments
-            foreach (ParameterInfo param in shapeInfo.Parameters)
+            foreach (ConstructorParameterInfo param in shapeInfo.Parameters)
             {
                 if (param.HasDefaultValue)
                 {
-                    object? defaultValue = param.GetDefaultValueNormalized(convertToParameterType: false);
-                    LdLiteral(generator, param.ParameterType, defaultValue);
+                    object? defaultValue = param.DefaultValue;
+                    LdLiteral(generator, param.Type, defaultValue);
                 }
                 else
                 {
-                    LdDefaultValue(generator, param.ParameterType);
+                    LdDefaultValue(generator, param.Type);
                 }
             }
 
@@ -252,25 +295,20 @@ internal class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
             generator.Emit(OpCodes.Ret);
             return CreateDelegate<Func<TArgumentState>>(dynamicMethod);
         }
-        else
-        {
-            Debug.Assert(typeof(TArgumentState) == typeof(object?[]));
-            return (Func<TArgumentState>)(object)CreateConstructorArgumentArrayFunc(shapeInfo);
-        }
     }
 
     public Setter<TArgumentState, TParameter> CreateConstructorArgumentStateSetter<TArgumentState, TParameter>(ConstructorShapeInfo shapeInfo, int parameterIndex)
     {
         Debug.Assert(shapeInfo.TotalParameters > 0);
 
-        if (shapeInfo.TotalParameters == 1)
+        if (shapeInfo.TotalParameters == 1 && !shapeInfo.IsNestedValueTuple)
         {
             Debug.Assert(parameterIndex == 0 && typeof(TArgumentState) == typeof(TParameter));
             return (Setter<TArgumentState, TParameter>)(object)new Setter<TParameter, TParameter>(static (ref TParameter state, TParameter value) => state = value);
         } 
-        else if (shapeInfo.TotalParameters <= MaxValueTupleArity)
+        else
         {
-            Debug.Assert(typeof(TArgumentState).FullName!.StartsWith("System.ValueTuple`"));
+            Debug.Assert(typeof(TArgumentState).IsValueTupleType());
 
             DynamicMethod dynamicMethod = CreateDynamicMethod("argumentStateSetter", typeof(void), new Type[] { typeof(TArgumentState).MakeByRefType(), typeof(TParameter) });
             ILGenerator generator = dynamicMethod.GetILGenerator();
@@ -293,14 +331,6 @@ internal class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
 
             return CreateDelegate<Setter<TArgumentState, TParameter>>(dynamicMethod);
         }
-        else
-        {
-            Debug.Assert(typeof(TArgumentState) == typeof(object?[]));
-
-            return (Setter<TArgumentState, TParameter>)(object)
-                new Setter<object?[], TParameter>(
-                    (ref object?[] state, TParameter setter) => state[parameterIndex] = setter);
-        }
     }
 
     public Func<TArgumentState, TDeclaringType> CreateParameterizedConstructor<TArgumentState, TDeclaringType>(ConstructorShapeInfo shapeInfo)
@@ -308,6 +338,11 @@ internal class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         if (shapeInfo.ConstructorInfo is null && shapeInfo.MemberInitializers.Length == 0)
         {
             return static _ => default!;
+        }
+        else if (shapeInfo.IsNestedValueTuple)
+        {
+            Debug.Assert(typeof(TDeclaringType) == typeof(TArgumentState));
+            return (Func<TArgumentState, TDeclaringType>)(object)(new Func<TArgumentState, TArgumentState>(static arg => arg));
         }
 
         return CreateDelegate<Func<TArgumentState, TDeclaringType>>(EmitParameterizedConstructorMethod(typeof(TDeclaringType), typeof(TArgumentState), shapeInfo));
@@ -329,7 +364,7 @@ internal class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         {
             if (shapeInfo.Parameters.Length == 1)
             {
-                Debug.Assert(argumentStateType == shapeInfo.Parameters[0].ParameterType);
+                Debug.Assert(argumentStateType == shapeInfo.Parameters[0].Type);
                 Debug.Assert(shapeInfo.ConstructorInfo != null);
                 generator.Emit(OpCodes.Ldarg_0);
                 generator.Emit(OpCodes.Newobj, shapeInfo.ConstructorInfo);
@@ -375,16 +410,16 @@ internal class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
                 }
             }
         }
-        else if (shapeInfo.TotalParameters <= MaxValueTupleArity)
+        else
         {
-            Debug.Assert(argumentStateType.FullName!.StartsWith("System.ValueTuple`"));
+            Debug.Assert(argumentStateType.IsValueTupleType());
 
             if (shapeInfo.MemberInitializers.Length == 0)
             {
                 Debug.Assert(shapeInfo.ConstructorInfo != null);
                 // No member initializers -- just load all tuple elements and call the constructor
 
-                foreach (var elementPath in EnumerateTupleFieldPaths(argumentStateType))
+                foreach (var elementPath in ReflectionHelpers.EnumerateTupleFieldPaths(argumentStateType))
                 {
                     LdTupleElement(elementPath);
                 }
@@ -396,7 +431,7 @@ internal class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
             {
                 // Emit parameterized constructor + member initializers for structs
 
-                (FieldInfo[] parentFields, FieldInfo field)[] fieldPaths = EnumerateTupleFieldPaths(argumentStateType).ToArray();
+                (string LogicalName, FieldInfo Field, FieldInfo[] ParentFields)[] fieldPaths = ReflectionHelpers.EnumerateTupleFieldPaths(argumentStateType).ToArray();
 
                 LocalBuilder local = generator.DeclareLocal(declaringType);
                 if (shapeInfo.ConstructorInfo is null)
@@ -436,7 +471,7 @@ internal class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
 
                 Debug.Assert(shapeInfo.ConstructorInfo != null);
 
-                (FieldInfo[] parentFields, FieldInfo field)[] fieldPaths = EnumerateTupleFieldPaths(argumentStateType).ToArray();
+                (string LogicalName, FieldInfo Field, FieldInfo[] ParentFields)[] fieldPaths = ReflectionHelpers.EnumerateTupleFieldPaths(argumentStateType).ToArray();
 
                 int i = 0;
                 for (; i < shapeInfo.Parameters.Length; i++)
@@ -456,112 +491,24 @@ internal class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
                 generator.Emit(OpCodes.Ret);
             }
 
-            void LdTupleElement((FieldInfo[] parentFields, FieldInfo field) fieldPath)
+            void LdTupleElement((string LogicalName, FieldInfo Field, FieldInfo[] ParentFields) fieldPath)
             {
                 generator.Emit(OpCodes.Ldarg_0);
 
-                foreach (FieldInfo parent in fieldPath.parentFields)
+                foreach (FieldInfo parent in fieldPath.ParentFields)
                 {
                     generator.Emit(OpCodes.Ldfld, parent);
                 }
 
-                generator.Emit(OpCodes.Ldfld, fieldPath.field);
-            }
-        }
-        else
-        {
-            Debug.Assert(argumentStateType == typeof(object?[]));
-            // Emit parameterized constructor for large arities -- unboxing arguments from object array.
-
-            if (shapeInfo.MemberInitializers.Length == 0)
-            {
-                Debug.Assert(shapeInfo.ConstructorInfo != null);
-                for (int i = 0; i < shapeInfo.Parameters.Length; i++)
-                {
-                    UnboxArg(shapeInfo.Parameters[i].ParameterType, i);
-                }
-
-                generator.Emit(OpCodes.Newobj, shapeInfo.ConstructorInfo);
-                generator.Emit(OpCodes.Ret);
-            }
-            else if (declaringType.IsValueType)
-            {
-                LocalBuilder local = generator.DeclareLocal(declaringType);
-                if (shapeInfo.ConstructorInfo is null)
-                {
-                    generator.Emit(OpCodes.Ldloca_S, local);
-                }
-
-                int i = 0;
-                for (; i < shapeInfo.Parameters.Length; i++)
-                {
-                    UnboxArg(shapeInfo.Parameters[i].ParameterType, i);
-                }
-
-                if (shapeInfo.ConstructorInfo is null)
-                {
-                    generator.Emit(OpCodes.Initobj, declaringType);
-                }
-                else
-                {
-                    generator.Emit(OpCodes.Newobj, shapeInfo.ConstructorInfo);
-                    generator.Emit(OpCodes.Stloc, local);
-                }
-
-                foreach (MemberInitializerInfo member in shapeInfo.MemberInitializers)
-                {
-                    generator.Emit(OpCodes.Ldloca_S, local);
-                    UnboxArg(member.Type, i++);
-                    StMember(member);
-                }
-
-                generator.Emit(OpCodes.Ldloc_S, local);
-                generator.Emit(OpCodes.Ret);
-            }
-            else
-            {
-                Debug.Assert(shapeInfo.ConstructorInfo != null);
-
-                int i = 0;
-                for (; i < shapeInfo.Parameters.Length; i++)
-                {
-                    UnboxArg(shapeInfo.Parameters[i].ParameterType, i);
-                }
-
-                generator.Emit(OpCodes.Newobj, shapeInfo.ConstructorInfo);
-
-                foreach (MemberInitializerInfo member in shapeInfo.MemberInitializers)
-                {
-                    generator.Emit(OpCodes.Dup);
-                    UnboxArg(member.Type, i++);
-                    StMember(member);
-                }
-
-                generator.Emit(OpCodes.Ret);
-            }
-
-            void UnboxArg(Type parameterType, int index)
-            {
-                generator.Emit(OpCodes.Ldarg_0);
-                generator.Emit(OpCodes.Ldc_I4, index);
-                generator.Emit(OpCodes.Ldelem_Ref);
-
-                if (parameterType.IsValueType)
-                {
-                    generator.Emit(OpCodes.Unbox_Any, parameterType);
-                }
-                else
-                {
-                    generator.Emit(OpCodes.Castclass, parameterType);
-                }
+                generator.Emit(OpCodes.Ldfld, fieldPath.Field);
             }
         }
 
         return dynamicMethod;
 
-        void StMember(MemberInitializerInfo member)
+        void StMember(MemberInitializerInfo memberInitializer)
         {
-            switch (member.Member)
+            switch (memberInitializer.MemberInfo)
             {
                 case PropertyInfo prop:
                     Debug.Assert(prop.SetMethod != null);
@@ -732,71 +679,6 @@ internal class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
 
             default:
                 throw new NotImplementedException($"Default parameter support for {value.GetType()}");
-        }
-    }
-
-    private static Type CreateValueTupleType(Type[] elementTypes)
-    {
-        Debug.Assert(elementTypes.Length > 0);
-
-        return elementTypes.Length switch
-        {
-            1 => typeof(ValueTuple<>).MakeGenericType(elementTypes),
-            2 => typeof(ValueTuple<,>).MakeGenericType(elementTypes),
-            3 => typeof(ValueTuple<,,>).MakeGenericType(elementTypes),
-            4 => typeof(ValueTuple<,,,>).MakeGenericType(elementTypes),
-            5 => typeof(ValueTuple<,,,,>).MakeGenericType(elementTypes),
-            6 => typeof(ValueTuple<,,,,,>).MakeGenericType(elementTypes),
-            7 => typeof(ValueTuple<,,,,,,>).MakeGenericType(elementTypes),
-            _ => typeof(ValueTuple<,,,,,,,>).MakeGenericType(elementTypes[..7].Append(CreateValueTupleType(elementTypes[7..])).ToArray()),
-        };
-    }
-
-    private static IEnumerable<(FieldInfo[] parentFields, FieldInfo field)> EnumerateTupleFieldPaths(Type tupleType)
-    {
-        // Walks the nested ValueTuple representation, returning every element field and the parent "Rest" fields needed to access the value.
-        Debug.Assert(tupleType.FullName!.StartsWith("System.ValueTuple`"));
-        List<FieldInfo> nestedFields = new();
-        bool hasNestedTuple;
-
-        do
-        {
-            FieldInfo[] parentFields = nestedFields.ToArray();
-            FieldInfo[] elements = tupleType.GetFields(BindingFlags.Instance | BindingFlags.Public);
-            hasNestedTuple = false;
-
-            foreach (FieldInfo element in elements.OrderBy(e => e.Name))
-            {
-                if (element.Name != "Rest")
-                {
-                    yield return (parentFields, element);
-                }
-                else
-                {
-                    nestedFields.Add(element);
-                    tupleType = element.FieldType;
-                    hasNestedTuple = true;
-                }
-            }
-
-        } while (hasNestedTuple);
-    }
-
-    private static Func<object?[]> CreateConstructorArgumentArrayFunc(ConstructorShapeInfo shapeInfo)
-    {
-        int arity = shapeInfo.TotalParameters;
-
-        if (shapeInfo.Parameters.Any(param => param.HasDefaultValue))
-        {
-            object?[] sourceParamArray = new object[arity];
-            for (int i = 0; i < shapeInfo.Parameters.Length; i++)
-                sourceParamArray[i] = shapeInfo.Parameters[i].GetDefaultValueNormalized();
-
-            return () => (object?[])sourceParamArray.Clone();
-        }
-        else
-        {
-            return () => new object?[arity];
         }
     }
 }

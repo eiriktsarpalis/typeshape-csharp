@@ -14,7 +14,7 @@ internal static class RoslynHelpers
         {
             if (type.IsTupleType)
             {
-                if (namedType.TupleElements.Length == 1)
+                if (namedType.TupleElements.Length < 2)
                 {
                     return type;
                 }
@@ -113,6 +113,11 @@ internal static class RoslynHelpers
         }
 
         return false;
+    }
+
+    public static bool IsNonTrivialTupleType(this ITypeSymbol typeSymbol)
+    {
+        return typeSymbol.IsTupleType && typeSymbol is INamedTypeSymbol ts && ts.TupleElements.Length > 1;
     }
 
     public static IEnumerable<IFieldSymbol> GetTupleElementsWithoutLabels(this INamedTypeSymbol tuple)

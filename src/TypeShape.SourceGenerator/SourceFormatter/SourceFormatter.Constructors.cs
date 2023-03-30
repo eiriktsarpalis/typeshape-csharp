@@ -130,7 +130,7 @@ internal static partial class SourceFormatter
                     IsRequired = {{FormatBool(parameter.IsRequired)}},
                     HasDefaultValue = {{FormatBool(parameter.HasDefaultValue)}},
                     DefaultValue = {{FormatDefaultValueExpr(parameter)}},
-                    Setter = static (ref {{constructorArgumentStateFQN}} state, {{parameter.ParameterType.FullyQualifiedName}} value) => state = {{FormatSetterBody(constructor, parameter)}},
+                    Setter = static (ref {{constructorArgumentStateFQN}} state, {{parameter.ParameterType.FullyQualifiedName}} value) => {{FormatSetterBody(constructor, parameter)}},
                     AttributeProviderFunc = {{FormatAttributeProviderFunc(type, constructor, parameter)}},
                 };
                 """);
@@ -159,8 +159,8 @@ internal static partial class SourceFormatter
             static string FormatSetterBody(ConstructorModel constructor, ConstructorParameterModel parameter)
                 => constructor.TotalArity switch
                 {
-                    1 => "value",
-                    _ => $"({string.Join(", ", constructor.Parameters.Concat(constructor.MemberInitializers).Select(p => p.Position == parameter.Position ? "value" : $"state.Item{p.Position + 1}"))})",
+                    1 => "state = value",
+                    _ => $"state.Item{parameter.Position + 1} = value",
                 };
         }
 

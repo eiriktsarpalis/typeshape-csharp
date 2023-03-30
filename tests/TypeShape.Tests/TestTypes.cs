@@ -13,6 +13,7 @@ public sealed record TestCase<T>(T Value) : ITestCase
     object? ITestCase.Value => Value;
     public bool IsAbstractClass => typeof(T).IsInterface && !typeof(IEnumerable).IsAssignableFrom(typeof(T));
     public bool IsTuple => Value is ITuple;
+    public bool IsLongTuple => Value is ITuple t && t.Length > 7;
 }
 
 public interface ITestCase
@@ -88,10 +89,17 @@ public static class TestTypes
         yield return Create(new ComplexStructWithProperties { Real = 0, Im = 1 });
         yield return Create(new StructWithDefaultCtor());
 
+        yield return Create(new ValueTuple());
         yield return Create(new ValueTuple<int>(42));
         yield return Create((42, "string"));
+        yield return Create((1, 2, 3, 4, 5, 6, 7));
         yield return Create((IntValue: 42, StringValue: "string", BoolValue: true));
         yield return Create((IntValue: 42, StringValue: "string", (1, 0)));
+        yield return Create((x1: 1, x2: 2, x3: 3, x4: 4, x5: 5, x6: 6, x7: 7, x8: 8, x9: 9));
+        yield return Create((x01: 01, x02: 02, x03: 03, x04: 04, x05: 05, x06: 06, x07: 07, x08: 08, x09: 09, x10: 10, 
+                             x11: 11, x12: 12, x13: 13, x14: 14, x15: 15, x16: 16, x17: 17, x18: 18, x19: 19, x20: 20, 
+                             x21: 21, x22: 22, x23: 23, x24: 24, x25: 25, x26: 26, x27: 27, x28: 28, x29: 29, x30: 30));
+
         yield return Create(new Dictionary<int, (int, int)> { [0] = (1,1) });
 
         yield return Create(new ClassWithReadOnlyField());
@@ -428,7 +436,7 @@ public struct StructWithSetsRequiredMembersCtor
     public required int Value
     { 
         get => _value;
-        init => throw new NotSupportedException();
+        init => _value = -1;
     }
 }
 
@@ -618,12 +626,18 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 [GenerateShape(typeof(RecordWithNullableDefaultParams2))]
 [GenerateShape(typeof(RecordWithEnumAndNullableParams))]
 [GenerateShape(typeof(LinkedList<int>))]
+[GenerateShape(typeof(ValueTuple))]
 [GenerateShape(typeof(ValueTuple<int>))]
 [GenerateShape(typeof(ValueTuple<int, string>))]
+[GenerateShape(typeof(ValueTuple<int, int, int, int, int, int, int, int>))]
 [GenerateShape(typeof((int Value, string X)))]
 [GenerateShape(typeof((int IntValue, string StringValue, bool BoolValue)))]
 [GenerateShape(typeof((int IntValue, string StringValue, (int, int))))]
-[GenerateShape(typeof((int x1, int x2, int x3, int x4, int x5, int x6, int x7, int x8, int)))]
+[GenerateShape(typeof((int x1, int x2, int x3, int x4, int x5, int x6, int x7)))]
+[GenerateShape(typeof((int x1, int x2, int x3, int x4, int x5, int x6, int x7, int x8, int x9)))]
+[GenerateShape(typeof((int x01, int x02, int x03, int x04, int x05, int x06, int x07, int x08, int x09, int x10, 
+                       int x11, int x12, int x13, int x14, int x15, int x16, int x17, int x18, int x19, int x20,
+                       int x21, int x22, int x23, int x24, int x25, int x26, int x27, int x28, int x29, int x30)))]
 [GenerateShape(typeof(Dictionary<int, (int, int)>))]
 [GenerateShape(typeof(LinkedList<SimpleRecord?>))]
 [GenerateShape(typeof(RecordWith21ConstructorParameters))]

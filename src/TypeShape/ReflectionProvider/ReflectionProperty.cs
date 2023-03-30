@@ -7,14 +7,19 @@ internal sealed class ReflectionProperty<TDeclaringType, TPropertyType> : IPrope
 {
     private readonly ReflectionTypeShapeProvider _provider;
     private readonly MemberInfo _memberInfo;
+    private readonly MemberInfo[]? _parentMembers; // stack of parent members reserved for nested tuple representations
 
-    public ReflectionProperty(ReflectionTypeShapeProvider provider, MemberInfo memberInfo, bool nonPublic)
+    public ReflectionProperty(ReflectionTypeShapeProvider provider, string? logicalName, MemberInfo memberInfo, MemberInfo[]? parentMembers, bool nonPublic)
     {
-        Debug.Assert(memberInfo.DeclaringType!.IsAssignableFrom(typeof(TDeclaringType)));
+        Debug.Assert(memberInfo.DeclaringType!.IsAssignableFrom(typeof(TDeclaringType)) || parentMembers is not null);
         Debug.Assert(memberInfo is PropertyInfo or FieldInfo);
+        Debug.Assert(parentMembers is null || typeof(TDeclaringType).IsNestedValueTupleRepresentation());
 
         _provider = provider;
         _memberInfo = memberInfo;
+        _parentMembers = parentMembers;
+
+        Name = logicalName ?? memberInfo.Name;
 
         if (memberInfo is FieldInfo f)
         {
@@ -29,7 +34,7 @@ internal sealed class ReflectionProperty<TDeclaringType, TPropertyType> : IPrope
         }
     }
 
-    public string Name => _memberInfo.Name;
+    public string Name { get; }
     public ICustomAttributeProvider? AttributeProvider => _memberInfo;
     public IType DeclaringType => _provider.GetShape<TDeclaringType>();
     public IType PropertyType => _provider.GetShape<TPropertyType>();
@@ -49,7 +54,7 @@ internal sealed class ReflectionProperty<TDeclaringType, TPropertyType> : IPrope
             throw new InvalidOperationException();
         }
 
-        return _provider.MemberAccessor.CreateGetter<TDeclaringType, TPropertyType>(_memberInfo);
+        return _provider.MemberAccessor.CreateGetter<TDeclaringType, TPropertyType>(_memberInfo, _parentMembers);
     }
 
     public Setter<TDeclaringType, TPropertyType> GetSetter()
@@ -59,6 +64,6 @@ internal sealed class ReflectionProperty<TDeclaringType, TPropertyType> : IPrope
             throw new InvalidOperationException();
         }
 
-        return _provider.MemberAccessor.CreateSetter<TDeclaringType, TPropertyType>(_memberInfo);
+        return _provider.MemberAccessor.CreateSetter<TDeclaringType, TPropertyType>(_memberInfo, _parentMembers);
     }
 }

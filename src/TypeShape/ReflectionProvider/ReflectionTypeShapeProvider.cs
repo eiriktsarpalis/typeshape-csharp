@@ -47,7 +47,7 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
         return (IType)Activator.CreateInstance(reflectionType, provider)!;
     }
 
-    internal IProperty CreateProperty(Type declaringType, MemberInfo memberInfo, bool nonPublic)
+    internal IProperty CreateProperty(Type declaringType, MemberInfo memberInfo, MemberInfo[]? parentMembers, bool nonPublic, string? logicalName = null)
     {
         Debug.Assert(memberInfo is FieldInfo or PropertyInfo);
 
@@ -59,7 +59,7 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
         };
 
         Type reflectionPropertyType = typeof(ReflectionProperty<,>).MakeGenericType(declaringType, memberType);
-        return (IProperty)Activator.CreateInstance(reflectionPropertyType, this, memberInfo, nonPublic)!;
+        return (IProperty)Activator.CreateInstance(reflectionPropertyType, this, logicalName, memberInfo, parentMembers, nonPublic)!;
     }
 
     internal IConstructor CreateConstructor(ConstructorShapeInfo shapeInfo)
@@ -69,16 +69,10 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
         return (IConstructor)Activator.CreateInstance(reflectionConstructorType, this, shapeInfo)!;
     }
 
-    internal IConstructorParameter CreateConstructorParameter(Type constructorArgumentState, ConstructorShapeInfo shapeInfo, ParameterInfo parameterInfo)
+    internal IConstructorParameter CreateConstructorParameter(Type constructorArgumentState, ConstructorShapeInfo shapeInfo, int position)
     {
-        Type reflectionConstructorParameterType = typeof(ReflectionConstructorParameter<,>).MakeGenericType(constructorArgumentState, parameterInfo.ParameterType);
-        return (IConstructorParameter)Activator.CreateInstance(reflectionConstructorParameterType, this, shapeInfo, parameterInfo)!;
-    }
-
-    internal IConstructorParameter CreateConstructorParameter(Type constructorArgumentState, ConstructorShapeInfo shapeInfo, MemberInitializerInfo memberInitializer, int position)
-    {
-        Type reflectionConstructorParameterType = typeof(ReflectionConstructorParameter<,>).MakeGenericType(constructorArgumentState, memberInitializer.Type);
-        return (IConstructorParameter)Activator.CreateInstance(reflectionConstructorParameterType, this, shapeInfo, memberInitializer, position)!;
+        Type reflectionConstructorParameterType = typeof(ReflectionConstructorParameter<,>).MakeGenericType(constructorArgumentState, shapeInfo[position].Type);
+        return (IConstructorParameter)Activator.CreateInstance(reflectionConstructorParameterType, this, shapeInfo, position)!;
     }
 
     internal IEnumerableType CreateEnumerableType(Type type)
@@ -86,6 +80,12 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
         if (!typeof(IEnumerable).IsAssignableFrom(type))
         {
             throw new InvalidOperationException();
+        }
+
+        if (type.IsArray)
+        {
+            Type enumerableTypeTy = typeof(ReflectionEnumerableType<,>).MakeGenericType(type, type.GetElementType()!);
+            return (IEnumerableType)Activator.CreateInstance(enumerableTypeTy, this)!;
         }
 
         foreach (Type interfaceTy in type.GetInterfaces())
