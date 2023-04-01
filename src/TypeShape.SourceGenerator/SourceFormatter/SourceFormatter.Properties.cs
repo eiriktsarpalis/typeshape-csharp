@@ -25,8 +25,8 @@ internal static partial class SourceFormatter
                     Name = "{{property.Name}}",
                     DeclaringType = {{type.Id.GeneratedPropertyName}},
                     PropertyType = {{property.PropertyType.GeneratedPropertyName}},
-                    Getter = {{(property.EmitGetter ? $"static (ref {type.Id.FullyQualifiedName} obj) => obj.{property.Name}" : "null")}},
-                    Setter = {{(property.EmitSetter ? $"static (ref {type.Id.FullyQualifiedName} obj, {property.PropertyType.FullyQualifiedName} value) => obj.{property.Name} = value" : "null")}},
+                    Getter = {{(property.EmitGetter ? $"static (ref {type.Id.FullyQualifiedName} obj) => obj.{property.UnderlyingMemberName}" : "null")}},
+                    Setter = {{(property.EmitSetter ? $"static (ref {type.Id.FullyQualifiedName} obj, {property.PropertyType.FullyQualifiedName} value) => obj.{property.UnderlyingMemberName} = value" : "null")}},
                     AttributeProviderFunc = {{FormatAttributeProviderFunc(type, property)}},
                     IsField = {{FormatBool(property.IsField)}},
                 };
@@ -34,7 +34,7 @@ internal static partial class SourceFormatter
 
             static string FormatAttributeProviderFunc(TypeModel type, PropertyModel property)
             {
-                if (type.IsTupleType)
+                if (type.IsValueTupleType || type.IsClassTupleType)
                 {
                     return "null";
                 }

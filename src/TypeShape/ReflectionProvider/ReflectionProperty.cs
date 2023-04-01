@@ -13,7 +13,7 @@ internal sealed class ReflectionProperty<TDeclaringType, TPropertyType> : IPrope
     {
         Debug.Assert(memberInfo.DeclaringType!.IsAssignableFrom(typeof(TDeclaringType)) || parentMembers is not null);
         Debug.Assert(memberInfo is PropertyInfo or FieldInfo);
-        Debug.Assert(parentMembers is null || typeof(TDeclaringType).IsNestedValueTupleRepresentation());
+        Debug.Assert(parentMembers is null || typeof(TDeclaringType).IsNestedTupleRepresentation());
 
         _provider = provider;
         _memberInfo = memberInfo;

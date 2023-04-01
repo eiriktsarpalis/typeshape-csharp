@@ -3,6 +3,7 @@
 public sealed record PropertyModel
 {
     public required string Name { get; init; }
+    public required string UnderlyingMemberName { get; init; }
     public required TypeId DeclaringType { get; init; }
     public required TypeId? DeclaringInterfaceType { get; init; }
     public required TypeId PropertyType { get; init; }

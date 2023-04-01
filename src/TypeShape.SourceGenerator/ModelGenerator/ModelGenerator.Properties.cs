@@ -7,11 +7,18 @@ namespace TypeShape.SourceGenerator;
 
 public sealed partial class ModelGenerator
 {
-    private ImmutableArrayEq<PropertyModel> MapProperties(TypeId typeId, ITypeSymbol type, bool isSpecialTypeKind)
+    private ImmutableArrayEq<PropertyModel> MapProperties(TypeId typeId, ITypeSymbol type, ITypeSymbol[]? classTupleElements, bool isSpecialTypeKind)
     {
         if (isSpecialTypeKind || type.TypeKind is not (TypeKind.Struct or TypeKind.Class or TypeKind.Interface) || type.SpecialType is not SpecialType.None)
         {
             return ImmutableArrayEq<PropertyModel>.Empty;
+        }
+
+        if (classTupleElements is not null)
+        {
+            return classTupleElements
+                .Select((elementType, i) => MapClassTupleElement(typeId, elementType, i))
+                .ToImmutableArrayEq();
         }
 
         return ResolvePropertyAndFieldSymbols(type)
@@ -65,6 +72,7 @@ public sealed partial class ModelGenerator
         return new PropertyModel
         {
             Name = property.Name,
+            UnderlyingMemberName = property.Name,
             DeclaringType = typeId,
             DeclaringInterfaceType = property.ContainingType.TypeKind is TypeKind.Interface ? CreateTypeId(property.ContainingType) : null,
             PropertyType = EnqueueForGeneration(property.Type),
@@ -79,12 +87,27 @@ public sealed partial class ModelGenerator
         return new PropertyModel
         {
             Name = field.Name,
+            UnderlyingMemberName = field.Name,
             DeclaringType = typeId,
             DeclaringInterfaceType = null,
             PropertyType = EnqueueForGeneration(field.Type),
             EmitGetter = true,
             EmitSetter = !field.IsReadOnly,
             IsField = true,
+        };
+    }
+
+    private PropertyModel MapClassTupleElement(TypeId typeId, ITypeSymbol element, int index)
+    {
+        return new PropertyModel
+        {
+            Name = $"Item{index + 1}",
+            UnderlyingMemberName = $"{string.Join("", Enumerable.Repeat("Rest.", index / 7))}Item{(index % 7) + 1}",
+            DeclaringType = typeId,
+            DeclaringInterfaceType = null,
+            PropertyType = EnqueueForGeneration(element),
+            EmitGetter = true,
+            EmitSetter = false,
         };
     }
 }

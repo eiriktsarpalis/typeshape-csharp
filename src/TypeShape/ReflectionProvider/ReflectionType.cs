@@ -27,22 +27,26 @@ internal sealed class ReflectionType<T> : IType<T>
             yield break;
         }
 
-        if (typeof(T).IsNestedValueTupleRepresentation())
+        if (typeof(T).IsNestedTupleRepresentation())
         {
-            ConstructorShapeInfo shapeInfo = ReflectionHelpers.BuildValueTupleConstructorShapeInfo(typeof(T));
-            yield return _provider.CreateConstructor(shapeInfo);
+            ConstructorShapeInfo ctorInfo = ReflectionHelpers.CreateNestedTupleConstructorShapeInfo(typeof(T));
+            yield return _provider.CreateConstructor(ctorInfo);
 
-            ConstructorShapeInfo defaultCtorInfo = CreateDefaultConstructor(memberInitializers: null);
-            yield return _provider.CreateConstructor(defaultCtorInfo);
+            if (typeof(T).IsValueType)
+            {
+                ConstructorShapeInfo defaultCtorInfo = CreateDefaultConstructor(memberInitializers: null);
+                yield return _provider.CreateConstructor(defaultCtorInfo);
+            }
+
             yield break;
         }
 
         BindingFlags flags = GetInstanceBindingFlags(nonPublic);
 
-        MemberInitializerInfo[] requiredOrInitOnlyMembers = GetMembers(nonPublic, includeFields: true)
+        MemberInitializerShapeInfo[] requiredOrInitOnlyMembers = GetMembers(nonPublic, includeFields: true)
             .Select(m => (member: m, isRequired: m.IsRequired(), isInitOnly: m.IsInitOnly()))
             .Where(m => m.isRequired || m.isInitOnly)
-            .Select(m => new MemberInitializerInfo(m.member, m.isRequired, m.isInitOnly))
+            .Select(m => new MemberInitializerShapeInfo(m.member, m.isRequired, m.isInitOnly))
             .ToArray();
 
         bool isRecord = typeof(T).IsRecord();
@@ -55,7 +59,7 @@ internal sealed class ReflectionType<T> : IType<T>
                 continue;
             }
 
-            ConstructorParameterInfo[] parameterShapes = parameters.Select(p => new ConstructorParameterInfo(p)).ToArray();
+            ConstructorParameterShapeInfo[] parameterShapes = parameters.Select(p => new ConstructorParameterShapeInfo(p)).ToArray();
 
             if (isRecord && constructorInfo.GetParameters() is [ParameterInfo parameter] &&
                 parameter.ParameterType == typeof(T))
@@ -64,11 +68,11 @@ internal sealed class ReflectionType<T> : IType<T>
                 continue;
             }
 
-            var memberInitializers = new List<MemberInitializerInfo>();
+            var memberInitializers = new List<MemberInitializerShapeInfo>();
             HashSet<(Type ParameterType, string? Name)>? parameterSet = isRecord ? parameters.Select(p => (p.ParameterType, p.Name)).ToHashSet() : null;
             bool setsRequiredMembers = constructorInfo.SetsRequiredMembers();
 
-            foreach (MemberInitializerInfo memberInitializer in requiredOrInitOnlyMembers)
+            foreach (MemberInitializerShapeInfo memberInitializer in requiredOrInitOnlyMembers)
             {
                 if (setsRequiredMembers && memberInitializer.IsRequired)
                 {
@@ -96,17 +100,17 @@ internal sealed class ReflectionType<T> : IType<T>
             yield return _provider.CreateConstructor(ctorShapeInfo);
         }
         
-        static ConstructorShapeInfo CreateDefaultConstructor(MemberInitializerInfo[]? memberInitializers)
-            => new(typeof(T), constructorInfo: null, Array.Empty<ConstructorParameterInfo>(), memberInitializers);
+        static ConstructorShapeInfo CreateDefaultConstructor(MemberInitializerShapeInfo[]? memberInitializers)
+            => new(typeof(T), constructorInfo: null, Array.Empty<ConstructorParameterShapeInfo>(), memberInitializers);
     }
 
     public IEnumerable<IProperty> GetProperties(bool nonPublic, bool includeFields)
     {
-        if (typeof(T).IsNestedValueTupleRepresentation())
+        if (typeof(T).IsNestedTupleRepresentation())
         {
-            foreach (var field in ReflectionHelpers.EnumerateTupleFieldPaths(typeof(T)))
+            foreach (var field in ReflectionHelpers.EnumerateTupleMemberPaths(typeof(T)))
             {
-                yield return _provider.CreateProperty(typeof(T), field.FieldInfo, field.ParentFields, logicalName: field.LogicalName, nonPublic: false);
+                yield return _provider.CreateProperty(typeof(T), field.Member, field.ParentMembers, logicalName: field.LogicalName, nonPublic: false);
             }
 
             yield break;

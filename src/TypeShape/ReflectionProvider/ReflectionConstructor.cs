@@ -6,26 +6,26 @@ namespace TypeShape.ReflectionProvider;
 internal sealed class ReflectionConstructor<TDeclaringType, TArgumentState> : IConstructor<TDeclaringType, TArgumentState>
 {
     private readonly ReflectionTypeShapeProvider _provider;
-    private readonly ConstructorShapeInfo _shapeInfo;
+    private readonly ConstructorShapeInfo _ctorInfo;
 
-    public ReflectionConstructor(ReflectionTypeShapeProvider provider, ConstructorShapeInfo shapeInfo)
+    public ReflectionConstructor(ReflectionTypeShapeProvider provider, ConstructorShapeInfo ctorInfo)
     {
-        _shapeInfo = shapeInfo;
+        _ctorInfo = ctorInfo;
         _provider = provider;
     }
 
     public IType DeclaringType => _provider.GetShape<TDeclaringType>();
-    public int ParameterCount => _shapeInfo.TotalParameters;
-    public ICustomAttributeProvider? AttributeProvider => _shapeInfo.ConstructorInfo;
+    public int ParameterCount => _ctorInfo.TotalParameters;
+    public ICustomAttributeProvider? AttributeProvider => _ctorInfo.ConstructorInfo;
 
     public object? Accept(IConstructorVisitor visitor, object? state)
         => visitor.VisitConstructor(this, state);
 
     public Func<TArgumentState> GetArgumentStateConstructor()
-        => _provider.MemberAccessor.CreateConstructorArgumentStateCtor<TArgumentState>(_shapeInfo);
+        => _provider.MemberAccessor.CreateConstructorArgumentStateCtor<TArgumentState>(_ctorInfo);
 
     public Func<TArgumentState, TDeclaringType> GetParameterizedConstructor()
-        => _provider.MemberAccessor.CreateParameterizedConstructor<TArgumentState, TDeclaringType>(_shapeInfo);
+        => _provider.MemberAccessor.CreateParameterizedConstructor<TArgumentState, TDeclaringType>(_ctorInfo);
 
     public Func<TDeclaringType> GetDefaultConstructor()
     {
@@ -34,16 +34,16 @@ internal sealed class ReflectionConstructor<TDeclaringType, TArgumentState> : IC
             throw new InvalidOperationException();
         }
 
-        return _provider.MemberAccessor.CreateDefaultConstructor<TDeclaringType>(_shapeInfo);
+        return _provider.MemberAccessor.CreateDefaultConstructor<TDeclaringType>(_ctorInfo);
     }
 
     public IEnumerable<IConstructorParameter> GetParameters()
     {
-        ConstructorShapeInfo shapeInfo = _shapeInfo;
+        ConstructorShapeInfo ctorInfo = _ctorInfo;
 
-        for (int i = 0; i < shapeInfo.TotalParameters; i++)
+        for (int i = 0; i < ctorInfo.TotalParameters; i++)
         {
-            yield return _provider.CreateConstructorParameter(typeof(TArgumentState), shapeInfo, i);
+            yield return _provider.CreateConstructorParameter(typeof(TArgumentState), ctorInfo, i);
         }
     }
 }
@@ -53,15 +53,15 @@ internal sealed class ConstructorShapeInfo
     public ConstructorShapeInfo(
         Type declaringType, 
         ConstructorInfo? constructorInfo, 
-        ConstructorParameterInfo[] parameters, 
-        MemberInitializerInfo[]? memberInitializers = null, 
+        ConstructorParameterShapeInfo[] parameters, 
+        MemberInitializerShapeInfo[]? memberInitializers = null, 
         ConstructorShapeInfo? nestedTupleCtor = null)
     {
         Debug.Assert(constructorInfo != null || (declaringType.IsValueType && parameters.Length == 0));
         DeclaringType = declaringType;
         ConstructorInfo = constructorInfo;
         Parameters = parameters;
-        MemberInitializers = memberInitializers ?? Array.Empty<MemberInitializerInfo>();
+        MemberInitializers = memberInitializers ?? Array.Empty<MemberInitializerShapeInfo>();
         NestedTupleCtor = nestedTupleCtor;
         TotalParameters = Parameters.Length + MemberInitializers.Length + (NestedTupleCtor?.TotalParameters ?? 0);
     }
@@ -69,30 +69,43 @@ internal sealed class ConstructorShapeInfo
     public Type DeclaringType { get; }
     public ConstructorInfo? ConstructorInfo { get;}
     public int TotalParameters { get; }
-    public ConstructorParameterInfo[] Parameters { get; }
-    public MemberInitializerInfo[] MemberInitializers { get; }
+    public ConstructorParameterShapeInfo[] Parameters { get; }
+    public MemberInitializerShapeInfo[] MemberInitializers { get; }
     public ConstructorShapeInfo? NestedTupleCtor { get; }
-    public bool IsNestedValueTuple => NestedTupleCtor != null;
+    public bool IsNestedValueTuple => NestedTupleCtor != null && DeclaringType.IsValueType;
 
-    public IConstructorParameterInfo this[int i]
+    public IParameterShapeInfo GetParameter(int position)
     {
-        get
+        Debug.Assert(position < TotalParameters);
+
+        if (position < Parameters.Length)
         {
-            Debug.Assert(i < TotalParameters);
+            return Parameters[position];
+        }
 
-            if (i < Parameters.Length)
+        position -= Parameters.Length;
+        if (position < MemberInitializers.Length)
+        {
+            return MemberInitializers[position];
+        }
+
+        Debug.Assert(NestedTupleCtor != null);
+        return NestedTupleCtor.GetParameter(position - MemberInitializers.Length);
+    }
+
+    public IEnumerable<IParameterShapeInfo> GetAllParameters()
+    {
+        for (ConstructorShapeInfo? curr = this; curr != null; curr = curr.NestedTupleCtor)
+        {
+            foreach (ConstructorParameterShapeInfo param in curr.Parameters)
             {
-                return Parameters[i];
+                yield return param;
             }
 
-            i -= Parameters.Length;
-            if (i < MemberInitializers.Length)
+            foreach (MemberInitializerShapeInfo memberInitializer in curr.MemberInitializers)
             {
-                return MemberInitializers[i];
+                yield return memberInitializer;
             }
-
-            Debug.Assert(NestedTupleCtor != null);
-            return NestedTupleCtor[i - MemberInitializers.Length];
         }
     }
 }

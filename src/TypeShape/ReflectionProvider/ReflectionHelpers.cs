@@ -112,26 +112,32 @@ internal static class ReflectionHelpers
         }
     }
 
-    public static bool IsValueTupleType(this Type type)
+    public static bool IsTupleType(this Type type)
     {
-        if (type.Assembly != typeof(ValueTuple<int>).Assembly && !type.IsGenericType)
+        if (type.Assembly != typeof(ValueTuple<int>).Assembly || !type.IsGenericType)
         {
             return false;
         }
 
         Debug.Assert(type.FullName != null);
-        return type.FullName.StartsWith("System.ValueTuple`");
+        string fullName = type.FullName;
+        return fullName.StartsWith("System.ValueTuple`") || fullName.StartsWith("System.Tuple`");
     }
 
-    public static bool IsNestedValueTupleRepresentation(this Type type)
+    public static bool IsValueTupleType(this Type type)
+        => type.IsTupleType() && type.IsValueType;
+
+    public static bool IsNestedTupleRepresentation(this Type type)
     {
-        if (!type.IsValueTupleType())
+        if (!type.IsTupleType())
         {
             return false;
         }
 
         Type[] genericArguments = type.GetGenericArguments();
-        return genericArguments.Length == 8 && genericArguments[7].IsValueTupleType();
+        return genericArguments.Length == 8 && 
+            genericArguments[7].IsValueType == type.IsValueType &&
+            genericArguments[7].IsTupleType();
     }
 
     public static Type CreateValueTupleType(Type[] elementTypes)
@@ -150,60 +156,67 @@ internal static class ReflectionHelpers
         };
     }
 
-    public static IEnumerable<(string LogicalName, FieldInfo FieldInfo, FieldInfo[] ParentFields)> EnumerateTupleFieldPaths(Type tupleType)
+    public static IEnumerable<(string LogicalName, MemberInfo Member, MemberInfo[] ParentMembers)> EnumerateTupleMemberPaths(Type tupleType)
     {
-        // Walks the nested ValueTuple representation, returning every element field and the parent "Rest" fields needed to access the value.
-        Debug.Assert(tupleType.IsValueTupleType());
-        List<FieldInfo> nestedFields = new();
+        // Walks the nested tuple representation, returning every element field and the parent "Rest" fields needed to access the value.
+        Debug.Assert(tupleType.IsTupleType());
+        List<MemberInfo> nestedMembers = new();
         bool hasNestedTuple;
         int i = 0;
 
         do
         {
-            FieldInfo[] parentFields = nestedFields.ToArray();
-            FieldInfo[] elements = tupleType.GetFields(BindingFlags.Instance | BindingFlags.Public);
+            MemberInfo[] parentMembers = tupleType.IsValueType 
+                ? nestedMembers.OfType<FieldInfo>().ToArray()
+                : nestedMembers.OfType<PropertyInfo>().ToArray();
+
+            MemberInfo[] elements = tupleType.IsValueType
+                ? tupleType.GetFields(BindingFlags.Instance | BindingFlags.Public)
+                : tupleType.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+
             hasNestedTuple = false;
 
-            foreach (FieldInfo element in elements.OrderBy(e => e.Name))
+            foreach (MemberInfo element in elements.OrderBy(e => e.Name))
             {
                 if (element.Name is "Rest")
                 {
-                    if (element.FieldType.IsValueTupleType())
+                    Type memberType = element.MemberType();
+                    if (memberType.IsTupleType())
                     {
-                        nestedFields.Add(element);
-                        tupleType = element.FieldType;
+                        nestedMembers.Add(element);
+                        tupleType = memberType;
                         hasNestedTuple = true;
                     }
                     else
                     {
-                        yield return ("Rest", element, parentFields);
+                        yield return ("Rest", element, parentMembers);
                     }
                 }
                 else
                 {
-                    yield return ($"Item{++i}", element, parentFields);
+                    yield return ($"Item{++i}", element, parentMembers);
                 }
             }
 
         } while (hasNestedTuple);
     }
 
-    public static ConstructorShapeInfo BuildValueTupleConstructorShapeInfo(Type tupleType)
+    public static ConstructorShapeInfo CreateNestedTupleConstructorShapeInfo(Type tupleType)
     {
-        Debug.Assert(tupleType.IsNestedValueTupleRepresentation());
-        return BuildCore(tupleType, offset: 0);
-        static ConstructorShapeInfo BuildCore(Type tupleType, int offset)
+        Debug.Assert(tupleType.IsNestedTupleRepresentation());
+        return CreateCore(tupleType, offset: 0);
+        static ConstructorShapeInfo CreateCore(Type tupleType, int offset)
         {
-            Debug.Assert(tupleType.IsValueTupleType());
+            Debug.Assert(tupleType.IsTupleType());
             ConstructorInfo ctorInfo = tupleType.GetConstructors()[0];
             ParameterInfo[] parameters = ctorInfo.GetParameters();
-            ConstructorParameterInfo[] ctorParameterInfo;
+            ConstructorParameterShapeInfo[] ctorParameterInfo;
             ConstructorShapeInfo? nestedCtor;
 
-            if (parameters.Length == 8 && parameters[7].ParameterType.IsValueTupleType())
+            if (parameters.Length == 8 && parameters[7].ParameterType.IsTupleType())
             {
                 ctorParameterInfo = MapParameterInfo(parameters.Take(7));
-                nestedCtor = BuildCore(parameters[7].ParameterType, offset);
+                nestedCtor = CreateCore(parameters[7].ParameterType, offset);
             }
             else
             {
@@ -213,8 +226,8 @@ internal static class ReflectionHelpers
 
             return new ConstructorShapeInfo(tupleType, ctorInfo, ctorParameterInfo, nestedTupleCtor: nestedCtor);
 
-            ConstructorParameterInfo[] MapParameterInfo(IEnumerable<ParameterInfo> parameters)
-                => parameters.Select(p => new ConstructorParameterInfo(p, logicalName: $"Item{++offset}")).ToArray();
+            ConstructorParameterShapeInfo[] MapParameterInfo(IEnumerable<ParameterInfo> parameters)
+                => parameters.Select(p => new ConstructorParameterShapeInfo(p, logicalName: $"Item{++offset}")).ToArray();
         }
     }
 }

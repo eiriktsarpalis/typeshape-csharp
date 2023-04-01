@@ -6,16 +6,19 @@ namespace TypeShape.ReflectionProvider;
 internal sealed class ReflectionConstructorParameter<TArgumentState, TParameter> : IConstructorParameter<TArgumentState, TParameter>
 {
     private readonly ReflectionTypeShapeProvider _provider;
-    private readonly ConstructorShapeInfo _ctorShapeInfo;
-    private readonly IConstructorParameterInfo _parameterInfo;
+    private readonly ConstructorShapeInfo _ctorInfo;
+    private readonly IParameterShapeInfo _parameterInfo;
     private readonly int _position;
 
-    public ReflectionConstructorParameter(ReflectionTypeShapeProvider provider, ConstructorShapeInfo ctorShapeInfo, int position)
+    public ReflectionConstructorParameter(
+        ReflectionTypeShapeProvider provider, 
+        ConstructorShapeInfo ctorInfo, 
+        IParameterShapeInfo parameterInfo, 
+        int position)
     {
-        Debug.Assert(position < ctorShapeInfo.TotalParameters);
-
-        _ctorShapeInfo = ctorShapeInfo;
-        _parameterInfo = ctorShapeInfo[position];
+        Debug.Assert(position < ctorInfo.TotalParameters);
+        _ctorInfo = ctorInfo;
+        _parameterInfo = parameterInfo;
         _position = position;
         _provider = provider;
     }
@@ -31,13 +34,13 @@ internal sealed class ReflectionConstructorParameter<TArgumentState, TParameter>
     public ICustomAttributeProvider? AttributeProvider => _parameterInfo.AttributeProvider;
 
     public Setter<TArgumentState, TParameter> GetSetter()
-        => _provider.MemberAccessor.CreateConstructorArgumentStateSetter<TArgumentState, TParameter>(_ctorShapeInfo, _position);
+        => _provider.MemberAccessor.CreateConstructorArgumentStateSetter<TArgumentState, TParameter>(_ctorInfo, _position);
 
     public object? Accept(IConstructorParameterVisitor visitor, object? state)
         => visitor.VisitConstructorParameter(this, state);
 }
 
-internal interface IConstructorParameterInfo
+internal interface IParameterShapeInfo
 {
     Type Type { get; }
     string? Name { get; }
@@ -47,9 +50,9 @@ internal interface IConstructorParameterInfo
     object? DefaultValue { get; }
 }
 
-internal sealed class ConstructorParameterInfo : IConstructorParameterInfo
+internal sealed class ConstructorParameterShapeInfo : IParameterShapeInfo
 {
-    public ConstructorParameterInfo(ParameterInfo parameterInfo, string? logicalName = null)
+    public ConstructorParameterShapeInfo(ParameterInfo parameterInfo, string? logicalName = null)
     {
         Name = logicalName ?? parameterInfo.Name;
         ParameterInfo = parameterInfo;
@@ -71,9 +74,9 @@ internal sealed class ConstructorParameterInfo : IConstructorParameterInfo
     public object? DefaultValue { get; }
 }
 
-internal sealed class MemberInitializerInfo : IConstructorParameterInfo
+internal sealed class MemberInitializerShapeInfo : IParameterShapeInfo
 {
-    public MemberInitializerInfo(MemberInfo memberInfo, bool isRequired, bool isInitOnly)
+    public MemberInitializerShapeInfo(MemberInfo memberInfo, bool isRequired, bool isInitOnly)
     {
         Debug.Assert(isRequired || isInitOnly);
 

@@ -115,9 +115,48 @@ internal static class RoslynHelpers
         return false;
     }
 
-    public static bool IsNonTrivialTupleType(this ITypeSymbol typeSymbol)
+    public static bool IsNonTrivialValueTupleType(this ITypeSymbol typeSymbol)
     {
         return typeSymbol.IsTupleType && typeSymbol is INamedTypeSymbol ts && ts.TupleElements.Length > 1;
+    }
+
+    public static ITypeSymbol[]? GetClassTupleElements(this Compilation compilation, ITypeSymbol typeSymbol)
+    {
+        IAssemblySymbol corLib = compilation.GetSpecialType(SpecialType.System_Int32).ContainingAssembly;
+
+        if (!IsClassTupleType(typeSymbol))
+        {
+            return null;
+        }
+
+        var elementList = new List<ITypeSymbol>();
+        while (true)
+        {
+            var arguments = ((INamedTypeSymbol)typeSymbol).TypeArguments;
+
+            if (arguments.Length < 8)
+            {
+                elementList.AddRange(arguments);
+                break;
+            }
+            else if (IsClassTupleType(arguments[7]))
+            {
+                elementList.AddRange(arguments.Take(7));
+                typeSymbol = arguments[7];
+            }
+            else
+            {
+                // Non-standard nested tuple representation -- treat as usual class.
+                return null;
+            }
+        }
+
+        return elementList.ToArray();
+
+        bool IsClassTupleType(ITypeSymbol type) =>
+            typeSymbol is INamedTypeSymbol namedType && namedType.IsGenericType &&
+            SymbolEqualityComparer.Default.Equals(type.ContainingAssembly, corLib) &&
+            type.GetFullyQualifiedName().StartsWith("global::System.Tuple");
     }
 
     public static IEnumerable<IFieldSymbol> GetTupleElementsWithoutLabels(this INamedTypeSymbol tuple)

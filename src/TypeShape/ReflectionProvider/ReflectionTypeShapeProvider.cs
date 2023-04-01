@@ -62,17 +62,18 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
         return (IProperty)Activator.CreateInstance(reflectionPropertyType, this, logicalName, memberInfo, parentMembers, nonPublic)!;
     }
 
-    internal IConstructor CreateConstructor(ConstructorShapeInfo shapeInfo)
+    internal IConstructor CreateConstructor(ConstructorShapeInfo ctorInfo)
     {
-        Type argumentStateType = MemberAccessor.CreateConstructorArgumentStateType(shapeInfo);
-        Type reflectionConstructorType = typeof(ReflectionConstructor<,>).MakeGenericType(shapeInfo.DeclaringType, argumentStateType);
-        return (IConstructor)Activator.CreateInstance(reflectionConstructorType, this, shapeInfo)!;
+        Type argumentStateType = MemberAccessor.CreateConstructorArgumentStateType(ctorInfo);
+        Type reflectionConstructorType = typeof(ReflectionConstructor<,>).MakeGenericType(ctorInfo.DeclaringType, argumentStateType);
+        return (IConstructor)Activator.CreateInstance(reflectionConstructorType, this, ctorInfo)!;
     }
 
-    internal IConstructorParameter CreateConstructorParameter(Type constructorArgumentState, ConstructorShapeInfo shapeInfo, int position)
+    internal IConstructorParameter CreateConstructorParameter(Type constructorArgumentState, ConstructorShapeInfo ctorInfo, int position)
     {
-        Type reflectionConstructorParameterType = typeof(ReflectionConstructorParameter<,>).MakeGenericType(constructorArgumentState, shapeInfo[position].Type);
-        return (IConstructorParameter)Activator.CreateInstance(reflectionConstructorParameterType, this, shapeInfo, position)!;
+        IParameterShapeInfo parameterInfo = ctorInfo.GetParameter(position);
+        Type reflectionConstructorParameterType = typeof(ReflectionConstructorParameter<,>).MakeGenericType(constructorArgumentState, parameterInfo.Type);
+        return (IConstructorParameter)Activator.CreateInstance(reflectionConstructorParameterType, this, ctorInfo, parameterInfo, position)!;
     }
 
     internal IEnumerableType CreateEnumerableType(Type type)

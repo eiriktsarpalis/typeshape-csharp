@@ -85,16 +85,19 @@ public sealed partial class ModelGenerator
             out EnumerableTypeModel? enumerableType, 
             out ITypeSymbol? implementedCollectionType);
 
+        ITypeSymbol[]? classTupleElements = _semanticModel.Compilation.GetClassTupleElements(type);
+
         return new TypeModel
         {
             Id = typeId,
-            Properties = MapProperties(typeId, type, isSpecialTypeKind),
-            Constructors = MapConstructors(typeId, type, implementedCollectionType),
+            Properties = MapProperties(typeId, type, classTupleElements, isSpecialTypeKind),
+            Constructors = MapConstructors(typeId, type, classTupleElements, implementedCollectionType),
             EnumType = enumType,
             NullableType = nullableType,
             EnumerableType = enumerableType,
             DictionaryType = dictionaryType,
-            IsTupleType = type.IsNonTrivialTupleType(),
+            IsValueTupleType = type.IsNonTrivialValueTupleType(),
+            IsClassTupleType = classTupleElements is not null,
         };
     }
 

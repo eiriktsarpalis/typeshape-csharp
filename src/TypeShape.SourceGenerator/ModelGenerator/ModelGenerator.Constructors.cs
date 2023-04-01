@@ -7,16 +7,21 @@ namespace TypeShape.SourceGenerator;
 
 public sealed partial class ModelGenerator
 {
-    private ImmutableArrayEq<ConstructorModel> MapConstructors(TypeId typeId, ITypeSymbol type, ITypeSymbol? collectionInterface)
+    private ImmutableArrayEq<ConstructorModel> MapConstructors(TypeId typeId, ITypeSymbol type, ITypeSymbol[]? classTupleElements, ITypeSymbol? collectionInterface)
     {
         if (type.TypeKind is not (TypeKind.Struct or TypeKind.Class) || type.SpecialType is not SpecialType.None)
         {
             return ImmutableArrayEq<ConstructorModel>.Empty;
         }
 
+        if (classTupleElements is not null)
+        {
+            return MapTupleConstructors(typeId, type, classTupleElements).ToImmutableArrayEq();
+        }
+
         if (type is INamedTypeSymbol namedType && namedType.IsTupleType)
         {
-            return MapTupleConstructors(typeId, namedType).ToImmutableArrayEq();
+            return MapTupleConstructors(typeId, namedType, namedType.TupleElements.Select(e => e.Type)).ToImmutableArrayEq();
         }
 
         ConstructorParameterModel[] requiredOrInitMembers = ResolvePropertyAndFieldSymbols(type)
@@ -148,24 +153,32 @@ public sealed partial class ModelGenerator
         };
     }
 
-    private IEnumerable<ConstructorModel> MapTupleConstructors(TypeId typeId, INamedTypeSymbol tupleType)
+    private IEnumerable<ConstructorModel> MapTupleConstructors(TypeId typeId, ITypeSymbol tupleType, IEnumerable<ITypeSymbol> tupleElements)
     {
-        Debug.Assert(tupleType.IsTupleType);
+        if (tupleType.IsValueType)
+        {
+            // Return the default constructor for value tuples
+            yield return new ConstructorModel
+            {
+                DeclaringType = typeId,
+                Parameters = ImmutableArrayEq<ConstructorParameterModel>.Empty,
+                MemberInitializers = ImmutableArrayEq<ConstructorParameterModel>.Empty,
+            };
+        }
 
-        // Just return one constructor for tuples
         yield return new ConstructorModel
         {
             DeclaringType = typeId,
-            Parameters = tupleType.TupleElements.Select(MapTupleConstructorParameter).ToImmutableArrayEq(),
+            Parameters = tupleElements.Select(MapTupleConstructorParameter).ToImmutableArrayEq(),
             MemberInitializers = ImmutableArrayEq<ConstructorParameterModel>.Empty,
         };
 
-        ConstructorParameterModel MapTupleConstructorParameter(IFieldSymbol tupleElement, int position)
+        ConstructorParameterModel MapTupleConstructorParameter(ITypeSymbol tupleElement, int position)
         {
-            TypeId typeId = EnqueueForGeneration(tupleElement.Type);
+            TypeId typeId = EnqueueForGeneration(tupleElement);
             return new ConstructorParameterModel
             { 
-                Name = tupleElement.Name,
+                Name = $"Item{position + 1}",
                 Position = position,
                 ParameterType = typeId,
                 HasDefaultValue = false,

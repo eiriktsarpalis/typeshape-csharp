@@ -19,22 +19,44 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
             };
         }
 
-        Debug.Assert(typeof(TDeclaringType).IsNestedValueTupleRepresentation());
-        Debug.Assert(memberInfo is FieldInfo);
-        Debug.Assert(parentMembers is FieldInfo[]);
+        Debug.Assert(typeof(TDeclaringType).IsNestedTupleRepresentation());
 
-        var fieldInfo = (FieldInfo)memberInfo;
-        var parentFields = (FieldInfo[])parentMembers;
-        return (ref TDeclaringType obj) =>
+        if (typeof(TDeclaringType).IsValueType)
         {
-            object boxedObj = obj!;
-            for (int i = 0; i < parentFields.Length; i++)
-            {
-                boxedObj = parentFields[i].GetValue(boxedObj)!;
-            }
+            Debug.Assert(memberInfo is FieldInfo);
+            Debug.Assert(parentMembers is FieldInfo[]);
 
-            return (TPropertyType)fieldInfo.GetValue(boxedObj)!;
-        };
+            var fieldInfo = (FieldInfo)memberInfo;
+            var parentFields = (FieldInfo[])parentMembers;
+            return (ref TDeclaringType obj) =>
+            {
+                object boxedObj = obj!;
+                for (int i = 0; i < parentFields.Length; i++)
+                {
+                    boxedObj = parentFields[i].GetValue(boxedObj)!;
+                }
+
+                return (TPropertyType)fieldInfo.GetValue(boxedObj)!;
+            };
+        }
+        else
+        {
+            Debug.Assert(memberInfo is PropertyInfo);
+            Debug.Assert(parentMembers is PropertyInfo[]);
+
+            var propertyInfo = (PropertyInfo)memberInfo;
+            var parentProperties = (PropertyInfo[])parentMembers;
+            return (ref TDeclaringType obj) =>
+            {
+                object boxedObj = obj!;
+                for (int i = 0; i < parentProperties.Length; i++)
+                {
+                    boxedObj = parentProperties[i].GetValue(boxedObj)!;
+                }
+
+                return (TPropertyType)propertyInfo.GetValue(boxedObj)!;
+            };
+        }
     }
 
     public Setter<TDeclaringType, TPropertyType> CreateSetter<TDeclaringType, TPropertyType>(MemberInfo memberInfo, MemberInfo[]? parentMembers)
@@ -71,7 +93,8 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
             };
         }
 
-        Debug.Assert(typeof(TDeclaringType).IsNestedValueTupleRepresentation());
+        Debug.Assert(typeof(TDeclaringType).IsNestedTupleRepresentation());
+        Debug.Assert(typeof(TDeclaringType).IsValueTupleType(), "only value tuples are mutable.");
         Debug.Assert(memberInfo is FieldInfo);
         Debug.Assert(parentMembers is FieldInfo[]);
 
@@ -123,69 +146,67 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
     }
 
 
-    public Func<TDeclaringType> CreateDefaultConstructor<TDeclaringType>(ConstructorShapeInfo shapeInfo)
+    public Func<TDeclaringType> CreateDefaultConstructor<TDeclaringType>(ConstructorShapeInfo ctorInfo)
     {
-        Debug.Assert(shapeInfo.TotalParameters == 0);
-        Debug.Assert(shapeInfo.ConstructorInfo != null || typeof(TDeclaringType).IsValueType);
-        return shapeInfo.ConstructorInfo is { } ctorInfo
-            ? () => (TDeclaringType)ctorInfo.Invoke(null)!
+        Debug.Assert(ctorInfo.TotalParameters == 0);
+        Debug.Assert(ctorInfo.ConstructorInfo != null || typeof(TDeclaringType).IsValueType);
+        return ctorInfo.ConstructorInfo is { } cI
+            ? () => (TDeclaringType)cI.Invoke(null)!
             : static () => default(TDeclaringType)!;
     }
 
-    public Type CreateConstructorArgumentStateType(ConstructorShapeInfo shapeInfo)
-        => shapeInfo.MemberInitializers.Length == 0 ? typeof(object?[]) : typeof((object?[] ctorArgs, object?[] memberInitializerArgs));
+    public Type CreateConstructorArgumentStateType(ConstructorShapeInfo ctorInfo)
+        => ctorInfo.MemberInitializers.Length == 0 ? typeof(object?[]) : typeof((object?[] ctorArgs, object?[] memberInitializerArgs));
 
-    public Func<TArgumentState> CreateConstructorArgumentStateCtor<TArgumentState>(ConstructorShapeInfo shapeInfo)
+    public Func<TArgumentState> CreateConstructorArgumentStateCtor<TArgumentState>(ConstructorShapeInfo ctorInfo)
     {
-        if (shapeInfo.MemberInitializers.Length == 0)
+        if (ctorInfo.MemberInitializers.Length == 0)
         {
             Debug.Assert(typeof(TArgumentState) == typeof(object?[]));
-            return (Func<TArgumentState>)(object)CreateConstructorArgumentArrayFunc(shapeInfo);
+            return (Func<TArgumentState>)(object)CreateConstructorArgumentArrayFunc(ctorInfo);
         }
         else
         {
             Debug.Assert(typeof(TArgumentState) == typeof((object?[], object?[])));
-            return (Func<TArgumentState>)(object)CreateConstructorAndMemberInitializerArgumentArrayFunc(shapeInfo);
+            return (Func<TArgumentState>)(object)CreateConstructorAndMemberInitializerArgumentArrayFunc(ctorInfo);
         }
     }
 
-    public Setter<TArgumentState, TParameter> CreateConstructorArgumentStateSetter<TArgumentState, TParameter>(ConstructorShapeInfo shapeInfo, int parameterIndex)
+    public Setter<TArgumentState, TParameter> CreateConstructorArgumentStateSetter<TArgumentState, TParameter>(ConstructorShapeInfo ctorInfo, int parameterIndex)
     {
-        if (shapeInfo.MemberInitializers.Length == 0)
+        if (ctorInfo.MemberInitializers.Length == 0)
         {
             Debug.Assert(typeof(TArgumentState) == typeof(object?[]));
             return (Setter<TArgumentState, TParameter>)(object)new Setter<object?[], TParameter>((ref object?[] state, TParameter value) => state[parameterIndex] = value);
         }
 
         Debug.Assert(typeof(TArgumentState) == typeof((object?[], object?[])));
-        if (parameterIndex < shapeInfo.Parameters.Length)
+        if (parameterIndex < ctorInfo.Parameters.Length)
         {
             return (Setter<TArgumentState, TParameter>)(object)new Setter<(object?[], object?[]), TParameter>((ref (object?[] ctorArgs, object?[]) state, TParameter value) => state.ctorArgs[parameterIndex] = value);
         }
         else
         {
-            int initializerIndex = parameterIndex - shapeInfo.Parameters.Length;
+            int initializerIndex = parameterIndex - ctorInfo.Parameters.Length;
             return (Setter<TArgumentState, TParameter>)(object)new Setter<(object?[], object?[]), TParameter>((ref (object?[], object?[] memberArgs) state, TParameter value) => state.memberArgs[initializerIndex] = value);
         }
     }
 
-    public Func<TArgumentState, TDeclaringType> CreateParameterizedConstructor<TArgumentState, TDeclaringType>(ConstructorShapeInfo shapeInfo)
+    public Func<TArgumentState, TDeclaringType> CreateParameterizedConstructor<TArgumentState, TDeclaringType>(ConstructorShapeInfo ctorInfo)
     {
-        MemberInitializerInfo[] memberInitializers = shapeInfo.MemberInitializers;
+        MemberInitializerShapeInfo[] memberInitializers = ctorInfo.MemberInitializers;
 
-        if (shapeInfo.NestedTupleCtor != null)
+        if (ctorInfo.NestedTupleCtor != null)
         {
             Debug.Assert(memberInitializers.Length == 0);
             Debug.Assert(typeof(TArgumentState) == typeof(object?[]));
 
-            List<(ConstructorInfo, int)> ctorStack = new();
-            for (ConstructorShapeInfo? ctorInfo = shapeInfo; ctorInfo != null; ctorInfo = ctorInfo.NestedTupleCtor)
+            Stack<(ConstructorInfo, int)> ctorStack = new();
+            for (ConstructorShapeInfo? current = ctorInfo; current != null; current = current.NestedTupleCtor)
             {
-                Debug.Assert(ctorInfo.ConstructorInfo != null);
-                ctorStack.Add((ctorInfo.ConstructorInfo, ctorInfo.Parameters.Length));
+                Debug.Assert(current.ConstructorInfo != null);
+                ctorStack.Push((current.ConstructorInfo, current.Parameters.Length));
             }
-
-            ctorStack.Reverse();
 
             return (Func<TArgumentState, TDeclaringType>)(object)(new Func<object?[], TDeclaringType>(state =>
             {
@@ -215,19 +236,19 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
         if (memberInitializers.Length == 0)
         {
             Debug.Assert(typeof(TArgumentState) == typeof(object?[]));
-            return shapeInfo.ConstructorInfo is { } ctorInfo
-                ? (Func<TArgumentState, TDeclaringType>)(object)new Func<object?[], TDeclaringType>(state => (TDeclaringType)ctorInfo.Invoke(state)!)
+            return ctorInfo.ConstructorInfo is { } cI
+                ? (Func<TArgumentState, TDeclaringType>)(object)new Func<object?[], TDeclaringType>(state => (TDeclaringType)cI.Invoke(state)!)
                 : static _ => default!;
         }
         else
         {
             Debug.Assert(typeof(TArgumentState) == typeof((object?[], object?[])));
 
-            if (shapeInfo.ConstructorInfo is { } ctorInfo)
+            if (ctorInfo.ConstructorInfo is { } cI)
             {
                 return (Func<TArgumentState, TDeclaringType>)(object)new Func<(object?[] ctorArgs, object?[] memberArgs), TDeclaringType>(state =>
                 {
-                    object obj = ctorInfo.Invoke(state.ctorArgs);
+                    object obj = cI.Invoke(state.ctorArgs);
                     PopulateMemberInitializers(obj, memberInitializers, state.memberArgs);
                     return (TDeclaringType)obj!;
                 });
@@ -242,7 +263,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                 });
             }
 
-            static void PopulateMemberInitializers(object obj, MemberInitializerInfo[] memberInitializers, object?[] memberArgs)
+            static void PopulateMemberInitializers(object obj, MemberInitializerShapeInfo[] memberInitializers, object?[] memberArgs)
             {
                 for (int i = 0; i < memberInitializers.Length; i++)
                 {
@@ -261,17 +282,17 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
         }
     }
 
-    private static Func<object?[]> CreateConstructorArgumentArrayFunc(ConstructorShapeInfo shapeInfo)
+    private static Func<object?[]> CreateConstructorArgumentArrayFunc(ConstructorShapeInfo ctorInfo)
     {
-        Debug.Assert(shapeInfo.MemberInitializers.Length == 0);
-        int arity = shapeInfo.TotalParameters;
+        Debug.Assert(ctorInfo.MemberInitializers.Length == 0);
+        int arity = ctorInfo.TotalParameters;
         if (arity == 0)
         {
             return static () => Array.Empty<object?>();
         }
-        else if (shapeInfo.Parameters.Any(param => param.HasDefaultValue))
+        else if (ctorInfo.Parameters.Any(param => param.HasDefaultValue))
         {
-            object?[] sourceParamArray = GetDefaultParameterArray(shapeInfo.Parameters);
+            object?[] sourceParamArray = GetDefaultParameterArray(ctorInfo.Parameters);
             return () => (object?[])sourceParamArray.Clone();
         }
         else
@@ -280,19 +301,19 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
         }
     }
 
-    private static Func<(object?[], object?[])> CreateConstructorAndMemberInitializerArgumentArrayFunc(ConstructorShapeInfo shapeInfo)
+    private static Func<(object?[], object?[])> CreateConstructorAndMemberInitializerArgumentArrayFunc(ConstructorShapeInfo ctorInfo)
     {
-        Debug.Assert(shapeInfo.MemberInitializers.Length > 0);
-        int constructorParameterLength = shapeInfo.Parameters.Length;
-        int memberInitializerLength = shapeInfo.MemberInitializers.Length;
+        Debug.Assert(ctorInfo.MemberInitializers.Length > 0);
+        int constructorParameterLength = ctorInfo.Parameters.Length;
+        int memberInitializerLength = ctorInfo.MemberInitializers.Length;
 
         if (constructorParameterLength == 0)
         {
             return () => (Array.Empty<object?>(), new object?[memberInitializerLength]);
         }
-        if (shapeInfo.Parameters.Any(param => param.HasDefaultValue))
+        if (ctorInfo.Parameters.Any(param => param.HasDefaultValue))
         {
-            object?[] sourceParamArray = GetDefaultParameterArray(shapeInfo.Parameters);
+            object?[] sourceParamArray = GetDefaultParameterArray(ctorInfo.Parameters);
             return () => ((object?[])sourceParamArray.Clone(), new object?[memberInitializerLength]);
         }
         else
@@ -301,6 +322,6 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
         }
     }
 
-    private static object?[] GetDefaultParameterArray(ConstructorParameterInfo[] parameters)
+    private static object?[] GetDefaultParameterArray(ConstructorParameterShapeInfo[] parameters)
         => parameters.Select(p => p.DefaultValue).ToArray();
 }

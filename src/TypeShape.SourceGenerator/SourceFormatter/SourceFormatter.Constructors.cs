@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Text;
 using TypeShape.SourceGenerator.Helpers;
 using TypeShape.SourceGenerator.Model;
 
@@ -29,7 +30,7 @@ internal static partial class SourceFormatter
                     DeclaringType = {{constructor.DeclaringType.GeneratedPropertyName}},
                     ParameterCount = {{constructor.TotalArity}},
                     GetParametersFunc = {{(constructor.TotalArity == 0 ? "null" : FormatConstructorParameterFactoryName(type, i))}},
-                    DefaultConstructorFunc = {{FormatDefaultCtor(constructor)}},
+                    DefaultConstructorFunc = {{FormatDefaultCtor(type, constructor)}},
                     ArgumentStateConstructorFunc = static () => {{FormatArgumentStateCtorExpr(constructor, constructorArgumentStateFQN)}},
                     ParameterizedConstructorFunc = static state => {{FormatParameterizedCtorExpr(type, constructor, "state")}},
                     AttributeProviderFunc = {{FormatAttributeProviderFunc(type, constructor)}},
@@ -40,7 +41,7 @@ internal static partial class SourceFormatter
 
             static string FormatAttributeProviderFunc(TypeModel type, ConstructorModel constructor)
             {
-                if (type.IsTupleType)
+                if (type.IsValueTupleType || type.IsClassTupleType)
                 {
                     return "null";
                 }
@@ -64,10 +65,42 @@ internal static partial class SourceFormatter
 
             static string FormatParameterizedCtorExpr(TypeModel type, ConstructorModel constructor, string stateVar)
             {
-                if (type.IsTupleType && constructor.TotalArity > 1)
+                if (type.IsValueTupleType)
                 {
-                    // Just return the argument state
-                    return stateVar;
+                    return constructor.TotalArity switch
+                    {
+                        0 => $"default({type.Id.FullyQualifiedName})",
+                        1 => $"new ({stateVar})",
+                        _ => stateVar,
+                    };
+                }
+
+                if (type.IsClassTupleType)
+                {
+                    Debug.Assert(constructor.Parameters.Count > 0);
+                    Debug.Assert(constructor.MemberInitializers.Count == 0);
+
+                    if (constructor.Parameters.Count == 1)
+                    {
+                        return $"new ({stateVar})";
+                    }
+
+                    var sb = new StringBuilder();
+                    int indentation = 0;
+                    for (int i = 0; i < constructor.Parameters.Count; i++)
+                    {
+                        if (i % 7 == 0)
+                        {
+                            sb.Append("new (");
+                            indentation++;
+                        }
+
+                        sb.Append($"{stateVar}.Item{i + 1}, ");
+                    }
+
+                    sb.Length -= 2;
+                    sb.Append(')', indentation);
+                    return sb.ToString();
                 }
 
                 return (constructor.Parameters.Count, constructor.MemberInitializers.Count) switch
@@ -84,9 +117,10 @@ internal static partial class SourceFormatter
                 string FormatInitializerBody() => string.Join(", ", constructor.MemberInitializers.Select(p => $"{p.Name} = state.Item{p.Position + 1}"));
             }
 
-            static string FormatDefaultCtor(ConstructorModel constructor)
+            static string FormatDefaultCtor(TypeModel type, ConstructorModel constructor)
                 => constructor.TotalArity switch
                 {
+                    0 when (type.IsValueTupleType) => $"static () => default({constructor.DeclaringType.FullyQualifiedName})",
                     0 => $"static () => new {constructor.DeclaringType.FullyQualifiedName}()",
                     _ => "null",
                 };
@@ -139,7 +173,7 @@ internal static partial class SourceFormatter
 
             static string FormatAttributeProviderFunc(TypeModel type, ConstructorModel constructor, ConstructorParameterModel parameter)
             {
-                if (type.IsTupleType)
+                if (type.IsValueTupleType || type.IsClassTupleType)
                 {
                     return "null";
                 }
@@ -193,7 +227,7 @@ internal static partial class SourceFormatter
 
     private static string FormatConstructorArgumentStateFQN(TypeModel type, ConstructorModel constructorModel)
     {
-        if (type.IsTupleType && constructorModel.TotalArity > 1)
+        if (type.IsValueTupleType && constructorModel.TotalArity > 1)
         {
             // For tuple types, just use the type as the argument state.
             return constructorModel.DeclaringType.FullyQualifiedName;

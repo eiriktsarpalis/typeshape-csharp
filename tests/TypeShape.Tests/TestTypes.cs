@@ -102,6 +102,13 @@ public static class TestTypes
 
         yield return Create(new Dictionary<int, (int, int)> { [0] = (1,1) });
 
+        yield return Create<Tuple<int>>(new (1));
+        yield return Create<Tuple<int, int>>(new (1, 2));
+        yield return Create<Tuple<int, string, bool>>(new (1, "str", true));
+        yield return Create<Tuple<int, int, int, int, int, int, int>>(new (1, 2, 3, 4, 5, 6, 7));
+        yield return Create<Tuple<int, int, int, int, int, int, int, Tuple<int, int, int>>>(new (1, 2, 3, 4, 5, 6, 7, new (8, 9, 10)));
+        yield return Create<Tuple<int, int, int, int, int, int, int, Tuple<int, int, int, int, int, int, int, Tuple<int>>>>(new(1,2,3,4,5,6,7,new(8,9,10,11,12,13,14,new(15))));
+
         yield return Create(new ClassWithReadOnlyField());
         yield return Create(new ClassWithRequiredField { x = 42 });
         yield return Create(new StructWithRequiredField { x = 42 });
@@ -639,6 +646,13 @@ public struct StructWith40RequiredMembersAndDefaultCtor
                        int x11, int x12, int x13, int x14, int x15, int x16, int x17, int x18, int x19, int x20,
                        int x21, int x22, int x23, int x24, int x25, int x26, int x27, int x28, int x29, int x30)))]
 [GenerateShape(typeof(Dictionary<int, (int, int)>))]
+[GenerateShape(typeof(Tuple<int>))]
+[GenerateShape(typeof(Tuple<int, int>))]
+[GenerateShape(typeof(Tuple<int, string, bool>))]
+[GenerateShape(typeof(Tuple<int, int, int, int, int, int, int>))]
+[GenerateShape(typeof(Tuple<int, int, int, int, int, int, int, int>))]
+[GenerateShape(typeof(Tuple<int, int, int, int, int, int, int, Tuple<int, int, int>>))]
+[GenerateShape(typeof(Tuple<int, int, int, int, int, int, int, Tuple<int, int, int, int, int, int, int, Tuple<int>>>))]
 [GenerateShape(typeof(LinkedList<SimpleRecord?>))]
 [GenerateShape(typeof(RecordWith21ConstructorParameters))]
 [GenerateShape(typeof(RecordWith42ConstructorParameters))]
