@@ -22,7 +22,8 @@ internal static partial class SourceFormatter
         StartFormatSourceFile(writer, provider);
 
         writer.WriteLine(provider.TypeDeclaration);
-        writer.WriteStartBlock();
+        writer.WriteLine('{');
+        writer.Indentation++;
 
         writer.WriteLine($"""
             public {generatedPropertyType} {type.Id.GeneratedPropertyName} => {generatedFieldName} ??= {generatedFactoryMethodName}();
@@ -83,7 +84,8 @@ internal static partial class SourceFormatter
             FormatDictionaryTypeFactory(writer, dictionaryFactoryMethodName, type.DictionaryType!);
         }
 
-        writer.WriteEndBlock();
+        writer.Indentation--;
+        writer.WriteLine('}');
         EndFormatSourceFile(writer);
 
         return writer.ToSourceText();

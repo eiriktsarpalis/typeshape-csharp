@@ -11,7 +11,8 @@ internal static partial class SourceFormatter
         Debug.Assert(type.Properties.Count > 0);
 
         writer.WriteLine($"private global::System.Collections.Generic.IEnumerable<global::TypeShape.IProperty> {methodName}()");
-        writer.WriteStartBlock();
+        writer.WriteLine('{');
+        writer.Indentation++;
 
         int i = 0;
         foreach (PropertyModel property in type.Properties)
@@ -46,7 +47,7 @@ internal static partial class SourceFormatter
             }
         }
 
-        writer.WriteEndBlock();
-
+        writer.Indentation--;
+        writer.WriteLine('}');
     }
 }

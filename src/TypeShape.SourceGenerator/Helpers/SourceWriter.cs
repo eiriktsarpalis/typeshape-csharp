@@ -8,29 +8,58 @@ namespace TypeShape.SourceGenerator.Helpers;
 internal sealed class SourceWriter
 {
     private readonly StringBuilder _sb = new();
-    private int _indentationLevel;
+    private int _indentation;
 
-    public int Length => _sb.Length;
-    public int IndentationLevel => _indentationLevel;
-
-    public void WriteStartBlock()
+    public SourceWriter()
     {
-        AddIndentation();
-        _sb.AppendLine("{");
-        _indentationLevel++;
+        IndentationChar = ' ';
+        CharsPerIndentation = 4;
     }
 
-    public void WriteEndBlock()
+    public SourceWriter(char indentationChar, int charsPerIndentation)
     {
-        Debug.Assert(_indentationLevel > 0);
-        _indentationLevel--;
+        if (!char.IsWhiteSpace(indentationChar))
+        {
+            throw new ArgumentOutOfRangeException(nameof(indentationChar));
+        }
+
+        if (charsPerIndentation < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(charsPerIndentation));
+        }
+
+        IndentationChar = indentationChar;
+        CharsPerIndentation = charsPerIndentation;
+    }
+
+    public char IndentationChar { get; }
+    public int CharsPerIndentation { get; }
+
+    public int Length => _sb.Length;
+    public int Indentation 
+    {
+        get => _indentation;
+        set
+        {
+            if (value < 0)
+            {
+                Throw();
+                static void Throw() => throw new ArgumentOutOfRangeException(nameof(value));
+            }
+
+            _indentation = value;
+        }
+    }
+
+    public void WriteLine(char value)
+    {
         AddIndentation();
-        _sb.AppendLine("}");
+        _sb.Append(value);
     }
 
     public void WriteLine(string text)
     {
-        if (_indentationLevel == 0)
+        if (_indentation == 0)
         {
             _sb.AppendLine(text);
             return;
@@ -53,12 +82,12 @@ internal sealed class SourceWriter
 
     public SourceText ToSourceText()
     {
-        Debug.Assert(_indentationLevel == 0 && _sb.Length > 0);
+        Debug.Assert(_indentation == 0 && _sb.Length > 0);
         return SourceText.From(_sb.ToString(), Encoding.UTF8);
     }
 
     private void AddIndentation()
-        => _sb.Append(' ', 4 * _indentationLevel);
+        => _sb.Append(IndentationChar, CharsPerIndentation * _indentation);
 
     private static ReadOnlySpan<char> GetNextLine(ref ReadOnlySpan<char> remainingText, out bool isFinalLine)
     {

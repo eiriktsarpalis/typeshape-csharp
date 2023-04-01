@@ -28,7 +28,8 @@ internal static partial class SourceFormatter
         StartFormatSourceFile(writer, provider);
 
         writer.WriteLine(provider.TypeDeclaration);
-        writer.WriteStartBlock();
+        writer.WriteLine('{');
+        writer.Indentation++;
 
         writer.WriteLine($$"""
             private const global::System.Reflection.BindingFlags {{InstanceBindingFlagsConstMember}} = 
@@ -40,7 +41,8 @@ internal static partial class SourceFormatter
             private static {{provider.Name}}? _default;
             """);
 
-        writer.WriteEndBlock();
+        writer.Indentation--;
+        writer.WriteLine('}');
         EndFormatSourceFile(writer);
 
         return writer.ToSourceText();
@@ -61,21 +63,24 @@ internal static partial class SourceFormatter
         if (provider.Namespace != null)
         {
             writer.WriteLine($"namespace {provider.Namespace}");
-            writer.WriteStartBlock();
+            writer.WriteLine('{');
+            writer.Indentation++;
         }
 
         foreach (string typeDeclaration in provider.ContainingTypes)
         {
             writer.WriteLine(typeDeclaration);
-            writer.WriteStartBlock();
+            writer.WriteLine('{');
+            writer.Indentation++;
         }
     }
 
     private static void EndFormatSourceFile(SourceWriter writer)
     {
-        while (writer.IndentationLevel > 0) 
+        while (writer.Indentation > 0) 
         {
-            writer.WriteEndBlock();
+            writer.Indentation--;
+            writer.WriteLine('}');
         }
     }
 

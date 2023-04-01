@@ -12,7 +12,8 @@ internal static partial class SourceFormatter
         StartFormatSourceFile(writer, provider);
 
         writer.WriteLine($"{provider.TypeDeclaration} : global::TypeShape.ITypeShapeProvider");
-        writer.WriteStartBlock();
+        writer.WriteLine('{');
+        writer.Indentation++;
 
         writer.WriteLine("""
                 public global::TypeShape.IType<T>? GetShape<T>()
@@ -21,7 +22,9 @@ internal static partial class SourceFormatter
                 """);
 
         writer.WriteLine("public global::TypeShape.IType? GetShape(Type type)");
-        writer.WriteStartBlock();
+        writer.WriteLine('{');
+        writer.Indentation++;
+
         foreach (TypeModel generatedType in provider.ProvidedTypes)
         {
             writer.WriteLine($"""
@@ -32,9 +35,11 @@ internal static partial class SourceFormatter
         }
 
         writer.WriteLine("return null;");
-        writer.WriteEndBlock();
+        writer.Indentation--;
+        writer.WriteLine('}');
 
-        writer.WriteEndBlock();
+        writer.Indentation--;
+        writer.WriteLine('}');
         EndFormatSourceFile(writer);
         return writer.ToSourceText();
     }

@@ -12,7 +12,8 @@ internal static partial class SourceFormatter
         Debug.Assert(type.Constructors.Count > 0);
 
         writer.WriteLine($"private global::System.Collections.Generic.IEnumerable<global::TypeShape.IConstructor> {methodName}()");
-        writer.WriteStartBlock();
+        writer.WriteLine('{');
+        writer.Indentation++;
 
         int i = 0;
         var argumentStateFQNs = new List<string>();
@@ -126,7 +127,8 @@ internal static partial class SourceFormatter
                 };
         }
 
-        writer.WriteEndBlock();
+        writer.Indentation--;
+        writer.WriteLine('}');
 
         i = 0;
         foreach (ConstructorModel constructor in type.Constructors)
@@ -147,7 +149,8 @@ internal static partial class SourceFormatter
     private static void FormatConstructorParameterFactory(SourceWriter writer, TypeModel type, string methodName, ConstructorModel constructor, string constructorArgumentStateFQN)
     {
         writer.WriteLine($"private global::System.Collections.Generic.IEnumerable<global::TypeShape.IConstructorParameter> {methodName}()");
-        writer.WriteStartBlock();
+        writer.WriteLine('{');
+        writer.Indentation++;
 
         int i = 0;
         foreach (ConstructorParameterModel parameter in constructor.Parameters.Concat(constructor.MemberInitializers))
@@ -198,7 +201,8 @@ internal static partial class SourceFormatter
                 };
         }
 
-        writer.WriteEndBlock();
+        writer.Indentation--;
+        writer.WriteLine('}');
     }
 
     private static string FormatDefaultValueExpr(ConstructorParameterModel constructorParameter)
