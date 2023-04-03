@@ -6,7 +6,6 @@ using TypeShape;
 using TypeShape.Applications.JsonSerializer;
 using TypeShape.ReflectionProvider;
 
-//[MemoryDiagnoser]
 public static class JsonData
 {
     public static readonly MyPoco Value = new MyPoco(@string: "myString")

@@ -2,16 +2,6 @@
 
 namespace TypeShape;
 
-[Flags]
-public enum TypeKind
-{
-    None = 0,
-    Enumerable = 1,
-    Dictionary = 2,
-    Nullable = 4,
-    Enum = 8,
-}
-
 public interface IType
 {
     Type Type { get; }
