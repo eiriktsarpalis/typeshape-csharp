@@ -11,7 +11,7 @@ internal static partial class SourceFormatter
     {
         Debug.Assert(type.Constructors.Count > 0);
 
-        writer.WriteLine($"private global::System.Collections.Generic.IEnumerable<global::TypeShape.IConstructor> {methodName}()");
+        writer.WriteLine($"private global::System.Collections.Generic.IEnumerable<global::TypeShape.IConstructorShape> {methodName}()");
         writer.WriteLine('{');
         writer.Indentation++;
 
@@ -26,7 +26,7 @@ internal static partial class SourceFormatter
             argumentStateFQNs.Add(constructorArgumentStateFQN);
 
             writer.WriteLine($$"""
-                yield return new global::TypeShape.SourceGenModel.SourceGenConstructor<{{type.Id.FullyQualifiedName}}, {{constructorArgumentStateFQN}}>
+                yield return new global::TypeShape.SourceGenModel.SourceGenConstructorShape<{{type.Id.FullyQualifiedName}}, {{constructorArgumentStateFQN}}>
                 {
                     DeclaringType = {{constructor.DeclaringType.GeneratedPropertyName}},
                     ParameterCount = {{constructor.TotalArity}},
@@ -148,7 +148,7 @@ internal static partial class SourceFormatter
 
     private static void FormatConstructorParameterFactory(SourceWriter writer, TypeModel type, string methodName, ConstructorModel constructor, string constructorArgumentStateFQN)
     {
-        writer.WriteLine($"private global::System.Collections.Generic.IEnumerable<global::TypeShape.IConstructorParameter> {methodName}()");
+        writer.WriteLine($"private global::System.Collections.Generic.IEnumerable<global::TypeShape.IConstructorParameterShape> {methodName}()");
         writer.WriteLine('{');
         writer.Indentation++;
 
@@ -159,7 +159,7 @@ internal static partial class SourceFormatter
                 writer.WriteLine();
 
             writer.WriteLine($$"""
-                yield return new global::TypeShape.SourceGenModel.SourceGenConstructorParameter<{{constructorArgumentStateFQN}}, {{parameter.ParameterType.FullyQualifiedName}}>
+                yield return new global::TypeShape.SourceGenModel.SourceGenConstructorParameterShape<{{constructorArgumentStateFQN}}, {{parameter.ParameterType.FullyQualifiedName}}>
                 {
                     Position = {{parameter.Position}},
                     Name = "{{parameter.Name}}",

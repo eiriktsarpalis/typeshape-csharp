@@ -1,10 +1,11 @@
 ﻿using System.Diagnostics;
+using System.Globalization;
 using System.Reflection;
 using System.Reflection.Emit;
 
 namespace TypeShape.ReflectionProvider.MemberAccessors;
 
-internal class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
+internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
 {
     public Getter<TDeclaringType, TPropertyType> CreateGetter<TDeclaringType, TPropertyType>(MemberInfo memberInfo, MemberInfo[]? parentMembers)
     {
@@ -593,7 +594,7 @@ internal class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         if (type.IsEnum)
         {
             type = Enum.GetUnderlyingType(type);
-            value = Convert.ChangeType(value, type);
+            value = Convert.ChangeType(value, type, CultureInfo.InvariantCulture);
             LdLiteral(generator, type, value);
             return;
         }

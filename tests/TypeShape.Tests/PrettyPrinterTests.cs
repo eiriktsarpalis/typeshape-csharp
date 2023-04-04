@@ -81,7 +81,7 @@ public abstract class PrettyPrinterTests
 
     private PrettyPrinter<T> GetPrettyPrinterUnderTest<T>()
     {
-        IType<T>? shape = Provider.GetShape<T>();
+        ITypeShape<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
         return PrettyPrinter.Create(shape);
     }

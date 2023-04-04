@@ -120,7 +120,7 @@ public abstract class ValidationTests
 
     private Validator<T> GetValidatorUnderTest<T>()
     {
-        IType<T>? shape = Provider.GetShape<T>();
+        ITypeShape<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
         return Validator.Create(shape);
     }

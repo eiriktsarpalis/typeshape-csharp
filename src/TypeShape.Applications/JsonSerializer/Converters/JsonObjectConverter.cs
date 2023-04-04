@@ -106,4 +106,10 @@ public sealed class JsonObjectConverter : JsonConverter<object?>
                 break;
         }
     }
+
+    public override object? ReadAsPropertyName(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        => reader.GetString();
+
+    public override void WriteAsPropertyName(Utf8JsonWriter writer, object? value, JsonSerializerOptions options)
+        => Write(writer, value, options);
 }

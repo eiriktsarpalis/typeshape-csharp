@@ -9,7 +9,7 @@ public static partial class PrettyPrinter
 {
     private readonly static Visitor s_Builder = new();
 
-    public static PrettyPrinter<T> Create<T>(IType<T> type)
+    public static PrettyPrinter<T> Create<T>(ITypeShape<T> type)
     {
         return (PrettyPrinter<T>)type.Accept(s_Builder, null)!;
     }

@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 
 public static partial class Validator
 {
-    private class Visitor : ITypeShapeVisitor
+    private sealed class Visitor : TypeShapeVisitor
     {
         private readonly Dictionary<Type, object> _cache = new();
         
-        public object? VisitType<T>(IType<T> type, object? state)
+        public override object? VisitType<T>(ITypeShape<T> type, object? state)
         {
             if (TryGetCachedValue<T>() is Validator<T> result)
             {
@@ -20,13 +20,13 @@ public static partial class Validator
             switch (type.Kind)
             {
                 case TypeKind.Nullable:
-                    return type.GetNullableType().Accept(this, null);
+                    return type.GetNullableShape().Accept(this, null);
 
                 case TypeKind kind when (kind.HasFlag(TypeKind.Dictionary)):
-                    return type.GetDictionaryType().Accept(this, null);
+                    return type.GetDictionaryShape().Accept(this, null);
 
                 case TypeKind.Enumerable:
-                    return type.GetEnumerableType().Accept(this, null);
+                    return type.GetEnumerableShape().Accept(this, null);
 
                 default:
 
@@ -53,7 +53,7 @@ public static partial class Validator
             }
         }
 
-        public object? VisitProperty<TDeclaringType, TPropertyType>(IProperty<TDeclaringType, TPropertyType> property, object? state)
+        public override object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
         {
             (Predicate<TPropertyType> Predicate, string ErrorMessage)[]? validationPredicates = property.AttributeProvider?
                 .GetCustomAttributes(typeof(ValidationAttribute), inherit: true)
@@ -89,11 +89,10 @@ public static partial class Validator
             });
         }
 
-        public object? VisitDictionaryType<TDictionary, TKey, TValue>(IDictionaryType<TDictionary, TKey, TValue> dictionaryType, object? state)
-            where TKey : notnull
+        public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
         {
-            var valueValidator = (Validator<TValue>)dictionaryType.ValueType.Accept(this, null)!;
-            Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getDictionary = dictionaryType.GetGetDictionary();
+            var valueValidator = (Validator<TValue>)dictionaryShape.ValueType.Accept(this, null)!;
+            Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getDictionary = dictionaryShape.GetGetDictionary();
             return CacheResult((TDictionary? dict, List<string> path, ref List<string>? errors) =>
             {
                 if (dict is null)
@@ -110,10 +109,10 @@ public static partial class Validator
             });
         }
 
-        public object? VisitEnumerableType<TEnumerable, TElement>(IEnumerableType<TEnumerable, TElement> enumerableType, object? state)
+        public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> enumerableShape, object? state)
         {
-            Func<TEnumerable, IEnumerable<TElement>> getEnumerable = enumerableType.GetGetEnumerable();
-            var elementValidator = (Validator<TElement>)enumerableType.ElementType.Accept(this, null)!;
+            Func<TEnumerable, IEnumerable<TElement>> getEnumerable = enumerableShape.GetGetEnumerable();
+            var elementValidator = (Validator<TElement>)enumerableShape.ElementType.Accept(this, null)!;
             return CacheResult((TEnumerable? enumerable, List<string> path, ref List<string>? errors) =>
             {
                 if (enumerable is null)
@@ -132,9 +131,9 @@ public static partial class Validator
             });
         }
 
-        public object? VisitNullable<T>(INullableType<T> nullableType, object? state) where T : struct
+        public override object? VisitNullable<T>(INullableShape<T> nullableShape, object? state) where T : struct
         {
-            var elementValidator = (Validator<T>)nullableType.ElementType.Accept(this, null)!;
+            var elementValidator = (Validator<T>)nullableShape.ElementType.Accept(this, null)!;
             return CacheResult((T? nullable, List<string> path, ref List<string>? errors) =>
             {
                 if (nullable.HasValue)
@@ -142,21 +141,6 @@ public static partial class Validator
                     elementValidator(nullable.Value, path, ref errors);
                 }
             });
-        }
-
-        public object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructor<TDeclaringType, TArgumentState> constructor, object? state)
-        {
-            throw new NotImplementedException();
-        }
-
-        public object? VisitConstructorParameter<TArgumentState, TParameter>(IConstructorParameter<TArgumentState, TParameter> parameter, object? state)
-        {
-            throw new NotImplementedException();
-        }
-
-        public object? VisitEnum<TEnum, TUnderlying>(IEnumType<TEnum, TUnderlying> enumType, object? state) where TEnum : struct, Enum
-        {
-            throw new NotImplementedException();
         }
 
         private Validator<T>? TryGetCachedValue<T>()

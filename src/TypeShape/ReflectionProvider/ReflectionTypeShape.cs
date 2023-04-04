@@ -3,10 +3,10 @@ using System.Reflection;
 
 namespace TypeShape.ReflectionProvider;
 
-internal sealed class ReflectionType<T> : IType<T>
+internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
 {
     private readonly ReflectionTypeShapeProvider _provider;
-    public ReflectionType(ReflectionTypeShapeProvider provider)
+    public ReflectionTypeShape(ReflectionTypeShapeProvider provider)
         => _provider = provider;
 
     public Type Type => typeof(T);
@@ -17,10 +17,10 @@ internal sealed class ReflectionType<T> : IType<T>
     public TypeKind Kind => _kind ??= GetTypeKind();
     private TypeKind? _kind;
 
-    public object? Accept(ITypeVisitor visitor, object? state)
+    public object? Accept(ITypeShapeVisitor visitor, object? state)
         => visitor.VisitType(this, state);
 
-    public IEnumerable<IConstructor> GetConstructors(bool nonPublic)
+    public IEnumerable<IConstructorShape> GetConstructors(bool nonPublic)
     {
         if (typeof(T).IsAbstract)
         {
@@ -104,7 +104,7 @@ internal sealed class ReflectionType<T> : IType<T>
             => new(typeof(T), constructorInfo: null, Array.Empty<ConstructorParameterShapeInfo>(), memberInitializers);
     }
 
-    public IEnumerable<IProperty> GetProperties(bool nonPublic, bool includeFields)
+    public IEnumerable<IPropertyShape> GetProperties(bool nonPublic, bool includeFields)
     {
         if (typeof(T).IsNestedTupleRepresentation())
         {
@@ -155,44 +155,36 @@ internal sealed class ReflectionType<T> : IType<T>
         }
     }
 
-    public IEnumerableType GetEnumerableType()
+    public IEnumShape GetEnumShape()
     {
-        if ((Kind & TypeKind.Enumerable) == 0)
-        {
-            throw new InvalidOperationException();
-        }
-
-        return _provider.CreateEnumerableType(typeof(T));
+        ValidateKind(TypeKind.Enum);
+        return _provider.CreateEnumShape(typeof(T));
     }
 
-    public IDictionaryType GetDictionaryType()
+    public INullableShape GetNullableShape()
     {
-        if ((Kind & TypeKind.Dictionary) == 0)
-        {
-            throw new InvalidOperationException();
-        }
-
-        return _provider.CreateDictionaryType(typeof(T));
+        ValidateKind(TypeKind.Nullable);
+        return _provider.CreateNullableShape(typeof(T));
     }
 
-    public IEnumType GetEnumType()
+    public IEnumerableShape GetEnumerableShape()
     {
-        if ((Kind & TypeKind.Enum) == 0)
-        {
-            throw new InvalidOperationException();
-        }
-
-        return _provider.CreateEnumType(typeof(T));
+        ValidateKind(TypeKind.Enumerable);
+        return _provider.CreateEnumerableShape(typeof(T));
     }
 
-    public INullableType GetNullableType()
+    public IDictionaryShape GetDictionaryShape()
     {
-        if ((Kind & TypeKind.Nullable) == 0)
-        {
-            throw new InvalidOperationException();
-        }
+        ValidateKind(TypeKind.Dictionary);
+        return _provider.CreateDictionaryShape(typeof(T));
+    }
 
-        return _provider.CreateNullableType(typeof(T));
+    private void ValidateKind(TypeKind expectedKind)
+    {
+        if ((Kind & expectedKind) == 0)
+        {
+            throw new InvalidOperationException($"Type {typeof(T)} is not of kind {expectedKind}.");
+        }
     }
 
     private static TypeKind GetTypeKind()

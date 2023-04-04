@@ -4,7 +4,7 @@ public delegate T RandomGenerator<T>(Random random, int size);
 
 public static partial class RandomGenerator
 {
-    public static RandomGenerator<T> Create<T>(IType<T> shape)
+    public static RandomGenerator<T> Create<T>(ITypeShape<T> shape)
     {
         var visitor = new Visitor();
         return (RandomGenerator<T>)shape.Accept(visitor, null)!;
@@ -27,7 +27,7 @@ public static partial class RandomGenerator
         if (minSize < 0 || minSize > maxSize)
         {
             Throw();
-            static void Throw() => throw new ArgumentOutOfRangeException();
+            static void Throw() => throw new ArgumentOutOfRangeException(nameof(minSize));
         }
 
         int size = minSize ?? 64;

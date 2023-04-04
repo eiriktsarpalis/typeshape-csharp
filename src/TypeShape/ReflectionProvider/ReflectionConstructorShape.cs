@@ -3,22 +3,22 @@ using System.Reflection;
 
 namespace TypeShape.ReflectionProvider;
 
-internal sealed class ReflectionConstructor<TDeclaringType, TArgumentState> : IConstructor<TDeclaringType, TArgumentState>
+internal sealed class ReflectionConstructorShape<TDeclaringType, TArgumentState> : IConstructorShape<TDeclaringType, TArgumentState>
 {
     private readonly ReflectionTypeShapeProvider _provider;
     private readonly ConstructorShapeInfo _ctorInfo;
 
-    public ReflectionConstructor(ReflectionTypeShapeProvider provider, ConstructorShapeInfo ctorInfo)
+    public ReflectionConstructorShape(ReflectionTypeShapeProvider provider, ConstructorShapeInfo ctorInfo)
     {
         _ctorInfo = ctorInfo;
         _provider = provider;
     }
 
-    public IType DeclaringType => _provider.GetShape<TDeclaringType>();
+    public ITypeShape DeclaringType => _provider.GetShape<TDeclaringType>();
     public int ParameterCount => _ctorInfo.TotalParameters;
     public ICustomAttributeProvider? AttributeProvider => _ctorInfo.ConstructorInfo;
 
-    public object? Accept(IConstructorVisitor visitor, object? state)
+    public object? Accept(ITypeShapeVisitor visitor, object? state)
         => visitor.VisitConstructor(this, state);
 
     public Func<TArgumentState> GetArgumentStateConstructor()
@@ -31,13 +31,13 @@ internal sealed class ReflectionConstructor<TDeclaringType, TArgumentState> : IC
     {
         if (ParameterCount > 0)
         {
-            throw new InvalidOperationException();
+            throw new InvalidOperationException("The current constructor shape is not parameterless.");
         }
 
         return _provider.MemberAccessor.CreateDefaultConstructor<TDeclaringType>(_ctorInfo);
     }
 
-    public IEnumerable<IConstructorParameter> GetParameters()
+    public IEnumerable<IConstructorParameterShape> GetParameters()
     {
         ConstructorShapeInfo ctorInfo = _ctorInfo;
 

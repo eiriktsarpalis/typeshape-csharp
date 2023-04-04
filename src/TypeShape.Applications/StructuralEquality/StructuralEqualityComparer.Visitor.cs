@@ -5,11 +5,11 @@ namespace TypeShape.Applications.StructuralEquality;
 
 public static partial class StructuralEqualityComparer
 {
-    private class Visitor : ITypeShapeVisitor
+    private sealed class Visitor : TypeShapeVisitor
     {
         private readonly Dictionary<Type, IEqualityComparer> _visited = new();
 
-        public object? VisitType<T>(IType<T> type, object? state)
+        public override object? VisitType<T>(ITypeShape<T> type, object? state)
         {
             if (_visited.TryGetValue(type.Type, out IEqualityComparer? result))
             {
@@ -33,13 +33,13 @@ public static partial class StructuralEqualityComparer
             switch (type.Kind)
             {
                 case TypeKind.Nullable:
-                    return type.GetNullableType().Accept(this, state);
+                    return type.GetNullableShape().Accept(this, state);
 
                 case var kind when (kind.HasFlag(TypeKind.Dictionary)):
-                    return type.GetDictionaryType().Accept(this, state);
+                    return type.GetDictionaryShape().Accept(this, state);
 
                 case TypeKind.Enumerable:
-                    return type.GetEnumerableType().Accept(this, state);
+                    return type.GetEnumerableShape().Accept(this, state);
             }
 
             var objectComparer = new ObjectEqualityComparer<T>();
@@ -53,7 +53,7 @@ public static partial class StructuralEqualityComparer
             return objectComparer;
         }
 
-        public object? VisitProperty<TDeclaringType, TPropertyType>(IProperty<TDeclaringType, TPropertyType> property, object? state)
+        public override object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
         {
             return new PropertyEqualityComparer<TDeclaringType, TPropertyType>
             {
@@ -62,58 +62,42 @@ public static partial class StructuralEqualityComparer
             };
         }
 
-        public object? VisitNullable<T>(INullableType<T> nullableType, object? state) where T : struct
+        public override object? VisitNullable<T>(INullableShape<T> nullableShape, object? state)
         {
             var comparer = new NullableEqualityComparer<T>();
             _visited.Add(typeof(T?), comparer);
-            comparer.ElementComparer = (IEqualityComparer<T>)nullableType.ElementType.Accept(this, state)!;
+            comparer.ElementComparer = (IEqualityComparer<T>)nullableShape.ElementType.Accept(this, state)!;
             return comparer;
         }
 
-        public object? VisitDictionaryType<TDictionary, TKey, TValue>(IDictionaryType<TDictionary, TKey, TValue> dictionaryType, object? state)
-            where TKey : notnull
+        public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
         {
             if (typeof(TDictionary).IsAssignableTo(typeof(Dictionary<TKey, TValue>)))
             {
                 var comparer = new DictionaryOfKVEqualityComparer<TKey, TValue>();
                 _visited.Add(typeof(TDictionary), comparer);
-                comparer.GetDictionary = (Func<Dictionary<TKey, TValue>, IReadOnlyDictionary<TKey, TValue>>)(object)dictionaryType.GetGetDictionary();
-                comparer.KeyComparer = (IEqualityComparer<TKey>)dictionaryType.KeyType.Accept(this, state)!;
-                comparer.ValueComparer = (IEqualityComparer<TValue>)dictionaryType.ValueType.Accept(this, state)!;
+                comparer.GetDictionary = (Func<Dictionary<TKey, TValue>, IReadOnlyDictionary<TKey, TValue>>)(object)dictionaryShape.GetGetDictionary();
+                comparer.KeyComparer = (IEqualityComparer<TKey>)dictionaryShape.KeyType.Accept(this, state)!;
+                comparer.ValueComparer = (IEqualityComparer<TValue>)dictionaryShape.ValueType.Accept(this, state)!;
                 return comparer;
             }
             else
             {
                 var comparer = new DictionaryEqualityComparer<TDictionary, TKey, TValue>();
-                comparer.GetDictionary = dictionaryType.GetGetDictionary();
-                comparer.KeyComparer = (IEqualityComparer<TKey>)dictionaryType.KeyType.Accept(this, state)!;
-                comparer.ValueComparer = (IEqualityComparer<TValue>)dictionaryType.ValueType.Accept(this, state)!;
+                comparer.GetDictionary = dictionaryShape.GetGetDictionary();
+                comparer.KeyComparer = (IEqualityComparer<TKey>)dictionaryShape.KeyType.Accept(this, state)!;
+                comparer.ValueComparer = (IEqualityComparer<TValue>)dictionaryShape.ValueType.Accept(this, state)!;
                 return comparer;
             }
         }
 
-        public object? VisitEnumerableType<TEnumerable, TElement>(IEnumerableType<TEnumerable, TElement> enumerableType, object? state)
+        public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> enumerableShape, object? state)
         {
             var comparer = new EnumerableEqualityComparer<TEnumerable, TElement>();
             _visited.Add(typeof(TEnumerable), comparer);
-            comparer.ElementComparer = (IEqualityComparer<TElement>)enumerableType.ElementType.Accept(this, state)!;
-            comparer.GetEnumerable = enumerableType.GetGetEnumerable();
+            comparer.ElementComparer = (IEqualityComparer<TElement>)enumerableShape.ElementType.Accept(this, state)!;
+            comparer.GetEnumerable = enumerableShape.GetGetEnumerable();
             return comparer;
-        }
-
-        public object? VisitEnum<TEnum, TUnderlying>(IEnumType<TEnum, TUnderlying> enumType, object? state) where TEnum : struct, Enum
-        {
-            throw new NotImplementedException();
-        }
-
-        public object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructor<TDeclaringType, TArgumentState> constructor, object? state)
-        {
-            throw new NotImplementedException();
-        }
-
-        public object? VisitConstructorParameter<TArgumentState, TParameter>(IConstructorParameter<TArgumentState, TParameter> parameter, object? state)
-        {
-            throw new NotImplementedException();
         }
 
         public IEqualityComparer GetPolymorphicEqualityComparer(Type runtimeType, ITypeShapeProvider provider)
@@ -121,7 +105,7 @@ public static partial class StructuralEqualityComparer
             if (_visited.TryGetValue(runtimeType, out IEqualityComparer? comparer))
                 return comparer;
 
-            return provider.GetShape(runtimeType) is IType shape
+            return provider.GetShape(runtimeType) is ITypeShape shape
                 ? (IEqualityComparer)shape.Accept(this, null)!
                 : throw new NotSupportedException(runtimeType.GetType().ToString());
         }

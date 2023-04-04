@@ -207,7 +207,7 @@ public abstract class JsonTests
 
     protected TypeShapeJsonSerializer<T> GetSerializerUnderTest<T>()
     {
-        IType<T>? shape = Provider.GetShape<T>();
+        ITypeShape<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
         return TypeShapeJsonSerializer.Create(shape);
     }

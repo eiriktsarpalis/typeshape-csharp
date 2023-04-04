@@ -25,7 +25,7 @@ internal sealed class JsonParameterizedConstructor<TDeclaringType, TArgumentStat
     private readonly Dictionary<string, JsonProperty<TArgumentState>> _constructorParameters;
     private readonly Func<TArgumentState, TDeclaringType> _createObject;
 
-    public JsonParameterizedConstructor(IConstructor<TDeclaringType, TArgumentState> constructor, JsonProperty<TArgumentState>[] constructorParameters)
+    public JsonParameterizedConstructor(IConstructorShape<TDeclaringType, TArgumentState> constructor, JsonProperty<TArgumentState>[] constructorParameters)
     {
         Debug.Assert(constructorParameters.Length > 0);
         _createArgumentState = constructor.GetArgumentStateConstructor();

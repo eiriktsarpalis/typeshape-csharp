@@ -1,7 +1,7 @@
 ﻿namespace TypeShape;
 
 /// <summary>
-/// Defines the special shapes provided by a <see cref="IType"/> instance.
+/// Defines the special shapes provided by a <see cref="ITypeShape"/> instance.
 /// </summary>
 [Flags]
 public enum TypeKind
@@ -11,19 +11,19 @@ public enum TypeKind
     /// </summary>
     None = 0,
     /// <summary>
-    /// Type provides a <see cref="IEnumType"/> shape implementation.
+    /// Type provides a <see cref="IEnumShape"/> shape implementation.
     /// </summary>
     Enum = 1,
     /// <summary>
-    /// Type provides a <see cref="INullableType"/> shape implementation.
+    /// Type provides a <see cref="INullableShape"/> shape implementation.
     /// </summary>
     Nullable = 2,
     /// <summary>
-    /// Type provides a <see cref="IEnumerableType"/> shape implementation.
+    /// Type provides a <see cref="IEnumerableShape"/> shape implementation.
     /// </summary>
     Enumerable = 4,
     /// <summary>
-    /// Type provides a <see cref="IDictionaryType"/> shape implementation.
+    /// Type provides a <see cref="IDictionaryShape"/> shape implementation.
     /// </summary>
     Dictionary = 8,
 }

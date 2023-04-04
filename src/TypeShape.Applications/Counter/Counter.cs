@@ -7,17 +7,17 @@ public static class Counter
     // Defines the simplest possible generic traversal application:
     // walks the object graph returning a count of the number of nodes encountered.
 
-    public static Func<T?, long> Create<T>(IType<T> shape)
+    public static Func<T?, long> Create<T>(ITypeShape<T> shape)
     {
         var visitor = new Visitor();
         return (Func<T?, long>)shape.Accept(visitor, null)!;
     }
 
-    private sealed class Visitor : ITypeShapeVisitor
+    private sealed class Visitor : TypeShapeVisitor
     {
         private readonly Dictionary<Type, object> _visited = new();
 
-        public object? VisitType<T>(IType<T> type, object? state)
+        public override object? VisitType<T>(ITypeShape<T> type, object? state)
         {
             if (TryGetVisitedValue<T>() is { } result)
                 return result;
@@ -25,11 +25,11 @@ public static class Counter
             switch (type.Kind)
             {
                 case TypeKind.Nullable:
-                    return type.GetNullableType().Accept(this, null);
+                    return type.GetNullableShape().Accept(this, null);
                 case var k when (k.HasFlag(TypeKind.Dictionary)):
-                    return type.GetDictionaryType().Accept(this, null);
+                    return type.GetDictionaryShape().Accept(this, null);
                 case TypeKind.Enumerable:
-                    return type.GetEnumerableType().Accept(this, null);
+                    return type.GetEnumerableShape().Accept(this, null);
             }
 
             Func<T, long>[] propertyCounters = type.GetProperties(nonPublic: false, includeFields: true)
@@ -50,23 +50,23 @@ public static class Counter
             });
         }
 
-        public object? VisitProperty<TDeclaringType, TPropertyType>(IProperty<TDeclaringType, TPropertyType> property, object? state)
+        public override object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
         {
             Getter<TDeclaringType, TPropertyType> getter = property.GetGetter();
             var propertyTypeCounter = (Func<TPropertyType, long>)property.PropertyType.Accept(this, null)!;
             return new Func<TDeclaringType, long>(obj => propertyTypeCounter(getter(ref obj)));
         }
 
-        public object? VisitNullable<T>(INullableType<T> nullableType, object? state) where T : struct
+        public override object? VisitNullable<T>(INullableShape<T> nullableShape, object? state) where T : struct
         {
-            var elementTypeCounter = (Func<T, long>)nullableType.ElementType.Accept(this, null)!;
+            var elementTypeCounter = (Func<T, long>)nullableShape.ElementType.Accept(this, null)!;
             return CacheResult<T?>(t => t.HasValue ? elementTypeCounter(t.Value) : 0);
         }
 
-        public object? VisitEnumerableType<TEnumerable, TElement>(IEnumerableType<TEnumerable, TElement> enumerableType, object? state)
+        public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> enumerableShape, object? state)
         {
-            Func<TEnumerable, IEnumerable<TElement>> enumerableGetter = enumerableType.GetGetEnumerable();
-            var elementTypeCounter = (Func<TElement, long>)enumerableType.ElementType.Accept(this, null)!;
+            Func<TEnumerable, IEnumerable<TElement>> enumerableGetter = enumerableShape.GetGetEnumerable();
+            var elementTypeCounter = (Func<TElement, long>)enumerableShape.ElementType.Accept(this, null)!;
             return CacheResult<TEnumerable>(enumerable =>
             {
                 if (enumerable is null)
@@ -79,11 +79,11 @@ public static class Counter
             });
         }
 
-        public object? VisitDictionaryType<TDictionary, TKey, TValue>(IDictionaryType<TDictionary, TKey, TValue> dictionaryType, object? state) where TKey : notnull
+        public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
         {
-            Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> dictionaryGetter = dictionaryType.GetGetDictionary();
-            var keyTypeCounter = (Func<TKey, long>)dictionaryType.KeyType.Accept(this, null)!;
-            var valueTypeCounter = (Func<TValue, long>)dictionaryType.ValueType.Accept(this, null)!;
+            Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> dictionaryGetter = dictionaryShape.GetGetDictionary();
+            var keyTypeCounter = (Func<TKey, long>)dictionaryShape.KeyType.Accept(this, null)!;
+            var valueTypeCounter = (Func<TValue, long>)dictionaryShape.ValueType.Accept(this, null)!;
             return CacheResult<TDictionary>(dict =>
             {
                 if (dict is null)
@@ -98,21 +98,6 @@ public static class Counter
 
                 return count;
             });
-        }
-
-        public object? VisitEnum<TEnum, TUnderlying>(IEnumType<TEnum, TUnderlying> enumType, object? state) where TEnum : struct, Enum
-        {
-            throw new NotImplementedException();
-        }
-
-        public object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructor<TDeclaringType, TArgumentState> constructor, object? state)
-        {
-            throw new NotImplementedException();
-        }
-
-        public object? VisitConstructorParameter<TArgumentState, TParameter>(IConstructorParameter<TArgumentState, TParameter> parameter, object? state)
-        {
-            throw new NotImplementedException();
         }
 
         private Func<T?, long> CacheResult<T>(Func<T?, long> counter)

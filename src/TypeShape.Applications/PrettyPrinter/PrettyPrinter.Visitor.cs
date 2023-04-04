@@ -7,11 +7,11 @@ using TypeShape;
 
 public static partial class PrettyPrinter
 {
-    private class Visitor : ITypeShapeVisitor
+    private sealed class Visitor : TypeShapeVisitor
     {
         private static readonly Dictionary<Type, object> s_defaultPrinters = new(CreateDefaultPrinters());
 
-        public object? VisitType<T>(IType<T> type, object? state)
+        public override object? VisitType<T>(ITypeShape<T> type, object? state)
         {
             // Recursive type handling omitted for simplicity.
             if (s_defaultPrinters.TryGetValue(typeof(T), out object? result))
@@ -20,13 +20,13 @@ public static partial class PrettyPrinter
             switch (type.Kind)
             {
                 case TypeKind.Nullable:
-                    return type.GetNullableType().Accept(this, null);
+                    return type.GetNullableShape().Accept(this, null);
                 case TypeKind.Enum:
-                    return type.GetEnumType().Accept(this, null);
+                    return type.GetEnumShape().Accept(this, null);
                 case var k when (k.HasFlag(TypeKind.Dictionary)):
-                    return type.GetDictionaryType().Accept(this, null);
+                    return type.GetDictionaryShape().Accept(this, null);
                 case TypeKind.Enumerable:
-                    return type.GetEnumerableType().Accept(this, null)!;
+                    return type.GetEnumerableShape().Accept(this, null)!;
 
                 default:
 
@@ -70,7 +70,7 @@ public static partial class PrettyPrinter
             };
         }
 
-        public object? VisitProperty<TDeclaringType, TPropertyType>(IProperty<TDeclaringType, TPropertyType> property, object? state)
+        public override object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
         {
             Getter<TDeclaringType, TPropertyType> getter = property.GetGetter();
             PrettyPrinter<TPropertyType> propertyTypePrinter = (PrettyPrinter<TPropertyType>)property.PropertyType.Accept(this, null)!;
@@ -82,10 +82,10 @@ public static partial class PrettyPrinter
             });
         }
 
-        public object? VisitEnumerableType<TEnumerable, TElement>(IEnumerableType<TEnumerable, TElement> enumerableType, object? state)
+        public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> enumerableShape, object? state)
         {
-            Func<TEnumerable, IEnumerable<TElement>> enumerableGetter = enumerableType.GetGetEnumerable();
-            PrettyPrinter<TElement> elementPrinter = (PrettyPrinter<TElement>)enumerableType.ElementType.Accept(this, null)!;
+            Func<TEnumerable, IEnumerable<TElement>> enumerableGetter = enumerableShape.GetGetEnumerable();
+            PrettyPrinter<TElement> elementPrinter = (PrettyPrinter<TElement>)enumerableShape.ElementType.Accept(this, null)!;
             bool valuesArePrimitives = s_defaultPrinters.ContainsKey(typeof(TElement));
 
             return new PrettyPrinter<TEnumerable>((sb, indentation, value) =>
@@ -137,12 +137,11 @@ public static partial class PrettyPrinter
             });
         }
 
-        public object? VisitDictionaryType<TDictionary, TKey, TValue>(IDictionaryType<TDictionary, TKey, TValue> dictionaryType, object? state)
-            where TKey : notnull
+        public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
         {
-            Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> dictionaryGetter = dictionaryType.GetGetDictionary();
-            PrettyPrinter<TKey> keyPrinter = (PrettyPrinter<TKey>)dictionaryType.KeyType.Accept(this, null)!;
-            PrettyPrinter<TValue> valuePrinter = (PrettyPrinter<TValue>)dictionaryType.ValueType.Accept(this, null)!;
+            Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> dictionaryGetter = dictionaryShape.GetGetDictionary();
+            PrettyPrinter<TKey> keyPrinter = (PrettyPrinter<TKey>)dictionaryShape.KeyType.Accept(this, null)!;
+            PrettyPrinter<TValue> valuePrinter = (PrettyPrinter<TValue>)dictionaryShape.ValueType.Accept(this, null)!;
 
             return new PrettyPrinter<TDictionary>((sb, indentation, value) =>
             {
@@ -181,14 +180,14 @@ public static partial class PrettyPrinter
             });
         }
 
-        public object? VisitEnum<TEnum, TUnderlying>(IEnumType<TEnum, TUnderlying> enumType, object? state) where TEnum : struct, Enum
+        public override object? VisitEnum<TEnum, TUnderlying>(IEnumShape<TEnum, TUnderlying> enumType, object? state)
         {
             return new PrettyPrinter<TEnum>((sb, _, e) => sb.Append('"').Append(e).Append('"'));
         }
 
-        public object? VisitNullable<T>(INullableType<T> nullableType, object? state) where T : struct
+        public override object? VisitNullable<T>(INullableShape<T> nullableShape, object? state) where T : struct
         {
-            var elementPrinter = (PrettyPrinter<T>)nullableType.ElementType.Accept(this, null)!;
+            var elementPrinter = (PrettyPrinter<T>)nullableShape.ElementType.Accept(this, null)!;
             return new PrettyPrinter<T?>((sb, indentation, value) =>
             {
                 if (value is null)
@@ -196,16 +195,6 @@ public static partial class PrettyPrinter
                 else
                     elementPrinter(sb, indentation, value.Value);
             });
-        }
-
-        public object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructor<TDeclaringType, TArgumentState> constructor, object? state)
-        {
-            throw new NotImplementedException();
-        }
-
-        public object? VisitConstructorParameter<TArgumentState, TParameter>(IConstructorParameter<TArgumentState, TParameter> parameter, object? state)
-        {
-            throw new NotImplementedException();
         }
 
         private static void WriteLine(StringBuilder builder, int indentation)

@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace TypeShape.Applications.JsonSerializer.Converters;
 
-internal class JsonEnumConverter<TEnum> : JsonConverter<TEnum>
+internal sealed class JsonEnumConverter<TEnum> : JsonConverter<TEnum>
     where TEnum : struct, Enum
 {
     public override TEnum Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

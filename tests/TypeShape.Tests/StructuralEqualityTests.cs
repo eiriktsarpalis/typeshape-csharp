@@ -92,7 +92,7 @@ public abstract class StructuralEqualityTests
 
     private IEqualityComparer<T> GetEqualityComparerUnderTest<T>()
     {
-        IType<T>? shape = Provider.GetShape<T>();
+        ITypeShape<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
         return StructuralEqualityComparer.Create(shape);
     }

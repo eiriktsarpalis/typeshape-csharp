@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace TypeShape.Applications.JsonSerializer.Converters;
 
-internal class JsonNullableConverter<T> : JsonConverter<T?>
+internal sealed class JsonNullableConverter<T> : JsonConverter<T?>
     where T : struct
 {
     public JsonConverter<T>? ElementConverter { get; set; }

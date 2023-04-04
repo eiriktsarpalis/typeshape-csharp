@@ -55,6 +55,7 @@ internal sealed class SourceWriter
     {
         AddIndentation();
         _sb.Append(value);
+        _sb.AppendLine();
     }
 
     public void WriteLine(string text)

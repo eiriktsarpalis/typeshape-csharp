@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Globalization;
 using System.Reflection;
 
 namespace TypeShape.ReflectionProvider;
@@ -84,11 +85,11 @@ internal static class ReflectionHelpers
         }
         else if (parameterType == typeof(IntPtr))
         {
-            defaultValue = checked((IntPtr)Convert.ToInt64(defaultValue));
+            defaultValue = checked((IntPtr)Convert.ToInt64(defaultValue, CultureInfo.InvariantCulture));
         }
         else if (parameterType == typeof(UIntPtr))
         {
-            defaultValue = checked((UIntPtr)Convert.ToUInt64(defaultValue));
+            defaultValue = checked((UIntPtr)Convert.ToUInt64(defaultValue, CultureInfo.InvariantCulture));
         }
 
         result = defaultValue;
@@ -121,7 +122,8 @@ internal static class ReflectionHelpers
 
         Debug.Assert(type.FullName != null);
         string fullName = type.FullName;
-        return fullName.StartsWith("System.ValueTuple`") || fullName.StartsWith("System.Tuple`");
+        return fullName.StartsWith("System.ValueTuple`", StringComparison.Ordinal) || 
+            fullName.StartsWith("System.Tuple`", StringComparison.Ordinal);
     }
 
     public static bool IsValueTupleType(this Type type)

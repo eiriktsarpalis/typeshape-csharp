@@ -2,14 +2,14 @@
 
 namespace TypeShape.SourceGenModel;
 
-public sealed class SourceGenProperty<TDeclaringType, TPropertyType> : IProperty<TDeclaringType, TPropertyType>
+public sealed class SourceGenPropertyShape<TDeclaringType, TPropertyType> : IPropertyShape<TDeclaringType, TPropertyType>
 {
     public required string Name { get; init; }
     public Func<ICustomAttributeProvider?>? AttributeProviderFunc { get; init; }
-    public ICustomAttributeProvider? AttributeProvider => AttributeProviderFunc is { } f ? f() : null;
+    public ICustomAttributeProvider? AttributeProvider => AttributeProviderFunc?.Invoke();
 
-    public required IType DeclaringType { get; init; }
-    public required IType PropertyType { get; init; }
+    public required ITypeShape DeclaringType { get; init; }
+    public required ITypeShape PropertyType { get; init; }
 
     public Getter<TDeclaringType, TPropertyType>? Getter { get; init; }
     public Setter<TDeclaringType, TPropertyType>? Setter { get; init; }
@@ -18,13 +18,13 @@ public sealed class SourceGenProperty<TDeclaringType, TPropertyType> : IProperty
     public bool HasSetter => Setter is not null;
     public bool IsField { get; init; }
 
-    public object? Accept(IPropertyVisitor visitor, object? state)
+    public object? Accept(ITypeShapeVisitor visitor, object? state)
         => visitor.VisitProperty(this, state);
 
     public Getter<TDeclaringType, TPropertyType> GetGetter()
     {
         if (Getter is null)
-            throw new InvalidOperationException();
+            throw new InvalidOperationException("Property shape does not specify a getter.");
 
         return Getter;
     }
@@ -32,7 +32,7 @@ public sealed class SourceGenProperty<TDeclaringType, TPropertyType> : IProperty
     public Setter<TDeclaringType, TPropertyType> GetSetter()
     {
         if (Setter is null)
-            throw new InvalidOperationException();
+            throw new InvalidOperationException("Property shape does not specify a setter.");
 
         return Setter;
     }

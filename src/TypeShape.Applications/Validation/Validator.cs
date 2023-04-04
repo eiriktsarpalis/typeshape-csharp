@@ -12,7 +12,7 @@ public static partial class Validator
     /// <summary>
     /// Builds a validator delegate using a type shape as input.
     /// </summary>
-    public static Validator<T> Create<T>(IType<T> type)
+    public static Validator<T> Create<T>(ITypeShape<T> type)
     {
         var visitor = new Visitor();
         return (Validator<T>)type.Accept(visitor, null)!;

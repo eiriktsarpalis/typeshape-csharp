@@ -20,7 +20,7 @@ internal sealed class JsonProperty<TDeclaringType, TPropertyType> : JsonProperty
     private readonly Getter<TDeclaringType, TPropertyType>? _getter;
     private readonly Setter<TDeclaringType, TPropertyType>? _setter;
 
-    public JsonProperty(IProperty<TDeclaringType, TPropertyType> property, JsonConverter<TPropertyType> propertyConverter)
+    public JsonProperty(IPropertyShape<TDeclaringType, TPropertyType> property, JsonConverter<TPropertyType> propertyConverter)
     {
         Name = property.Name;
         _propertyConverter = propertyConverter;
@@ -36,7 +36,7 @@ internal sealed class JsonProperty<TDeclaringType, TPropertyType> : JsonProperty
         }
     }
 
-    public JsonProperty(IConstructorParameter<TDeclaringType, TPropertyType> parameter, JsonConverter<TPropertyType> propertyConverter)
+    public JsonProperty(IConstructorParameterShape<TDeclaringType, TPropertyType> parameter, JsonConverter<TPropertyType> propertyConverter)
     {
         Name = parameter.Name!;
         _propertyConverter = propertyConverter;

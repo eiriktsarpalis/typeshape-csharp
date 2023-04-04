@@ -52,7 +52,7 @@ public abstract class CounterTests
 
     protected Func<T, long> GetCounterUnderTest<T>()
     {
-        IType<T>? shape = Provider.GetShape<T>();
+        ITypeShape<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
         return Counter.Create(shape);
     }

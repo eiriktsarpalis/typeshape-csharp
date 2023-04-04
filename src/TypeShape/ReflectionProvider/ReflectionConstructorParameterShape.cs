@@ -3,17 +3,17 @@ using System.Reflection;
 
 namespace TypeShape.ReflectionProvider;
 
-internal sealed class ReflectionConstructorParameter<TArgumentState, TParameter> : IConstructorParameter<TArgumentState, TParameter>
+internal sealed class ReflectionConstructorParameterShape<TArgumentState, TParameter> : IConstructorParameterShape<TArgumentState, TParameter>
 {
     private readonly ReflectionTypeShapeProvider _provider;
     private readonly ConstructorShapeInfo _ctorInfo;
     private readonly IParameterShapeInfo _parameterInfo;
     private readonly int _position;
 
-    public ReflectionConstructorParameter(
-        ReflectionTypeShapeProvider provider, 
-        ConstructorShapeInfo ctorInfo, 
-        IParameterShapeInfo parameterInfo, 
+    public ReflectionConstructorParameterShape(
+        ReflectionTypeShapeProvider provider,
+        ConstructorShapeInfo ctorInfo,
+        IParameterShapeInfo parameterInfo,
         int position)
     {
         Debug.Assert(position < ctorInfo.TotalParameters);
@@ -23,20 +23,20 @@ internal sealed class ReflectionConstructorParameter<TArgumentState, TParameter>
         _provider = provider;
     }
 
-    public IType ParameterType => _provider.GetShape<TParameter>();
+    public ITypeShape ParameterType => _provider.GetShape<TParameter>();
 
     public int Position => _position;
     public string? Name => _parameterInfo.Name;
     public bool HasDefaultValue => _parameterInfo.HasDefaultValue;
     public bool IsRequired => _parameterInfo.IsRequired;
     public TParameter? DefaultValue => (TParameter?)_parameterInfo.DefaultValue;
-    object? IConstructorParameter.DefaultValue => _parameterInfo.DefaultValue;
+    object? IConstructorParameterShape.DefaultValue => _parameterInfo.DefaultValue;
     public ICustomAttributeProvider? AttributeProvider => _parameterInfo.AttributeProvider;
 
     public Setter<TArgumentState, TParameter> GetSetter()
         => _provider.MemberAccessor.CreateConstructorArgumentStateSetter<TArgumentState, TParameter>(_ctorInfo, _position);
 
-    public object? Accept(IConstructorParameterVisitor visitor, object? state)
+    public object? Accept(ITypeShapeVisitor visitor, object? state)
         => visitor.VisitConstructorParameter(this, state);
 }
 

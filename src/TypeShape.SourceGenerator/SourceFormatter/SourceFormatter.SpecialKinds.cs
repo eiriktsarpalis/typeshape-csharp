@@ -9,9 +9,9 @@ internal static partial class SourceFormatter
     private static void FormatEnumTypeFactory(SourceWriter writer, string methodName, EnumTypeModel enumType)
     {
         writer.WriteLine($$"""
-            private global::TypeShape.IEnumType {{methodName}}()
+            private global::TypeShape.IEnumShape {{methodName}}()
             {
-                return new global::TypeShape.SourceGenModel.SourceGenEnumType<{{enumType.Type.FullyQualifiedName}}, {{enumType.UnderlyingType.FullyQualifiedName}}>
+                return new global::TypeShape.SourceGenModel.SourceGenEnumShape<{{enumType.Type.FullyQualifiedName}}, {{enumType.UnderlyingType.FullyQualifiedName}}>
                 {
                     Type = {{enumType.Type.GeneratedPropertyName}},
                     UnderlyingType = {{enumType.UnderlyingType.GeneratedPropertyName}},
@@ -23,9 +23,9 @@ internal static partial class SourceFormatter
     private static void FormatNullableTypeFactory(SourceWriter writer, string methodName, NullableTypeModel nullableType)
     {
         writer.WriteLine($$"""
-            private global::TypeShape.INullableType {{methodName}}()
+            private global::TypeShape.INullableShape {{methodName}}()
             {
-                return new global::TypeShape.SourceGenModel.SourceGenNullableType<{{nullableType.ElementType.FullyQualifiedName}}>
+                return new global::TypeShape.SourceGenModel.SourceGenNullableShape<{{nullableType.ElementType.FullyQualifiedName}}>
                 {
                     Type = {{nullableType.Type.GeneratedPropertyName}},
                     ElementType = {{nullableType.ElementType.GeneratedPropertyName}},
@@ -37,9 +37,9 @@ internal static partial class SourceFormatter
     private static void FormatEnumerableTypeFactory(SourceWriter writer, string methodName, EnumerableTypeModel enumerableType)
     {
         writer.WriteLine($$"""
-            private global::TypeShape.IEnumerableType {{methodName}}()
+            private global::TypeShape.IEnumerableShape {{methodName}}()
             {
-                return new global::TypeShape.SourceGenModel.SourceGenEnumerableType<{{enumerableType.Type.FullyQualifiedName}}, {{enumerableType.ElementType.FullyQualifiedName}}>
+                return new global::TypeShape.SourceGenModel.SourceGenEnumerableShape<{{enumerableType.Type.FullyQualifiedName}}, {{enumerableType.ElementType.FullyQualifiedName}}>
                 {
                     Type = {{enumerableType.Type.GeneratedPropertyName}},
                     ElementType = {{enumerableType.ElementType.GeneratedPropertyName}},
@@ -77,9 +77,9 @@ internal static partial class SourceFormatter
     private static void FormatDictionaryTypeFactory(SourceWriter writer, string methodName, DictionaryTypeModel dictionaryType)
     {
         writer.WriteLine($$"""
-            private global::TypeShape.IDictionaryType {{methodName}}()
+            private global::TypeShape.IDictionaryShape {{methodName}}()
             {
-                return new global::TypeShape.SourceGenModel.SourceGenDictionaryType<{{dictionaryType.Type.FullyQualifiedName}}, {{dictionaryType.KeyType.FullyQualifiedName}}, {{dictionaryType.ValueType.FullyQualifiedName}}>
+                return new global::TypeShape.SourceGenModel.SourceGenDictionaryShape<{{dictionaryType.Type.FullyQualifiedName}}, {{dictionaryType.KeyType.FullyQualifiedName}}, {{dictionaryType.ValueType.FullyQualifiedName}}>
                 {
                     Type = {{dictionaryType.Type.GeneratedPropertyName}},
                     KeyType = {{dictionaryType.KeyType.GeneratedPropertyName}},

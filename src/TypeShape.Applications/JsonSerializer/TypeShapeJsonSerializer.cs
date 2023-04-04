@@ -5,7 +5,7 @@ namespace TypeShape.Applications.JsonSerializer;
 
 public static class TypeShapeJsonSerializer
 {
-    public static TypeShapeJsonSerializer<T> Create<T>(IType<T> shape)
+    public static TypeShapeJsonSerializer<T> Create<T>(ITypeShape<T> shape)
         => new(shape);
 }
 
@@ -13,7 +13,7 @@ public class TypeShapeJsonSerializer<T>
 {
     private readonly JsonTypeInfo<T> _jsonTypeInfo;
 
-    public TypeShapeJsonSerializer(IType<T> shape)
+    public TypeShapeJsonSerializer(ITypeShape<T> shape)
     {
         Options = new JsonSerializerOptions
         {

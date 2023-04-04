@@ -8,7 +8,7 @@ internal static partial class SourceFormatter
 {
     private static SourceText FormatType(TypeShapeProviderModel provider, TypeModel type)
     {
-        string generatedPropertyType = $"global::TypeShape.IType<{type.Id.FullyQualifiedName}>";
+        string generatedPropertyType = $"global::TypeShape.ITypeShape<{type.Id.FullyQualifiedName}>";
         string generatedFactoryMethodName = $"Create_{type.Id.GeneratedPropertyName}";
         string generatedFieldName = "_" + type.Id.GeneratedPropertyName;
         string? propertiesFactoryMethodName = type.Properties?.Count > 0 ? $"CreateProperties_{type.Id.GeneratedPropertyName}" : null;
@@ -34,16 +34,16 @@ internal static partial class SourceFormatter
         writer.WriteLine($$"""
             private {{generatedPropertyType}} {{generatedFactoryMethodName}}()
             {
-                return new global::TypeShape.SourceGenModel.SourceGenType<{{type.Id.FullyQualifiedName}}>
+                return new global::TypeShape.SourceGenModel.SourceGenTypeShape<{{type.Id.FullyQualifiedName}}>
                 {
                     Provider = this,
                     AttributeProvider = typeof({{type.Id.FullyQualifiedName}}),
                     CreatePropertiesFunc = {{FormatNull(propertiesFactoryMethodName)}},
                     CreateConstructorsFunc = {{FormatNull(constructorFactoryMethodName)}},
-                    CreateEnumTypeFunc = {{FormatNull(enumFactoryMethodName)}},
-                    CreateNullableTypeFunc = {{FormatNull(nullableFactoryMethodName)}},
-                    CreateDictionaryTypeFunc = {{FormatNull(dictionaryFactoryMethodName)}},
-                    CreateEnumerableTypeFunc = {{FormatNull(enumerableFactoryMethodName)}},
+                    CreateEnumShapeFunc = {{FormatNull(enumFactoryMethodName)}},
+                    CreateNullableShapeFunc = {{FormatNull(nullableFactoryMethodName)}},
+                    CreateDictionaryShapeFunc = {{FormatNull(dictionaryFactoryMethodName)}},
+                    CreateEnumerableShapeFunc = {{FormatNull(enumerableFactoryMethodName)}},
                 };
             }
             """);

@@ -13,7 +13,7 @@ public partial class TypeShapeJsonResolver : IJsonTypeInfoResolver
 
     public JsonTypeInfo? GetTypeInfo(Type type, JsonSerializerOptions options)
     {
-        IType? shape = _provider.GetShape(type);
+        ITypeShape? shape = _provider.GetShape(type);
         if (shape is null)
             return null;
 
@@ -23,9 +23,9 @@ public partial class TypeShapeJsonResolver : IJsonTypeInfoResolver
     }
 
     private readonly static JsonTypeInfoBuilder s_typeInfoBuilder = new();
-    private sealed class JsonTypeInfoBuilder : ITypeVisitor
+    private sealed class JsonTypeInfoBuilder : TypeShapeVisitor
     {
-        public object? VisitType<T>(IType<T> _, object? state)
+        public override object? VisitType<T>(ITypeShape<T> _, object? state)
         {
             var (options, converter) = ((JsonSerializerOptions, JsonConverter))state!;
             return JsonMetadataServices.CreateValueInfo<T>(options, converter);

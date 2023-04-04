@@ -16,12 +16,12 @@ internal static partial class SourceFormatter
         writer.Indentation++;
 
         writer.WriteLine("""
-                public global::TypeShape.IType<T>? GetShape<T>()
-                    => (global::TypeShape.IType<T>?)GetShape(typeof(T));
+                public global::TypeShape.ITypeShape<T>? GetShape<T>()
+                    => (global::TypeShape.ITypeShape<T>?)GetShape(typeof(T));
 
                 """);
 
-        writer.WriteLine("public global::TypeShape.IType? GetShape(Type type)");
+        writer.WriteLine("public global::TypeShape.ITypeShape? GetShape(Type type)");
         writer.WriteLine('{');
         writer.Indentation++;
 

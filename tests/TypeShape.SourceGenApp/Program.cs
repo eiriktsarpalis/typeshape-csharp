@@ -3,7 +3,7 @@ using TypeShape.Applications.JsonSerializer;
 using TypeShape.Applications.PrettyPrinter;
 using TypeShape.Applications.Validation;
 
-IType<BindingModel> shape = SourceGenTypeShapeProvider.Default.BindingModel;
+ITypeShape<BindingModel> shape = SourceGenTypeShapeProvider.Default.BindingModel;
 
 TypeShapeJsonSerializer<BindingModel> jsonSerializer = TypeShapeJsonSerializer.Create(shape);
 Validator<BindingModel> validator = Validator.Create(shape);

@@ -6,6 +6,7 @@
 	<Nullable>enable</Nullable>
 	<WarningsAsErrors>Nullable</WarningsAsErrors>
 	<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+	<AnalysisLevel>latest-recommended</AnalysisLevel>
   </PropertyGroup>
 
   <ItemGroup>

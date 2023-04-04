@@ -4,25 +4,25 @@ using System.Reflection;
 
 namespace TypeShape.ReflectionProvider;
 
-internal sealed class ReflectionGenericDictionaryType<TDictionary, TKey, TValue> : IDictionaryType<TDictionary, TKey, TValue>
+internal sealed class ReflectionGenericDictionaryShape<TDictionary, TKey, TValue> : IDictionaryShape<TDictionary, TKey, TValue>
     where TDictionary : IDictionary<TKey, TValue>
     where TKey : notnull
 {
     private readonly ReflectionTypeShapeProvider _provider;
     
-    public ReflectionGenericDictionaryType(ReflectionTypeShapeProvider provider)
+    public ReflectionGenericDictionaryShape(ReflectionTypeShapeProvider provider)
         => _provider = provider;
 
-    public IType Type => _provider.GetShape(typeof(TDictionary));
+    public ITypeShape Type => _provider.GetShape<TDictionary>();
 
-    public IType KeyType => _provider.GetShape(typeof(TKey));
+    public ITypeShape KeyType => _provider.GetShape<TKey>();
 
-    public IType ValueType => _provider.GetShape(typeof(TValue));
+    public ITypeShape ValueType => _provider.GetShape<TValue>();
 
     public bool IsMutable => true;
 
-    public object? Accept(IDictionaryTypeVisitor visitor, object? state)
-        => visitor.VisitDictionaryType(this, state);
+    public object? Accept(ITypeShapeVisitor visitor, object? state)
+        => visitor.VisitDictionary(this, state);
 
     public Setter<TDictionary, KeyValuePair<TKey, TValue>> GetAddKeyValuePair()
     {
@@ -35,20 +35,20 @@ internal sealed class ReflectionGenericDictionaryType<TDictionary, TKey, TValue>
     }
 }
 
-internal sealed class ReflectionReadOnlyDictionaryType<TDictionary, TKey, TValue> : IDictionaryType<TDictionary, TKey, TValue>
+internal sealed class ReflectionReadOnlyDictionaryShape<TDictionary, TKey, TValue> : IDictionaryShape<TDictionary, TKey, TValue>
     where TDictionary : IReadOnlyDictionary<TKey, TValue>
     where TKey : notnull
 {
     private readonly ReflectionTypeShapeProvider _provider;
 
-    public ReflectionReadOnlyDictionaryType(ReflectionTypeShapeProvider provider)
+    public ReflectionReadOnlyDictionaryShape(ReflectionTypeShapeProvider provider)
         => _provider = provider;
 
-    public IType Type => _provider.GetShape(typeof(TDictionary));
+    public ITypeShape Type => _provider.GetShape<TDictionary>();
 
-    public IType KeyType => _provider.GetShape(typeof(TKey));
+    public ITypeShape KeyType => _provider.GetShape<TKey>();
 
-    public IType ValueType => _provider.GetShape(typeof(TValue));
+    public ITypeShape ValueType => _provider.GetShape<TValue>();
 
     public bool IsMutable => _isMutable ??= DetermineIsMutable();
     private MethodInfo? _addMethod;
@@ -71,14 +71,14 @@ internal sealed class ReflectionReadOnlyDictionaryType<TDictionary, TKey, TValue
         return false;
     }
 
-    public object? Accept(IDictionaryTypeVisitor visitor, object? state)
-        => visitor.VisitDictionaryType(this, state);
+    public object? Accept(ITypeShapeVisitor visitor, object? state)
+        => visitor.VisitDictionary(this, state);
 
     public Setter<TDictionary, KeyValuePair<TKey, TValue>> GetAddKeyValuePair()
     {
         if (!IsMutable)
         {
-            throw new InvalidOperationException();
+            throw new InvalidOperationException("The current dictionary shape does not support mutation.");
         }
 
         Debug.Assert(_addMethod != null);
@@ -91,24 +91,24 @@ internal sealed class ReflectionReadOnlyDictionaryType<TDictionary, TKey, TValue
     }
 }
 
-internal sealed class ReflectionDictionaryType<TDictionary> : IDictionaryType<TDictionary, object, object?>
+internal sealed class ReflectionDictionaryShape<TDictionary> : IDictionaryShape<TDictionary, object, object?>
     where TDictionary : IDictionary
 {
     private readonly ReflectionTypeShapeProvider _provider;
 
-    public ReflectionDictionaryType(ReflectionTypeShapeProvider provider)
+    public ReflectionDictionaryShape(ReflectionTypeShapeProvider provider)
         => _provider = provider;
 
-    public IType Type => _provider.GetShape(typeof(TDictionary));
+    public ITypeShape Type => _provider.GetShape<TDictionary>();
 
-    public IType KeyType => _provider.GetShape(typeof(object));
+    public ITypeShape KeyType => _provider.GetShape<object>();
 
-    public IType ValueType => _provider.GetShape(typeof(object));
+    public ITypeShape ValueType => _provider.GetShape<object>();
 
     public bool IsMutable => true;
 
-    public object? Accept(IDictionaryTypeVisitor visitor, object? state)
-        => visitor.VisitDictionaryType(this, state);
+    public object? Accept(ITypeShapeVisitor visitor, object? state)
+        => visitor.VisitDictionary(this, state);
 
     public Setter<TDictionary, KeyValuePair<object, object?>> GetAddKeyValuePair()
     {

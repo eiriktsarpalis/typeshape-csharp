@@ -10,7 +10,7 @@ public partial class RandomGenerator
     {
         private Dictionary<Type, object> _visited = new(CreateDefaultGenerators());
 
-        public object? VisitType<T>(IType<T> type, object? state)
+        public object? VisitType<T>(ITypeShape<T> type, object? state)
         {
             if (_visited.TryGetValue(typeof(T), out object? result))
             {
@@ -27,13 +27,13 @@ public partial class RandomGenerator
             switch (type.Kind)
             {
                 case TypeKind.Enum:
-                    return type.GetEnumType().Accept(this, null);
+                    return type.GetEnumShape().Accept(this, null);
                 case TypeKind.Nullable:
-                    return type.GetNullableType().Accept(this, null);
+                    return type.GetNullableShape().Accept(this, null);
                 case var k when ((k & TypeKind.Dictionary) != 0):
-                    return type.GetDictionaryType().Accept(this, null);
+                    return type.GetDictionaryShape().Accept(this, null);
                 case TypeKind.Enumerable:
-                    return type.GetEnumerableType().Accept(this, null);
+                    return type.GetEnumerableShape().Accept(this, null);
             }
 
             RandomPropertySetter<T>[] propertySetters = type.GetProperties(nonPublic: false, includeFields: true)
@@ -47,14 +47,14 @@ public partial class RandomGenerator
                 .First();
         }
 
-        public object? VisitProperty<TDeclaringType, TPropertyType>(IProperty<TDeclaringType, TPropertyType> property, object? state)
+        public object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
         {
             Setter<TDeclaringType, TPropertyType> setter = property.GetSetter();
             RandomGenerator<TPropertyType> propertyGenerator = (RandomGenerator<TPropertyType>)property.PropertyType.Accept(this, null)!;
             return new RandomPropertySetter<TDeclaringType>((ref TDeclaringType obj, Random random, int size) => setter(ref obj, propertyGenerator(random, size)));
         }
 
-        public object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructor<TDeclaringType, TArgumentState> constructor, object? state)
+        public object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructorShape<TDeclaringType, TArgumentState> constructor, object? state)
         {
             if (state is null)
             {
@@ -112,28 +112,30 @@ public partial class RandomGenerator
             }
         }
 
-        public object? VisitConstructorParameter<TArgumentState, TParameter>(IConstructorParameter<TArgumentState, TParameter> parameter, object? state)
+        public object? VisitConstructorParameter<TArgumentState, TParameter>(IConstructorParameterShape<TArgumentState, TParameter> parameter, object? state)
         {
             Setter<TArgumentState, TParameter> setter = parameter.GetSetter();
             RandomGenerator<TParameter> propertyGenerator = (RandomGenerator<TParameter>)parameter.ParameterType.Accept(this, null)!;
             return new RandomPropertySetter<TArgumentState>((ref TArgumentState obj, Random random, int size) => setter(ref obj, propertyGenerator(random, size)));
         }
 
-        public object? VisitEnum<TEnum, TUnderlying>(IEnumType<TEnum, TUnderlying> enumType, object? state) where TEnum : struct, Enum
+        public object? VisitEnum<TEnum, TUnderlying>(IEnumShape<TEnum, TUnderlying> enumType, object? state)
+            where TEnum : struct, Enum
         {
             TEnum[] values = Enum.GetValues<TEnum>();
             return CacheResult((Random random, int _) => values[random.Next(0, values.Length)]);
         }
 
-        public object? VisitNullable<T>(INullableType<T> nullableType, object? state) where T : struct
+        public object? VisitNullable<T>(INullableShape<T> nullableShape, object? state)
+            where T : struct
         {
-            var underlyingGenerator = (RandomGenerator<T>)nullableType.ElementType.Accept(this, null)!;
+            var underlyingGenerator = (RandomGenerator<T>)nullableShape.ElementType.Accept(this, null)!;
             return CacheResult<T?>((Random random, int size) => NextBoolean(random) ? null : underlyingGenerator(random, size - 1));
         }
 
-        public object? VisitEnumerableType<TEnumerable, TElement>(IEnumerableType<TEnumerable, TElement> enumerableType, object? state)
+        public object? VisitEnumerable<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> enumerableShape, object? state)
         {
-            var elementGenerator = (RandomGenerator<TElement>)enumerableType.ElementType.Accept(this, null)!;
+            var elementGenerator = (RandomGenerator<TElement>)enumerableShape.ElementType.Accept(this, null)!;
 
             if (typeof(TEnumerable).IsArray)
             {
@@ -153,12 +155,12 @@ public partial class RandomGenerator
                 });
             }
 
-            Func<TEnumerable> defaultCtor = enumerableType.Type.GetConstructors(nonPublic: false)
+            Func<TEnumerable> defaultCtor = enumerableShape.Type.GetConstructors(nonPublic: false)
                 .Where(ctor => ctor.ParameterCount == 0)
                 .Select(ctor => (Func<TEnumerable>)ctor.Accept(this, null)!)
                 .First();
 
-            Setter<TEnumerable, TElement> addElementFunc = enumerableType.GetAddElement();
+            Setter<TEnumerable, TElement> addElementFunc = enumerableShape.GetAddElement();
 
             return CacheResult((Random random, int size) =>
             {
@@ -176,16 +178,17 @@ public partial class RandomGenerator
             });
         }
 
-        public object? VisitDictionaryType<TDictionary, TKey, TValue>(IDictionaryType<TDictionary, TKey, TValue> dictionaryType, object? state) where TKey : notnull
+        public object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
+            where TKey : notnull
         {
-            Func<TDictionary> defaultCtor = dictionaryType.Type.GetConstructors(nonPublic: false)
+            Func<TDictionary> defaultCtor = dictionaryShape.Type.GetConstructors(nonPublic: false)
                 .Where(ctor => ctor.ParameterCount == 0)
                 .Select(ctor => (Func<TDictionary>)ctor.Accept(this, null)!)
                 .First();
 
-            Setter<TDictionary, KeyValuePair<TKey, TValue>> addKeyValuePairFunc = dictionaryType.GetAddKeyValuePair();
-            var keyGenerator = (RandomGenerator<TKey>)dictionaryType.KeyType.Accept(this, null)!;
-            var valueGenerator = (RandomGenerator<TValue>)dictionaryType.ValueType.Accept(this, null)!;
+            Setter<TDictionary, KeyValuePair<TKey, TValue>> addKeyValuePairFunc = dictionaryShape.GetAddKeyValuePair();
+            var keyGenerator = (RandomGenerator<TKey>)dictionaryShape.KeyType.Accept(this, null)!;
+            var valueGenerator = (RandomGenerator<TValue>)dictionaryShape.ValueType.Accept(this, null)!;
 
             return CacheResult((Random random, int size) =>
             {

@@ -4,7 +4,7 @@ using TypeShape.Applications.PrettyPrinter;
 using TypeShape.Applications.Validation;
 using TypeShape.ReflectionProvider;
 
-IType<BindingModel> shape = ReflectionTypeShapeProvider.Default.GetShape<BindingModel>();
+ITypeShape<BindingModel> shape = ReflectionTypeShapeProvider.Default.GetShape<BindingModel>();
 
 TypeShapeJsonSerializer<BindingModel> jsonSerializer = TypeShapeJsonSerializer.Create(shape);
 Validator<BindingModel> validator = Validator.Create(shape);

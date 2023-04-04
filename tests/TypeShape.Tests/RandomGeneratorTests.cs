@@ -29,7 +29,7 @@ public abstract class RandomGeneratorTests
 
     private (RandomGenerator<T>, IEqualityComparer<T>) GetGeneratorAndEqualityComparer<T>()
     {
-        IType<T>? shape = Provider.GetShape<T>();
+        ITypeShape<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
         return (RandomGenerator.Create(shape), StructuralEqualityComparer.Create(shape));
     }

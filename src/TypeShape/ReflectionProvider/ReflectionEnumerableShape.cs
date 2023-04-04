@@ -4,16 +4,16 @@ using System.Reflection;
 
 namespace TypeShape.ReflectionProvider;
 
-internal class ReflectionEnumerableType<TEnumerable, TElement> : IEnumerableType<TEnumerable, TElement>
+internal class ReflectionEnumerableShape<TEnumerable, TElement> : IEnumerableShape<TEnumerable, TElement>
     where TEnumerable : IEnumerable<TElement>
 {
     private readonly ReflectionTypeShapeProvider _provider;
 
-    public ReflectionEnumerableType(ReflectionTypeShapeProvider provider)
+    public ReflectionEnumerableShape(ReflectionTypeShapeProvider provider)
         => _provider = provider;
 
-    public IType Type => _provider.GetShape<TEnumerable>();
-    public IType ElementType => _provider.GetShape<TElement>();
+    public ITypeShape Type => _provider.GetShape<TEnumerable>();
+    public ITypeShape ElementType => _provider.GetShape<TElement>();
 
     public virtual bool IsMutable => _isMutable ??= DetermineIsMutable();
     private MethodInfo? _addMethod;
@@ -36,14 +36,14 @@ internal class ReflectionEnumerableType<TEnumerable, TElement> : IEnumerableType
         return false;
     }
 
-    public object? Accept(IEnumerableTypeVisitor visitor, object? state)
-        => visitor.VisitEnumerableType(this, state);
+    public object? Accept(ITypeShapeVisitor visitor, object? state)
+        => visitor.VisitEnumerable(this, state);
 
     public virtual Setter<TEnumerable, TElement> GetAddElement()
     {
         if (!IsMutable)
         {
-            throw new InvalidOperationException();
+            throw new InvalidOperationException("The current enumerable shape does not support mutation.");
         }
 
         Debug.Assert(_addMethod != null);
@@ -54,25 +54,25 @@ internal class ReflectionEnumerableType<TEnumerable, TElement> : IEnumerableType
         => static enumerable => enumerable;
 }
 
-internal sealed class ReflectionCollectionType<TEnumerable, TElement> : ReflectionEnumerableType<TEnumerable, TElement>
+internal sealed class ReflectionCollectionShape<TEnumerable, TElement> : ReflectionEnumerableShape<TEnumerable, TElement>
     where TEnumerable : ICollection<TElement>
 {
-    public ReflectionCollectionType(ReflectionTypeShapeProvider provider) : base(provider) { }
+    public ReflectionCollectionShape(ReflectionTypeShapeProvider provider) : base(provider) { }
     public override bool IsMutable => true;
     public override Setter<TEnumerable, TElement> GetAddElement()
         => static (ref TEnumerable enumerable, TElement element) => enumerable.Add(element);
 }
 
-internal class ReflectionEnumerableType<TEnumerable> : IEnumerableType<TEnumerable, object?>
+internal class ReflectionEnumerableShape<TEnumerable> : IEnumerableShape<TEnumerable, object?>
     where TEnumerable : IEnumerable
 {
     private readonly ReflectionTypeShapeProvider _provider;
 
-    public ReflectionEnumerableType(ReflectionTypeShapeProvider provider)
+    public ReflectionEnumerableShape(ReflectionTypeShapeProvider provider)
         => _provider = provider;
 
-    public IType Type => _provider.GetShape(typeof(TEnumerable));
-    public IType ElementType => _provider.GetShape(typeof(object));
+    public ITypeShape Type => _provider.GetShape<TEnumerable>();
+    public ITypeShape ElementType => _provider.GetShape<object>();
 
     public virtual bool IsMutable => _isMutable ??= DetermineIsMutable();
     private MethodInfo? _addMethod;
@@ -95,14 +95,14 @@ internal class ReflectionEnumerableType<TEnumerable> : IEnumerableType<TEnumerab
         return false;
     }
 
-    public object? Accept(IEnumerableTypeVisitor visitor, object? state)
-        => visitor.VisitEnumerableType(this, state);
+    public object? Accept(ITypeShapeVisitor visitor, object? state)
+        => visitor.VisitEnumerable(this, state);
 
     public virtual Setter<TEnumerable, object?> GetAddElement()
     {
         if (!IsMutable)
         {
-            throw new InvalidOperationException();
+            throw new InvalidOperationException("The current enumerable shape does not support mutation.");
         }
 
         Debug.Assert(_addMethod != null);
@@ -113,10 +113,10 @@ internal class ReflectionEnumerableType<TEnumerable> : IEnumerableType<TEnumerab
         => static enumerable => enumerable.Cast<object?>();
 }
 
-internal sealed class ReflectionListType<TEnumerable> : ReflectionEnumerableType<TEnumerable>
+internal sealed class ReflectionListShape<TEnumerable> : ReflectionEnumerableShape<TEnumerable>
     where TEnumerable : IList
 {
-    public ReflectionListType(ReflectionTypeShapeProvider provider) : base(provider) { }
+    public ReflectionListShape(ReflectionTypeShapeProvider provider) : base(provider) { }
     public override bool IsMutable => true;
     public override Setter<TEnumerable, object?> GetAddElement()
         => static (ref TEnumerable enumerable, object? value) => enumerable.Add(value);

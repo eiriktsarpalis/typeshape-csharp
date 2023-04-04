@@ -3,7 +3,7 @@
 /// <summary>
 /// Provides a visitor for strongly-typed traversal of .NET types.
 /// </summary>
-public interface ITypeShapeVisitor
+public abstract class TypeShapeVisitor : ITypeShapeVisitor
 {
     /// <summary>
     /// Visits an <see cref="ITypeShape{T}"/> instance.
@@ -12,7 +12,8 @@ public interface ITypeShapeVisitor
     /// <param name="typeShape">The type shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    object? VisitType<T>(ITypeShape<T> typeShape, object? state);
+    public virtual object? VisitType<T>(ITypeShape<T> typeShape, object? state)
+        => ThrowNotImplemented(nameof(VisitType));
 
     /// <summary>
     /// Visits an <see cref="IPropertyShape{TDeclaringType, TPropertyType}"/> instance.
@@ -22,17 +23,19 @@ public interface ITypeShapeVisitor
     /// <param name="propertyShape">The property shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> propertyShape, object? state);
+    public virtual object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> propertyShape, object? state)
+        => ThrowNotImplemented(nameof(VisitProperty));
 
     /// <summary>
     /// Visits an <see cref="IConstructorParameterShape{TDeclaringType, TArgumentState}"/> instance.
     /// </summary>
     /// <typeparam name="TDeclaringType">The declaring type of the visited constructor.</typeparam>
-    /// <typeparam name="TArgumentState">The state type used for aggregating constructor arguments.</typeparam>
+    /// <typeparam name="TArgumentState">The constructor argument state type used for aggregating constructor arguments.</typeparam>
     /// <param name="constructorShape">The constructor shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructorShape<TDeclaringType, TArgumentState> constructorShape, object? state);
+    public virtual object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructorShape<TDeclaringType, TArgumentState> constructorShape, object? state)
+        => ThrowNotImplemented(nameof(VisitConstructor));
 
     /// <summary>
     /// Visits an <see cref="IConstructorParameterShape{TArgumentState, TParameterType}"/> instance.
@@ -42,7 +45,8 @@ public interface ITypeShapeVisitor
     /// <param name="parameterShape">The parameter shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    object? VisitConstructorParameter<TArgumentState, TParameterType>(IConstructorParameterShape<TArgumentState, TParameterType> parameterShape, object? state);
+    public virtual object? VisitConstructorParameter<TArgumentState, TParameterType>(IConstructorParameterShape<TArgumentState, TParameterType> parameterShape, object? state)
+        => ThrowNotImplemented(nameof(VisitConstructorParameter));
 
     /// <summary>
     /// Visits an <see cref="IEnumShape{TEnum, TUnderlying}"/> instance.
@@ -52,7 +56,8 @@ public interface ITypeShapeVisitor
     /// <param name="enumShape">The enum shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    object? VisitEnum<TEnum, TUnderlying>(IEnumShape<TEnum, TUnderlying> enumShape, object? state) where TEnum : struct, Enum;
+    public virtual object? VisitEnum<TEnum, TUnderlying>(IEnumShape<TEnum, TUnderlying> enumShape, object? state) where TEnum : struct, Enum
+        => ThrowNotImplemented(nameof(VisitEnum));
 
     /// <summary>
     /// Visits an <see cref="INullableShape{T}"/> instance representing the <see cref="Nullable{T}"/> type.
@@ -61,7 +66,8 @@ public interface ITypeShapeVisitor
     /// <param name="nullableShape">The nullable shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    object? VisitNullable<T>(INullableShape<T> nullableShape, object? state) where T : struct;
+    public virtual object? VisitNullable<T>(INullableShape<T> nullableShape, object? state) where T : struct
+        => ThrowNotImplemented(nameof(VisitNullable));
 
     /// <summary>
     /// Visits an <see cref="IEnumerableShape{TEnumerable, TElement}"/> instance representing an enumerable type.
@@ -71,7 +77,8 @@ public interface ITypeShapeVisitor
     /// <param name="enumerableShape">The enumerable shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    object? VisitEnumerable<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> enumerableShape, object? state);
+    public virtual object? VisitEnumerable<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> enumerableShape, object? state)
+        => ThrowNotImplemented(nameof(VisitEnumerable));
 
     /// <summary>
     /// Visits an <see cref="IDictionaryShape{TDictionary, TKey, TValue}"/> instance representing a dictionary type.
@@ -82,5 +89,9 @@ public interface ITypeShapeVisitor
     /// <param name="dictionaryShape">The dictionary shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state) where TKey : notnull;
+    public virtual object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state) where TKey : notnull
+        => ThrowNotImplemented(nameof(VisitEnumerable));
+
+    private object? ThrowNotImplemented(string methodName)
+        => throw new NotImplementedException($"The visitor method {GetType().Name}.{methodName} has not been implemented.");
 }

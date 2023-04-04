@@ -16,7 +16,7 @@ public abstract class TypeShapeProviderTests
     public void TypeShapeReportsExpectedInfo<T>(TestCase<T> testCase)
     {
         _ = testCase; // not used here
-        IType<T>? shape = Provider.GetShape<T>();
+        ITypeShape<T>? shape = Provider.GetShape<T>();
 
         Assert.NotNull(shape);
         Assert.Same(Provider, shape.Provider);
@@ -56,20 +56,20 @@ public abstract class TypeShapeProviderTests
     public void GetProperties<T>(TestCase<T> testCase)
     {
         _ = testCase; // not used here
-        IType<T>? shape = Provider.GetShape<T>();
+        ITypeShape<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
 
         var visitor = new PropertyTestVisitor();
-        foreach (IProperty property in shape.GetProperties(nonPublic: SupportsNonPublicMembers, includeFields: true))
+        foreach (IPropertyShape property in shape.GetProperties(nonPublic: SupportsNonPublicMembers, includeFields: true))
         {
             Assert.Equal(typeof(T), property.DeclaringType.Type);
             property.Accept(visitor, testCase.Value);
         }
     }
 
-    private sealed class PropertyTestVisitor : IPropertyVisitor
+    private sealed class PropertyTestVisitor : TypeShapeVisitor
     {
-        public object? VisitProperty<TDeclaringType, TPropertyType>(IProperty<TDeclaringType, TPropertyType> property, object? state)
+        public override object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
         {
             TDeclaringType obj = (TDeclaringType)state!;
             TPropertyType propertyType = default!;
@@ -103,26 +103,26 @@ public abstract class TypeShapeProviderTests
     public void GetConstructors<T>(TestCase<T> testCase)
     {
         _ = testCase; // not used here
-        IType<T>? shape = Provider.GetShape<T>();
+        ITypeShape<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
 
         var visitor = new ConstructorTestVisitor();
-        foreach (IConstructor ctor in shape.GetConstructors(nonPublic: SupportsNonPublicMembers))
+        foreach (IConstructorShape ctor in shape.GetConstructors(nonPublic: SupportsNonPublicMembers))
         {
             Assert.Equal(typeof(T), ctor.DeclaringType.Type);
             ctor.Accept(visitor, typeof(T));
         }
     }
 
-    private sealed class ConstructorTestVisitor : IConstructorVisitor, IConstructorParameterVisitor
+    private sealed class ConstructorTestVisitor : TypeShapeVisitor
     {
-        public object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructor<TDeclaringType, TArgumentState> constructor, object? state)
+        public override object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructorShape<TDeclaringType, TArgumentState> constructor, object? state)
         {
             var expectedType = (Type)state!;
             Assert.Equal(typeof(TDeclaringType), expectedType);
 
             int parameterCount = constructor.ParameterCount;
-            IConstructorParameter[] parameters = constructor.GetParameters().ToArray();
+            IConstructorParameterShape[] parameters = constructor.GetParameters().ToArray();
             Assert.Equal(parameterCount, parameters.Length);
 
             if (parameterCount == 0)
@@ -138,7 +138,7 @@ public abstract class TypeShapeProviderTests
 
             int i = 0;
             TArgumentState argumentState = constructor.GetArgumentStateConstructor().Invoke();
-            foreach (IConstructorParameter parameter in parameters)
+            foreach (IConstructorParameterShape parameter in parameters)
             {
                 Assert.Equal(i++, parameter.Position);
                 argumentState = (TArgumentState)parameter.Accept(this, argumentState)!;
@@ -155,7 +155,7 @@ public abstract class TypeShapeProviderTests
             return null;
         }
 
-        public object? VisitConstructorParameter<TArgumentState, TParameter>(IConstructorParameter<TArgumentState, TParameter> parameter, object? state)
+        public override object? VisitConstructorParameter<TArgumentState, TParameter>(IConstructorParameterShape<TArgumentState, TParameter> parameter, object? state)
         {
             var argState = (TArgumentState)state!;
             var setter = parameter.GetSetter();
@@ -171,12 +171,12 @@ public abstract class TypeShapeProviderTests
     public void GetEnumType<T>(TestCase<T> testCase)
     {
         _ = testCase; // not used here
-        IType<T>? shape = Provider.GetShape<T>();
+        ITypeShape<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
 
         if (shape.Kind.HasFlag(TypeKind.Enum))
         {
-            IEnumType enumType = shape.GetEnumType();
+            IEnumShape enumType = shape.GetEnumShape();
             Assert.Equal(typeof(T), enumType.Type.Type);
             Assert.Equal(typeof(T).GetEnumUnderlyingType(), enumType.UnderlyingType.Type);
             var visitor = new EnumTestVisitor();
@@ -184,13 +184,13 @@ public abstract class TypeShapeProviderTests
         }
         else
         {
-            Assert.Throws<InvalidOperationException>(() => shape.GetEnumType());
+            Assert.Throws<InvalidOperationException>(() => shape.GetEnumShape());
         }
     }
 
-    private sealed class EnumTestVisitor : IEnumTypeVisitor
+    private sealed class EnumTestVisitor : TypeShapeVisitor
     {
-        public object? VisitEnum<TEnum, TUnderlying>(IEnumType<TEnum, TUnderlying> enumType, object? state) where TEnum : struct, Enum
+        public override object? VisitEnum<TEnum, TUnderlying>(IEnumShape<TEnum, TUnderlying> enumType, object? state)
         {
             var type = (Type)state!;
             Assert.Equal(typeof(TEnum), type);
@@ -204,12 +204,12 @@ public abstract class TypeShapeProviderTests
     public void GetNullableType<T>(TestCase<T> testCase)
     {
         _ = testCase; // not used here
-        IType<T>? shape = Provider.GetShape<T>();
+        ITypeShape<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
 
         if (shape.Kind.HasFlag(TypeKind.Nullable))
         {
-            INullableType nullableType = shape.GetNullableType();
+            INullableShape nullableType = shape.GetNullableShape();
             Assert.Equal(typeof(T), nullableType.Type.Type);
             Assert.Equal(typeof(T).GetGenericArguments()[0], nullableType.ElementType.Type);
             var visitor = new NullableTestVisitor();
@@ -217,17 +217,17 @@ public abstract class TypeShapeProviderTests
         }
         else
         {
-            Assert.Throws<InvalidOperationException>(() => shape.GetNullableType());
+            Assert.Throws<InvalidOperationException>(() => shape.GetNullableShape());
         }
     }
 
-    private sealed class NullableTestVisitor : INullableTypeVisitor
+    private sealed class NullableTestVisitor : TypeShapeVisitor
     {
-        public object? VisitNullable<T>(INullableType<T> nullableType, object? state) where T : struct
+        public override object? VisitNullable<T>(INullableShape<T> nullable, object? state) where T : struct
         {
             var type = (Type)state!;
             Assert.Equal(typeof(T?), type);
-            Assert.Equal(typeof(T), nullableType.ElementType.Type);
+            Assert.Equal(typeof(T), nullable.ElementType.Type);
             return null;
         }
     }
@@ -236,12 +236,12 @@ public abstract class TypeShapeProviderTests
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void GetDictionaryType<T>(TestCase<T> testCase)
     {
-        IType<T>? shape = Provider.GetShape<T>();
+        ITypeShape<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
 
         if (shape.Kind.HasFlag(TypeKind.Dictionary))
         {
-            IDictionaryType dictionaryType = shape.GetDictionaryType();
+            IDictionaryShape dictionaryType = shape.GetDictionaryShape();
             Assert.Equal(typeof(T), dictionaryType.Type.Type);
             if (typeof(T).IsGenericType)
             {
@@ -259,29 +259,29 @@ public abstract class TypeShapeProviderTests
         }
         else
         {
-            Assert.Throws<InvalidOperationException>(() => shape.GetDictionaryType());
+            Assert.Throws<InvalidOperationException>(() => shape.GetDictionaryShape());
         }
     }
 
-    private sealed class DictionaryTestVisitor : IDictionaryTypeVisitor
+    private sealed class DictionaryTestVisitor : TypeShapeVisitor
     {
-        public object? VisitDictionaryType<TDictionary, TKey, TValue>(IDictionaryType<TDictionary, TKey, TValue> dictionaryType, object? state) where TKey : notnull
+        public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
         {
             var dictionary = (TDictionary)state!;
-            var getter = dictionaryType.GetGetDictionary();
+            var getter = dictionaryShape.GetGetDictionary();
             int count = getter(dictionary).Count();
 
-            if (dictionaryType.IsMutable)
+            if (dictionaryShape.IsMutable)
             {
-                var adder = dictionaryType.GetAddKeyValuePair();
-                RandomGenerator<TKey> keyGenerator = RandomGenerator.Create((IType<TKey>)dictionaryType.KeyType);
+                var adder = dictionaryShape.GetAddKeyValuePair();
+                RandomGenerator<TKey> keyGenerator = RandomGenerator.Create((ITypeShape<TKey>)dictionaryShape.KeyType);
                 TKey newKey = keyGenerator.GenerateValue(size: 1000, seed: 42);
                 adder(ref dictionary, new(newKey, default!));
                 Assert.Equal(count + 1, getter(dictionary).Count());
             }
             else
             {
-                Assert.Throws<InvalidOperationException>(() => dictionaryType.GetAddKeyValuePair());
+                Assert.Throws<InvalidOperationException>(() => dictionaryShape.GetAddKeyValuePair());
             }
 
             return null;
@@ -293,12 +293,12 @@ public abstract class TypeShapeProviderTests
     public void GetEnumerableType<T>(TestCase<T> testCase)
     {
         _ = testCase; // not used here
-        IType<T>? shape = Provider.GetShape<T>();
+        ITypeShape<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
 
         if (shape.Kind.HasFlag(TypeKind.Enumerable))
         {
-            IEnumerableType enumerableType = shape.GetEnumerableType();
+            IEnumerableShape enumerableType = shape.GetEnumerableShape();
             Assert.Equal(typeof(T), enumerableType.Type.Type);
 
             if (typeof(T).IsGenericType)
@@ -326,29 +326,29 @@ public abstract class TypeShapeProviderTests
         }
         else
         {
-            Assert.Throws<InvalidOperationException>(() => shape.GetEnumerableType());
+            Assert.Throws<InvalidOperationException>(() => shape.GetEnumerableShape());
         }
     }
 
-    private sealed class EnumerableTestVisitor : IEnumerableTypeVisitor
+    private sealed class EnumerableTestVisitor : TypeShapeVisitor
     {
-        public object? VisitEnumerableType<TEnumerable, TElement>(IEnumerableType<TEnumerable, TElement> enumerableType, object? state)
+        public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> enumerableShape, object? state)
         {
             var enumerable = (TEnumerable)state!;
-            var getter = enumerableType.GetGetEnumerable();
+            var getter = enumerableShape.GetGetEnumerable();
             int count = getter(enumerable).Count();
 
-            if (enumerableType.IsMutable)
+            if (enumerableShape.IsMutable)
             {
-                var adder = enumerableType.GetAddElement();
-                RandomGenerator<TElement> elementGenerator = RandomGenerator.Create((IType<TElement>)enumerableType.ElementType);
+                var adder = enumerableShape.GetAddElement();
+                RandomGenerator<TElement> elementGenerator = RandomGenerator.Create((ITypeShape<TElement>)enumerableShape.ElementType);
                 TElement newElement = elementGenerator.GenerateValue(size: 1000, seed: 42);
                 adder(ref enumerable, newElement);
                 Assert.Equal(count + 1, getter(enumerable).Count());
             }
             else
             {
-                Assert.Throws<InvalidOperationException>(() => enumerableType.GetAddElement());
+                Assert.Throws<InvalidOperationException>(() => enumerableShape.GetAddElement());
             }
 
             return null;
@@ -364,9 +364,9 @@ public abstract class TypeShapeProviderTests
             return; // tuples don't report attribute metadata.
         }
 
-        IType<T> shape = Provider.GetShape<T>()!;
+        ITypeShape<T> shape = Provider.GetShape<T>()!;
 
-        foreach (IProperty property in shape.GetProperties(nonPublic: SupportsNonPublicMembers, includeFields: true))
+        foreach (IPropertyShape property in shape.GetProperties(nonPublic: SupportsNonPublicMembers, includeFields: true))
         {
             ICustomAttributeProvider? attributeProvider = property.AttributeProvider;
             Assert.NotNull(attributeProvider);
@@ -389,7 +389,7 @@ public abstract class TypeShapeProviderTests
             }
         }
 
-        foreach (IConstructor constructor in shape.GetConstructors(nonPublic: SupportsNonPublicMembers))
+        foreach (IConstructorShape constructor in shape.GetConstructors(nonPublic: SupportsNonPublicMembers))
         {
             ICustomAttributeProvider? attributeProvider = constructor.AttributeProvider;
 
@@ -408,7 +408,7 @@ public abstract class TypeShapeProviderTests
             }
 
             int i = 0;
-            foreach (IConstructorParameter ctorParam in constructor.GetParameters())
+            foreach (IConstructorParameterShape ctorParam in constructor.GetParameters())
             {
                 if (i < parameters.Length)
                 {

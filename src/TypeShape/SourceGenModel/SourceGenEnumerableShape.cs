@@ -1,22 +1,22 @@
 ﻿namespace TypeShape.SourceGenModel;
 
-public sealed class SourceGenEnumerableType<TEnumerable, TElement> : IEnumerableType<TEnumerable, TElement>
+public sealed class SourceGenEnumerableShape<TEnumerable, TElement> : IEnumerableShape<TEnumerable, TElement>
 {
-    public required IType Type { get; init; }
-    public required IType ElementType { get; init; }
+    public required ITypeShape Type { get; init; }
+    public required ITypeShape ElementType { get; init; }
 
     public bool IsMutable => AddElementFunc is not null;
 
     public required Func<TEnumerable, IEnumerable<TElement>> GetEnumerableFunc { get; init; }
     public Setter<TEnumerable, TElement>? AddElementFunc { get; init; }
 
-    public object? Accept(IEnumerableTypeVisitor visitor, object? state)
-        => visitor.VisitEnumerableType(this, state);
+    public object? Accept(ITypeShapeVisitor visitor, object? state)
+        => visitor.VisitEnumerable(this, state);
 
     public Setter<TEnumerable, TElement> GetAddElement()
     {
         if (AddElementFunc is null)
-            throw new InvalidOperationException();
+            throw new InvalidOperationException("Enumerable shape does not specify an append delegate.");
 
         return AddElementFunc;
     }

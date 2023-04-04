@@ -13,7 +13,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\TypeShape\ReflectionProvider\CommonHelpers.cs" Link="Helpers\CommonHelpers.cs" />
+    <Compile Include="..\TypeShape\ReflectionProvider\Helpers\CommonHelpers.cs" Link="Helpers\CommonHelpers.cs" />
+	<Compile Include="..\TypeShape\SourceGenModel\Helpers\RequiredMemberAttribute.cs" Link="Helpers\RequiredMemberAttribute.cs" />
   </ItemGroup>
 
   <ItemGroup>

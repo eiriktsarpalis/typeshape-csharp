@@ -44,8 +44,7 @@ internal sealed class JsonDictionaryConverter<TDictionary, TKey, TValue> : JsonC
         {
             Debug.Assert(reader.TokenType == JsonTokenType.PropertyName);
 
-            //TKey key = keyConverter.ReadAsPropertyName(ref reader, typeof(TKey), options);
-            TKey key = (TKey)Convert.ChangeType(reader.GetString(), typeof(TKey))!;
+            TKey key = keyConverter.ReadAsPropertyName(ref reader, typeof(TKey), options);
             reader.EnsureRead();
             TValue value = valueConverter.Read(ref reader, typeof(TValue), options)!;
             reader.EnsureRead();

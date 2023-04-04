@@ -33,7 +33,7 @@ public partial class TypeShapeJsonResolver
 
         private readonly Dictionary<Type, JsonConverter> _visited = new();
 
-        public object? VisitType<T>(IType<T> type, object? state)
+        public object? VisitType<T>(ITypeShape<T> type, object? state)
         {
             if (s_defaultConverters.TryGetValue(type.Type, out JsonConverter? result) ||
                 _visited.TryGetValue(type.Type, out result))
@@ -44,27 +44,27 @@ public partial class TypeShapeJsonResolver
             switch (type.Kind)
             {
                 case TypeKind.Enum:
-                    IEnumType enumType = type.GetEnumType();
-                    return enumType.Accept(this, null);
+                    IEnumShape enumShape = type.GetEnumShape();
+                    return enumShape.Accept(this, null);
 
                 case TypeKind.Nullable:
-                    INullableType nullableType = type.GetNullableType();
-                    return nullableType.Accept(this, null);
+                    INullableShape nullableShape = type.GetNullableShape();
+                    return nullableShape.Accept(this, null);
 
                 case TypeKind kind when ((kind & TypeKind.Dictionary) != 0):
-                    IDictionaryType dictionaryType = type.GetDictionaryType();
-                    return dictionaryType.Accept(this, null);
+                    IDictionaryShape dictionaryShape = type.GetDictionaryShape();
+                    return dictionaryShape.Accept(this, null);
 
                 case TypeKind.Enumerable:
-                    IEnumerableType enumerableType = type.GetEnumerableType();
-                    return enumerableType.Accept(this, null);
+                    IEnumerableShape enumerableShape = type.GetEnumerableShape();
+                    return enumerableShape.Accept(this, null);
 
                 default:
                     Debug.Assert(type.Kind == TypeKind.None);
                     JsonObjectConverter<T> objectConverter = new();
                     _visited.Add(type.Type, objectConverter);
 
-                    IConstructor? ctor = type
+                    IConstructorShape? ctor = type
                         .GetConstructors(nonPublic: false)
                         .OrderByDescending(ctor => ctor.ParameterCount)
                         .FirstOrDefault();
@@ -80,13 +80,13 @@ public partial class TypeShapeJsonResolver
             }
         }
 
-        public object? VisitProperty<TDeclaringType, TPropertyType>(IProperty<TDeclaringType, TPropertyType> property, object? state)
+        public object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
         {
             JsonConverter<TPropertyType> propertyConverter = (JsonConverter<TPropertyType>)property.PropertyType.Accept(this, null)!;
             return new JsonProperty<TDeclaringType, TPropertyType>(property, propertyConverter);
         }
 
-        public object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructor<TDeclaringType, TArgumentState> constructor, object? state)
+        public object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructorShape<TDeclaringType, TArgumentState> constructor, object? state)
         {
             JsonProperty<TArgumentState>[] paramInfo = constructor
                 .GetParameters()
@@ -98,31 +98,31 @@ public partial class TypeShapeJsonResolver
                 : new JsonParameterizedConstructor<TDeclaringType, TArgumentState>(constructor, paramInfo);
         }
 
-        public object? VisitConstructorParameter<TArgumentState, TParameter>(IConstructorParameter<TArgumentState, TParameter> parameter, object? state)
+        public object? VisitConstructorParameter<TArgumentState, TParameter>(IConstructorParameterShape<TArgumentState, TParameter> parameter, object? state)
         {
             JsonConverter<TParameter> paramConverter = (JsonConverter<TParameter>)parameter.ParameterType.Accept(this, null)!;
             return new JsonProperty<TArgumentState, TParameter>(parameter, paramConverter);
         }
 
-        public object? VisitEnumerableType<TEnumerable, TElement>(IEnumerableType<TEnumerable, TElement> enumerableType, object? state)
+        public object? VisitEnumerable<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> enumerableShape, object? state)
         {
             if (typeof(TEnumerable) == typeof(TElement[]))
             {
                 JsonArrayConverter<TElement> arrayConverter = new();
-                _visited.Add(enumerableType.Type.Type, arrayConverter);
-                arrayConverter.ElementConverter = (JsonConverter<TElement>)enumerableType.ElementType.Accept(this, null)!;
+                _visited.Add(enumerableShape.Type.Type, arrayConverter);
+                arrayConverter.ElementConverter = (JsonConverter<TElement>)enumerableShape.ElementType.Accept(this, null)!;
                 return arrayConverter;
             }
 
             JsonEnumerableConverter<TEnumerable, TElement> collectionConverter = new();
-            _visited.Add(enumerableType.Type.Type, collectionConverter);
+            _visited.Add(enumerableShape.Type.Type, collectionConverter);
 
-            collectionConverter.ElementConverter = (JsonConverter<TElement>)enumerableType.ElementType.Accept(this, null)!;
-            collectionConverter.GetEnumerable = enumerableType.GetGetEnumerable();
+            collectionConverter.ElementConverter = (JsonConverter<TElement>)enumerableShape.ElementType.Accept(this, null)!;
+            collectionConverter.GetEnumerable = enumerableShape.GetGetEnumerable();
 
-            if (enumerableType.IsMutable)
+            if (enumerableShape.IsMutable)
             {
-                IConstructor? defaultCtor = enumerableType.Type
+                IConstructorShape? defaultCtor = enumerableShape.Type
                     .GetConstructors(nonPublic: false)
                     .FirstOrDefault(ctor => ctor.ParameterCount == 0);
 
@@ -130,27 +130,27 @@ public partial class TypeShapeJsonResolver
                 {
                     JsonConstructor<TEnumerable> constructor = (JsonConstructor<TEnumerable>)defaultCtor.Accept(this, null)!;
                     collectionConverter.CreateObject = constructor.DefaultConstructor;
-                    collectionConverter.AddDelegate = enumerableType.GetAddElement();
+                    collectionConverter.AddDelegate = enumerableShape.GetAddElement();
                 }
             }
 
             return collectionConverter;
         }
 
-        public object? VisitDictionaryType<TDictionary, TKey, TValue>(IDictionaryType<TDictionary, TKey, TValue> dictionaryType, object? state)
+        public object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
             where TKey : notnull
         {
             JsonDictionaryConverter<TDictionary, TKey, TValue> dictionaryConverter = new();
-            _visited.Add(dictionaryType.Type.Type, dictionaryConverter);
+            _visited.Add(dictionaryShape.Type.Type, dictionaryConverter);
 
-            dictionaryConverter.KeyConverter = (JsonConverter<TKey>)dictionaryType.KeyType.Accept(this, null)!;
-            dictionaryConverter.ValueConverter = (JsonConverter<TValue>)dictionaryType.ValueType.Accept(this, null)!;
-            dictionaryConverter.GetDictionary = dictionaryType.GetGetDictionary();
+            dictionaryConverter.KeyConverter = (JsonConverter<TKey>)dictionaryShape.KeyType.Accept(this, null)!;
+            dictionaryConverter.ValueConverter = (JsonConverter<TValue>)dictionaryShape.ValueType.Accept(this, null)!;
+            dictionaryConverter.GetDictionary = dictionaryShape.GetGetDictionary();
 
-            if (dictionaryType.IsMutable)
+            if (dictionaryShape.IsMutable)
             {
 
-                IConstructor? defaultCtor = dictionaryType.Type
+                IConstructorShape? defaultCtor = dictionaryShape.Type
                     .GetConstructors(nonPublic: false)
                     .FirstOrDefault(ctor => ctor.ParameterCount == 0);
 
@@ -158,22 +158,22 @@ public partial class TypeShapeJsonResolver
                 {
                     var constructor = (JsonConstructor<TDictionary>)defaultCtor.Accept(this, null)!;
                     dictionaryConverter.CreateObject = constructor.DefaultConstructor;
-                    dictionaryConverter.AddDelegate = dictionaryType.GetAddKeyValuePair();
+                    dictionaryConverter.AddDelegate = dictionaryShape.GetAddKeyValuePair();
                 }
             }
 
             return dictionaryConverter;
         }
 
-        public object? VisitNullable<T>(INullableType<T> nullableType, object? state) where T : struct
+        public object? VisitNullable<T>(INullableShape<T> nullableShape, object? state) where T : struct
         {
             JsonNullableConverter<T> converter = new();
-            _visited.Add(nullableType.Type.Type, converter);
-            converter.ElementConverter = (JsonConverter<T>)nullableType.ElementType.Accept(this, null)!;
+            _visited.Add(nullableShape.Type.Type, converter);
+            converter.ElementConverter = (JsonConverter<T>)nullableShape.ElementType.Accept(this, null)!;
             return converter;
         }
 
-        public object? VisitEnum<TEnum, TUnderlying>(IEnumType<TEnum, TUnderlying> enumType, object? state) where TEnum : struct, Enum
+        public object? VisitEnum<TEnum, TUnderlying>(IEnumShape<TEnum, TUnderlying> enumShape, object? state) where TEnum : struct, Enum
             => new JsonEnumConverter<TEnum>();
     }
 }
