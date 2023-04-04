@@ -156,7 +156,7 @@ internal static class RoslynHelpers
         bool IsClassTupleType(ITypeSymbol type) =>
             typeSymbol is INamedTypeSymbol namedType && namedType.IsGenericType &&
             SymbolEqualityComparer.Default.Equals(type.ContainingAssembly, corLib) &&
-            type.GetFullyQualifiedName().StartsWith("global::System.Tuple");
+            type.GetFullyQualifiedName().StartsWith("global::System.Tuple", StringComparison.Ordinal);
     }
 
     public static IEnumerable<IFieldSymbol> GetTupleElementsWithoutLabels(this INamedTypeSymbol tuple)

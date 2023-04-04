@@ -208,7 +208,7 @@ public sealed partial class ModelGenerator
             return fmt switch
             {
                 GlobalNamespaceIdentifier => null,
-                _ when (fmt.StartsWith(GlobalNamespacePrefix)) => fmt.Remove(0, GlobalNamespacePrefix.Length),
+                _ when (fmt.StartsWith(GlobalNamespacePrefix, StringComparison.Ordinal)) => fmt.Remove(0, GlobalNamespacePrefix.Length),
                 _ => fmt
             };
         }

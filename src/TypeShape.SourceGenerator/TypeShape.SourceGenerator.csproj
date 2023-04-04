@@ -8,7 +8,10 @@
 	<WarningsAsErrors>Nullable</WarningsAsErrors>
 	<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
 	<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+	<AnalysisLevel>latest-recommended</AnalysisLevel>
+	<WarningLevel>9999</WarningLevel>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
 	<DefineConstants Condition="'$(LaunchDebugger)' == 'true'">$(DefineConstants);LAUNCH_DEBUGGER</DefineConstants>
   </PropertyGroup>
 
