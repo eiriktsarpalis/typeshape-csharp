@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeShape.Applications.JsonSerializer;
+using TypeShape.Applications.JsonSerializer.Converters;
 using TypeShape.ReflectionProvider;
 using Xunit;
 
@@ -200,8 +201,16 @@ public abstract class JsonTests
     private static string ToJsonBaseline<T>(T? value) => JsonSerializer.Serialize(value, s_baselineOptions);
     private static readonly JsonSerializerOptions s_baselineOptions = new()
     { 
-        Converters = { new JsonStringEnumConverter() },
         IncludeFields = true,
+        Converters = 
+        { 
+            new JsonStringEnumConverter(), 
+            new Int128Converter(), 
+            new UInt128Converter(),
+            new BigIntegerConverter(),
+            new HalfConverter(),
+            new RuneConverter(),
+        },
     };
 
 

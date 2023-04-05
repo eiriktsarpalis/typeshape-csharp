@@ -122,7 +122,7 @@ internal static class RoslynHelpers
 
     public static ITypeSymbol[]? GetClassTupleElements(this Compilation compilation, ITypeSymbol typeSymbol)
     {
-        IAssemblySymbol corLib = compilation.GetSpecialType(SpecialType.System_Int32).ContainingAssembly;
+        IAssemblySymbol coreLibAssembly = compilation.GetCoreLibAssembly();
 
         if (!IsClassTupleType(typeSymbol))
         {
@@ -155,7 +155,7 @@ internal static class RoslynHelpers
 
         bool IsClassTupleType(ITypeSymbol type) =>
             typeSymbol is INamedTypeSymbol namedType && namedType.IsGenericType &&
-            SymbolEqualityComparer.Default.Equals(type.ContainingAssembly, corLib) &&
+            SymbolEqualityComparer.Default.Equals(type.ContainingAssembly, coreLibAssembly) &&
             type.GetFullyQualifiedName().StartsWith("global::System.Tuple", StringComparison.Ordinal);
     }
 
@@ -211,4 +211,87 @@ internal static class RoslynHelpers
             return CommonHelpers.TraverseGraphWithTopologicalSort<INamedTypeSymbol>(type, static t => t.AllInterfaces, SymbolEqualityComparer.Default);
         }
     }
+
+    public static bool IsAssignableFrom(this ITypeSymbol? baseType, ITypeSymbol? type)
+    {
+        if (baseType is null || type is null)
+        {
+            return false;
+        }
+
+        for (ITypeSymbol? current = type; current != null; current = current.BaseType)
+        {
+            if (SymbolEqualityComparer.Default.Equals(current, baseType))
+            {
+                return true;
+            }
+        }
+
+        foreach (INamedTypeSymbol @interface in type.AllInterfaces)
+        {
+            if (SymbolEqualityComparer.Default.Equals(@interface, baseType))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// An "atomic value" in this context defines a type that is either 
+    /// a primitive, string or a self-contained value like decimal, DateTime or Uri.
+    /// </summary>
+    public static bool IsAtomicValueType(this Compilation compilation, ITypeSymbol type)
+    {
+        switch (type.SpecialType)
+        {
+            // Primitive types
+            case SpecialType.System_Boolean:
+            case SpecialType.System_Char:
+            case SpecialType.System_SByte:
+            case SpecialType.System_Byte:
+            case SpecialType.System_Int16:
+            case SpecialType.System_UInt16:
+            case SpecialType.System_Int32:
+            case SpecialType.System_UInt32:
+            case SpecialType.System_Int64:
+            case SpecialType.System_UInt64:
+            case SpecialType.System_Single:
+            case SpecialType.System_Double:
+            // CorLib non-primitives that represent a single value.
+            case SpecialType.System_String:
+            case SpecialType.System_Decimal:
+            case SpecialType.System_DateTime:
+            // Include System.Object since it doesn't contain any data statically.
+            case SpecialType.System_Object:
+                return true;
+        }
+
+        if (!SymbolEqualityComparer.Default.Equals(compilation.GetCoreLibAssembly(), type.ContainingAssembly))
+        {
+            return false;
+        }
+
+        switch (type.ToDisplayString())
+        {
+            case "System.Half":
+            case "System.Int128":
+            case "System.IntU128":
+            case "System.Guid":
+            case "System.DateTimeOffset":
+            case "System.DateOnly":
+            case "System.TimeSpan":
+            case "System.TimeOnly":
+            case "System.Version":
+            case "System.Uri":
+            case "System.Text.Rune":
+                return true;
+        }
+
+        return false;
+    }
+
+    public static IAssemblySymbol GetCoreLibAssembly(this Compilation compilation)
+        => compilation.GetSpecialType(SpecialType.System_Int32).ContainingAssembly;
 }

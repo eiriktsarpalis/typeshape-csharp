@@ -1,6 +1,8 @@
 ﻿namespace TypeShape.Applications.JsonSerializer;
 
 using System.Diagnostics;
+using System.Numerics;
+using System.Text;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using TypeShape.Applications.JsonSerializer.Converters;
@@ -17,17 +19,25 @@ public partial class TypeShapeJsonResolver
             [typeof(short)] = JsonMetadataServices.Int16Converter,
             [typeof(int)] = JsonMetadataServices.Int32Converter,
             [typeof(long)] = JsonMetadataServices.Int64Converter,
+            [typeof(Int128)] = new Int128Converter(),
             [typeof(byte)] = JsonMetadataServices.ByteConverter,
             [typeof(ushort)] = JsonMetadataServices.UInt16Converter,
             [typeof(uint)] = JsonMetadataServices.UInt32Converter,
             [typeof(ulong)] = JsonMetadataServices.UInt64Converter,
+            [typeof(UInt128)] = new UInt128Converter(),
             [typeof(char)] = JsonMetadataServices.CharConverter,
             [typeof(string)] = JsonMetadataServices.StringConverter,
+            [typeof(Half)] = new HalfConverter(),
             [typeof(float)] = JsonMetadataServices.SingleConverter,
             [typeof(double)] = JsonMetadataServices.DoubleConverter,
             [typeof(decimal)] = JsonMetadataServices.DecimalConverter,
             [typeof(DateTime)] = JsonMetadataServices.DateTimeConverter,
             [typeof(TimeSpan)] = JsonMetadataServices.TimeSpanConverter,
+            [typeof(DateOnly)] = JsonMetadataServices.DateOnlyConverter,
+            [typeof(TimeOnly)] = JsonMetadataServices.TimeOnlyConverter,
+            [typeof(Guid)] = JsonMetadataServices.GuidConverter,
+            [typeof(BigInteger)] = new BigIntegerConverter(),
+            [typeof(Rune)] = new RuneConverter(),
             [typeof(object)] = new JsonObjectConverter(),
         };
 

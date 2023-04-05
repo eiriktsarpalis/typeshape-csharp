@@ -6,6 +6,9 @@ namespace TypeShape.ReflectionProvider;
 
 internal static class ReflectionHelpers
 {
+    public readonly static Type? Int128Type = typeof(int).Assembly.GetType("System.Int128");
+    public readonly static Type? UInt128Type = typeof(int).Assembly.GetType("System.UInt128");
+
     public static bool IsNullable<T>()
     {
         return default(T) is null && typeof(T).IsValueType;

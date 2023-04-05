@@ -36,7 +36,8 @@ internal sealed class JsonObjectConverter<T> : JsonConverter<T>
         if (constructor is null)
         {
             ThrowNotSupportedException();
-            [DoesNotReturn] static void ThrowNotSupportedException() => throw new NotSupportedException();
+            [DoesNotReturn] static void ThrowNotSupportedException() 
+                => throw new NotSupportedException($"Deserialization for type {typeof(T)} is not supported.");
         }
 
         reader.EnsureTokenType(JsonTokenType.StartObject);

@@ -1,8 +1,10 @@
 ﻿using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text;
 using static TypeShape.Tests.ValidationTests;
 
 namespace TypeShape.Tests;
@@ -35,6 +37,7 @@ public static class TestTypes
         yield return Create(false);
         yield return Create("");
         yield return Create("stringValue");
+        yield return Create(Rune.GetRuneAt("🤯", 0));
         yield return Create(sbyte.MinValue);
         yield return Create(short.MinValue);
         yield return Create(int.MinValue);
@@ -43,11 +46,18 @@ public static class TestTypes
         yield return Create(ushort.MaxValue);
         yield return Create(uint.MaxValue);
         yield return Create(ulong.MaxValue);
+        yield return Create(Int128.MaxValue);
+        yield return Create(UInt128.MaxValue);
+        yield return Create(BigInteger.Parse("-170141183460469231731687303715884105728"));
         yield return Create(3.14f);
         yield return Create(3.14d);
         yield return Create(3.14M);
+        yield return Create((Half)3.14);
+        yield return Create(Guid.Empty);
         yield return Create(DateTime.MaxValue);
         yield return Create(TimeSpan.MaxValue);
+        yield return Create(DateOnly.MaxValue);
+        yield return Create(TimeOnly.MaxValue);
         yield return Create(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 
         yield return Create(new int[] { });
@@ -573,8 +583,16 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 [GenerateShape(typeof(float))]
 [GenerateShape(typeof(double))]
 [GenerateShape(typeof(decimal))]
+[GenerateShape(typeof(Half))]
+[GenerateShape(typeof(Int128))]
+[GenerateShape(typeof(UInt128))]
+[GenerateShape(typeof(Rune))]
+[GenerateShape(typeof(Guid))]
 [GenerateShape(typeof(DateTime))]
 [GenerateShape(typeof(TimeSpan))]
+[GenerateShape(typeof(DateOnly))]
+[GenerateShape(typeof(TimeOnly))]
+[GenerateShape(typeof(BigInteger))]
 [GenerateShape(typeof(BindingFlags))]
 [GenerateShape(typeof(int[]))]
 [GenerateShape(typeof(int[][]))]

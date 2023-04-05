@@ -21,6 +21,8 @@ public sealed partial class ModelGenerator
     private readonly Queue<(TypeId, ITypeSymbol)> _typesToGenerate = new();
     private readonly List<Diagnostic> _diagnostics = new();
 
+    private readonly ITypeSymbol _delegateType;
+    private readonly ITypeSymbol? _memberInfoType;
     private readonly ITypeSymbol? _iReadOnlyDictionaryOfTKeyTValue;
     private readonly ITypeSymbol? _iDictionaryOfTKeyTValue;
     private readonly ITypeSymbol? _iDictionary;
@@ -33,10 +35,12 @@ public sealed partial class ModelGenerator
         _semanticModel = compilation.GetSemanticModel(classDeclarationSyntax.SyntaxTree);
 
         _declaredTypeSymbol = _semanticModel.GetDeclaredSymbol(classDeclarationSyntax, cancellationToken)!;
-        _iReadOnlyDictionaryOfTKeyTValue = _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Generic.IReadOnlyDictionary`2");
-        _iDictionaryOfTKeyTValue = _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Generic.IDictionary`2");
-        _iDictionary = _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.IDictionary");
-        _iList = _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.IList");
+        _iReadOnlyDictionaryOfTKeyTValue = compilation.GetTypeByMetadataName("System.Collections.Generic.IReadOnlyDictionary`2");
+        _iDictionaryOfTKeyTValue = compilation.GetTypeByMetadataName("System.Collections.Generic.IDictionary`2");
+        _iDictionary = compilation.GetTypeByMetadataName("System.Collections.IDictionary");
+        _iList = compilation.GetTypeByMetadataName("System.Collections.IList");
+        _delegateType = compilation.GetSpecialType(SpecialType.System_Delegate);
+        _memberInfoType = compilation.GetTypeByMetadataName("System.Reflection.MemberInfo");
     }
 
     public static TypeShapeProviderModel Compile(ClassDeclarationSyntax classDeclarationSyntax, Compilation compilation, CancellationToken cancellationToken)
@@ -86,12 +90,19 @@ public sealed partial class ModelGenerator
             out ITypeSymbol? implementedCollectionType);
 
         ITypeSymbol[]? classTupleElements = _semanticModel.Compilation.GetClassTupleElements(type);
+        bool disallowMemberResolution = DisallowMemberResolution(type);
 
         return new TypeModel
         {
             Id = typeId,
-            Properties = MapProperties(typeId, type, classTupleElements, isSpecialTypeKind),
-            Constructors = MapConstructors(typeId, type, classTupleElements, implementedCollectionType),
+            Properties = disallowMemberResolution 
+                ? ImmutableArrayEq<PropertyModel>.Empty
+                : MapProperties(typeId, type, classTupleElements, isSpecialTypeKind),
+
+            Constructors = disallowMemberResolution
+                ? ImmutableArrayEq<ConstructorModel>.Empty
+                : MapConstructors(typeId, type, classTupleElements, implementedCollectionType),
+
             EnumType = enumType,
             NullableType = nullableType,
             EnumerableType = enumerableType,
@@ -219,8 +230,17 @@ public sealed partial class ModelGenerator
     private bool IsAccessibleFromGeneratedType(ISymbol symbol)
         => _semanticModel.Compilation.IsSymbolAccessibleWithin(symbol, _declaredTypeSymbol);
 
-    private static bool IsSupportedType(ITypeSymbol typeSymbol)
-        => typeSymbol.TypeKind is not (TypeKind.Pointer or TypeKind.Error) &&
-          !typeSymbol.IsRefLikeType && typeSymbol.SpecialType is not SpecialType.System_Void &&
-          !typeSymbol.ContainsGenericParameters();
+    private static bool IsSupportedType(ITypeSymbol type)
+        => type.TypeKind is not (TypeKind.Pointer or TypeKind.Error) &&
+          !type.IsRefLikeType && type.SpecialType is not SpecialType.System_Void &&
+          !type.ContainsGenericParameters();
+
+    private bool DisallowMemberResolution(ITypeSymbol type)
+    {
+        return _semanticModel.Compilation.IsAtomicValueType(type) ||
+            type.TypeKind is TypeKind.Array or TypeKind.Enum ||
+            type.SpecialType is SpecialType.System_Nullable_T ||
+            _memberInfoType.IsAssignableFrom(type) ||
+            _delegateType.IsAssignableFrom(type);
+    }
 }

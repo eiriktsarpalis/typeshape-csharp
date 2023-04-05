@@ -1,4 +1,6 @@
-﻿using System.Diagnostics;
+﻿using System.Buffers.Binary;
+using System.Diagnostics;
+using System.Text;
 
 namespace TypeShape.Applications.RandomGenerator;
 
@@ -140,7 +142,9 @@ public partial class RandomGenerator
             if (typeof(TEnumerable).IsArray)
             {
                 if (typeof(TEnumerable) != typeof(TElement[]))
-                    throw new NotImplementedException();
+                {
+                    throw new NotImplementedException("Multi-dimensional array support.");
+                }
 
                 return CacheResult((Random random, int size) =>
                 {
@@ -224,19 +228,32 @@ public partial class RandomGenerator
             yield return Create((random, _) => (char)random.Next(0, char.MaxValue));
             yield return Create((random, _) => (uint)random.Next());
             yield return Create((random, _) => (ulong)random.Next());
+            yield return Create((random, _) => new UInt128(NextULong(random), NextULong(random)));
 
             yield return Create((random, _) => (sbyte)random.Next(sbyte.MinValue, sbyte.MaxValue));
             yield return Create((random, _) => (short)random.Next(short.MinValue, short.MaxValue));
             yield return Create((random, _) => random.Next());
             yield return Create((random, _) => NextLong(random));
-            
-            yield return Create((random, size) => (random.NextDouble() - 0.5) * size);
+            yield return Create((random, _) => new Int128(NextULong(random), NextULong(random)));
+
+            yield return Create((random, size) => (Half)((random.NextDouble() - 0.5) * size));
             yield return Create((random, size) => (float)((random.NextDouble() - 0.5) * size));
+            yield return Create((random, size) => (random.NextDouble() - 0.5) * size);
             yield return Create((random, size) => (decimal)((random.NextDouble() - 0.5) * size));
 
             yield return Create((random, _) => new TimeSpan(NextLong(random)));
             yield return Create((random, _) => new DateTime(NextLong(random, DateTime.MinValue.Ticks, DateTime.MaxValue.Ticks)));
+            yield return Create((random, _) => new TimeOnly(NextLong(random, 0, TimeOnly.MaxValue.Ticks)));
+            yield return Create((random, _) => DateOnly.FromDateTime(new(NextLong(random, DateTime.MinValue.Ticks, DateTime.MaxValue.Ticks))));
             yield return Create((random, _) => new DateTimeOffset(NextLong(random, DateTime.MinValue.Ticks, DateTime.MaxValue.Ticks), TimeSpan.FromHours(random.Next(-14, 14))));
+            yield return Create((random, _) =>
+            {
+                Span<byte> buffer = stackalloc byte[16];
+                random.NextBytes(buffer);
+                return new Guid(buffer);
+            });
+
+            yield return Create((random, _) => new Rune((char)random.Next(0, char.MaxValue)));
 
             yield return Create((random, size) =>
             {
@@ -264,7 +281,20 @@ public partial class RandomGenerator
                 => new(typeof(T), randomGenerator);
         }
 
-        private static long NextLong(Random random) => ((long)random.Next() << 32) | (long)random.Next();
+        private static long NextLong(Random random)
+        {
+            Span<byte> bytes = stackalloc byte[8];
+            random.NextBytes(bytes);
+            return BinaryPrimitives.ReadInt64LittleEndian(bytes);
+        }
+
+        private static ulong NextULong(Random random)
+        {
+            Span<byte> bytes = stackalloc byte[8];
+            random.NextBytes(bytes);
+            return BinaryPrimitives.ReadUInt64LittleEndian(bytes);
+        }
+
         private static long NextLong(Random random, long min, long max) => Math.Clamp(NextLong(random), min, max);
         private static bool NextBoolean(Random random) => random.Next(0, 2) != 0;
         private static string NextString(Random random, int size)

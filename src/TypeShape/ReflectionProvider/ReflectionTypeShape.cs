@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Reflection;
+using System.Text;
 
 namespace TypeShape.ReflectionProvider;
 
@@ -22,7 +23,7 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
 
     public IEnumerable<IConstructorShape> GetConstructors(bool nonPublic)
     {
-        if (typeof(T).IsAbstract)
+        if (typeof(T).IsAbstract || s_disallowMemberResolution)
         {
             yield break;
         }
@@ -124,7 +125,7 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
 
     private static IEnumerable<MemberInfo> GetMembers(bool nonPublic, bool includeFields)
     {
-        if (s_disallowPropertyResolution)
+        if (s_disallowMemberResolution)
         {
             yield break;
         }
@@ -236,7 +237,7 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
         ? BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance
         : BindingFlags.Public | BindingFlags.Instance;
 
-    private readonly static bool s_disallowPropertyResolution = DisallowPropertyResolution();
+    private readonly static bool s_disallowMemberResolution = DisallowPropertyResolution();
     private static bool DisallowPropertyResolution()
     {
         Type type = typeof(T);
@@ -245,13 +246,16 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
             type.IsArray ||
             type == typeof(object) ||
             type == typeof(string) ||
+            type == typeof(decimal) ||
+            type == ReflectionHelpers.Int128Type ||
+            type == ReflectionHelpers.UInt128Type ||
             type == typeof(DateTime) ||
             type == typeof(DateTimeOffset) ||
             type == typeof(DateOnly) ||
             type == typeof(TimeSpan) ||
             type == typeof(TimeOnly) ||
             type == typeof(Guid) ||
-            type == typeof(decimal) ||
+            type == typeof(Rune) ||
             type == typeof(Version) ||
             type == typeof(Uri) ||
             ReflectionHelpers.IsNullable<T>() ||
