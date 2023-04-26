@@ -7,12 +7,7 @@
 	<Nullable>enable</Nullable>
 	<WarningsAsErrors>Nullable</WarningsAsErrors>
 	<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <PublishReadyToRun>true</PublishReadyToRun>
 	<PublishSingleFile>true</PublishSingleFile>
-	<SelfContained>true</SelfContained>
   </PropertyGroup>
 
   <ItemGroup>

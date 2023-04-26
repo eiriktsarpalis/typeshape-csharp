@@ -8,11 +8,6 @@
 	<Nullable>enable</Nullable>
 	<WarningsAsErrors>Nullable</WarningsAsErrors>
 	<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-  </PropertyGroup>
-
-  <PropertyGroup>
-	<PublishReadyToRun>true</PublishReadyToRun>
-	<SelfContained>true</SelfContained>
 	<PublishAot>true</PublishAot>
   </PropertyGroup>
 
