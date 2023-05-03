@@ -20,7 +20,9 @@ internal static partial class SourceFormatter
         foreach (ConstructorModel constructor in type.Constructors)
         {
             if (i > 0)
+            {
                 writer.WriteLine();
+            }
 
             string constructorArgumentStateFQN = FormatConstructorArgumentStateFQN(type, constructor);
             argumentStateFQNs.Add(constructorArgumentStateFQN);
@@ -106,12 +108,12 @@ internal static partial class SourceFormatter
 
                 return (constructor.Parameters.Count, constructor.MemberInitializers.Count) switch
                 {
-                    (0, 0) => $$"""new {{constructor.DeclaringType.FullyQualifiedName}}()""",
-                    (1, 0) => $$"""new {{constructor.DeclaringType.FullyQualifiedName}}({{stateVar}})""",
-                    (0, 1) => $$"""new {{constructor.DeclaringType.FullyQualifiedName}} { {{constructor.MemberInitializers[0].Name}} = {{stateVar}} }""",
-                    (_, 0) => $$"""new {{constructor.DeclaringType.FullyQualifiedName}}({{FormatCtorArgumentsBody()}})""",
-                    (0, _) => $$"""new {{constructor.DeclaringType.FullyQualifiedName}} { {{FormatInitializerBody()}} }""",
-                    (_, _) => $$"""new {{constructor.DeclaringType.FullyQualifiedName}}({{FormatCtorArgumentsBody()}}) { {{FormatInitializerBody()}} }""",
+                    (0, 0) => $$"""{{FormatConstructorName(constructor)}}()""",
+                    (1, 0) => $$"""{{FormatConstructorName(constructor)}}({{stateVar}})""",
+                    (0, 1) => $$"""{{FormatConstructorName(constructor)}} { {{constructor.MemberInitializers[0].Name}} = {{stateVar}} }""",
+                    (_, 0) => $$"""{{FormatConstructorName(constructor)}}({{FormatCtorArgumentsBody()}})""",
+                    (0, _) => $$"""{{FormatConstructorName(constructor)}} { {{FormatInitializerBody()}} }""",
+                    (_, _) => $$"""{{FormatConstructorName(constructor)}}({{FormatCtorArgumentsBody()}}) { {{FormatInitializerBody()}} }""",
                 };
 
                 string FormatCtorArgumentsBody() => string.Join(", ", constructor.Parameters.Select(p => $"state.Item{p.Position + 1}"));
@@ -122,9 +124,12 @@ internal static partial class SourceFormatter
                 => constructor.TotalArity switch
                 {
                     0 when (type.IsValueTupleType) => $"static () => default({constructor.DeclaringType.FullyQualifiedName})",
-                    0 => $"static () => new {constructor.DeclaringType.FullyQualifiedName}()",
+                    0 => $"static () => {FormatConstructorName(constructor)}()",
                     _ => "null",
                 };
+
+            static string FormatConstructorName(ConstructorModel constructor)
+                => constructor.StaticFactoryName ?? $"new {constructor.DeclaringType.FullyQualifiedName}";
         }
 
         writer.Indentation--;

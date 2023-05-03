@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Diagnostics;
 
 namespace TypeShape.SourceGenerator.Helpers;
 
@@ -19,7 +18,7 @@ public sealed class ImmutableArrayEq<T> : IEquatable<ImmutableArrayEq<T>>, IRead
     public bool Equals(ImmutableArrayEq<T> other)
         => _values.SequenceEqual(other._values);
 
-    public override bool Equals(object obj) 
+    public override bool Equals(object? obj) 
         => obj is ImmutableArrayEq<T> other && Equals(other);
 
     public override int GetHashCode()
@@ -30,7 +29,7 @@ public sealed class ImmutableArrayEq<T> : IEquatable<ImmutableArrayEq<T>>, IRead
         return hash;
     }
 
-    public Enumerator GetEnumerator() => new Enumerator(_values);
+    public Enumerator GetEnumerator() => new(_values);
     IEnumerator<T> IEnumerable<T>.GetEnumerator() => ((IEnumerable<T>)_values).GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<T>)_values).GetEnumerator();
 
@@ -53,4 +52,5 @@ public sealed class ImmutableArrayEq<T> : IEquatable<ImmutableArrayEq<T>>, IRead
 public static class ImmutableArrayEq
 {
     public static ImmutableArrayEq<T> ToImmutableArrayEq<T>(this IEnumerable<T> values) => new(values);
+    public static ImmutableArrayEq<T> Create<T>(params T[] values) => new(values);
 }

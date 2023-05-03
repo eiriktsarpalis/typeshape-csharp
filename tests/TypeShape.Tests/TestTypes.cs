@@ -70,6 +70,9 @@ public static class TestTypes
         yield return Create(new HashSet<string> { "apple", "orange", "banana" });
         yield return Create(new Hashtable { ["key1"] = 42 });
         yield return Create(new ArrayList { 1, 2, 3 });
+        yield return Create(ImmutableArray.Create(1, 2, 3));
+        yield return Create(ImmutableList.Create("1", "2", "3"));
+        yield return Create(ImmutableDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }));
 
         yield return Create(new PocoWithListAndDictionaryProps(@string: "myString")
         {
@@ -624,7 +627,11 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 [GenerateShape(typeof(ImmutableArray<int>))]
 [GenerateShape(typeof(ImmutableList<string>))]
 [GenerateShape(typeof(ImmutableQueue<int>))]
+[GenerateShape(typeof(ImmutableHashSet<int>))]
+[GenerateShape(typeof(ImmutableStack<int>))]
+[GenerateShape(typeof(ImmutableSortedSet<int>))]
 [GenerateShape(typeof(ImmutableDictionary<string, string>))]
+[GenerateShape(typeof(ImmutableSortedDictionary<string, string>))]
 [GenerateShape(typeof(ImmutableSortedDictionary<string, string>))]
 [GenerateShape(typeof(ComplexStruct))]
 [GenerateShape(typeof(ComplexStructWithProperties))]

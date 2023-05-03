@@ -28,6 +28,10 @@ public sealed partial class ModelGenerator
     private readonly ITypeSymbol? _iDictionary;
     private readonly ITypeSymbol? _iList;
 
+    private readonly ITypeSymbol? _immutableArray;
+    private readonly ITypeSymbol? _immutableList;
+    private readonly ITypeSymbol? _immutableDictionary;
+
     public ModelGenerator(ClassDeclarationSyntax classDeclarationSyntax, Compilation compilation, CancellationToken cancellationToken)
     {
         _classDeclarationSyntax = classDeclarationSyntax;
@@ -41,6 +45,10 @@ public sealed partial class ModelGenerator
         _iList = compilation.GetTypeByMetadataName("System.Collections.IList");
         _delegateType = compilation.GetSpecialType(SpecialType.System_Delegate);
         _memberInfoType = compilation.GetTypeByMetadataName("System.Reflection.MemberInfo");
+
+        _immutableArray = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableArray`1");
+        _immutableList = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableList`1");
+        _immutableDictionary = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableDictionary`2");
     }
 
     public static TypeShapeProviderModel Compile(ClassDeclarationSyntax classDeclarationSyntax, Compilation compilation, CancellationToken cancellationToken)
@@ -95,14 +103,8 @@ public sealed partial class ModelGenerator
         return new TypeModel
         {
             Id = typeId,
-            Properties = disallowMemberResolution 
-                ? ImmutableArrayEq<PropertyModel>.Empty
-                : MapProperties(typeId, type, classTupleElements, isSpecialTypeKind),
-
-            Constructors = disallowMemberResolution
-                ? ImmutableArrayEq<ConstructorModel>.Empty
-                : MapConstructors(typeId, type, classTupleElements, implementedCollectionType),
-
+            Properties = MapProperties(typeId, type, classTupleElements, disallowMemberResolution: disallowMemberResolution || isSpecialTypeKind),
+            Constructors = MapConstructors(typeId, type, classTupleElements, implementedCollectionType, disallowMemberResolution),
             EnumType = enumType,
             NullableType = nullableType,
             EnumerableType = enumerableType,

@@ -19,9 +19,25 @@ internal static class ReflectionHelpers
         return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);
     }
 
+    public static bool IsIEnumerable(this Type type)
+    {
+        return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>);
+    }
+
     public static bool CanBeGenericArgument(this Type type)
     {
         return !(type == typeof(void) || type.IsPointer || type.IsByRef || type.IsByRefLike || type.ContainsGenericParameters);
+    }
+
+    public static object Invoke(this MethodBase methodBase, params object?[]? args)
+    {
+        Debug.Assert(methodBase is ConstructorInfo or MethodBase { IsStatic: true });
+        object? result = methodBase is ConstructorInfo ctor
+            ? ctor.Invoke(args)
+            : methodBase.Invoke(null, args);
+
+        Debug.Assert(result != null);
+        return result;
     }
 
     public static bool IsRecord(this Type type)
@@ -56,6 +72,19 @@ internal static class ReflectionHelpers
     {
         Debug.Assert(memberInfo is FieldInfo or PropertyInfo);
         return memberInfo is FieldInfo f ? f.FieldType : ((PropertyInfo)memberInfo).PropertyType;
+    }
+
+    public static bool IsExplicitInterfaceImplementation(this MethodInfo methodInfo)
+    {
+        Debug.Assert(!methodInfo.IsStatic);
+        return methodInfo.IsPrivate && methodInfo.IsVirtual && methodInfo.Name.Contains('.');
+    }
+
+    public static bool IsExplicitInterfaceImplementation(this PropertyInfo propertyInfo)
+    {
+        return 
+            propertyInfo.GetMethod?.IsExplicitInterfaceImplementation() == true ||
+            propertyInfo.SetMethod?.IsExplicitInterfaceImplementation() == true ;
     }
 
     public static bool TryGetDefaultValueNormalized(this ParameterInfo parameterInfo, out object? result)
@@ -206,17 +235,17 @@ internal static class ReflectionHelpers
         } while (hasNestedTuple);
     }
 
-    public static ConstructorShapeInfo CreateNestedTupleConstructorShapeInfo(Type tupleType)
+    public static TupleConstructorShapeInfo CreateNestedTupleConstructorShapeInfo(Type tupleType)
     {
         Debug.Assert(tupleType.IsNestedTupleRepresentation());
         return CreateCore(tupleType, offset: 0);
-        static ConstructorShapeInfo CreateCore(Type tupleType, int offset)
+        static TupleConstructorShapeInfo CreateCore(Type tupleType, int offset)
         {
             Debug.Assert(tupleType.IsTupleType());
             ConstructorInfo ctorInfo = tupleType.GetConstructors()[0];
             ParameterInfo[] parameters = ctorInfo.GetParameters();
-            ConstructorParameterShapeInfo[] ctorParameterInfo;
-            ConstructorShapeInfo? nestedCtor;
+            MethodParameterShapeInfo[] ctorParameterInfo;
+            TupleConstructorShapeInfo? nestedCtor;
 
             if (parameters.Length == 8 && parameters[7].ParameterType.IsTupleType())
             {
@@ -229,10 +258,10 @@ internal static class ReflectionHelpers
                 nestedCtor = null;
             }
 
-            return new ConstructorShapeInfo(tupleType, ctorInfo, ctorParameterInfo, nestedTupleCtor: nestedCtor);
+            return new TupleConstructorShapeInfo(tupleType, ctorInfo, ctorParameterInfo, nestedCtor);
 
-            ConstructorParameterShapeInfo[] MapParameterInfo(IEnumerable<ParameterInfo> parameters)
-                => parameters.Select(p => new ConstructorParameterShapeInfo(p, logicalName: $"Item{++offset}")).ToArray();
+            MethodParameterShapeInfo[] MapParameterInfo(IEnumerable<ParameterInfo> parameters)
+                => parameters.Select(p => new MethodParameterShapeInfo(p, logicalName: $"Item{++offset}")).ToArray();
         }
     }
 }

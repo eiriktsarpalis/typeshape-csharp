@@ -6,17 +6,17 @@ namespace TypeShape.ReflectionProvider;
 internal sealed class ReflectionConstructorParameterShape<TArgumentState, TParameter> : IConstructorParameterShape<TArgumentState, TParameter>
 {
     private readonly ReflectionTypeShapeProvider _provider;
-    private readonly ConstructorShapeInfo _ctorInfo;
+    private readonly IConstructorShapeInfo _ctorInfo;
     private readonly IParameterShapeInfo _parameterInfo;
     private readonly int _position;
 
     public ReflectionConstructorParameterShape(
         ReflectionTypeShapeProvider provider,
-        ConstructorShapeInfo ctorInfo,
+        IConstructorShapeInfo ctorInfo,
         IParameterShapeInfo parameterInfo,
         int position)
     {
-        Debug.Assert(position < ctorInfo.TotalParameters);
+        Debug.Assert(position < ctorInfo.Parameters.Count);
         _ctorInfo = ctorInfo;
         _parameterInfo = parameterInfo;
         _position = position;
@@ -50,9 +50,9 @@ internal interface IParameterShapeInfo
     object? DefaultValue { get; }
 }
 
-internal sealed class ConstructorParameterShapeInfo : IParameterShapeInfo
+internal sealed class MethodParameterShapeInfo : IParameterShapeInfo
 {
-    public ConstructorParameterShapeInfo(ParameterInfo parameterInfo, string? logicalName = null)
+    public MethodParameterShapeInfo(ParameterInfo parameterInfo, string? logicalName = null)
     {
         Name = logicalName ?? parameterInfo.Name;
         ParameterInfo = parameterInfo;

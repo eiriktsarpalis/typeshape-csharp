@@ -6,17 +6,17 @@ namespace TypeShape.ReflectionProvider;
 internal sealed class ReflectionConstructorShape<TDeclaringType, TArgumentState> : IConstructorShape<TDeclaringType, TArgumentState>
 {
     private readonly ReflectionTypeShapeProvider _provider;
-    private readonly ConstructorShapeInfo _ctorInfo;
+    private readonly IConstructorShapeInfo _ctorInfo;
 
-    public ReflectionConstructorShape(ReflectionTypeShapeProvider provider, ConstructorShapeInfo ctorInfo)
+    public ReflectionConstructorShape(ReflectionTypeShapeProvider provider, IConstructorShapeInfo ctorInfo)
     {
         _ctorInfo = ctorInfo;
         _provider = provider;
     }
 
     public ITypeShape DeclaringType => _provider.GetShape<TDeclaringType>();
-    public int ParameterCount => _ctorInfo.TotalParameters;
-    public ICustomAttributeProvider? AttributeProvider => _ctorInfo.ConstructorInfo;
+    public int ParameterCount => _ctorInfo.Parameters.Count;
+    public ICustomAttributeProvider? AttributeProvider => _ctorInfo.AttributeProvider;
 
     public object? Accept(ITypeShapeVisitor visitor, object? state)
         => visitor.VisitConstructor(this, state);
@@ -39,72 +39,90 @@ internal sealed class ReflectionConstructorShape<TDeclaringType, TArgumentState>
 
     public IEnumerable<IConstructorParameterShape> GetParameters()
     {
-        ConstructorShapeInfo ctorInfo = _ctorInfo;
+        IConstructorShapeInfo ctorInfo = _ctorInfo;
 
-        for (int i = 0; i < ctorInfo.TotalParameters; i++)
+        for (int i = 0; i < ctorInfo.Parameters.Count; i++)
         {
             yield return _provider.CreateConstructorParameter(typeof(TArgumentState), ctorInfo, i);
         }
     }
 }
 
-internal sealed class ConstructorShapeInfo
+internal interface IConstructorShapeInfo
 {
-    public ConstructorShapeInfo(
-        Type declaringType, 
-        ConstructorInfo? constructorInfo, 
-        ConstructorParameterShapeInfo[] parameters, 
-        MemberInitializerShapeInfo[]? memberInitializers = null, 
-        ConstructorShapeInfo? nestedTupleCtor = null)
+    Type ConstructedType { get; }
+    ICustomAttributeProvider? AttributeProvider { get; }
+    IReadOnlyList<IParameterShapeInfo> Parameters { get; }
+}
+
+internal sealed class MethodConstructorShapeInfo : IConstructorShapeInfo
+{
+    public MethodConstructorShapeInfo(
+        Type constructedType, 
+        MethodBase? constructorMethod,
+        MemberInitializerShapeInfo[]? memberInitializers = null)
     {
-        Debug.Assert(constructorInfo != null || (declaringType.IsValueType && parameters.Length == 0));
-        DeclaringType = declaringType;
-        ConstructorInfo = constructorInfo;
-        Parameters = parameters;
+        Debug.Assert(constructorMethod is null or ConstructorInfo or MethodInfo { IsStatic: true });
+        Debug.Assert(constructorMethod != null || constructedType.IsValueType);
+
+        ConstructedType = constructedType;
+        ConstructorMethod = constructorMethod;
+        ConstructorParameters = constructorMethod is null
+            ? Array.Empty<MethodParameterShapeInfo>()
+            : constructorMethod.GetParameters()
+                .Select(p => new MethodParameterShapeInfo(p))
+                .ToArray();
+
         MemberInitializers = memberInitializers ?? Array.Empty<MemberInitializerShapeInfo>();
-        NestedTupleCtor = nestedTupleCtor;
-        TotalParameters = Parameters.Length + MemberInitializers.Length + (NestedTupleCtor?.TotalParameters ?? 0);
+
+        var parameters = new IParameterShapeInfo[ConstructorParameters.Length + MemberInitializers.Length];
+        ConstructorParameters.CopyTo(parameters, 0);
+        MemberInitializers.CopyTo(parameters, ConstructorParameters.Length);
+        Parameters = parameters;
     }
 
-    public Type DeclaringType { get; }
-    public ConstructorInfo? ConstructorInfo { get;}
-    public int TotalParameters { get; }
-    public ConstructorParameterShapeInfo[] Parameters { get; }
+    public Type ConstructedType { get; }
+    public MethodBase? ConstructorMethod { get; }
+    public MethodParameterShapeInfo[] ConstructorParameters { get; }
     public MemberInitializerShapeInfo[] MemberInitializers { get; }
-    public ConstructorShapeInfo? NestedTupleCtor { get; }
-    public bool IsNestedValueTuple => NestedTupleCtor != null && DeclaringType.IsValueType;
 
-    public IParameterShapeInfo GetParameter(int position)
+    public ICustomAttributeProvider? AttributeProvider => ConstructorMethod;
+    public IReadOnlyList<IParameterShapeInfo> Parameters { get; }
+}
+
+internal sealed class TupleConstructorShapeInfo : IConstructorShapeInfo
+{
+    private IParameterShapeInfo[]? _allParameters;
+
+    public TupleConstructorShapeInfo(
+        Type constructedType, 
+        ConstructorInfo constructorInfo,
+        MethodParameterShapeInfo[] constructorParameters,
+        TupleConstructorShapeInfo? nestedTupleCtor)
     {
-        Debug.Assert(position < TotalParameters);
-
-        if (position < Parameters.Length)
-        {
-            return Parameters[position];
-        }
-
-        position -= Parameters.Length;
-        if (position < MemberInitializers.Length)
-        {
-            return MemberInitializers[position];
-        }
-
-        Debug.Assert(NestedTupleCtor != null);
-        return NestedTupleCtor.GetParameter(position - MemberInitializers.Length);
+        Debug.Assert(constructorParameters.Length > 0);
+        ConstructedType = constructedType;
+        ConstructorInfo = constructorInfo;
+        ConstructorParameters = constructorParameters;
+        NestedTupleConstructor = nestedTupleCtor;
     }
 
-    public IEnumerable<IParameterShapeInfo> GetAllParameters()
+    public Type ConstructedType { get; }
+    public ConstructorInfo ConstructorInfo { get; }
+    public MethodParameterShapeInfo[] ConstructorParameters { get; }
+    public TupleConstructorShapeInfo? NestedTupleConstructor { get; }
+    public bool IsValueTuple => ConstructedType.IsValueType;
+
+    public ICustomAttributeProvider? AttributeProvider => ConstructorInfo;
+    public IReadOnlyList<IParameterShapeInfo> Parameters => _allParameters ??= GetAllParameters().ToArray();
+
+    private IEnumerable<IParameterShapeInfo> GetAllParameters()
     {
-        for (ConstructorShapeInfo? curr = this; curr != null; curr = curr.NestedTupleCtor)
+        for (TupleConstructorShapeInfo? curr = this; curr != null; curr = curr.NestedTupleConstructor)
         {
-            foreach (ConstructorParameterShapeInfo param in curr.Parameters)
+            foreach (IParameterShapeInfo param in curr.ConstructorParameters)
             {
                 yield return param;
-            }
-
-            foreach (MemberInitializerShapeInfo memberInitializer in curr.MemberInitializers)
-            {
-                yield return memberInitializer;
             }
         }
     }

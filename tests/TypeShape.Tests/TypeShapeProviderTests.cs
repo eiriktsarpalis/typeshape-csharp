@@ -392,20 +392,16 @@ public abstract class TypeShapeProviderTests
         foreach (IConstructorShape constructor in shape.GetConstructors(nonPublic: SupportsNonPublicMembers))
         {
             ICustomAttributeProvider? attributeProvider = constructor.AttributeProvider;
-
-            ParameterInfo[] parameters;
             if (attributeProvider is null)
             {
-                Assert.True(typeof(T).IsValueType);
-                parameters = Array.Empty<ParameterInfo>();
+                continue;
             }
-            else
-            {
-                ConstructorInfo ctorInfo = Assert.IsAssignableFrom<ConstructorInfo>(attributeProvider);
-                Assert.Equal(typeof(T), ctorInfo.DeclaringType);
-                Assert.Equal(constructor.ParameterCount, constructor.ParameterCount);
-                parameters = ctorInfo.GetParameters();
-            }
+
+            MethodBase ctorInfo = Assert.IsAssignableFrom<MethodBase>(attributeProvider);
+            Assert.True(ctorInfo is MethodInfo { IsStatic: true } or ConstructorInfo);
+            Assert.Equal(typeof(T), ctorInfo is MethodInfo m ? m.ReturnType : ctorInfo.DeclaringType);
+            ParameterInfo[] parameters = ctorInfo.GetParameters();
+            Assert.True(parameters.Length <= constructor.ParameterCount);
 
             int i = 0;
             foreach (IConstructorParameterShape ctorParam in constructor.GetParameters())

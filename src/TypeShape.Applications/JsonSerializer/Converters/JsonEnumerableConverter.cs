@@ -1,52 +1,20 @@
 ﻿namespace TypeShape.Applications.JsonSerializer.Converters;
 
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-internal sealed class JsonEnumerableConverter<TEnumerable, TElement> : JsonConverter<TEnumerable>
+internal class JsonEnumerableConverter<TEnumerable, TElement> : JsonConverter<TEnumerable>
 {
-    internal JsonConverter<TElement>? ElementConverter { get; set; }
-    internal Func<TEnumerable, IEnumerable<TElement>>? GetEnumerable { get; set; }
-    internal Func<TEnumerable>? CreateObject { get; set; }
-    internal Setter<TEnumerable, TElement>? AddDelegate { get; set; }
+    public Func<TEnumerable, IEnumerable<TElement>>? GetEnumerable { get; set; }
+    public JsonConverter<TElement>? ElementConverter { get; set; }
 
     public override TEnumerable? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        if (default(TEnumerable) is null && reader.TokenType is JsonTokenType.Null)
-        {
-            return default;
-        }
-
-        Func<TEnumerable>? createObject = CreateObject;
-        if (createObject is null)
-        {
-            ThrowNotSupportedException();
-            [DoesNotReturn] static void ThrowNotSupportedException() => throw new NotSupportedException($"Deserialization not supported for type {typeof(TEnumerable)}.");
-        }
-
-        reader.EnsureTokenType(JsonTokenType.StartArray);
-
-        TEnumerable result = createObject();
-        reader.EnsureRead();
-
-        Debug.Assert(ElementConverter != null);
-        Debug.Assert(AddDelegate != null);
-        JsonConverter<TElement> elementConverter = ElementConverter;
-        Setter<TEnumerable, TElement> addDelegate = AddDelegate;
-
-        while (reader.TokenType != JsonTokenType.EndArray)
-        {
-            TElement? element = elementConverter.Read(ref reader, typeof(TElement), options);
-            addDelegate(ref result, element!);
-            reader.EnsureRead();
-        }
-
-        return result;
+        throw new NotSupportedException($"Deserialization not supported for type {typeof(TEnumerable)}.");
     }
 
-    public override void Write(Utf8JsonWriter writer, TEnumerable value, JsonSerializerOptions options)
+    public sealed override void Write(Utf8JsonWriter writer, TEnumerable value, JsonSerializerOptions options)
     {
         Debug.Assert(GetEnumerable != null);
         Debug.Assert(ElementConverter != null);
@@ -68,23 +36,61 @@ internal sealed class JsonEnumerableConverter<TEnumerable, TElement> : JsonConve
     }
 }
 
-internal sealed class JsonArrayConverter<TElement> : JsonConverter<TElement[]>
+internal sealed class JsonMutableEnumerableConverter<TEnumerable, TElement> : JsonEnumerableConverter<TEnumerable, TElement>
 {
-    internal JsonConverter<TElement>? ElementConverter { get; set; }
+    public Func<TEnumerable>? CreateObject { get; set; }
+    public Setter<TEnumerable, TElement>? AddDelegate { get; set; }
 
-    public override TElement[]? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override TEnumerable? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        if (reader.TokenType is JsonTokenType.Null)
+        Debug.Assert(CreateObject != null);
+        Debug.Assert(ElementConverter != null);
+        Debug.Assert(AddDelegate != null);
+
+        if (default(TEnumerable) is null && reader.TokenType is JsonTokenType.Null)
         {
-            return null;
+            return default;
         }
 
         reader.EnsureTokenType(JsonTokenType.StartArray);
+
+        TEnumerable result = CreateObject();
         reader.EnsureRead();
 
-        Debug.Assert(ElementConverter != null);
         JsonConverter<TElement> elementConverter = ElementConverter;
-        var buffer = new List<TElement>();
+        Setter<TEnumerable, TElement> addDelegate = AddDelegate;
+
+        while (reader.TokenType != JsonTokenType.EndArray)
+        {
+            TElement? element = elementConverter.Read(ref reader, typeof(TElement), options);
+            addDelegate(ref result, element!);
+            reader.EnsureRead();
+        }
+
+        return result;
+    }
+}
+
+internal sealed class JsonImmutableEnumerableConverter<TEnumerable, TElement> : JsonEnumerableConverter<TEnumerable, TElement>
+{
+    public Func<IEnumerable<TElement>, TEnumerable>? Constructor { get; set; }
+
+    public override TEnumerable? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        Debug.Assert(Constructor != null);
+        Debug.Assert(ElementConverter != null);
+        
+        if (default(TEnumerable) is null && reader.TokenType is JsonTokenType.Null)
+        {
+            return default;
+        }
+
+        reader.EnsureTokenType(JsonTokenType.StartArray);
+
+        List<TElement> buffer = new();
+        reader.EnsureRead();
+
+        JsonConverter<TElement> elementConverter = ElementConverter;
 
         while (reader.TokenType != JsonTokenType.EndArray)
         {
@@ -93,26 +99,6 @@ internal sealed class JsonArrayConverter<TElement> : JsonConverter<TElement[]>
             reader.EnsureRead();
         }
 
-        return buffer.ToArray();
-    }
-
-    public override void Write(Utf8JsonWriter writer, TElement[] array, JsonSerializerOptions options)
-    {
-        Debug.Assert(ElementConverter != null);
-
-        if (array is null)
-        {
-            writer.WriteNullValue();
-            return;
-        }
-
-        JsonConverter<TElement> elementConverter = ElementConverter;
-
-        writer.WriteStartArray();
-        foreach (TElement element in array)
-        {
-            elementConverter.Write(writer, element, options);
-        }
-        writer.WriteEndArray();
+        return Constructor(buffer);
     }
 }

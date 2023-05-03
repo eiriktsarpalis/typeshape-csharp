@@ -112,5 +112,5 @@ public sealed class JsonObjectConverter : JsonConverter<object?>
         => reader.GetString();
 
     public override void WriteAsPropertyName(Utf8JsonWriter writer, object? value, JsonSerializerOptions options)
-        => Write(writer, value, options);
+        => writer.WritePropertyName(value?.ToString() ?? "<null>");
 }

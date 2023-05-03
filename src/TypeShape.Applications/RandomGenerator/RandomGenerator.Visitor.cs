@@ -1,6 +1,8 @@
-﻿using System.Buffers.Binary;
+﻿using System;
+using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Text;
+using System.Xml.Linq;
 
 namespace TypeShape.Applications.RandomGenerator;
 
@@ -60,8 +62,16 @@ public partial class RandomGenerator
         {
             if (state is null)
             {
-                Debug.Assert(constructor.ParameterCount == 0);
-                return constructor.GetDefaultConstructor();
+                Debug.Assert(constructor.ParameterCount is 0 or 1);
+                if (constructor.ParameterCount == 0)
+                {
+                    return constructor.GetDefaultConstructor();
+                }
+                else
+                {
+                    Debug.Assert(typeof(TArgumentState) == constructor.GetParameters().First().ParameterType.Type);
+                    return constructor.GetParameterizedConstructor();
+                }
             }
 
             var propertySetters = (RandomPropertySetter<TDeclaringType>[])state;
@@ -159,57 +169,135 @@ public partial class RandomGenerator
                 });
             }
 
-            Func<TEnumerable> defaultCtor = enumerableShape.Type.GetConstructors(nonPublic: false)
-                .Where(ctor => ctor.ParameterCount == 0)
-                .Select(ctor => (Func<TEnumerable>)ctor.Accept(this, null)!)
-                .First();
-
-            Setter<TEnumerable, TElement> addElementFunc = enumerableShape.GetAddElement();
-
-            return CacheResult((Random random, int size) =>
+            if (GetDefaultConstructor() is { } defaultCtor)
             {
-                if (size == 0)
-                    return default!;
+                var ctorFunc = (Func<TEnumerable>)defaultCtor.Accept(this, null)!;
+                Setter<TEnumerable, TElement> addElementFunc = enumerableShape.GetAddElement();
+                return CacheResult((Random random, int size) =>
+                {
+                    if (size == 0)
+                        return default!;
 
-                TEnumerable obj = defaultCtor();
-                int length = random.Next(0, size);
-                int elementSize = GetChildSize(size, length);
+                    TEnumerable obj = ctorFunc();
+                    int length = random.Next(0, size);
+                    int elementSize = GetChildSize(size, length);
 
-                for (int i = 0; i < length; i++)
-                    addElementFunc(ref obj, elementGenerator(random, elementSize));
+                    for (int i = 0; i < length; i++)
+                        addElementFunc(ref obj, elementGenerator(random, elementSize));
 
-                return obj;
-            });
+                    return obj;
+                });
+            }
+
+            if (GetEnumerableConstructor() is { } enumerableCtor)
+            {
+                var ctorFunc = (Func<IEnumerable<TElement>, TEnumerable>)enumerableCtor.Accept(this, null)!;
+                return CacheResult((Random random, int size) =>
+                {
+                    if (size == 0)
+                        return default!;
+
+                    List<TElement> buffer = new(size);
+                    int length = random.Next(0, size);
+                    int elementSize = GetChildSize(size, length);
+
+                    for (int i = 0; i < length; i++)
+                        buffer.Add(elementGenerator(random, elementSize));
+
+                    return ctorFunc(buffer);
+                });
+            }
+
+            throw new NotSupportedException($"Type '{typeof(TEnumerable)}' does not support random generation.");
+
+            IConstructorShape? GetDefaultConstructor()
+            {
+                if (enumerableShape.IsMutable)
+                {
+                    return enumerableShape.Type.GetConstructors(nonPublic: false)
+                        .FirstOrDefault(ctor => ctor.ParameterCount == 0);
+                }
+
+                return null;
+            }
+
+            IConstructorShape? GetEnumerableConstructor()
+            {
+                return enumerableShape.Type.GetConstructors(nonPublic: false)
+                    .Where(ctor => ctor.ParameterCount == 1)
+                    .FirstOrDefault(ctor => ctor.GetParameters().First().ParameterType.Type == typeof(IEnumerable<TElement>));
+            }
         }
 
         public object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
             where TKey : notnull
         {
-            Func<TDictionary> defaultCtor = dictionaryShape.Type.GetConstructors(nonPublic: false)
-                .Where(ctor => ctor.ParameterCount == 0)
-                .Select(ctor => (Func<TDictionary>)ctor.Accept(this, null)!)
-                .First();
-
-            Setter<TDictionary, KeyValuePair<TKey, TValue>> addKeyValuePairFunc = dictionaryShape.GetAddKeyValuePair();
             var keyGenerator = (RandomGenerator<TKey>)dictionaryShape.KeyType.Accept(this, null)!;
             var valueGenerator = (RandomGenerator<TValue>)dictionaryShape.ValueType.Accept(this, null)!;
 
-            return CacheResult((Random random, int size) =>
+            if (GetDefaultConstructor() is { } defaultCtor)
             {
-                if (size == 0)
-                    return default!;
+                var defaultCtorFunc = (Func<TDictionary>)defaultCtor.Accept(this, null)!;
+                Setter<TDictionary, KeyValuePair<TKey, TValue>> addKeyValuePairFunc = dictionaryShape.GetAddKeyValuePair();
 
-                TDictionary obj = defaultCtor();
-                int count = random.Next(0, size);
-                int entrySize = GetChildSize(size, count);
+                return CacheResult((Random random, int size) =>
+                {
+                    if (size == 0)
+                        return default!;
 
-                for (int i = 0; i < count; i++)
-                    addKeyValuePairFunc(ref obj, 
-                        new(keyGenerator(random, entrySize), 
-                            valueGenerator(random, entrySize)));
+                    TDictionary obj = defaultCtorFunc();
+                    int count = random.Next(0, size);
+                    int entrySize = GetChildSize(size, count);
 
-                return obj;
-            });
+                    for (int i = 0; i < count; i++)
+                        addKeyValuePairFunc(ref obj,
+                            new(keyGenerator(random, entrySize),
+                                valueGenerator(random, entrySize)));
+
+                    return obj;
+                });
+            }
+
+            if (GetEnumerableConstructor() is { } enumerableCtor)
+            {
+                var enumerableCtorFunc = (Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary>)enumerableCtor.Accept(this, null)!;
+                return CacheResult((Random random, int size) =>
+                {
+                    if (size == 0)
+                        return default!;
+
+                    Dictionary<TKey, TValue> buffer = new(size);
+                    int count = random.Next(0, size);
+                    int entrySize = GetChildSize(size, count);
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        buffer[keyGenerator(random, entrySize)] = valueGenerator(random, entrySize);
+                    }
+
+                    return enumerableCtorFunc(buffer);
+                });
+            }
+
+            throw new NotSupportedException($"Type '{typeof(TDictionary)}' does not support random generation.");
+
+            IConstructorShape? GetDefaultConstructor()
+            {
+                if (dictionaryShape.IsMutable)
+                {
+                    return dictionaryShape.Type.GetConstructors(nonPublic: false)
+                        .FirstOrDefault(ctor => ctor.ParameterCount == 0);
+                }
+
+                return null;
+            }
+
+            IConstructorShape? GetEnumerableConstructor()
+            {
+                return dictionaryShape.Type.GetConstructors(nonPublic: false)
+                    .Where(ctor => ctor.ParameterCount == 1)
+                    .FirstOrDefault(ctor => ctor.GetParameters().First().ParameterType.Type == typeof(IEnumerable<KeyValuePair<TKey, TValue>>));
+            }
         }
 
         private RandomGenerator<T> CacheResult<T>(RandomGenerator<T> generator)

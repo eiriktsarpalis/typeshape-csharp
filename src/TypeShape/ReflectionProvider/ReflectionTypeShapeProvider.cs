@@ -93,16 +93,16 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
         return (IPropertyShape)Activator.CreateInstance(reflectionPropertyType, this, logicalName, memberInfo, parentMembers, nonPublic)!;
     }
 
-    internal IConstructorShape CreateConstructor(ConstructorShapeInfo ctorInfo)
+    internal IConstructorShape CreateConstructor(IConstructorShapeInfo ctorInfo)
     {
         Type argumentStateType = MemberAccessor.CreateConstructorArgumentStateType(ctorInfo);
-        Type reflectionConstructorType = typeof(ReflectionConstructorShape<,>).MakeGenericType(ctorInfo.DeclaringType, argumentStateType);
+        Type reflectionConstructorType = typeof(ReflectionConstructorShape<,>).MakeGenericType(ctorInfo.ConstructedType, argumentStateType);
         return (IConstructorShape)Activator.CreateInstance(reflectionConstructorType, this, ctorInfo)!;
     }
 
-    internal IConstructorParameterShape CreateConstructorParameter(Type constructorArgumentState, ConstructorShapeInfo ctorInfo, int position)
+    internal IConstructorParameterShape CreateConstructorParameter(Type constructorArgumentState, IConstructorShapeInfo ctorInfo, int position)
     {
-        IParameterShapeInfo parameterInfo = ctorInfo.GetParameter(position);
+        IParameterShapeInfo parameterInfo = ctorInfo.Parameters[position];
         Type reflectionConstructorParameterType = typeof(ReflectionConstructorParameterShape<,>).MakeGenericType(constructorArgumentState, parameterInfo.Type);
         return (IConstructorParameterShape)Activator.CreateInstance(reflectionConstructorParameterType, this, ctorInfo, parameterInfo, position)!;
     }

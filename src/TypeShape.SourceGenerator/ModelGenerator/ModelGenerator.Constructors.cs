@@ -7,13 +7,18 @@ namespace TypeShape.SourceGenerator;
 
 public sealed partial class ModelGenerator
 {
-    private ImmutableArrayEq<ConstructorModel> MapConstructors(TypeId typeId, ITypeSymbol type, ITypeSymbol[]? classTupleElements, ITypeSymbol? collectionInterface)
+    private ImmutableArrayEq<ConstructorModel> MapConstructors(TypeId typeId, ITypeSymbol type, ITypeSymbol[]? classTupleElements, ITypeSymbol? collectionInterface, bool disallowMemberResolution)
     {
-        if (type.TypeKind is not (TypeKind.Struct or TypeKind.Class) || type.SpecialType is not SpecialType.None)
+        if (TryResolveFactoryMethod(type) is { } factoryMethod)
+        {
+            return ImmutableArrayEq.Create(MapConstructor(typeId, factoryMethod));
+        }
+
+        if (disallowMemberResolution || type.TypeKind is not (TypeKind.Struct or TypeKind.Class) || type.SpecialType is not SpecialType.None)
         {
             return ImmutableArrayEq<ConstructorModel>.Empty;
         }
-
+        
         if (classTupleElements is not null)
         {
             return MapTupleConstructors(typeId, type, classTupleElements).ToImmutableArrayEq();
@@ -47,9 +52,10 @@ public sealed partial class ModelGenerator
             .ToImmutableArrayEq();
     }
 
-    private ConstructorModel MapConstructor(TypeId typeId, IMethodSymbol constructor, ConstructorParameterModel[] requiredOrInitOnlyMembers)
+    private ConstructorModel MapConstructor(TypeId typeId, IMethodSymbol constructor, ConstructorParameterModel[]? requiredOrInitOnlyMembers = null)
     {
-        Debug.Assert(constructor.MethodKind is MethodKind.Constructor && IsAccessibleFromGeneratedType(constructor));
+        Debug.Assert(constructor.MethodKind is MethodKind.Constructor || constructor.IsStatic);
+        Debug.Assert(IsAccessibleFromGeneratedType(constructor));
 
         var parameters = new List<ConstructorParameterModel>();
         foreach (IParameterSymbol param in constructor.Parameters)
@@ -65,7 +71,7 @@ public sealed partial class ModelGenerator
             ? new(parameters.Select(paramModel => (paramModel.ParameterType.FullyQualifiedName, paramModel.Name)))
             : null;
 
-        foreach (ConstructorParameterModel memberInitializer in requiredOrInitOnlyMembers)
+        foreach (ConstructorParameterModel memberInitializer in (requiredOrInitOnlyMembers ?? Array.Empty<ConstructorParameterModel>()))
         {
             if (setsRequiredMembers && memberInitializer.IsRequired)
             {
@@ -87,6 +93,9 @@ public sealed partial class ModelGenerator
             DeclaringType = typeId,
             Parameters = parameters.ToImmutableArrayEq(),
             MemberInitializers = memberInitializers.ToImmutableArrayEq(),
+            StaticFactoryName = constructor.IsStatic 
+            ? $"{constructor.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}.{constructor.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}" 
+            : null,
         };
     }
 
@@ -163,6 +172,7 @@ public sealed partial class ModelGenerator
                 DeclaringType = typeId,
                 Parameters = ImmutableArrayEq<ConstructorParameterModel>.Empty,
                 MemberInitializers = ImmutableArrayEq<ConstructorParameterModel>.Empty,
+                StaticFactoryName = null,
             };
         }
 
@@ -171,6 +181,7 @@ public sealed partial class ModelGenerator
             DeclaringType = typeId,
             Parameters = tupleElements.Select(MapTupleConstructorParameter).ToImmutableArrayEq(),
             MemberInitializers = ImmutableArrayEq<ConstructorParameterModel>.Empty,
+            StaticFactoryName = null,
         };
 
         ConstructorParameterModel MapTupleConstructorParameter(ITypeSymbol tupleElement, int position)
@@ -189,5 +200,53 @@ public sealed partial class ModelGenerator
                 DefaultValueRequiresCast = false,
             };
         }
+    }
+
+    private IMethodSymbol? TryResolveFactoryMethod(ITypeSymbol type)
+    {
+        if (type is IArrayTypeSymbol arrayType && arrayType.Rank == 1)
+        {
+            return _semanticModel.Compilation.GetTypeByMetadataName("System.Linq.Enumerable")
+                .GetMethodSymbol(method =>
+                    method.IsStatic && method.IsGenericMethod && method.Name is "ToArray" &&
+                    method.Parameters.Length == 1 && method.Parameters[0].Type.Name == "IEnumerable")
+                .MakeGenericMethod(arrayType.ElementType);
+        }
+
+        if (type is not INamedTypeSymbol namedType || !namedType.IsGenericType)
+        {
+            return null;
+        }
+
+        SymbolEqualityComparer cmp = SymbolEqualityComparer.Default;
+
+        if (cmp.Equals(namedType.ConstructedFrom, _immutableArray))
+        { 
+            return _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableArray")
+                .GetMethodSymbol(method =>
+                    method.IsStatic && method.IsGenericMethod && method.Name is "CreateRange" &&
+                    method.Parameters.Length == 1 && method.Parameters[0].Type.Name == "IEnumerable")
+                .MakeGenericMethod(namedType.TypeArguments[0]);
+        }
+
+        if (cmp.Equals(namedType.ConstructedFrom, _immutableList))
+        {
+            return _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableList")
+                .GetMethodSymbol(method =>
+                    method.IsStatic && method.IsGenericMethod && method.Name is "CreateRange" &&
+                    method.Parameters.Length == 1 && method.Parameters[0].Type.Name == "IEnumerable")
+                .MakeGenericMethod(namedType.TypeArguments[0]);
+        }
+
+        if (cmp.Equals(namedType.ConstructedFrom, _immutableDictionary))
+        {
+            return _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableDictionary")
+                .GetMethodSymbol(method =>
+                    method.IsStatic && method.IsGenericMethod && method.Name is "CreateRange" &&
+                    method.Parameters.Length == 1 && method.Parameters[0].Type.Name == "IEnumerable")
+                .MakeGenericMethod(namedType.TypeArguments[0], namedType.TypeArguments[1]);
+        }
+
+        return null;
     }
 }

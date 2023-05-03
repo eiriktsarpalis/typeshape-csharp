@@ -183,11 +183,12 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         return CreateDelegate<Setter<TDictionary, KeyValuePair<TKey, TValue>>>(dynamicMethod);
     }
 
-    public Func<TDeclaringType> CreateDefaultConstructor<TDeclaringType>(ConstructorShapeInfo ctorInfo)
+    public Func<TDeclaringType> CreateDefaultConstructor<TDeclaringType>(IConstructorShapeInfo ctorInfo)
     {
-        Debug.Assert(ctorInfo.ConstructorInfo != null || typeof(TDeclaringType).IsValueType);
+        Debug.Assert(ctorInfo is MethodConstructorShapeInfo { Parameters.Count: 0 });
 
-        if (ctorInfo.ConstructorInfo is null)
+        var methodCtor = (MethodConstructorShapeInfo)ctorInfo;
+        if (methodCtor.ConstructorMethod is null)
         {
             return static () => default!;
         }
@@ -195,22 +196,23 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         DynamicMethod dynamicMethod = CreateDynamicMethod("defaultCtor", typeof(TDeclaringType), Array.Empty<Type>());
         ILGenerator generator = dynamicMethod.GetILGenerator();
 
-        generator.Emit(OpCodes.Newobj, ctorInfo.ConstructorInfo);
+        EmitCall(generator, methodCtor.ConstructorMethod);
         generator.Emit(OpCodes.Ret);
         return CreateDelegate<Func<TDeclaringType>>(dynamicMethod);
     }
 
-    public Type CreateConstructorArgumentStateType(ConstructorShapeInfo ctorInfo)
+    public Type CreateConstructorArgumentStateType(IConstructorShapeInfo ctorInfo)
     {
-        if (ctorInfo.IsNestedValueTuple)
+        if (ctorInfo is TupleConstructorShapeInfo { IsValueTuple: true })
         {
             // Use the type itself as the argument state for value tuples.
-            return ctorInfo.DeclaringType;
+            return ctorInfo.ConstructedType;
         }
 
-        Type[] allParameterTypes = ctorInfo.GetAllParameters()
+        Type[] allParameterTypes = ctorInfo.Parameters
             .Select(p => p.Type)
             .ToArray();
+
         return allParameterTypes.Length switch
         {
             0 => typeof(object),
@@ -219,36 +221,28 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         };
     }
 
-    public Func<TArgumentState> CreateConstructorArgumentStateCtor<TArgumentState>(ConstructorShapeInfo ctorInfo)
+    public Func<TArgumentState> CreateConstructorArgumentStateCtor<TArgumentState>(IConstructorShapeInfo ctorInfo)
     {
-        if (ctorInfo.IsNestedValueTuple)
+        if (ctorInfo is TupleConstructorShapeInfo { IsValueTuple: true })
         {
-            Debug.Assert(typeof(TArgumentState) == ctorInfo.DeclaringType);
+            Debug.Assert(typeof(TArgumentState) == ctorInfo.ConstructedType);
             return static () => default!;
         }
-        else if (ctorInfo.TotalParameters == 0)
+        else if (ctorInfo.Parameters is [])
         {
             Debug.Assert(typeof(TArgumentState) == typeof(object));
             return static () => default!;
         }
-        else if (ctorInfo.TotalParameters == 1)
+        else if (ctorInfo.Parameters is [IParameterShapeInfo parameter])
         {
-            if (ctorInfo.Parameters is [ConstructorParameterShapeInfo parameter])
+            Debug.Assert(typeof(TArgumentState) == parameter.Type);
+            if (parameter.HasDefaultValue)
             {
-                Debug.Assert(typeof(TArgumentState) == parameter.Type);
-                if (parameter.HasDefaultValue)
-                {
-                    TArgumentState argumentState = (TArgumentState)parameter.DefaultValue!;
-                    return () => argumentState;
-                }
-                else
-                {
-                    return static () => default!;
-                }
+                TArgumentState argumentState = (TArgumentState)parameter.DefaultValue!;
+                return () => argumentState;
             }
             else
             {
-                Debug.Assert(typeof(TArgumentState) == ctorInfo.MemberInitializers[0].Type);
                 return static () => default!;
             }
         }
@@ -260,7 +254,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
             ILGenerator generator = dynamicMethod.GetILGenerator();
 
             // Load the default constructor arguments
-            foreach (IParameterShapeInfo param in ctorInfo.GetAllParameters())
+            foreach (IParameterShapeInfo param in ctorInfo.Parameters)
             {
                 if (param.HasDefaultValue)
                 {
@@ -274,7 +268,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
             }
 
             // Emit the ValueTuple constructor opcodes
-            EmitTupleCtor(typeof(TArgumentState), ctorInfo.TotalParameters);
+            EmitTupleCtor(typeof(TArgumentState), ctorInfo.Parameters.Count);
             void EmitTupleCtor(Type tupleType, int arity)
             {
                 if (arity > 7) // the tuple nests more tuple types
@@ -292,11 +286,11 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         }
     }
 
-    public Setter<TArgumentState, TParameter> CreateConstructorArgumentStateSetter<TArgumentState, TParameter>(ConstructorShapeInfo ctorInfo, int parameterIndex)
+    public Setter<TArgumentState, TParameter> CreateConstructorArgumentStateSetter<TArgumentState, TParameter>(IConstructorShapeInfo ctorInfo, int parameterIndex)
     {
-        Debug.Assert(ctorInfo.TotalParameters > 0);
+        Debug.Assert(ctorInfo.Parameters.Count > 0);
 
-        if (ctorInfo.TotalParameters == 1 && !ctorInfo.IsNestedValueTuple)
+        if (ctorInfo.Parameters.Count == 1)
         {
             Debug.Assert(parameterIndex == 0 && typeof(TArgumentState) == typeof(TParameter));
             return (Setter<TArgumentState, TParameter>)(object)new Setter<TParameter, TParameter>(static (ref TParameter state, TParameter value) => state = value);
@@ -328,13 +322,14 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         }
     }
 
-    public Func<TArgumentState, TDeclaringType> CreateParameterizedConstructor<TArgumentState, TDeclaringType>(ConstructorShapeInfo ctorInfo)
+    public Func<TArgumentState, TDeclaringType> CreateParameterizedConstructor<TArgumentState, TDeclaringType>(IConstructorShapeInfo ctorInfo)
     {
-        if (ctorInfo.ConstructorInfo is null && ctorInfo.MemberInitializers.Length == 0)
+        if (ctorInfo is MethodConstructorShapeInfo { ConstructorMethod: null, Parameters.Count: 0 })
         {
+            Debug.Assert(typeof(TDeclaringType).IsValueType);
             return static _ => default!;
         }
-        else if (ctorInfo.IsNestedValueTuple)
+        else if (ctorInfo is TupleConstructorShapeInfo { IsValueTuple: true })
         {
             Debug.Assert(typeof(TDeclaringType) == typeof(TArgumentState));
             return (Func<TArgumentState, TDeclaringType>)(object)(new Func<TArgumentState, TArgumentState>(static arg => arg));
@@ -343,175 +338,174 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         return CreateDelegate<Func<TArgumentState, TDeclaringType>>(EmitParameterizedConstructorMethod(typeof(TDeclaringType), typeof(TArgumentState), ctorInfo));
     }
 
-    private static DynamicMethod EmitParameterizedConstructorMethod(Type declaringType, Type argumentStateType, ConstructorShapeInfo ctorInfo)
+    private static DynamicMethod EmitParameterizedConstructorMethod(Type declaringType, Type argumentStateType, IConstructorShapeInfo ctorInfo)
     {
         DynamicMethod dynamicMethod = CreateDynamicMethod("parameterizedCtor", declaringType, new Type[] { argumentStateType });
         ILGenerator generator = dynamicMethod.GetILGenerator();
 
-        if (ctorInfo.TotalParameters == 0)
+        if (ctorInfo is MethodConstructorShapeInfo methodCtor)
         {
-            Debug.Assert(argumentStateType == typeof(object));
-            Debug.Assert(ctorInfo.ConstructorInfo != null);
-            generator.Emit(OpCodes.Newobj, ctorInfo.ConstructorInfo);
-            generator.Emit(OpCodes.Ret);
-        }
-        else if (ctorInfo.TotalParameters == 1)
-        {
-            if (ctorInfo.Parameters.Length == 1)
+            if (methodCtor.Parameters is [])
             {
-                Debug.Assert(argumentStateType == ctorInfo.Parameters[0].Type);
-                Debug.Assert(ctorInfo.ConstructorInfo != null);
-                generator.Emit(OpCodes.Ldarg_0);
-                generator.Emit(OpCodes.Newobj, ctorInfo.ConstructorInfo);
+                Debug.Assert(argumentStateType == typeof(object));
+                Debug.Assert(methodCtor.ConstructorMethod != null);
+                EmitCall(generator, methodCtor.ConstructorMethod);
                 generator.Emit(OpCodes.Ret);
+            }
+            else if (methodCtor.Parameters is [IParameterShapeInfo parameter])
+            {
+                Debug.Assert(argumentStateType == parameter.Type);
+
+                if (parameter is MemberInitializerShapeInfo memberInitializer)
+                {
+                    if (declaringType.IsValueType)
+                    {
+                        LocalBuilder local = generator.DeclareLocal(declaringType);
+
+                        if (methodCtor.ConstructorMethod is null)
+                        {
+                            generator.Emit(OpCodes.Ldloca, local);
+                            generator.Emit(OpCodes.Initobj, declaringType);
+                        }
+                        else
+                        {
+                            EmitCall(generator, methodCtor.ConstructorMethod);
+                            generator.Emit(OpCodes.Stloc, local);
+                        }
+
+                        generator.Emit(OpCodes.Ldloca, local);
+                        generator.Emit(OpCodes.Ldarg_0);
+                        StMember(memberInitializer);
+
+                        generator.Emit(OpCodes.Ldloc, local);
+                        generator.Emit(OpCodes.Ret);
+                    }
+                    else
+                    {
+                        Debug.Assert(methodCtor.ConstructorMethod != null);
+                        EmitCall(generator, methodCtor.ConstructorMethod);
+
+                        generator.Emit(OpCodes.Dup);
+                        generator.Emit(OpCodes.Ldarg_0);
+                        StMember(memberInitializer);
+
+                        generator.Emit(OpCodes.Ret);
+                    }
+                }
+                else
+                {
+                    Debug.Assert(methodCtor.ConstructorMethod != null);
+
+                    generator.Emit(OpCodes.Ldarg_0);
+                    EmitCall(generator, methodCtor.ConstructorMethod);
+                    generator.Emit(OpCodes.Ret);
+                }
             }
             else
             {
-                Debug.Assert(ctorInfo.MemberInitializers.Length == 1);
-                Debug.Assert(argumentStateType == ctorInfo.MemberInitializers[0].Type);
+                Debug.Assert(argumentStateType.IsValueTupleType());
 
-                if (declaringType.IsValueType)
+                if (methodCtor.MemberInitializers.Length == 0)
                 {
-                    LocalBuilder local = generator.DeclareLocal(declaringType);
+                    // No member initializers -- just load all tuple elements and call the constructor
 
-                    if (ctorInfo.ConstructorInfo is null)
+                    Debug.Assert(methodCtor.ConstructorMethod != null);
+
+                    foreach (var elementPath in ReflectionHelpers.EnumerateTupleMemberPaths(argumentStateType))
                     {
-                        generator.Emit(OpCodes.Ldloca, local);
+                        LdTupleElement(elementPath);
+                    }
+
+                    EmitCall(generator, methodCtor.ConstructorMethod);
+                    generator.Emit(OpCodes.Ret);
+                }
+                else if (declaringType.IsValueType)
+                {
+                    // Emit parameterized constructor + member initializers for structs
+
+                    (string LogicalName, MemberInfo Member, MemberInfo[] ParentMembers)[] fieldPaths = ReflectionHelpers.EnumerateTupleMemberPaths(argumentStateType).ToArray();
+
+                    LocalBuilder local = generator.DeclareLocal(declaringType);
+                    if (methodCtor.ConstructorMethod is null)
+                    {
+                        generator.Emit(OpCodes.Ldloca_S, local);
+                    }
+
+                    int i = 0;
+                    for (; i < methodCtor.ConstructorParameters.Length; i++)
+                    {
+                        LdTupleElement(fieldPaths[i]);
+                    }
+
+                    if (methodCtor.ConstructorMethod is null)
+                    {
                         generator.Emit(OpCodes.Initobj, declaringType);
                     }
                     else
                     {
-                        generator.Emit(OpCodes.Newobj, ctorInfo.ConstructorInfo);
+                        EmitCall(generator, methodCtor.ConstructorMethod);
                         generator.Emit(OpCodes.Stloc, local);
                     }
-                    
-                    generator.Emit(OpCodes.Ldloca, local);
-                    generator.Emit(OpCodes.Ldarg_0);
-                    StMember(ctorInfo.MemberInitializers[0]);
 
-                    generator.Emit(OpCodes.Ldloc, local);
+                    foreach (MemberInitializerShapeInfo member in methodCtor.MemberInitializers)
+                    {
+                        generator.Emit(OpCodes.Ldloca_S, local);
+                        LdTupleElement(fieldPaths[i++]);
+                        StMember(member);
+                    }
+
+                    generator.Emit(OpCodes.Ldloc_S, local);
                     generator.Emit(OpCodes.Ret);
                 }
                 else
                 {
-                    Debug.Assert(ctorInfo.ConstructorInfo != null);
-                    generator.Emit(OpCodes.Newobj, ctorInfo.ConstructorInfo);
+                    Debug.Assert(methodCtor.ConstructorMethod != null);
 
-                    generator.Emit(OpCodes.Dup);
-                    generator.Emit(OpCodes.Ldarg_0);
-                    StMember(ctorInfo.MemberInitializers[0]);
+                    // Emit parameterized constructor + member initializers for classes
+                    (string LogicalName, MemberInfo Member, MemberInfo[] ParentMembers)[] fieldPaths = ReflectionHelpers.EnumerateTupleMemberPaths(argumentStateType).ToArray();
+
+                    int i = 0;
+                    for (; i < methodCtor.ConstructorParameters.Length; i++)
+                    {
+                        LdTupleElement(fieldPaths[i]);
+                    }
+
+                    EmitCall(generator, methodCtor.ConstructorMethod);
+
+                    // Emit member initializers
+                    foreach (MemberInitializerShapeInfo member in methodCtor.MemberInitializers)
+                    {
+                        generator.Emit(OpCodes.Dup);
+                        LdTupleElement(fieldPaths[i++]);
+                        StMember(member);
+                    }
 
                     generator.Emit(OpCodes.Ret);
                 }
             }
         }
-        else
+        else if (ctorInfo is TupleConstructorShapeInfo tupleCtor)
         {
             Debug.Assert(argumentStateType.IsValueTupleType());
+            Debug.Assert(!tupleCtor.IsValueTuple, "dynamic methods only needed for class tuple types");
 
-            if (ctorInfo.MemberInitializers.Length == 0)
+            foreach (var elementPath in ReflectionHelpers.EnumerateTupleMemberPaths(argumentStateType))
             {
-                // No member initializers -- just load all tuple elements and call the constructor(s)
-                foreach (var elementPath in ReflectionHelpers.EnumerateTupleMemberPaths(argumentStateType))
-                {
-                    LdTupleElement(elementPath);
-                }
-
-                var constructors = new Stack<ConstructorInfo>();
-                for (ConstructorShapeInfo? curr = ctorInfo; curr != null; curr = curr.NestedTupleCtor)
-                {
-                    Debug.Assert(curr.ConstructorInfo != null);
-                    constructors.Push(curr.ConstructorInfo);
-                }
-
-                foreach (ConstructorInfo ctor in constructors)
-                {
-                    generator.Emit(OpCodes.Newobj, ctor);
-                }
-
-                generator.Emit(OpCodes.Ret);
-            }
-            else if (declaringType.IsValueType)
-            {
-                Debug.Assert(ctorInfo.NestedTupleCtor is null, "tuples don't have member initializers");
-
-                // Emit parameterized constructor + member initializers for structs
-
-                (string LogicalName, MemberInfo Member, MemberInfo[] ParentMembers)[] fieldPaths = ReflectionHelpers.EnumerateTupleMemberPaths(argumentStateType).ToArray();
-
-                LocalBuilder local = generator.DeclareLocal(declaringType);
-                if (ctorInfo.ConstructorInfo is null)
-                {
-                    generator.Emit(OpCodes.Ldloca_S, local);
-                }
-
-                int i = 0;
-                for (; i < ctorInfo.Parameters.Length; i++)
-                {
-                    LdTupleElement(fieldPaths[i]);
-                }
-
-                if (ctorInfo.ConstructorInfo is null)
-                {
-                    generator.Emit(OpCodes.Initobj, declaringType);
-                }
-                else
-                {
-                    generator.Emit(OpCodes.Newobj, ctorInfo.ConstructorInfo);
-                    generator.Emit(OpCodes.Stloc, local);
-                }
-
-                foreach (MemberInitializerShapeInfo member in ctorInfo.MemberInitializers)
-                {
-                    generator.Emit(OpCodes.Ldloca_S, local);
-                    LdTupleElement(fieldPaths[i++]);
-                    StMember(member);
-                }
-
-                generator.Emit(OpCodes.Ldloc_S, local);
-                generator.Emit(OpCodes.Ret);
-            }
-            else
-            {
-                Debug.Assert(ctorInfo.NestedTupleCtor is null, "tuples don't have member initializers");
-                Debug.Assert(ctorInfo.ConstructorInfo != null);
-
-                // Emit parameterized constructor + member initializers for classes
-                (string LogicalName, MemberInfo Member, MemberInfo[] ParentMembers)[] fieldPaths = ReflectionHelpers.EnumerateTupleMemberPaths(argumentStateType).ToArray();
-
-                int i = 0;
-                for (; i < ctorInfo.Parameters.Length; i++)
-                {
-                    LdTupleElement(fieldPaths[i]);
-                }
-
-                generator.Emit(OpCodes.Newobj, ctorInfo.ConstructorInfo);
-
-                // Emit member initializers
-                foreach (MemberInitializerShapeInfo member in ctorInfo.MemberInitializers)
-                {
-                    generator.Emit(OpCodes.Dup);
-                    LdTupleElement(fieldPaths[i++]);
-                    StMember(member);
-                }
-
-                generator.Emit(OpCodes.Ret);
+                LdTupleElement(elementPath);
             }
 
-            void LdTupleElement((string LogicalName, MemberInfo Member, MemberInfo[] ParentMembers) element)
+            var constructors = new Stack<ConstructorInfo>();
+            for (TupleConstructorShapeInfo? curr = tupleCtor; curr != null; curr = curr.NestedTupleConstructor)
             {
-                Debug.Assert(element.Member is FieldInfo);
-                Debug.Assert(element.ParentMembers is FieldInfo[]);
-
-                generator.Emit(OpCodes.Ldarg_0);
-
-                foreach (FieldInfo parent in (FieldInfo[])element.ParentMembers)
-                {
-                    generator.Emit(OpCodes.Ldfld, parent);
-                }
-
-                generator.Emit(OpCodes.Ldfld, (FieldInfo)element.Member);
+                constructors.Push(curr.ConstructorInfo);
             }
+
+            foreach (ConstructorInfo ctor in constructors)
+            {
+                generator.Emit(OpCodes.Newobj, ctor);
+            }
+
+            generator.Emit(OpCodes.Ret);
         }
 
         return dynamicMethod;
@@ -534,6 +528,21 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
                     Debug.Fail("Invalid member");
                     break;
             }
+        }
+
+        void LdTupleElement((string LogicalName, MemberInfo Member, MemberInfo[] ParentMembers) element)
+        {
+            Debug.Assert(element.Member is FieldInfo);
+            Debug.Assert(element.ParentMembers is FieldInfo[]);
+
+            generator.Emit(OpCodes.Ldarg_0);
+
+            foreach (FieldInfo parent in (FieldInfo[])element.ParentMembers)
+            {
+                generator.Emit(OpCodes.Ldfld, parent);
+            }
+
+            generator.Emit(OpCodes.Ldfld, (FieldInfo)element.Member);
         }
     }
 
@@ -586,6 +595,24 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
             generator.Emit(OpCodes.Ldloca_S, local.LocalIndex);
             generator.Emit(OpCodes.Initobj, type);
             generator.Emit(OpCodes.Ldloc, local.LocalIndex);
+        }
+    }
+
+    private static void EmitCall(ILGenerator generator, MethodBase methodBase)
+    {
+        Debug.Assert(methodBase is MethodInfo or ConstructorInfo);
+        if (methodBase is ConstructorInfo ctorInfo)
+        {
+            generator.Emit(OpCodes.Newobj, ctorInfo);
+        }
+        else
+        {
+            var methodInfo = (MethodInfo)methodBase!;
+            OpCode opc = methodInfo.DeclaringType!.IsValueType || methodInfo.IsStatic 
+                ? OpCodes.Call 
+                : OpCodes.Callvirt;
+
+            generator.Emit(opc, methodInfo);
         }
     }
 

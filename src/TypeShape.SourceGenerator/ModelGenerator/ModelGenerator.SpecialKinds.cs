@@ -74,18 +74,25 @@ public sealed partial class ModelGenerator
 
         if (type.SpecialType is SpecialType.System_String)
         {
+            // Do not treat string as an IEnumerable<char> collection.
             return null;
         }
 
         if (type is IArrayTypeSymbol array)
         {
             if (array.Rank > 1)
+            {
                 throw new NotImplementedException("Multi-dimensional arrays.");
+            }
 
             elementType = array.ElementType;
             kind = EnumerableKind.ArrayOfT;
         }
-        else if (
+        else if (type is not INamedTypeSymbol namedType)
+        {
+            return null;
+        }
+        else if(
             type.AllInterfaces.FirstOrDefault(i => i.OriginalDefinition.SpecialType is SpecialType.System_Collections_Generic_IEnumerable_T)
             is { } enumerableOfT)
         {
@@ -95,7 +102,7 @@ public sealed partial class ModelGenerator
                 SymbolEqualityComparer.Default.Equals(i.TypeArguments[0], elementType));
 
             resolvedInterface = collectionOfT ?? enumerableOfT;
-            kind = collectionOfT is { } ? EnumerableKind.ICollectionOfT : EnumerableKind.IEnumerableOfT;
+            kind = IsImmutableCollection(type) ? EnumerableKind.ImmutableOfT : collectionOfT != null ? EnumerableKind.ICollectionOfT : EnumerableKind.IEnumerableOfT;
         }
         else if (
             type.AllInterfaces.FirstOrDefault(i => i.OriginalDefinition.SpecialType is SpecialType.System_Collections_IEnumerable)
@@ -120,12 +127,17 @@ public sealed partial class ModelGenerator
             return null;
         }
 
-        IMethodSymbol? addMethod = type.GetMembers()
-            .OfType<IMethodSymbol>()
-            .FirstOrDefault(method =>
-                method is { IsStatic: false, ReturnsVoid: true, Name: "Add" or "Enqueue" or "Push", Parameters.Length: 1 } &&
-                IsAccessibleFromGeneratedType(method) &&
-                SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, elementType));
+        IMethodSymbol? addMethod = null;
+
+        if (kind is not EnumerableKind.ImmutableOfT)
+        {
+            addMethod = type.GetMembers()
+                .OfType<IMethodSymbol>()
+                .FirstOrDefault(method =>
+                    method is { IsStatic: false, ReturnsVoid: true, Name: "Add" or "Enqueue" or "Push", Parameters.Length: 1 } &&
+                    IsAccessibleFromGeneratedType(method) &&
+                    SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, elementType));
+        }
 
         return new EnumerableTypeModel
         {
@@ -192,5 +204,19 @@ public sealed partial class ModelGenerator
             HasSettableIndexer = hasSettableIndexer,
             Kind = kind,
         };
+    }
+
+    private bool IsImmutableCollection(ITypeSymbol type)
+    {
+        if (type is not INamedTypeSymbol { OriginalDefinition: INamedTypeSymbol definition })
+        {
+            return false;
+        }
+
+        SymbolEqualityComparer cmp = SymbolEqualityComparer.Default;
+        return 
+            cmp.Equals(definition, _immutableArray) ||
+            cmp.Equals(definition, _immutableList) ||
+            cmp.Equals(definition, _immutableDictionary);
     }
 }

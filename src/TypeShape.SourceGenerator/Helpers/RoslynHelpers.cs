@@ -178,8 +178,8 @@ internal static class RoslynHelpers
 
     public static bool HasSetsRequiredMembersAttribute(this IMethodSymbol constructor)
     {
-        Debug.Assert(constructor.MethodKind is MethodKind.Constructor);
-        return constructor.GetAttributes().Any(attr => attr.AttributeClass?.GetFullyQualifiedName() == "global::System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute");
+        return constructor.MethodKind is MethodKind.Constructor &&
+            constructor.GetAttributes().Any(attr => attr.AttributeClass?.GetFullyQualifiedName() == "global::System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute");
     }
 
     /// <summary>
@@ -238,6 +238,28 @@ internal static class RoslynHelpers
         return false;
     }
 
+    public static IMethodSymbol? GetMethodSymbol(this ITypeSymbol? type, Func<IMethodSymbol, bool> predicate)
+    {
+        if (type is null)
+        {
+            return null;
+        }
+
+        return type.GetMembers()
+            .OfType<IMethodSymbol>()
+            .FirstOrDefault(predicate);
+    }
+
+    public static IMethodSymbol? MakeGenericMethod(this IMethodSymbol? method, params ITypeSymbol[] arguments)
+    {
+        if (method is null)
+        {
+            return null;
+        }
+
+        return method.Construct(arguments);
+    }
+
     /// <summary>
     /// An "atomic value" in this context defines a type that is either 
     /// a primitive, string or a self-contained value like decimal, DateTime or Uri.
@@ -259,7 +281,7 @@ internal static class RoslynHelpers
             case SpecialType.System_UInt64:
             case SpecialType.System_Single:
             case SpecialType.System_Double:
-            // CorLib non-primitives that represent a single value.
+            // CoreLib non-primitives that represent a single value.
             case SpecialType.System_String:
             case SpecialType.System_Decimal:
             case SpecialType.System_DateTime:

@@ -7,9 +7,9 @@ namespace TypeShape.SourceGenerator;
 
 public sealed partial class ModelGenerator
 {
-    private ImmutableArrayEq<PropertyModel> MapProperties(TypeId typeId, ITypeSymbol type, ITypeSymbol[]? classTupleElements, bool isSpecialTypeKind)
+    private ImmutableArrayEq<PropertyModel> MapProperties(TypeId typeId, ITypeSymbol type, ITypeSymbol[]? classTupleElements, bool disallowMemberResolution)
     {
-        if (isSpecialTypeKind || type.TypeKind is not (TypeKind.Struct or TypeKind.Class or TypeKind.Interface) || type.SpecialType is not SpecialType.None)
+        if (disallowMemberResolution || type.TypeKind is not (TypeKind.Struct or TypeKind.Class or TypeKind.Interface) || type.SpecialType is not SpecialType.None)
         {
             return ImmutableArrayEq<PropertyModel>.Empty;
         }

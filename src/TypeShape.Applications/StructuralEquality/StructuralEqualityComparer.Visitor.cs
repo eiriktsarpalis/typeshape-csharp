@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 
 namespace TypeShape.Applications.StructuralEquality;
@@ -17,7 +18,7 @@ public static partial class StructuralEqualityComparer
             }
 
             if (!RuntimeHelpers.IsReferenceOrContainsReferences<T>() ||
-                typeof(IEquatable<T>).IsAssignableFrom(typeof(T)) ||
+                (typeof(IEquatable<T>).IsAssignableFrom(typeof(T)) && !IsImmutableArray(typeof(T))) ||
                 typeof(T) == typeof(string))
             {
                 return EqualityComparer<T>.Default;
@@ -109,5 +110,8 @@ public static partial class StructuralEqualityComparer
                 ? (IEqualityComparer)shape.Accept(this, null)!
                 : throw new NotSupportedException(runtimeType.GetType().ToString());
         }
+
+        private static bool IsImmutableArray(Type type) 
+            => type.IsGenericType && type.IsValueType && type.GetGenericTypeDefinition() == typeof(ImmutableArray<>);
     }
 }

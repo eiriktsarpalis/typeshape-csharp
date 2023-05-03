@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Immutable;
 using System.Reflection;
 using System.Text;
 
@@ -23,6 +24,13 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
 
     public IEnumerable<IConstructorShape> GetConstructors(bool nonPublic)
     {
+        if (TryGetFactoryMethod(typeof(T)) is MethodInfo factory)
+        {
+            var ctorInfo = new MethodConstructorShapeInfo(typeof(T), factory);
+            yield return _provider.CreateConstructor(ctorInfo);
+            yield break;
+        }
+
         if (typeof(T).IsAbstract || s_disallowMemberResolution)
         {
             yield break;
@@ -30,13 +38,13 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
 
         if (typeof(T).IsNestedTupleRepresentation())
         {
-            ConstructorShapeInfo ctorInfo = ReflectionHelpers.CreateNestedTupleConstructorShapeInfo(typeof(T));
+            IConstructorShapeInfo ctorInfo = ReflectionHelpers.CreateNestedTupleConstructorShapeInfo(typeof(T));
             yield return _provider.CreateConstructor(ctorInfo);
 
             if (typeof(T).IsValueType)
             {
-                ConstructorShapeInfo defaultCtorInfo = CreateDefaultConstructor(memberInitializers: null);
-                yield return _provider.CreateConstructor(defaultCtorInfo);
+                ctorInfo = CreateDefaultConstructor(memberInitializers: null);
+                yield return _provider.CreateConstructor(ctorInfo);
             }
 
             yield break;
@@ -60,9 +68,7 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
                 continue;
             }
 
-            ConstructorParameterShapeInfo[] parameterShapes = parameters.Select(p => new ConstructorParameterShapeInfo(p)).ToArray();
-
-            if (isRecord && constructorInfo.GetParameters() is [ParameterInfo parameter] &&
+            if (isRecord && parameters is [ParameterInfo parameter] &&
                 parameter.ParameterType == typeof(T))
             {
                 // Skip the copy constructor in record types
@@ -90,19 +96,19 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
                 memberInitializers.Add(memberInitializer);
             }
 
-            var ctorShapeInfo = new ConstructorShapeInfo(typeof(T), constructorInfo, parameterShapes, memberInitializers.ToArray());
+            var ctorShapeInfo = new MethodConstructorShapeInfo(typeof(T), constructorInfo, memberInitializers.ToArray());
             yield return _provider.CreateConstructor(ctorShapeInfo);
             isDefaultConstructorFound |= parameters.Length == 0;
         }
 
         if (typeof(T).IsValueType && !isDefaultConstructorFound)
         {
-            ConstructorShapeInfo ctorShapeInfo = CreateDefaultConstructor(requiredOrInitOnlyMembers);
+            MethodConstructorShapeInfo ctorShapeInfo = CreateDefaultConstructor(requiredOrInitOnlyMembers);
             yield return _provider.CreateConstructor(ctorShapeInfo);
         }
         
-        static ConstructorShapeInfo CreateDefaultConstructor(MemberInitializerShapeInfo[]? memberInitializers)
-            => new(typeof(T), constructorInfo: null, Array.Empty<ConstructorParameterShapeInfo>(), memberInitializers);
+        static MethodConstructorShapeInfo CreateDefaultConstructor(MemberInitializerShapeInfo[]? memberInitializers)
+            => new(typeof(T), constructorMethod: null, memberInitializers);
     }
 
     public IEnumerable<IPropertyShape> GetProperties(bool nonPublic, bool includeFields)
@@ -137,7 +143,8 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
             foreach (PropertyInfo propertyInfo in current.GetProperties(flags))
             {
                 if (propertyInfo.GetIndexParameters().Length == 0 &&
-                    propertyInfo.PropertyType.CanBeGenericArgument())
+                    propertyInfo.PropertyType.CanBeGenericArgument() &&
+                    !propertyInfo.IsExplicitInterfaceImplementation())
                 {
                     yield return propertyInfo;
                 }
@@ -154,6 +161,52 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
                 }
             }
         }
+    }
+
+    private static MethodInfo? TryGetFactoryMethod(Type type)
+    {
+        const BindingFlags factoryFlags = BindingFlags.Public | BindingFlags.Static;
+
+        if (type.IsArray)
+        {
+            MethodInfo? gm = typeof(Enumerable).GetMethod(nameof(Enumerable.ToArray), factoryFlags);
+            return gm?.MakeGenericMethod(type.GetElementType()!);
+        }
+
+        if (type.IsGenericType)
+        {
+            Type genericTypeDef = type.GetGenericTypeDefinition();
+            Type[] genericArgs = type.GetGenericArguments();
+
+            if (genericTypeDef == typeof(ImmutableArray<>))
+            {
+                return typeof(ImmutableArray).GetMethods(factoryFlags)
+                    .Where(m => m.Name is nameof(ImmutableArray.CreateRange))
+                    .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                    .Select(m => m.MakeGenericMethod(genericArgs))
+                    .FirstOrDefault();
+            }
+
+            if (genericTypeDef == typeof(ImmutableList<>))
+            {
+                return typeof(ImmutableList).GetMethods(factoryFlags)
+                    .Where(m => m.Name is nameof(ImmutableList.CreateRange))
+                    .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                    .Select(m => m.MakeGenericMethod(genericArgs))
+                    .FirstOrDefault();
+            }
+
+            if (genericTypeDef == typeof(ImmutableDictionary<,>))
+            {
+                return typeof(ImmutableDictionary).GetMethods(factoryFlags)
+                    .Where(m => m.Name is nameof(ImmutableDictionary.CreateRange))
+                    .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                    .Select(m => m.MakeGenericMethod(genericArgs))
+                    .FirstOrDefault();
+            }
+        }
+
+        return null;
     }
 
     public IEnumShape GetEnumShape()

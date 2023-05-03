@@ -55,7 +55,8 @@ internal static partial class SourceFormatter
             {
                 EnumerableKind.ArrayOfT or
                 EnumerableKind.IEnumerableOfT or
-                EnumerableKind.ICollectionOfT => "static obj => obj",
+                EnumerableKind.ICollectionOfT or
+                EnumerableKind.ImmutableOfT => "static obj => obj",
                 EnumerableKind.IEnumerable or
                 EnumerableKind.IList => "static obj => global::System.Linq.Enumerable.Cast<object>(obj)",
                 _ => throw new ArgumentException(enumerableType.Kind.ToString()),

@@ -5,6 +5,7 @@ public enum EnumerableKind
     ArrayOfT,
     IEnumerableOfT,
     ICollectionOfT,
+    ImmutableOfT,
     IEnumerable,
     IList,
 }

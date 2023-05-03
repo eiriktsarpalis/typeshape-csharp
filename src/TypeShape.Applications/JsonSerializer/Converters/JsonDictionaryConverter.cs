@@ -1,17 +1,49 @@
 ﻿namespace TypeShape.Applications.JsonSerializer.Converters;
 
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-internal sealed class JsonDictionaryConverter<TDictionary, TKey, TValue> : JsonConverter<TDictionary>
+internal class JsonDictionaryConverter<TDictionary, TKey, TValue> : JsonConverter<TDictionary>
 {
     internal JsonConverter<TKey>? KeyConverter { get; set; }
     internal JsonConverter<TValue>? ValueConverter { get; set; }
     internal Func<TDictionary, IReadOnlyDictionary<TKey, TValue>>? GetDictionary { get; set; }
-    internal Func<TDictionary>? CreateObject { get; set; }
-    internal Setter<TDictionary, KeyValuePair<TKey, TValue>>? AddDelegate { get; set; }
+
+    public override TDictionary? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        throw new NotSupportedException($"Type {typeof(TDictionary)} does not support deserialization.");
+    }
+
+    public sealed override void Write(Utf8JsonWriter writer, TDictionary value, JsonSerializerOptions options)
+    {
+        Debug.Assert(GetDictionary != null);
+        Debug.Assert(KeyConverter != null);
+        Debug.Assert(ValueConverter != null);
+
+        if (value is null)
+        {
+            writer.WriteNullValue();
+            return;
+        }
+
+        JsonConverter<TKey> keyConverter = KeyConverter;
+        JsonConverter<TValue> valueConverter = ValueConverter;
+
+        writer.WriteStartObject();
+        foreach (KeyValuePair<TKey, TValue> kvp in GetDictionary(value))
+        {
+            keyConverter.WriteAsPropertyName(writer, kvp.Key, options);
+            valueConverter.Write(writer, kvp.Value, options);
+        }
+        writer.WriteEndObject();
+    }
+}
+
+internal sealed class JsonMutableDictionaryConverter<TDictionary, TKey, TValue> : JsonDictionaryConverter<TDictionary, TKey, TValue>
+{
+    internal required Func<TDictionary> CreateObject { get; set; }
+    internal required Setter<TDictionary, KeyValuePair<TKey, TValue>> AddDelegate { get; set; }
 
     public override TDictionary? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
@@ -20,17 +52,9 @@ internal sealed class JsonDictionaryConverter<TDictionary, TKey, TValue> : JsonC
             return default;
         }
 
-        Func<TDictionary>? createObject = CreateObject;
-        if (createObject is null)
-        {
-            ThrowNotSupportedException();
-            [DoesNotReturn] static void ThrowNotSupportedException() 
-                => throw new NotSupportedException($"Type {typeof(TDictionary)} does not support deserialization.");
-        }
-
         reader.EnsureTokenType(JsonTokenType.StartObject);
 
-        TDictionary result = createObject();
+        TDictionary result = CreateObject();
         reader.EnsureRead();
 
         Debug.Assert(KeyConverter != null);
@@ -54,29 +78,41 @@ internal sealed class JsonDictionaryConverter<TDictionary, TKey, TValue> : JsonC
 
         return result;
     }
+}
 
-    public override void Write(Utf8JsonWriter writer, TDictionary value, JsonSerializerOptions options)
+internal sealed class JsonImmutableDictionaryConverter<TDictionary, TKey, TValue> : JsonDictionaryConverter<TDictionary, TKey, TValue>
+{
+    public required Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> Constructor { get; set; }
+
+    public override TDictionary? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        Debug.Assert(GetDictionary != null);
         Debug.Assert(KeyConverter != null);
         Debug.Assert(ValueConverter != null);
 
-        if (value is null)
+        if (default(TDictionary) is null && reader.TokenType is JsonTokenType.Null)
         {
-            writer.WriteNullValue();
-            return;
+            return default;
         }
+
+        reader.EnsureTokenType(JsonTokenType.StartObject);
+
+        List<KeyValuePair<TKey, TValue>> buffer = new();
+        reader.EnsureRead();
 
         JsonConverter<TKey> keyConverter = KeyConverter;
         JsonConverter<TValue> valueConverter = ValueConverter;
 
-        writer.WriteStartObject();
-        foreach (KeyValuePair<TKey, TValue> kvp in GetDictionary(value))
+        while (reader.TokenType != JsonTokenType.EndObject)
         {
-            //keyConverter.WriteAsPropertyName(writer, kvp.Key, options);
-            writer.WritePropertyName(kvp.Key!.ToString()!);
-            valueConverter.Write(writer, kvp.Value, options);
+            Debug.Assert(reader.TokenType == JsonTokenType.PropertyName);
+
+            TKey key = keyConverter.ReadAsPropertyName(ref reader, typeof(TKey), options);
+            reader.EnsureRead();
+            TValue value = valueConverter.Read(ref reader, typeof(TValue), options)!;
+            reader.EnsureRead();
+            buffer.Add(new(key, value));
         }
-        writer.WriteEndObject();
+
+        return Constructor(buffer);
     }
 }
