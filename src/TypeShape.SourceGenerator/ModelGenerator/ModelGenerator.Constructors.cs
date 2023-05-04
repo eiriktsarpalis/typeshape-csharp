@@ -225,7 +225,7 @@ public sealed partial class ModelGenerator
             return _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableArray")
                 .GetMethodSymbol(method =>
                     method.IsStatic && method.IsGenericMethod && method.Name is "CreateRange" &&
-                    method.Parameters.Length == 1 && method.Parameters[0].Type.Name == "IEnumerable")
+                    method.Parameters.Length == 1 && method.Parameters[0].Type.Name is "IEnumerable")
                 .MakeGenericMethod(namedType.TypeArguments[0]);
         }
 
@@ -234,7 +234,43 @@ public sealed partial class ModelGenerator
             return _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableList")
                 .GetMethodSymbol(method =>
                     method.IsStatic && method.IsGenericMethod && method.Name is "CreateRange" &&
-                    method.Parameters.Length == 1 && method.Parameters[0].Type.Name == "IEnumerable")
+                    method.Parameters.Length == 1 && method.Parameters[0].Type.Name is "IEnumerable")
+                .MakeGenericMethod(namedType.TypeArguments[0]);
+        }
+
+        if (cmp.Equals(namedType.ConstructedFrom, _immutableQueue))
+        {
+            return _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableQueue")
+                .GetMethodSymbol(method =>
+                    method.IsStatic && method.IsGenericMethod && method.Name is "CreateRange" &&
+                    method.Parameters.Length == 1 && method.Parameters[0].Type.Name is "IEnumerable")
+                .MakeGenericMethod(namedType.TypeArguments[0]);
+        }
+
+        if (cmp.Equals(namedType.ConstructedFrom, _immutableStack))
+        {
+            return _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableStack")
+                .GetMethodSymbol(method =>
+                    method.IsStatic && method.IsGenericMethod && method.Name is "CreateRange" &&
+                    method.Parameters.Length == 1 && method.Parameters[0].Type.Name is "IEnumerable")
+                .MakeGenericMethod(namedType.TypeArguments[0]);
+        }
+
+        if (cmp.Equals(namedType.ConstructedFrom, _immutableHashSet))
+        {
+            return _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableHashSet")
+                .GetMethodSymbol(method =>
+                    method.IsStatic && method.IsGenericMethod && method.Name is "CreateRange" &&
+                    method.Parameters.Length == 1 && method.Parameters[0].Type.Name is "IEnumerable")
+                .MakeGenericMethod(namedType.TypeArguments[0]);
+        }
+
+        if (cmp.Equals(namedType.ConstructedFrom, _immutableSortedSet))
+        {
+            return _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableSortedSet")
+                .GetMethodSymbol(method =>
+                    method.IsStatic && method.IsGenericMethod && method.Name is "CreateRange" &&
+                    method.Parameters.Length == 1 && method.Parameters[0].Type.Name is "IEnumerable")
                 .MakeGenericMethod(namedType.TypeArguments[0]);
         }
 
@@ -243,7 +279,16 @@ public sealed partial class ModelGenerator
             return _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableDictionary")
                 .GetMethodSymbol(method =>
                     method.IsStatic && method.IsGenericMethod && method.Name is "CreateRange" &&
-                    method.Parameters.Length == 1 && method.Parameters[0].Type.Name == "IEnumerable")
+                    method.Parameters.Length == 1 && method.Parameters[0].Type.Name is "IEnumerable")
+                .MakeGenericMethod(namedType.TypeArguments[0], namedType.TypeArguments[1]);
+        }
+
+        if (cmp.Equals(namedType.ConstructedFrom, _immutableSortedDictionary))
+        {
+            return _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableSortedDictionary")
+                .GetMethodSymbol(method =>
+                    method.IsStatic && method.IsGenericMethod && method.Name is "CreateRange" &&
+                    method.Parameters.Length == 1 && method.Parameters[0].Type.Name is "IEnumerable")
                 .MakeGenericMethod(namedType.TypeArguments[0], namedType.TypeArguments[1]);
         }
 

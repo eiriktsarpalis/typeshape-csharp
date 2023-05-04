@@ -34,7 +34,15 @@ public abstract class JsonTests
         else
         {
             T? deserializedValue = serializer.Deserialize(json);
-            Assert.Equal(json, ToJsonBaseline(deserializedValue));
+
+            if (testCase.IsStack)
+            {
+                Assert.Equal(serializer.Serialize(deserializedValue), ToJsonBaseline(deserializedValue));
+            }
+            else
+            {
+                Assert.Equal(json, ToJsonBaseline(deserializedValue));
+            }
         }
     }
 
@@ -65,7 +73,15 @@ public abstract class JsonTests
         else
         {
             PocoWithGenericProperty<T>? deserializedValue = serializer.Deserialize(json);
-            Assert.Equal(json, ToJsonBaseline(deserializedValue));
+
+            if (testCase.IsStack)
+            {
+                Assert.Equal(serializer.Serialize(deserializedValue), ToJsonBaseline(deserializedValue));
+            }
+            else
+            {
+                Assert.Equal(json, ToJsonBaseline(deserializedValue));
+            }
         }
     }
 
@@ -96,7 +112,15 @@ public abstract class JsonTests
         else
         {
             List<T>? deserializedValue = serializer.Deserialize(json);
-            Assert.Equal(json, ToJsonBaseline(deserializedValue));
+
+            if (testCase.IsStack)
+            {
+                Assert.Equal(serializer.Serialize(deserializedValue), ToJsonBaseline(deserializedValue));
+            }
+            else
+            {
+                Assert.Equal(json, ToJsonBaseline(deserializedValue));
+            }
         }
     }
 
@@ -127,7 +151,15 @@ public abstract class JsonTests
         else
         {
             Dictionary<string, T>? deserializedValue = serializer.Deserialize(json);
-            Assert.Equal(json, ToJsonBaseline(deserializedValue));
+
+            if (testCase.IsStack)
+            {
+                Assert.Equal(serializer.Serialize(deserializedValue), ToJsonBaseline(deserializedValue));
+            }
+            else
+            {
+                Assert.Equal(json, ToJsonBaseline(deserializedValue));
+            }
         }
     }
 

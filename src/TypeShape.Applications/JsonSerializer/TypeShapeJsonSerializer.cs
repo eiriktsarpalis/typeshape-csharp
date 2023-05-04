@@ -25,8 +25,8 @@ public class TypeShapeJsonSerializer<T>
 
     public JsonSerializerOptions Options { get; }
 
-    public string Serialize(T value)
-        => System.Text.Json.JsonSerializer.Serialize(value, _jsonTypeInfo);
+    public string Serialize(T? value)
+        => System.Text.Json.JsonSerializer.Serialize(value!, _jsonTypeInfo);
 
     public T? Deserialize(string json)
         => System.Text.Json.JsonSerializer.Deserialize(json, _jsonTypeInfo);

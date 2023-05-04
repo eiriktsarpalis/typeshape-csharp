@@ -196,10 +196,56 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
                     .FirstOrDefault();
             }
 
+
+            if (genericTypeDef == typeof(ImmutableQueue<>))
+            {
+                return typeof(ImmutableQueue).GetMethods(factoryFlags)
+                    .Where(m => m.Name is nameof(ImmutableQueue.CreateRange))
+                    .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                    .Select(m => m.MakeGenericMethod(genericArgs))
+                    .FirstOrDefault();
+            }
+
+            if (genericTypeDef == typeof(ImmutableStack<>))
+            {
+                return typeof(ImmutableStack).GetMethods(factoryFlags)
+                    .Where(m => m.Name is nameof(ImmutableStack.CreateRange))
+                    .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                    .Select(m => m.MakeGenericMethod(genericArgs))
+                    .FirstOrDefault();
+            }
+
+            if (genericTypeDef == typeof(ImmutableHashSet<>))
+            {
+                return typeof(ImmutableHashSet).GetMethods(factoryFlags)
+                    .Where(m => m.Name is nameof(ImmutableHashSet.CreateRange))
+                    .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                    .Select(m => m.MakeGenericMethod(genericArgs))
+                    .FirstOrDefault();
+            }
+
+            if (genericTypeDef == typeof(ImmutableSortedSet<>))
+            {
+                return typeof(ImmutableSortedSet).GetMethods(factoryFlags)
+                    .Where(m => m.Name is nameof(ImmutableSortedSet.CreateRange))
+                    .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                    .Select(m => m.MakeGenericMethod(genericArgs))
+                    .FirstOrDefault();
+            }
+
             if (genericTypeDef == typeof(ImmutableDictionary<,>))
             {
                 return typeof(ImmutableDictionary).GetMethods(factoryFlags)
                     .Where(m => m.Name is nameof(ImmutableDictionary.CreateRange))
+                    .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                    .Select(m => m.MakeGenericMethod(genericArgs))
+                    .FirstOrDefault();
+            }
+
+            if (genericTypeDef == typeof(ImmutableSortedDictionary<,>))
+            {
+                return typeof(ImmutableSortedDictionary).GetMethods(factoryFlags)
+                    .Where(m => m.Name is nameof(ImmutableSortedDictionary.CreateRange))
                     .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
                     .Select(m => m.MakeGenericMethod(genericArgs))
                     .FirstOrDefault();

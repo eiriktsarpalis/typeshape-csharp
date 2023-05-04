@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
@@ -16,6 +17,7 @@ public sealed record TestCase<T>(T Value) : ITestCase
     public bool IsAbstractClass => typeof(T).IsInterface && !typeof(IEnumerable).IsAssignableFrom(typeof(T));
     public bool IsTuple => Value is ITuple;
     public bool IsLongTuple => Value is ITuple t && t.Length > 7;
+    public bool IsStack { get; init; }
 }
 
 public interface ITestCase
@@ -66,13 +68,28 @@ public static class TestTypes
         yield return Create(new List<string> { "1", "2", "3" });
         yield return Create(new List<byte>());
         yield return Create(new Queue<int>(new int[] { 1, 2, 3 }));
+        yield return Create(new Stack<int>(new int[] { 1, 2, 3 }), isStack: true);
         yield return Create(new Dictionary<string, int> { ["key1"] = 42, ["key2"] = -1 });
         yield return Create(new HashSet<string> { "apple", "orange", "banana" });
+        yield return Create(new HashSet<string> { "apple", "orange", "banana" });
+        yield return Create(new SortedSet<string> { "apple", "orange", "banana" });
+        yield return Create(new SortedDictionary<string, int> { ["key1"] = 42, ["key2"] = -1 });
+
         yield return Create(new Hashtable { ["key1"] = 42 });
         yield return Create(new ArrayList { 1, 2, 3 });
+
+        yield return Create(new ConcurrentQueue<int>(new int[] { 1, 2, 3 }));
+        yield return Create(new ConcurrentStack<int>(new int[] { 1, 2, 3 }), isStack: true);
+        yield return Create(new ConcurrentDictionary<string, string> { ["key"] = "value" });
+
         yield return Create(ImmutableArray.Create(1, 2, 3));
         yield return Create(ImmutableList.Create("1", "2", "3"));
+        yield return Create(ImmutableQueue.Create(1, 2, 3));
+        yield return Create(ImmutableStack.Create(1, 2, 3), isStack: true);
+        yield return Create(ImmutableHashSet.Create(1, 2, 3));
+        yield return Create(ImmutableSortedSet.Create(1, 2, 3));
         yield return Create(ImmutableDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }));
+        yield return Create(ImmutableSortedDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }));
 
         yield return Create(new PocoWithListAndDictionaryProps(@string: "myString")
         {
@@ -273,7 +290,7 @@ public static class TestTypes
             r30 = 30, r31 = 31, r32 = 32, r33 = 33, r34 = 34, r35 = 35, r36 = 36, r37 = 37, r38 = 38, r39 = 39,
         });
 
-        static TestCase<T> Create<T>(T value) => new TestCase<T>(value);
+        static TestCase<T> Create<T>(T value, bool isStack = false) => new TestCase<T>(value) { IsStack = isStack };
     }
 }
 
@@ -601,11 +618,17 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 [GenerateShape(typeof(int[][]))]
 [GenerateShape(typeof(List<string>))]
 [GenerateShape(typeof(List<byte>))]
+[GenerateShape(typeof(Stack<int>))]
 [GenerateShape(typeof(Queue<int>))]
 [GenerateShape(typeof(Dictionary<string, int>))]
 [GenerateShape(typeof(Dictionary<string, string>))]
 [GenerateShape(typeof(Dictionary<SimpleRecord, string>))]
 [GenerateShape(typeof(Dictionary<string, SimpleRecord>))]
+[GenerateShape(typeof(SortedSet<string>))]
+[GenerateShape(typeof(SortedDictionary<string, int>))]
+[GenerateShape(typeof(ConcurrentStack<int>))]
+[GenerateShape(typeof(ConcurrentQueue<int>))]
+[GenerateShape(typeof(ConcurrentDictionary<string, string>))]
 [GenerateShape(typeof(HashSet<string>))]
 [GenerateShape(typeof(Hashtable))]
 [GenerateShape(typeof(ArrayList))]
@@ -627,11 +650,10 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 [GenerateShape(typeof(ImmutableArray<int>))]
 [GenerateShape(typeof(ImmutableList<string>))]
 [GenerateShape(typeof(ImmutableQueue<int>))]
-[GenerateShape(typeof(ImmutableHashSet<int>))]
 [GenerateShape(typeof(ImmutableStack<int>))]
+[GenerateShape(typeof(ImmutableHashSet<int>))]
 [GenerateShape(typeof(ImmutableSortedSet<int>))]
 [GenerateShape(typeof(ImmutableDictionary<string, string>))]
-[GenerateShape(typeof(ImmutableSortedDictionary<string, string>))]
 [GenerateShape(typeof(ImmutableSortedDictionary<string, string>))]
 [GenerateShape(typeof(ComplexStruct))]
 [GenerateShape(typeof(ComplexStructWithProperties))]

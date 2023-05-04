@@ -217,6 +217,11 @@ public sealed partial class ModelGenerator
         return 
             cmp.Equals(definition, _immutableArray) ||
             cmp.Equals(definition, _immutableList) ||
-            cmp.Equals(definition, _immutableDictionary);
+            cmp.Equals(definition, _immutableStack) ||
+            cmp.Equals(definition, _immutableQueue) ||
+            cmp.Equals(definition, _immutableHashSet) ||
+            cmp.Equals(definition, _immutableSortedSet) ||
+            cmp.Equals(definition, _immutableDictionary) ||
+            cmp.Equals(definition, _immutableSortedDictionary);
     }
 }

@@ -30,7 +30,12 @@ public sealed partial class ModelGenerator
 
     private readonly ITypeSymbol? _immutableArray;
     private readonly ITypeSymbol? _immutableList;
+    private readonly ITypeSymbol? _immutableQueue;
+    private readonly ITypeSymbol? _immutableStack;
+    private readonly ITypeSymbol? _immutableHashSet;
+    private readonly ITypeSymbol? _immutableSortedSet;
     private readonly ITypeSymbol? _immutableDictionary;
+    private readonly ITypeSymbol? _immutableSortedDictionary;
 
     public ModelGenerator(ClassDeclarationSyntax classDeclarationSyntax, Compilation compilation, CancellationToken cancellationToken)
     {
@@ -48,7 +53,12 @@ public sealed partial class ModelGenerator
 
         _immutableArray = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableArray`1");
         _immutableList = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableList`1");
+        _immutableQueue = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableQueue`1");
+        _immutableStack = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableStack`1");
+        _immutableHashSet = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableHashSet`1");
+        _immutableSortedSet = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableSortedSet`1");
         _immutableDictionary = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableDictionary`2");
+        _immutableSortedDictionary = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableSortedDictionary`2");
     }
 
     public static TypeShapeProviderModel Compile(ClassDeclarationSyntax classDeclarationSyntax, Compilation compilation, CancellationToken cancellationToken)
