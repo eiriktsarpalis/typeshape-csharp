@@ -5,18 +5,18 @@ using System.Text.Json;
 
 internal abstract class JsonConstructor<TDeclaringType>
 {
-    public Func<TDeclaringType>? DefaultConstructor { get; protected init; }
-
     public abstract TDeclaringType ReadConstructorParametersAndCreateObject(ref Utf8JsonReader reader, JsonSerializerOptions options);
 }
 
 internal sealed class JsonDefaultConstructor<TDeclaringType> : JsonConstructor<TDeclaringType>
 {
+    private readonly Func<TDeclaringType> _defaultConstructor;
+
     public JsonDefaultConstructor(Func<TDeclaringType> defaultConstructor)
-        => DefaultConstructor = defaultConstructor;
+        => _defaultConstructor = defaultConstructor;
 
     public override TDeclaringType ReadConstructorParametersAndCreateObject(ref Utf8JsonReader reader, JsonSerializerOptions options)
-        => DefaultConstructor!();
+        => _defaultConstructor();
 }
 
 internal sealed class JsonParameterizedConstructor<TDeclaringType, TArgumentState> : JsonConstructor<TDeclaringType>
