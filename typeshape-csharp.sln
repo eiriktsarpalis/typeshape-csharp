@@ -19,7 +19,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{263FD392
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TypeShape.Tests", "tests\TypeShape.Tests\TypeShape.Tests.csproj", "{44EE7229-0226-4114-8895-E55975F2DDFD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TypeShape.SourceGenerator", "src\TypeShape.SourceGenerator\TypeShape.SourceGenerator.csproj", "{7103A8B9-8267-42C4-9BBC-A23E1B02BCBF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TypeShape.SourceGenerator", "src\TypeShape.SourceGenerator\TypeShape.SourceGenerator.csproj", "{7103A8B9-8267-42C4-9BBC-A23E1B02BCBF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{CB115EE9-BF8F-4361-926F-8B2A523E24F8}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
