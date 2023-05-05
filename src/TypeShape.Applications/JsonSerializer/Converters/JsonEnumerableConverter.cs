@@ -6,8 +6,14 @@ using System.Text.Json.Serialization;
 
 internal class JsonEnumerableConverter<TEnumerable, TElement> : JsonConverter<TEnumerable>
 {
-    public Func<TEnumerable, IEnumerable<TElement>>? GetEnumerable { get; set; }
-    public JsonConverter<TElement>? ElementConverter { get; set; }
+    private protected readonly JsonConverter<TElement> _elementConverter;
+    private readonly Func<TEnumerable, IEnumerable<TElement>> _getEnumerable;
+
+    public JsonEnumerableConverter(JsonConverter<TElement> elementConverter, Func<TEnumerable, IEnumerable<TElement>> getEnumerable)
+    {
+        _elementConverter = elementConverter;
+        _getEnumerable = getEnumerable;
+    }
 
     public override TEnumerable? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
@@ -16,19 +22,16 @@ internal class JsonEnumerableConverter<TEnumerable, TElement> : JsonConverter<TE
 
     public sealed override void Write(Utf8JsonWriter writer, TEnumerable value, JsonSerializerOptions options)
     {
-        Debug.Assert(GetEnumerable != null);
-        Debug.Assert(ElementConverter != null);
-
         if (value is null)
         {
             writer.WriteNullValue();
             return;
         }
 
-        JsonConverter<TElement> elementConverter = ElementConverter;
+        JsonConverter<TElement> elementConverter = _elementConverter;
 
         writer.WriteStartArray();
-        foreach (TElement element in GetEnumerable(value))
+        foreach (TElement element in _getEnumerable(value))
         {
             elementConverter.Write(writer, element, options);
         }
@@ -38,15 +41,22 @@ internal class JsonEnumerableConverter<TEnumerable, TElement> : JsonConverter<TE
 
 internal sealed class JsonMutableEnumerableConverter<TEnumerable, TElement> : JsonEnumerableConverter<TEnumerable, TElement>
 {
-    public Func<TEnumerable>? CreateObject { get; set; }
-    public Setter<TEnumerable, TElement>? AddDelegate { get; set; }
+    private readonly Func<TEnumerable> _createObject;
+    private readonly Setter<TEnumerable, TElement> _addDelegate;
+
+    public JsonMutableEnumerableConverter(
+        JsonConverter<TElement> elementConverter, 
+        Func<TEnumerable, IEnumerable<TElement>> getEnumerable, 
+        Func<TEnumerable> createObject, 
+        Setter<TEnumerable, TElement> addDelegate)
+        : base(elementConverter, getEnumerable)
+    {
+        _createObject = createObject;
+        _addDelegate = addDelegate;
+    }
 
     public override TEnumerable? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        Debug.Assert(CreateObject != null);
-        Debug.Assert(ElementConverter != null);
-        Debug.Assert(AddDelegate != null);
-
         if (default(TEnumerable) is null && reader.TokenType is JsonTokenType.Null)
         {
             return default;
@@ -54,11 +64,11 @@ internal sealed class JsonMutableEnumerableConverter<TEnumerable, TElement> : Js
 
         reader.EnsureTokenType(JsonTokenType.StartArray);
 
-        TEnumerable result = CreateObject();
+        TEnumerable result = _createObject();
         reader.EnsureRead();
 
-        JsonConverter<TElement> elementConverter = ElementConverter;
-        Setter<TEnumerable, TElement> addDelegate = AddDelegate;
+        JsonConverter<TElement> elementConverter = _elementConverter;
+        Setter<TEnumerable, TElement> addDelegate = _addDelegate;
 
         while (reader.TokenType != JsonTokenType.EndArray)
         {
@@ -73,13 +83,19 @@ internal sealed class JsonMutableEnumerableConverter<TEnumerable, TElement> : Js
 
 internal sealed class JsonImmutableEnumerableConverter<TEnumerable, TElement> : JsonEnumerableConverter<TEnumerable, TElement>
 {
-    public Func<IEnumerable<TElement>, TEnumerable>? Constructor { get; set; }
+    private readonly Func<IEnumerable<TElement>, TEnumerable> _constructor;
+
+    public JsonImmutableEnumerableConverter(
+        JsonConverter<TElement> elementConverter,
+        Func<TEnumerable, IEnumerable<TElement>> getEnumerable, 
+        Func<IEnumerable<TElement>, TEnumerable> constructor)
+        : base(elementConverter, getEnumerable)
+    {
+        _constructor = constructor;
+    }
 
     public override TEnumerable? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        Debug.Assert(Constructor != null);
-        Debug.Assert(ElementConverter != null);
-        
+    {   
         if (default(TEnumerable) is null && reader.TokenType is JsonTokenType.Null)
         {
             return default;
@@ -90,7 +106,7 @@ internal sealed class JsonImmutableEnumerableConverter<TEnumerable, TElement> : 
         List<TElement> buffer = new();
         reader.EnsureRead();
 
-        JsonConverter<TElement> elementConverter = ElementConverter;
+        JsonConverter<TElement> elementConverter = _elementConverter;
 
         while (reader.TokenType != JsonTokenType.EndArray)
         {
@@ -99,6 +115,6 @@ internal sealed class JsonImmutableEnumerableConverter<TEnumerable, TElement> : 
             reader.EnsureRead();
         }
 
-        return Constructor(buffer);
+        return _constructor(buffer);
     }
 }

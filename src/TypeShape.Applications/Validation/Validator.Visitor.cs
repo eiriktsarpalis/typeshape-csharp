@@ -2,17 +2,19 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Reflection.Emit;
 using System.Runtime.InteropServices;
+using TypeShape.Applications.RandomGenerator;
 
 public static partial class Validator
 {
     private sealed class Visitor : TypeShapeVisitor
     {
-        private readonly Dictionary<Type, object> _cache = new();
+        private readonly TypeCache _cache = new();
         
         public override object? VisitType<T>(ITypeShape<T> type, object? state)
         {
-            if (TryGetCachedValue<T>() is Validator<T> result)
+            if (TryGetCachedResult<T>() is { } result)
             {
                 return result;
             }
@@ -143,35 +145,13 @@ public static partial class Validator
             });
         }
 
-        private Validator<T>? TryGetCachedValue<T>()
-        {
-            ref object? entryRef = ref CollectionsMarshal.GetValueRefOrAddDefault(_cache, typeof(T), out bool exists);
-            if (exists)
-            {
-                return ((DelayedCacheEntry<T>)entryRef!).Result;
-            }
-            else
-            {
-                entryRef = new DelayedCacheEntry<T>();
-                return null;
-            }
-        }
+        private Validator<T>? TryGetCachedResult<T>()
+            => _cache.GetOrAddDelayedValue<Validator<T>>(static holder => ((T? value, List<string> path, ref List<string>? errors) => holder.Value!(value, path, ref errors)));
 
         private Validator<T> CacheResult<T>(Validator<T> validator)
         {
-            ((DelayedCacheEntry<T>)_cache[typeof(T)]).Result = validator;
+            _cache.Add(validator);
             return validator;
-        }
-
-        // Delayed delegate initializer for handling recursive types
-        private sealed class DelayedCacheEntry<T>
-        {
-            private Validator<T>? _result;
-            public Validator<T> Result
-            {
-                get => _result ?? ((T? value, List<string> path, ref List<string>? errors) => _result!(value, path, ref errors));
-                set => _result = value;
-            }
         }
     }
 }

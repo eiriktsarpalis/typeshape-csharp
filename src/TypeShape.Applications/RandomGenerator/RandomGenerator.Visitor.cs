@@ -10,20 +10,13 @@ public partial class RandomGenerator
 
     private sealed class Visitor : ITypeShapeVisitor
     {
-        private Dictionary<Type, object> _visited = new(CreateDefaultGenerators());
+        private TypeCache _cache = new(CreateDefaultGenerators());
 
         public object? VisitType<T>(ITypeShape<T> type, object? state)
         {
-            if (_visited.TryGetValue(typeof(T), out object? result))
+            if (TryGetCachedResult<T>() is { } result)
             {
-                Debug.Assert(result is RandomGenerator<T> or DelayedResultValueHolder<T>);
-                return result is DelayedResultValueHolder<T> delayedHolder
-                    ? delayedHolder.Result
-                    : result;
-            }
-            else
-            {
-                _visited.Add(typeof(T), new DelayedResultValueHolder<T>());
+                return result;
             }
 
             switch (type.Kind)
@@ -269,13 +262,6 @@ public partial class RandomGenerator
             }
         }
 
-        private RandomGenerator<T> CacheResult<T>(RandomGenerator<T> generator)
-        {
-            var holder = (DelayedResultValueHolder<T>)_visited[typeof(T)];
-            holder.Result = generator;
-            return generator;
-        }
-
         private static IEnumerable<KeyValuePair<Type, object>> CreateDefaultGenerators()
         {
             yield return Create((random, _) => NextBoolean(random));
@@ -335,7 +321,7 @@ public partial class RandomGenerator
             });
 
             static KeyValuePair<Type, object> Create<T>(RandomGenerator<T> randomGenerator)
-                => new(typeof(T), randomGenerator);
+                => new(typeof(RandomGenerator<T>), randomGenerator);
         }
 
         private static long NextLong(Random random)
@@ -378,21 +364,13 @@ public partial class RandomGenerator
                 _ => (int)Math.Round(parentSize / (double)totalChildren),
             };
         }
+        private RandomGenerator<T>? TryGetCachedResult<T>()
+            => _cache.GetOrAddDelayedValue<RandomGenerator<T>>(static holder => (r,s) => holder.Value!(r,s));
 
-        // Delayed delegate initializer for handling recursive types
-        private sealed class DelayedResultValueHolder<T>
+        private RandomGenerator<T> CacheResult<T>(RandomGenerator<T> generator)
         {
-            private RandomGenerator<T>? _result;
-
-            public RandomGenerator<T> Result
-            {
-                get => _result is { } result ? result : (r, i) => _result!(r, i);
-                set
-                {
-                    Debug.Assert(_result is null && value is not null);
-                    _result = value;
-                }
-            }
+            _cache.Add(generator);
+            return generator;
         }
     }
 }

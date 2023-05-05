@@ -15,12 +15,14 @@ public static class Counter
 
     private sealed class Visitor : TypeShapeVisitor
     {
-        private readonly Dictionary<Type, object> _visited = new();
+        private readonly TypeCache _cache = new();
 
         public override object? VisitType<T>(ITypeShape<T> type, object? state)
         {
-            if (TryGetVisitedValue<T>() is { } result)
+            if (TryGetCachedResult<T>() is { } result)
+            {
                 return result;
+            }
 
             switch (type.Kind)
             {
@@ -100,34 +102,13 @@ public static class Counter
             });
         }
 
+        private Func<T, long>? TryGetCachedResult<T>()
+            => _cache.GetOrAddDelayedValue<Func<T, long>>(static holder => (t => holder.Value!(t)));
+
         private Func<T?, long> CacheResult<T>(Func<T?, long> counter)
         {
-            ((DelayedResultHolder<T>)_visited[typeof(T)]).Result = counter;
+            _cache.Add(counter);
             return counter;
-        }
-
-        private Func<T, long>? TryGetVisitedValue<T>()
-        {
-            ref object? entryRef = ref CollectionsMarshal.GetValueRefOrAddDefault(_visited, typeof(T), out bool exists);
-            if (exists)
-            {
-                return ((DelayedResultHolder<T>)entryRef!).Result;
-            }
-            else
-            {
-                entryRef = new DelayedResultHolder<T>();
-                return null;
-            }
-        }
-
-        private sealed class DelayedResultHolder<T>
-        {
-            private Func<T?, long>? _result;
-            public Func<T?, long> Result
-            {
-                get => _result ??= (t => _result!(t));
-                set => _result = value;
-            }
         }
     }
 }
