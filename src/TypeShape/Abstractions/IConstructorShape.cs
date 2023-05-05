@@ -45,8 +45,7 @@ public interface IConstructorShape
 /// Provides a strongly-typed shape model for a given .NET constructor.
 /// </summary>
 /// <typeparam name="TDeclaringType">The declaring type of the underlying constructor.</typeparam>
-/// <typeparam name="TArgumentState">The state type used for aggregating constructor arguments.</typeparam>
-public interface IConstructorShape<TDeclaringType, TArgumentState> : IConstructorShape
+public interface IConstructorShape<TDeclaringType> : IConstructorShape
 {
     /// <summary>
     /// Creates a delegate wrapping a parameterless constructor, if applicable.
@@ -54,7 +53,15 @@ public interface IConstructorShape<TDeclaringType, TArgumentState> : IConstructo
     /// <exception cref="InvalidOperationException">The <see cref="ParameterCount"/> of the constructor is not zero.</exception>
     /// <returns>A parameterless delegate creating a default instance of <see cref="TDeclaringType"/>.</returns>
     Func<TDeclaringType> GetDefaultConstructor();
+}
 
+/// <summary>
+/// Provides a strongly-typed shape model for a given .NET constructor.
+/// </summary>
+/// <typeparam name="TDeclaringType">The declaring type of the underlying constructor.</typeparam>
+/// <typeparam name="TArgumentState">The state type used for aggregating constructor arguments.</typeparam>
+public interface IConstructorShape<TDeclaringType, TArgumentState> : IConstructorShape<TDeclaringType>
+{
     /// <summary>
     /// Creates a constructor delegate parameterized on an argument state object.
     /// </summary>

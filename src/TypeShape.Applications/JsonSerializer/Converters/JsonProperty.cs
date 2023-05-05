@@ -6,9 +6,12 @@ using System.Text.Json.Serialization;
 
 internal abstract class JsonProperty<TDeclaringType>
 {
-    public abstract string Name { get; }
-    public abstract bool CanRead { get; }
-    public abstract bool CanWrite { get; }
+    public JsonProperty(string name)
+        => Name = name;
+
+    public string Name { get; }
+    public abstract bool HasGetter { get; }
+    public abstract bool HasSetter { get; }
 
     public abstract void Deserialize(ref Utf8JsonReader reader, ref TDeclaringType declaringType, JsonSerializerOptions options);
     public abstract void Serialize(Utf8JsonWriter writer, ref TDeclaringType declaringType, JsonSerializerOptions options);
@@ -21,8 +24,8 @@ internal sealed class JsonProperty<TDeclaringType, TPropertyType> : JsonProperty
     private readonly Setter<TDeclaringType, TPropertyType>? _setter;
 
     public JsonProperty(IPropertyShape<TDeclaringType, TPropertyType> property, JsonConverter<TPropertyType> propertyConverter)
+        : base(property.Name)
     {
-        Name = property.Name;
         _propertyConverter = propertyConverter;
 
         if (property.HasGetter)
@@ -37,15 +40,14 @@ internal sealed class JsonProperty<TDeclaringType, TPropertyType> : JsonProperty
     }
 
     public JsonProperty(IConstructorParameterShape<TDeclaringType, TPropertyType> parameter, JsonConverter<TPropertyType> propertyConverter)
+        : base(parameter.Name!)
     {
-        Name = parameter.Name!;
         _propertyConverter = propertyConverter;
         _setter = parameter.GetSetter();
     }
 
-    public override string Name { get; }
-    public override bool CanRead => _setter != null;
-    public override bool CanWrite => _getter != null;
+    public override bool HasGetter => _getter != null;
+    public override bool HasSetter => _setter != null;
 
     public override void Deserialize(ref Utf8JsonReader reader, ref TDeclaringType declaringType, JsonSerializerOptions options)
     {

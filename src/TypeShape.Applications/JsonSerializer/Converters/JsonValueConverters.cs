@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace TypeShape.Applications.JsonSerializer.Converters;
 
@@ -133,4 +134,31 @@ public sealed class RuneConverter : JsonConverter<Rune>
     {
         writer.WriteStringValue(value.ToString());
     }
+}
+
+public sealed class JsonObjectConverter : JsonConverter<object?>
+{
+    public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        => JsonMetadataServices.ObjectConverter.Read(ref reader, typeToConvert, options);
+
+    public override void Write(Utf8JsonWriter writer, object? value, JsonSerializerOptions options)
+    {
+        switch (value)
+        {
+            case null: writer.WriteNullValue(); break;
+            case bool b: writer.WriteBooleanValue(b); break;
+            case int i: writer.WriteNumberValue(i); break;
+            case string s: writer.WriteStringValue(s); break;
+            default:
+                writer.WriteStartObject();
+                writer.WriteEndObject();
+                break;
+        }
+    }
+
+    public override object? ReadAsPropertyName(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        => reader.GetString();
+
+    public override void WriteAsPropertyName(Utf8JsonWriter writer, object? value, JsonSerializerOptions options)
+        => writer.WritePropertyName(value?.ToString() ?? "<null>");
 }
