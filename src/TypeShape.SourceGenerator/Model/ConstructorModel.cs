@@ -5,8 +5,8 @@ namespace TypeShape.SourceGenerator.Model;
 public sealed record ConstructorModel
 {
     public required TypeId DeclaringType { get; init; }
-    public required ImmutableArrayEq<ConstructorParameterModel> Parameters { get; init; }
-    public required ImmutableArrayEq<ConstructorParameterModel> MemberInitializers { get; init; }
+    public required ImmutableEquatableArray<ConstructorParameterModel> Parameters { get; init; }
+    public required ImmutableEquatableArray<ConstructorParameterModel> MemberInitializers { get; init; }
     public required string? StaticFactoryName { get; init; }
 
     public int TotalArity => Parameters.Count + MemberInitializers.Count;

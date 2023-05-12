@@ -76,10 +76,10 @@ public sealed partial class ModelGenerator
         {
             Name = _declaredTypeSymbol.Name,
             Namespace = FormatNamespace(_declaredTypeSymbol),
-            ProvidedTypes = _generatedTypes.Values.OrderBy(type => type.Id.FullyQualifiedName).ToImmutableArrayEq(),
-            TypeDeclaration = ResolveDeclarationHeader(_classDeclarationSyntax, out ImmutableArrayEq<string>? containingTypes),
+            ProvidedTypes = _generatedTypes.Values.OrderBy(type => type.Id.FullyQualifiedName).ToImmutableEquatableArray(),
+            TypeDeclaration = ResolveDeclarationHeader(_classDeclarationSyntax, out ImmutableEquatableArray<string>? containingTypes),
             ContainingTypes = containingTypes,
-            Diagnostics = _diagnostics.ToImmutableArrayEq(),
+            Diagnostics = _diagnostics.ToImmutableEquatableArray(),
         };
     }
 
@@ -188,7 +188,7 @@ public sealed partial class ModelGenerator
         };
     }
 
-    private string ResolveDeclarationHeader(ClassDeclarationSyntax classSyntax, out ImmutableArrayEq<string> parentHeaders)
+    private string ResolveDeclarationHeader(ClassDeclarationSyntax classSyntax, out ImmutableEquatableArray<string> parentHeaders)
     {
         bool hierarchyNotPartial = !IsSyntaxKind(classSyntax, SyntaxKind.PartialKeyword);
 
@@ -204,7 +204,7 @@ public sealed partial class ModelGenerator
             ReportDiagnostic(Diagnostic.Create(ProviderTypeNotPartial, classSyntax.GetLocationTrimmed(), classSyntax.Identifier));
         }
 
-        parentHeaders = parents != null ? parentHeaders = parents.ToImmutableArrayEq() : ImmutableArrayEq<string>.Empty;
+        parentHeaders = parents != null ? parentHeaders = parents.ToImmutableEquatableArray() : ImmutableEquatableArray.Empty<string>();
         return FormatTypeDeclarationHeader(classSyntax);
 
         static string FormatTypeDeclarationHeader(ClassDeclarationSyntax classSyntax)

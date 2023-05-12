@@ -7,26 +7,26 @@ namespace TypeShape.SourceGenerator;
 
 public sealed partial class ModelGenerator
 {
-    private ImmutableArrayEq<ConstructorModel> MapConstructors(TypeId typeId, ITypeSymbol type, ITypeSymbol[]? classTupleElements, ITypeSymbol? collectionInterface, bool disallowMemberResolution)
+    private ImmutableEquatableArray<ConstructorModel> MapConstructors(TypeId typeId, ITypeSymbol type, ITypeSymbol[]? classTupleElements, ITypeSymbol? collectionInterface, bool disallowMemberResolution)
     {
         if (TryResolveFactoryMethod(type) is { } factoryMethod)
         {
-            return ImmutableArrayEq.Create(MapConstructor(typeId, factoryMethod));
+            return ImmutableEquatableArray.Create(MapConstructor(typeId, factoryMethod));
         }
 
         if (disallowMemberResolution || type.TypeKind is not (TypeKind.Struct or TypeKind.Class) || type.SpecialType is not SpecialType.None)
         {
-            return ImmutableArrayEq<ConstructorModel>.Empty;
+            return ImmutableEquatableArray.Empty<ConstructorModel>();
         }
         
         if (classTupleElements is not null)
         {
-            return MapTupleConstructors(typeId, type, classTupleElements).ToImmutableArrayEq();
+            return MapTupleConstructors(typeId, type, classTupleElements).ToImmutableEquatableArray();
         }
 
         if (type is INamedTypeSymbol namedType && namedType.IsTupleType)
         {
-            return MapTupleConstructors(typeId, namedType, namedType.TupleElements.Select(e => e.Type)).ToImmutableArrayEq();
+            return MapTupleConstructors(typeId, namedType, namedType.TupleElements.Select(e => e.Type)).ToImmutableEquatableArray();
         }
 
         ConstructorParameterModel[] requiredOrInitMembers = ResolvePropertyAndFieldSymbols(type)
@@ -49,7 +49,7 @@ public sealed partial class ModelGenerator
                 ctor.Parameters.Length == 0 ||
                 ctor.Parameters.Length == 1 && SymbolEqualityComparer.Default.Equals(ctor.Parameters[0].Type, collectionInterface))
             .Select(ctor => MapConstructor(typeId, ctor, requiredOrInitMembers))
-            .ToImmutableArrayEq();
+            .ToImmutableEquatableArray();
     }
 
     private ConstructorModel MapConstructor(TypeId typeId, IMethodSymbol constructor, ConstructorParameterModel[]? requiredOrInitOnlyMembers = null)
@@ -91,8 +91,8 @@ public sealed partial class ModelGenerator
         return new ConstructorModel
         {
             DeclaringType = typeId,
-            Parameters = parameters.ToImmutableArrayEq(),
-            MemberInitializers = memberInitializers.ToImmutableArrayEq(),
+            Parameters = parameters.ToImmutableEquatableArray(),
+            MemberInitializers = memberInitializers.ToImmutableEquatableArray(),
             StaticFactoryName = constructor.IsStatic 
             ? $"{constructor.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}.{constructor.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}" 
             : null,
@@ -170,8 +170,8 @@ public sealed partial class ModelGenerator
             yield return new ConstructorModel
             {
                 DeclaringType = typeId,
-                Parameters = ImmutableArrayEq<ConstructorParameterModel>.Empty,
-                MemberInitializers = ImmutableArrayEq<ConstructorParameterModel>.Empty,
+                Parameters = ImmutableEquatableArray.Empty<ConstructorParameterModel>(),
+                MemberInitializers = ImmutableEquatableArray.Empty<ConstructorParameterModel>(),
                 StaticFactoryName = null,
             };
         }
@@ -179,8 +179,8 @@ public sealed partial class ModelGenerator
         yield return new ConstructorModel
         {
             DeclaringType = typeId,
-            Parameters = tupleElements.Select(MapTupleConstructorParameter).ToImmutableArrayEq(),
-            MemberInitializers = ImmutableArrayEq<ConstructorParameterModel>.Empty,
+            Parameters = tupleElements.Select(MapTupleConstructorParameter).ToImmutableEquatableArray(),
+            MemberInitializers = ImmutableEquatableArray.Empty<ConstructorParameterModel>(),
             StaticFactoryName = null,
         };
 

@@ -54,10 +54,7 @@ public sealed class TypeCache
     /// <exception cref="ArgumentNullException"><paramref name="delayedValueFactory"/> is null or returns null.</exception>
     public T? GetOrAddDelayedValue<T>(Func<ResultHolder<T>, T> delayedValueFactory) where T : class
     {
-        if (delayedValueFactory is null)
-        {
-            throw new ArgumentNullException(nameof(delayedValueFactory));
-        }
+        ArgumentNullException.ThrowIfNull(delayedValueFactory);
 
         ref object? entryRef = ref CollectionsMarshal.GetValueRefOrAddDefault(_cache, typeof(T), out bool exists);
         if (!exists)
@@ -81,10 +78,7 @@ public sealed class TypeCache
     /// <exception cref="InvalidOperationException">A key of type <typeparamref name="T"/> has already been added.</exception>
     public void Add<T>(T value) where T : class
     {
-        if (value is null)
-        {
-            throw new ArgumentNullException(nameof(value));
-        }
+        ArgumentNullException.ThrowIfNull(value);
 
         ref object? entryRef = ref CollectionsMarshal.GetValueRefOrAddDefault(_cache, typeof(T), out bool exists);
         if (!exists)
