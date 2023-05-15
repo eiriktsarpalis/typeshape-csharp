@@ -215,6 +215,9 @@ public static class TestTypes
         yield return Create(new RecordWithEnumAndNullableParams(MyEnum.A, MyEnum.C));
         yield return Create(new RecordWithNullableDefaultEnum());
 
+        yield return Create(new GenericContainer<string>.Inner { Value = "str" });
+        yield return Create(new GenericContainer<string>.Inner<string> { Value1 = "str", Value2 = "str2" });
+
         yield return Create(new LinkedList<int>
         {
             Value = 1,
@@ -503,6 +506,20 @@ public record struct StructRecordWithRequiredAndInitOnlyProperties(int x, int y,
     public required bool requiredField;
 }
 
+public class GenericContainer<T>
+{
+    public class Inner
+    {
+        public T? Value { get; set; }
+    }
+
+    public class Inner<U>
+    {
+        public T? Value1 { get; set; }
+        public U? Value2 { get; set; }
+    }
+}
+
 public record ParameterlessRecord();
 public record struct ParameterlessStructRecord();
 public record SimpleRecord(int value);
@@ -680,6 +697,8 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 [GenerateShape(typeof(RecordWithNullableDefaultParams2))]
 [GenerateShape(typeof(RecordWithEnumAndNullableParams))]
 [GenerateShape(typeof(LinkedList<int>))]
+[GenerateShape(typeof(GenericContainer<string?>.Inner))]
+[GenerateShape(typeof(GenericContainer<string?>.Inner<string?>))]
 [GenerateShape(typeof(ValueTuple))]
 [GenerateShape(typeof(ValueTuple<int>))]
 [GenerateShape(typeof(ValueTuple<int, string>))]

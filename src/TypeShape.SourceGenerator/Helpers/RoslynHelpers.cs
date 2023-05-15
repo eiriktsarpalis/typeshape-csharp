@@ -10,9 +10,14 @@ internal static class RoslynHelpers
 {
     public static ITypeSymbol EraseCompilerMetadata(this Compilation compilation, ITypeSymbol type)
     {
+        if (type.NullableAnnotation is NullableAnnotation.Annotated)
+        {
+            type = type.WithNullableAnnotation(NullableAnnotation.None);
+        }
+
         if (type is INamedTypeSymbol namedType)
         {
-            if (type.IsTupleType)
+            if (namedType.IsTupleType)
             {
                 if (namedType.TupleElements.Length < 2)
                 {
@@ -23,11 +28,28 @@ internal static class RoslynHelpers
                     .Select(e => compilation.EraseCompilerMetadata(e.Type))
                     .ToImmutableArray();
 
-                return compilation.CreateTupleTypeSymbol(erasedElements);
+                type = compilation.CreateTupleTypeSymbol(erasedElements);
             }
+            else if (namedType.IsGenericType)
+            {
+                ImmutableArray<ITypeSymbol> typeArguments = namedType.TypeArguments;
+                INamedTypeSymbol? containingType = namedType.ContainingType;
 
-            // TODO nullable reference type handling.
-            // TODO type argument erasure
+                if (containingType?.IsGenericType == true)
+                {
+                    containingType = (INamedTypeSymbol)compilation.EraseCompilerMetadata(containingType);
+                    type = namedType = containingType.GetTypeMembers().First(t => t.Name == namedType.Name && t.Arity == namedType.Arity);
+                }
+
+                if (typeArguments.Length > 0)
+                {
+                    ITypeSymbol[] erasedTypeArgs = typeArguments
+                        .Select(compilation.EraseCompilerMetadata)
+                        .ToArray();
+
+                    type = namedType.ConstructedFrom.Construct(erasedTypeArgs);
+                }
+            }
         }
 
         return type;
