@@ -206,6 +206,8 @@ public static class TestTypes
         yield return Create(new StructRecord(0, 1, 2, 3));
         yield return Create(new LargeClassRecord());
 
+        yield return Create(new ClassWithIndexer());
+
         yield return Create(new RecordWithDefaultParams());
         yield return Create(new RecordWithDefaultParams2());
 
@@ -480,6 +482,15 @@ public struct StructWithSetsRequiredMembersCtor
     }
 }
 
+public class ClassWithIndexer
+{
+    public string this[int i]
+    {
+        get => i.ToString();
+        set { }
+    }
+}
+
 public record ClassRecordWithRequiredAndInitOnlyProperties(int x, int y, int z)
 {
     public required string RequiredAndInitOnlyString { get; init; }
@@ -681,6 +692,7 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 [GenerateShape(typeof(ClassWithRequiredProperty))]
 [GenerateShape(typeof(StructWithRequiredProperty))]
 [GenerateShape(typeof(ClassWithRequiredAndInitOnlyProperties))]
+[GenerateShape(typeof(ClassWithIndexer))]
 [GenerateShape(typeof(StructWithRequiredAndInitOnlyProperties))]
 [GenerateShape(typeof(ClassRecordWithRequiredAndInitOnlyProperties))]
 [GenerateShape(typeof(StructRecordWithRequiredAndInitOnlyProperties))]

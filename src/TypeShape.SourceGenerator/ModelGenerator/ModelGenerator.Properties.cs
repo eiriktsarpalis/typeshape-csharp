@@ -51,7 +51,7 @@ public sealed partial class ModelGenerator
             
             foreach (ISymbol member in members) 
             {
-                if (member is IPropertySymbol { IsStatic: false, IsIndexer: false } ps &&
+                if (member is IPropertySymbol { IsStatic: false, Parameters: [] } ps &&
                     IsSupportedType(ps.Type) && IsAccessibleFromGeneratedType(ps))
                 {
                     yield return ps;
