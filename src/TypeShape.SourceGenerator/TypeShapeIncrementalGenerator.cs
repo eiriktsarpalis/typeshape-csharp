@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using TypeShape.SourceGenerator.Helpers;
 using TypeShape.SourceGenerator.Model;
 
 namespace TypeShape.SourceGenerator;
@@ -12,21 +13,26 @@ public sealed class TypeShapeIncrementalGenerator : IIncrementalGenerator
 #if LAUNCH_DEBUGGER
         System.Diagnostics.Debugger.Launch();
 #endif
+        IncrementalValueProvider<KnownSymbols> knownSymbols = context.CompilationProvider
+            .Select((compilation, _) => new KnownSymbols(compilation));
+
         IncrementalValuesProvider<TypeShapeProviderModel> generationModels = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 "TypeShape.GenerateShapeAttribute",
                 (node, _) => node is ClassDeclarationSyntax,
-                (context, _) => (ClassDeclarationSyntax)context.TargetNode)
-            .Combine(context.CompilationProvider)
-            .Select((state, token) => ModelGenerator.Compile(state.Left, state.Right, token));
+                (context, _) => (ClassDeclarationSyntax: (ClassDeclarationSyntax)context.TargetNode, context.SemanticModel))
+            .Combine(knownSymbols)
+            .Select((tuple, token) => ModelGenerator.Compile(tuple.Right, tuple.Left.ClassDeclarationSyntax, tuple.Left.SemanticModel, token));
 
         context.RegisterSourceOutput(generationModels, OnModelCreated);
     }
 
     private static void OnModelCreated(SourceProductionContext context, TypeShapeProviderModel provider)
     {
-        foreach (Diagnostic diagnostic in provider.Diagnostics)
-            context.ReportDiagnostic(diagnostic);
+        foreach (DiagnosticInfo diagnostic in provider.Diagnostics)
+        {
+            context.ReportDiagnostic(diagnostic.CreateDiagnostic());
+        }
 
         SourceFormatter.FormatProvider(context, provider);
     }

@@ -108,7 +108,7 @@ public sealed partial class ModelGenerator
             type.AllInterfaces.FirstOrDefault(i => i.OriginalDefinition.SpecialType is SpecialType.System_Collections_IEnumerable)
             is { } enumerable)
         {
-            if (_iList is { } ilist && type.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, ilist)))
+            if (_knownSymbols.IList is { } ilist && type.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, ilist)))
             {
                 resolvedInterface = ilist;
                 kind = EnumerableKind.IList;
@@ -155,7 +155,7 @@ public sealed partial class ModelGenerator
         DictionaryKind kind = default;
         resolvedInterface = null;
 
-        if (_iReadOnlyDictionaryOfTKeyTValue is { } genericReadOnlyIDict &&
+        if (_knownSymbols.IReadOnlyDictionaryOfTKeyTValue is { } genericReadOnlyIDict &&
             type.AllInterfaces.FirstOrDefault(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, genericReadOnlyIDict)) is { } genericReadOnlyIDictInstance)
         {
             keyType = genericReadOnlyIDictInstance.TypeArguments[0];
@@ -164,7 +164,7 @@ public sealed partial class ModelGenerator
             resolvedInterface = genericReadOnlyIDictInstance;
         }
         else if (
-            _iDictionaryOfTKeyTValue is { } genericIDict &&
+            _knownSymbols.IDictionaryOfTKeyTValue is { } genericIDict &&
             type.AllInterfaces.FirstOrDefault(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, genericIDict)) is { } genericIDictInstance)
         {
             keyType = genericIDictInstance.TypeArguments[0];
@@ -173,7 +173,7 @@ public sealed partial class ModelGenerator
             resolvedInterface = genericIDictInstance;
         }
         else if (
-            _iDictionary is { } iDictionary &&
+            _knownSymbols.IDictionary is { } iDictionary &&
             type.AllInterfaces.FirstOrDefault(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, iDictionary)) is { })
         {
             keyType = _semanticModel.Compilation.ObjectType;
@@ -215,13 +215,13 @@ public sealed partial class ModelGenerator
 
         SymbolEqualityComparer cmp = SymbolEqualityComparer.Default;
         return 
-            cmp.Equals(definition, _immutableArray) ||
-            cmp.Equals(definition, _immutableList) ||
-            cmp.Equals(definition, _immutableStack) ||
-            cmp.Equals(definition, _immutableQueue) ||
-            cmp.Equals(definition, _immutableHashSet) ||
-            cmp.Equals(definition, _immutableSortedSet) ||
-            cmp.Equals(definition, _immutableDictionary) ||
-            cmp.Equals(definition, _immutableSortedDictionary);
+            cmp.Equals(definition, _knownSymbols.ImmutableArray) ||
+            cmp.Equals(definition, _knownSymbols.ImmutableList) ||
+            cmp.Equals(definition, _knownSymbols.ImmutableStack) ||
+            cmp.Equals(definition, _knownSymbols.ImmutableQueue) ||
+            cmp.Equals(definition, _knownSymbols.ImmutableHashSet) ||
+            cmp.Equals(definition, _knownSymbols.ImmutableSortedSet) ||
+            cmp.Equals(definition, _knownSymbols.ImmutableDictionary) ||
+            cmp.Equals(definition, _knownSymbols.ImmutableSortedDictionary);
     }
 }

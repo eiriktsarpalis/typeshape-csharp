@@ -1,10 +1,19 @@
 ﻿using Microsoft.CodeAnalysis;
+using TypeShape.SourceGenerator.Helpers;
 
 namespace TypeShape.SourceGenerator;
 
 public sealed partial class ModelGenerator
 {
-    private void ReportDiagnostic(Diagnostic diagnostic) => _diagnostics.Add(diagnostic);
+    private void ReportDiagnostic(DiagnosticDescriptor descriptor, Location? location, params object?[]? messageArgs)
+    {
+        _diagnostics.Add(new DiagnosticInfo
+        { 
+            Descriptor = descriptor, 
+            Location = location?.GetLocationTrimmed(), 
+            MessageArgs = messageArgs ?? Array.Empty<object?>(),
+        });
+    }
 
     private static DiagnosticDescriptor TypeNotSupported { get; } = new DiagnosticDescriptor(
         id: "TS0001",

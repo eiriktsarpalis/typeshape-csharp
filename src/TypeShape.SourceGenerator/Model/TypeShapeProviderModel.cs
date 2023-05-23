@@ -1,5 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
-using TypeShape.SourceGenerator.Helpers;
+﻿using TypeShape.SourceGenerator.Helpers;
 
 namespace TypeShape.SourceGenerator.Model;
 
@@ -12,5 +11,5 @@ public sealed record TypeShapeProviderModel
     public required ImmutableEquatableArray<string> ContainingTypes { get; init; }
 
     public required ImmutableEquatableArray<TypeModel> ProvidedTypes { get; init; }
-    public required ImmutableEquatableArray<Diagnostic> Diagnostics { get; init; }
+    public required ImmutableEquatableArray<DiagnosticInfo> Diagnostics { get; init; }
 }

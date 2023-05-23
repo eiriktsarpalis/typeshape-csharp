@@ -207,9 +207,8 @@ internal static class RoslynHelpers
     /// <summary>
     /// Get a location object that doesn't capture a reference to Compilation.
     /// </summary>
-    public static Location GetLocationTrimmed(this CSharpSyntaxNode node)
+    public static Location GetLocationTrimmed(this Location location)
     {
-        var location = node.GetLocation();
         return Location.Create(location.SourceTree?.FilePath ?? string.Empty, location.SourceSpan, location.GetLineSpan().Span);
     }
 

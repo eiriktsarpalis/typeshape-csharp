@@ -220,7 +220,7 @@ public sealed partial class ModelGenerator
 
         SymbolEqualityComparer cmp = SymbolEqualityComparer.Default;
 
-        if (cmp.Equals(namedType.ConstructedFrom, _immutableArray))
+        if (cmp.Equals(namedType.ConstructedFrom, _knownSymbols.ImmutableArray))
         { 
             return _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableArray")
                 .GetMethodSymbol(method =>
@@ -229,7 +229,7 @@ public sealed partial class ModelGenerator
                 .MakeGenericMethod(namedType.TypeArguments[0]);
         }
 
-        if (cmp.Equals(namedType.ConstructedFrom, _immutableList))
+        if (cmp.Equals(namedType.ConstructedFrom, _knownSymbols.ImmutableList))
         {
             return _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableList")
                 .GetMethodSymbol(method =>
@@ -238,7 +238,7 @@ public sealed partial class ModelGenerator
                 .MakeGenericMethod(namedType.TypeArguments[0]);
         }
 
-        if (cmp.Equals(namedType.ConstructedFrom, _immutableQueue))
+        if (cmp.Equals(namedType.ConstructedFrom, _knownSymbols.ImmutableQueue))
         {
             return _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableQueue")
                 .GetMethodSymbol(method =>
@@ -247,7 +247,7 @@ public sealed partial class ModelGenerator
                 .MakeGenericMethod(namedType.TypeArguments[0]);
         }
 
-        if (cmp.Equals(namedType.ConstructedFrom, _immutableStack))
+        if (cmp.Equals(namedType.ConstructedFrom, _knownSymbols.ImmutableStack))
         {
             return _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableStack")
                 .GetMethodSymbol(method =>
@@ -256,7 +256,7 @@ public sealed partial class ModelGenerator
                 .MakeGenericMethod(namedType.TypeArguments[0]);
         }
 
-        if (cmp.Equals(namedType.ConstructedFrom, _immutableHashSet))
+        if (cmp.Equals(namedType.ConstructedFrom, _knownSymbols.ImmutableHashSet))
         {
             return _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableHashSet")
                 .GetMethodSymbol(method =>
@@ -265,7 +265,7 @@ public sealed partial class ModelGenerator
                 .MakeGenericMethod(namedType.TypeArguments[0]);
         }
 
-        if (cmp.Equals(namedType.ConstructedFrom, _immutableSortedSet))
+        if (cmp.Equals(namedType.ConstructedFrom, _knownSymbols.ImmutableSortedSet))
         {
             return _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableSortedSet")
                 .GetMethodSymbol(method =>
@@ -274,7 +274,7 @@ public sealed partial class ModelGenerator
                 .MakeGenericMethod(namedType.TypeArguments[0]);
         }
 
-        if (cmp.Equals(namedType.ConstructedFrom, _immutableDictionary))
+        if (cmp.Equals(namedType.ConstructedFrom, _knownSymbols.ImmutableDictionary))
         {
             return _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableDictionary")
                 .GetMethodSymbol(method =>
@@ -283,7 +283,7 @@ public sealed partial class ModelGenerator
                 .MakeGenericMethod(namedType.TypeArguments[0], namedType.TypeArguments[1]);
         }
 
-        if (cmp.Equals(namedType.ConstructedFrom, _immutableSortedDictionary))
+        if (cmp.Equals(namedType.ConstructedFrom, _knownSymbols.ImmutableSortedDictionary))
         {
             return _semanticModel.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableSortedDictionary")
                 .GetMethodSymbol(method =>

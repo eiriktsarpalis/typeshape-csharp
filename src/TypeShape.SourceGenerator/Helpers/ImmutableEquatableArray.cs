@@ -27,19 +27,10 @@ public sealed class ImmutableEquatableArray<T> : IEquatable<ImmutableEquatableAr
         int hash = 0;
         foreach (T value in _values)
         {
-            hash = Combine(hash, value is null ? 0 : value.GetHashCode());
+            hash = HashHelpers.Combine(hash, value is null ? 0 : value.GetHashCode());
         }
 
         return hash;
-
-
-        static int Combine(int h1, int h2)
-        {
-            // RyuJIT optimizes this to use the ROL instruction
-            // Related GitHub pull request: https://github.com/dotnet/coreclr/pull/1830
-            uint rol5 = ((uint)h1 << 5) | ((uint)h1 >> 27);
-            return ((int)rol5 + h1) ^ h2;
-        }
     }
 
     public Enumerator GetEnumerator() => new(_values);
@@ -58,7 +49,7 @@ public sealed class ImmutableEquatableArray<T> : IEquatable<ImmutableEquatableAr
         }
 
         public bool MoveNext() => ++_index < _values.Length;
-        public T Current => _values[_index];
+        public readonly T Current => _values[_index];
     }
 }
 

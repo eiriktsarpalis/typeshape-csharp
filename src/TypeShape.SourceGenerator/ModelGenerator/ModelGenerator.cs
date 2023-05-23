@@ -12,6 +12,7 @@ public sealed partial class ModelGenerator
     private const string GenerateShapeAttributeFQN = "global::TypeShape.GenerateShapeAttribute";
     private const string GlobalNamespaceIdentifier = "<global namespace>";
 
+    private readonly KnownSymbols _knownSymbols;
     private readonly SemanticModel _semanticModel;
     private readonly CancellationToken _cancellationToken;
     private readonly ClassDeclarationSyntax _classDeclarationSyntax;
@@ -19,51 +20,22 @@ public sealed partial class ModelGenerator
 
     private readonly Dictionary<ITypeSymbol, TypeModel> _generatedTypes = new(SymbolEqualityComparer.Default);
     private readonly Queue<(TypeId, ITypeSymbol)> _typesToGenerate = new();
-    private readonly List<Diagnostic> _diagnostics = new();
+    private readonly List<DiagnosticInfo> _diagnostics = new();
 
-    private readonly ITypeSymbol _delegateType;
-    private readonly ITypeSymbol? _memberInfoType;
-    private readonly ITypeSymbol? _iReadOnlyDictionaryOfTKeyTValue;
-    private readonly ITypeSymbol? _iDictionaryOfTKeyTValue;
-    private readonly ITypeSymbol? _iDictionary;
-    private readonly ITypeSymbol? _iList;
 
-    private readonly ITypeSymbol? _immutableArray;
-    private readonly ITypeSymbol? _immutableList;
-    private readonly ITypeSymbol? _immutableQueue;
-    private readonly ITypeSymbol? _immutableStack;
-    private readonly ITypeSymbol? _immutableHashSet;
-    private readonly ITypeSymbol? _immutableSortedSet;
-    private readonly ITypeSymbol? _immutableDictionary;
-    private readonly ITypeSymbol? _immutableSortedDictionary;
 
-    public ModelGenerator(ClassDeclarationSyntax classDeclarationSyntax, Compilation compilation, CancellationToken cancellationToken)
+    public ModelGenerator(KnownSymbols knownSymbols, ClassDeclarationSyntax classDeclarationSyntax, SemanticModel semanticModel, CancellationToken cancellationToken)
     {
         _classDeclarationSyntax = classDeclarationSyntax;
         _cancellationToken = cancellationToken;
-        _semanticModel = compilation.GetSemanticModel(classDeclarationSyntax.SyntaxTree);
-
-        _declaredTypeSymbol = _semanticModel.GetDeclaredSymbol(classDeclarationSyntax, cancellationToken)!;
-        _iReadOnlyDictionaryOfTKeyTValue = compilation.GetTypeByMetadataName("System.Collections.Generic.IReadOnlyDictionary`2");
-        _iDictionaryOfTKeyTValue = compilation.GetTypeByMetadataName("System.Collections.Generic.IDictionary`2");
-        _iDictionary = compilation.GetTypeByMetadataName("System.Collections.IDictionary");
-        _iList = compilation.GetTypeByMetadataName("System.Collections.IList");
-        _delegateType = compilation.GetSpecialType(SpecialType.System_Delegate);
-        _memberInfoType = compilation.GetTypeByMetadataName("System.Reflection.MemberInfo");
-
-        _immutableArray = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableArray`1");
-        _immutableList = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableList`1");
-        _immutableQueue = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableQueue`1");
-        _immutableStack = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableStack`1");
-        _immutableHashSet = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableHashSet`1");
-        _immutableSortedSet = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableSortedSet`1");
-        _immutableDictionary = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableDictionary`2");
-        _immutableSortedDictionary = compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableSortedDictionary`2");
+        _semanticModel = semanticModel;
+        _knownSymbols = knownSymbols;
+        _declaredTypeSymbol = semanticModel.GetDeclaredSymbol(classDeclarationSyntax, cancellationToken)!;
     }
 
-    public static TypeShapeProviderModel Compile(ClassDeclarationSyntax classDeclarationSyntax, Compilation compilation, CancellationToken cancellationToken)
+    public static TypeShapeProviderModel Compile(KnownSymbols knownSymbols, ClassDeclarationSyntax classDeclarationSyntax, SemanticModel semanticModel, CancellationToken cancellationToken)
     {
-        ModelGenerator compiler = new(classDeclarationSyntax, compilation, cancellationToken);
+        ModelGenerator compiler = new(knownSymbols, classDeclarationSyntax, semanticModel, cancellationToken);
         return compiler.Compile();
     }
 
@@ -139,8 +111,7 @@ public sealed partial class ModelGenerator
             {
                 if (!IsSupportedType(typeSymbol) || !IsAccessibleFromGeneratedType(typeSymbol))
                 {
-                    ReportDiagnostic(
-                        Diagnostic.Create(TypeNotSupported, attributeSyntax.GetLocationTrimmed(), typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)));
+                    ReportDiagnostic(TypeNotSupported, attributeSyntax.GetLocation(), typeSymbol.ToDisplayString());
 
                     continue;
                 }
@@ -201,7 +172,7 @@ public sealed partial class ModelGenerator
 
         if (hierarchyNotPartial)
         {
-            ReportDiagnostic(Diagnostic.Create(ProviderTypeNotPartial, classSyntax.GetLocationTrimmed(), classSyntax.Identifier));
+            ReportDiagnostic(ProviderTypeNotPartial, classSyntax.GetLocation(), classSyntax.Identifier);
         }
 
         parentHeaders = parents != null ? parentHeaders = parents.ToImmutableEquatableArray() : ImmutableEquatableArray.Empty<string>();
@@ -252,7 +223,7 @@ public sealed partial class ModelGenerator
         return _semanticModel.Compilation.IsAtomicValueType(type) ||
             type.TypeKind is TypeKind.Array or TypeKind.Enum ||
             type.SpecialType is SpecialType.System_Nullable_T ||
-            _memberInfoType.IsAssignableFrom(type) ||
-            _delegateType.IsAssignableFrom(type);
+            _knownSymbols.MemberInfoType.IsAssignableFrom(type) ||
+            _knownSymbols.DelegateType.IsAssignableFrom(type);
     }
 }
