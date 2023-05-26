@@ -142,10 +142,8 @@ internal static class RoslynHelpers
         return typeSymbol.IsTupleType && typeSymbol is INamedTypeSymbol ts && ts.TupleElements.Length > 1;
     }
 
-    public static ITypeSymbol[]? GetClassTupleElements(this Compilation compilation, ITypeSymbol typeSymbol)
+    public static ITypeSymbol[]? GetClassTupleElements(this Compilation compilation, IAssemblySymbol coreLibAssembly, ITypeSymbol typeSymbol)
     {
-        IAssemblySymbol coreLibAssembly = compilation.GetCoreLibAssembly();
-
         if (!IsClassTupleType(typeSymbol))
         {
             return null;
@@ -240,9 +238,11 @@ internal static class RoslynHelpers
             return false;
         }
 
+        SymbolEqualityComparer comparer = SymbolEqualityComparer.Default;
+
         for (ITypeSymbol? current = type; current != null; current = current.BaseType)
         {
-            if (SymbolEqualityComparer.Default.Equals(current, baseType))
+            if (comparer.Equals(current, baseType))
             {
                 return true;
             }
@@ -250,7 +250,7 @@ internal static class RoslynHelpers
 
         foreach (INamedTypeSymbol @interface in type.AllInterfaces)
         {
-            if (SymbolEqualityComparer.Default.Equals(@interface, baseType))
+            if (comparer.Equals(@interface, baseType))
             {
                 return true;
             }
@@ -285,7 +285,7 @@ internal static class RoslynHelpers
     /// An "atomic value" in this context defines a type that is either 
     /// a primitive, string or a self-contained value like decimal, DateTime or Uri.
     /// </summary>
-    public static bool IsAtomicValueType(this Compilation compilation, ITypeSymbol type)
+    public static bool IsAtomicValueType(this Compilation compilation, IAssemblySymbol coreLibAssembly, ITypeSymbol type)
     {
         switch (type.SpecialType)
         {
@@ -311,7 +311,7 @@ internal static class RoslynHelpers
                 return true;
         }
 
-        if (!SymbolEqualityComparer.Default.Equals(compilation.GetCoreLibAssembly(), type.ContainingAssembly))
+        if (!SymbolEqualityComparer.Default.Equals(coreLibAssembly, type.ContainingAssembly))
         {
             return false;
         }
@@ -334,7 +334,4 @@ internal static class RoslynHelpers
 
         return false;
     }
-
-    public static IAssemblySymbol GetCoreLibAssembly(this Compilation compilation)
-        => compilation.GetSpecialType(SpecialType.System_Int32).ContainingAssembly;
 }

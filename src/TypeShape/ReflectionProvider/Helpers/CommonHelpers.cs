@@ -74,7 +74,7 @@ internal static class CommonHelpers
             // Iterate over the adjacency matrix, removing any occurrence of nextIndex.
             for (int i = 0; i < adjacency.Count; i++)
             {
-                if (adjacency[i] is { } childMap && childMap[nextIndex])
+                if (adjacency[i] is { } childMap && i < childMap.Length && childMap[nextIndex])
                 {
                     childMap[nextIndex] = false;
 

@@ -22,8 +22,6 @@ public sealed partial class ModelGenerator
     private readonly Queue<(TypeId, ITypeSymbol)> _typesToGenerate = new();
     private readonly List<DiagnosticInfo> _diagnostics = new();
 
-
-
     public ModelGenerator(KnownSymbols knownSymbols, ClassDeclarationSyntax classDeclarationSyntax, SemanticModel semanticModel, CancellationToken cancellationToken)
     {
         _classDeclarationSyntax = classDeclarationSyntax;
@@ -79,7 +77,7 @@ public sealed partial class ModelGenerator
             out EnumerableTypeModel? enumerableType, 
             out ITypeSymbol? implementedCollectionType);
 
-        ITypeSymbol[]? classTupleElements = _semanticModel.Compilation.GetClassTupleElements(type);
+        ITypeSymbol[]? classTupleElements = _semanticModel.Compilation.GetClassTupleElements(_knownSymbols.CoreLibAssembly, type);
         bool disallowMemberResolution = DisallowMemberResolution(type);
 
         return new TypeModel
@@ -220,7 +218,7 @@ public sealed partial class ModelGenerator
 
     private bool DisallowMemberResolution(ITypeSymbol type)
     {
-        return _semanticModel.Compilation.IsAtomicValueType(type) ||
+        return _semanticModel.Compilation.IsAtomicValueType(_knownSymbols.CoreLibAssembly, type) ||
             type.TypeKind is TypeKind.Array or TypeKind.Enum ||
             type.SpecialType is SpecialType.System_Nullable_T ||
             _knownSymbols.MemberInfoType.IsAssignableFrom(type) ||

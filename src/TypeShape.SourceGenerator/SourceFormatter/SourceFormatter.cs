@@ -35,10 +35,9 @@ internal static partial class SourceFormatter
             private const global::System.Reflection.BindingFlags {{InstanceBindingFlagsConstMember}} = 
                 global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance;
 
-            public {{provider.Name}}() { }
+            public static {{provider.Name}} Default { get; } = new();
 
-            public static {{provider.Name}} Default => _default ??= new();
-            private static {{provider.Name}}? _default;
+            public {{provider.Name}}() { }
             """);
 
         writer.Indentation--;
