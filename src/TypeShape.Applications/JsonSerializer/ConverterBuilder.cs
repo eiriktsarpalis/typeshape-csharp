@@ -77,9 +77,9 @@ public static partial class ConverterBuilder
                 default:
                     Debug.Assert(type.Kind == TypeKind.None);
 
-                    JsonProperty<T>[] properties = type
+                    JsonPropertyConverter<T>[] properties = type
                         .GetProperties(nonPublic: false, includeFields: true)
-                        .Select(prop => (JsonProperty<T>)prop.Accept(this, state)!)
+                        .Select(prop => (JsonPropertyConverter<T>)prop.Accept(this, state)!)
                         .ToArray();
 
                     IConstructorShape? ctor = type
@@ -101,21 +101,21 @@ public static partial class ConverterBuilder
         public object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
         {
             JsonConverter<TPropertyType> propertyConverter = (JsonConverter<TPropertyType>)property.PropertyType.Accept(this, null)!;
-            return new JsonProperty<TDeclaringType, TPropertyType>(property, propertyConverter);
+            return new JsonPropertyConverter<TDeclaringType, TPropertyType>(property, propertyConverter);
         }
 
         public object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructorShape<TDeclaringType, TArgumentState> constructor, object? state)
         {
-            var properties = (JsonProperty<TDeclaringType>[])state!;
+            var properties = (JsonPropertyConverter<TDeclaringType>[])state!;
 
             if (constructor.ParameterCount == 0)
             {
                 return new JsonObjectConverterWithDefaultCtor<TDeclaringType>(constructor.GetDefaultConstructor(), properties);
             }
 
-            JsonProperty<TArgumentState>[] constructorParams = constructor
+            JsonPropertyConverter<TArgumentState>[] constructorParams = constructor
                 .GetParameters()
-                .Select(param => (JsonProperty<TArgumentState>)param.Accept(this, null)!)
+                .Select(param => (JsonPropertyConverter<TArgumentState>)param.Accept(this, null)!)
                 .ToArray();
 
             return new JsonObjectConverterWithParameterizedCtor<TDeclaringType, TArgumentState>(
@@ -128,7 +128,7 @@ public static partial class ConverterBuilder
         public object? VisitConstructorParameter<TArgumentState, TParameter>(IConstructorParameterShape<TArgumentState, TParameter> parameter, object? state)
         {
             JsonConverter<TParameter> paramConverter = (JsonConverter<TParameter>)parameter.ParameterType.Accept(this, null)!;
-            return new JsonProperty<TArgumentState, TParameter>(parameter, paramConverter);
+            return new JsonPropertyConverter<TArgumentState, TParameter>(parameter, paramConverter);
         }
 
         public object? VisitEnumerable<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> enumerableShape, object? state)

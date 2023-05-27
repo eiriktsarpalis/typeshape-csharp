@@ -7,26 +7,26 @@ using System.Text.Json;
 
 internal abstract class JsonPropertyDictionary<TDeclaringType>
 {
-    public abstract JsonProperty<TDeclaringType>? LookupProperty(scoped ref Utf8JsonReader reader);
+    public abstract JsonPropertyConverter<TDeclaringType>? LookupProperty(scoped ref Utf8JsonReader reader);
 }
 
 internal static class JsonPropertyDictionary
 {
-    public static JsonPropertyDictionary<TDeclaringType> Create<TDeclaringType>(IEnumerable<JsonProperty<TDeclaringType>> propertiesToRead, bool isCaseSensitive)
+    public static JsonPropertyDictionary<TDeclaringType> Create<TDeclaringType>(IEnumerable<JsonPropertyConverter<TDeclaringType>> propertiesToRead, bool isCaseSensitive)
         => isCaseSensitive
         ? new CaseSensitivePropertyDictionary<TDeclaringType>(propertiesToRead)
         : new CaseInsensitivePropertyDictionary<TDeclaringType>(propertiesToRead);
 
     private sealed class CaseSensitivePropertyDictionary<TDeclaringType> : JsonPropertyDictionary<TDeclaringType>
     {
-        private readonly SpanDictionary<byte, JsonProperty<TDeclaringType>> _dict;
+        private readonly SpanDictionary<byte, JsonPropertyConverter<TDeclaringType>> _dict;
 
-        public CaseSensitivePropertyDictionary(IEnumerable<JsonProperty<TDeclaringType>> propertiesToRead)
+        public CaseSensitivePropertyDictionary(IEnumerable<JsonPropertyConverter<TDeclaringType>> propertiesToRead)
         {
             _dict = propertiesToRead.ToSpanDictionary(p => Encoding.UTF8.GetBytes(p.Name), ByteSpanEqualityComparer.Ordinal);
         }
 
-        public override JsonProperty<TDeclaringType>? LookupProperty(scoped ref Utf8JsonReader reader)
+        public override JsonPropertyConverter<TDeclaringType>? LookupProperty(scoped ref Utf8JsonReader reader)
         {
             Debug.Assert(reader.TokenType is JsonTokenType.PropertyName);
             Debug.Assert(!reader.HasValueSequence);
@@ -49,7 +49,7 @@ internal static class JsonPropertyDictionary
                 source = tmpBuffer.Slice(0, bytesWritten);
             }
 
-            _dict.TryGetValue(source, out JsonProperty<TDeclaringType>? result);
+            _dict.TryGetValue(source, out JsonPropertyConverter<TDeclaringType>? result);
 
             if (rentedBuffer != null)
             {
@@ -63,15 +63,15 @@ internal static class JsonPropertyDictionary
 
     private sealed class CaseInsensitivePropertyDictionary<TDeclaringType> : JsonPropertyDictionary<TDeclaringType>
     {
-        private readonly SpanDictionary<char, JsonProperty<TDeclaringType>> _dict;
+        private readonly SpanDictionary<char, JsonPropertyConverter<TDeclaringType>> _dict;
 
-        public CaseInsensitivePropertyDictionary(IEnumerable<JsonProperty<TDeclaringType>> propertiesToRead)
+        public CaseInsensitivePropertyDictionary(IEnumerable<JsonPropertyConverter<TDeclaringType>> propertiesToRead)
         {
             // Currently, the easiest way to calculate case-insensitive hashcode and equality is to transcode to UTF-16 so do that.
             _dict = propertiesToRead.ToSpanDictionary(p => p.Name.ToCharArray(), CharSpanEqualityComparer.OrdinalIgnoreCase);
         }
 
-        public override JsonProperty<TDeclaringType>? LookupProperty(scoped ref Utf8JsonReader reader)
+        public override JsonPropertyConverter<TDeclaringType>? LookupProperty(scoped ref Utf8JsonReader reader)
         {
             Debug.Assert(reader.TokenType is JsonTokenType.PropertyName);
             Debug.Assert(!reader.HasValueSequence);
@@ -85,7 +85,7 @@ internal static class JsonPropertyDictionary
             int charsWritten = reader.CopyString(tmpBuffer);
             ReadOnlySpan<char> source = tmpBuffer.Slice(0, charsWritten);
 
-            _dict.TryGetValue(source, out JsonProperty<TDeclaringType>? result);
+            _dict.TryGetValue(source, out JsonPropertyConverter<TDeclaringType>? result);
 
             if (rentedBuffer != null)
             {
