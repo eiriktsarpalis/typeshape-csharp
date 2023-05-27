@@ -100,7 +100,7 @@ public sealed class TypeCache
         }
     }
 
-    private sealed class ResultHolderCore<T>  : ResultHolder<T>
+    private sealed class ResultHolderCore<T> : ResultHolder<T>
         where T : class
     {
         private readonly Func<ResultHolder<T>, T> _delayedValueFactory;

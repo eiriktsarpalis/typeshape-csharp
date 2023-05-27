@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 
 namespace TypeShape.Applications.JsonSerializer;
@@ -9,25 +10,29 @@ public static class TypeShapeJsonSerializer
         => new(shape);
 }
 
-public class TypeShapeJsonSerializer<T>
+public sealed class TypeShapeJsonSerializer<T>
 {
-    private readonly JsonTypeInfo<T> _jsonTypeInfo;
+    private readonly static JsonSerializerOptions s_options = new()
+    {
+        TypeInfoResolver = new EmptyResolver(),
+    };
+
+    private readonly JsonTypeInfo<T?> _jsonTypeInfo;
 
     public TypeShapeJsonSerializer(ITypeShape<T> shape)
     {
-        Options = new JsonSerializerOptions
-        {
-            TypeInfoResolver = new TypeShapeJsonResolver(shape.Provider)
-        };
-
-        _jsonTypeInfo = (JsonTypeInfo<T>)Options.GetTypeInfo(typeof(T));
+        JsonConverter<T> converter = ConverterBuilder.Create(shape);
+        _jsonTypeInfo = JsonMetadataServices.CreateValueInfo<T?>(s_options, converter);
     }
 
-    public JsonSerializerOptions Options { get; }
-
     public string Serialize(T? value)
-        => System.Text.Json.JsonSerializer.Serialize(value!, _jsonTypeInfo);
+        => System.Text.Json.JsonSerializer.Serialize(value, _jsonTypeInfo);
 
     public T? Deserialize(string json)
         => System.Text.Json.JsonSerializer.Deserialize(json, _jsonTypeInfo);
+
+    private sealed class EmptyResolver : IJsonTypeInfoResolver
+    {
+        public JsonTypeInfo? GetTypeInfo(Type type, JsonSerializerOptions options) => null;
+    }
 }

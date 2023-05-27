@@ -7,9 +7,15 @@ using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using TypeShape.Applications.JsonSerializer.Converters;
 
-public partial class TypeShapeJsonResolver
+public static partial class ConverterBuilder
 {
-    private sealed class ConverterBuilder : ITypeShapeVisitor
+    public static JsonConverter<T> Create<T>(ITypeShape<T> shape)
+    {
+        var visitor = new Visitor();
+        return (JsonConverter<T>)shape.Accept(visitor, null)!;
+    }
+
+    private sealed class Visitor : ITypeShapeVisitor
     {
         private static readonly Dictionary<Type, JsonConverter> s_defaultConverters = new()
         {
@@ -107,7 +113,6 @@ public partial class TypeShapeJsonResolver
                 return new JsonObjectConverterWithDefaultCtor<TDeclaringType>(constructor.GetDefaultConstructor(), properties);
             }
 
-            // Delay constructor param resolution to avoid stack overflows in recursive types
             JsonProperty<TArgumentState>[] constructorParams = constructor
                 .GetParameters()
                 .Select(param => (JsonProperty<TArgumentState>)param.Accept(this, null)!)
