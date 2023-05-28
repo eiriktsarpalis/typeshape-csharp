@@ -27,6 +27,7 @@ public static partial class ConverterBuilder
             [typeof(long)] = JsonMetadataServices.Int64Converter,
             [typeof(Int128)] = new Int128Converter(),
             [typeof(byte)] = JsonMetadataServices.ByteConverter,
+            [typeof(byte[])] = JsonMetadataServices.ByteArrayConverter,
             [typeof(ushort)] = JsonMetadataServices.UInt16Converter,
             [typeof(uint)] = JsonMetadataServices.UInt32Converter,
             [typeof(ulong)] = JsonMetadataServices.UInt64Converter,

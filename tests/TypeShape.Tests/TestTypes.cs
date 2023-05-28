@@ -16,6 +16,7 @@ public sealed record TestCase<T>(T Value) : ITestCase
     object? ITestCase.Value => Value;
     public bool IsAbstractClass => typeof(T).IsInterface && !typeof(IEnumerable).IsAssignableFrom(typeof(T));
     public bool IsTuple => Value is ITuple;
+    public bool IsEquatable => Value is IEquatable<T> && !(Value.GetType().IsGenericType && Value.GetType().GetGenericTypeDefinition() == typeof(ImmutableArray<>));
     public bool IsLongTuple => Value is ITuple t && t.Length > 7;
     public bool IsStack { get; init; }
 }
@@ -65,6 +66,7 @@ public static class TestTypes
         yield return Create(new int[] { });
         yield return Create(new int[] { 1, 2, 3 });
         yield return Create(new int[][] { new int[] { 1, 0, 0 }, new int[] { 0, 1, 0 }, new int[] { 0, 0, 1 } });
+        yield return Create(new byte[] { 1, 2, 3 });
         yield return Create(new List<string> { "1", "2", "3" });
         yield return Create(new List<byte>());
         yield return Create(new Queue<int>(new int[] { 1, 2, 3 }));
@@ -637,6 +639,7 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 [GenerateShape(typeof(Rune))]
 [GenerateShape(typeof(Guid))]
 [GenerateShape(typeof(DateTime))]
+[GenerateShape(typeof(DateTimeOffset))]
 [GenerateShape(typeof(TimeSpan))]
 [GenerateShape(typeof(DateOnly))]
 [GenerateShape(typeof(TimeOnly))]
