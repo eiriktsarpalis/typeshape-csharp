@@ -39,7 +39,7 @@ public abstract class TypeShapeProviderTests
 
             if (value is IEnumerable && value is not string)
             {
-                if (value is IDictionary)
+                if (typeof(T).GetDictionaryKeyValueTypes() != null)
                 {
                     return isReflectionProvider ? TypeKind.Dictionary | TypeKind.Enumerable : TypeKind.Dictionary;
                 }
@@ -243,16 +243,11 @@ public abstract class TypeShapeProviderTests
         {
             IDictionaryShape dictionaryType = shape.GetDictionaryShape();
             Assert.Equal(typeof(T), dictionaryType.Type.Type);
-            if (GetDictionaryKeyValueTypes(typeof(T)) is { } keyValueTypes)
-            {
-                Assert.Equal(keyValueTypes[0], dictionaryType.KeyType.Type);
-                Assert.Equal(keyValueTypes[1], dictionaryType.ValueType.Type);
-            }
-            else
-            {
-                Assert.Equal(typeof(object), dictionaryType.KeyType.Type);
-                Assert.Equal(typeof(object), dictionaryType.ValueType.Type);
-            }
+            
+            Type[]? keyValueTypes = typeof(T).GetDictionaryKeyValueTypes();
+            Assert.NotNull(keyValueTypes);
+            Assert.Equal(keyValueTypes[0], dictionaryType.KeyType.Type);
+            Assert.Equal(keyValueTypes[1], dictionaryType.ValueType.Type);
 
             var visitor = new DictionaryTestVisitor();
             dictionaryType.Accept(visitor, testCase.Value);
@@ -260,29 +255,6 @@ public abstract class TypeShapeProviderTests
         else
         {
             Assert.Throws<InvalidOperationException>(() => shape.GetDictionaryShape());
-        }
-
-        static Type[]? GetDictionaryKeyValueTypes(Type type)
-        {
-            foreach (Type interfaceTy in type.GetInterfaces())
-            {
-                if (!interfaceTy.IsGenericType)
-                {
-                    continue;
-                }
-
-                Type genericInterfaceTy = interfaceTy.GetGenericTypeDefinition();
-                if (genericInterfaceTy == typeof(IReadOnlyDictionary<,>))
-                {
-                    return interfaceTy.GetGenericArguments();
-                }
-                else if (genericInterfaceTy == typeof(IDictionary<,>))
-                {
-                    return interfaceTy.GetGenericArguments();
-                }
-            }
-
-            return null;
         }
     }
 
@@ -324,9 +296,9 @@ public abstract class TypeShapeProviderTests
             IEnumerableShape enumerableType = shape.GetEnumerableShape();
             Assert.Equal(typeof(T), enumerableType.Type.Type);
 
-            if (GetEnumerableElementType(typeof(T)) is { } expectedElementType)
+            if (typeof(T).GetCompatibleGenericInterface(typeof(IEnumerable<>)) is { } enumerableImplementation)
             {
-                Assert.Equal(expectedElementType, enumerableType.ElementType.Type);
+                Assert.Equal(enumerableImplementation.GetGenericArguments()[0], enumerableType.ElementType.Type);
             }
             else if (typeof(T).IsArray)
             {
@@ -343,19 +315,6 @@ public abstract class TypeShapeProviderTests
         else
         {
             Assert.Throws<InvalidOperationException>(() => shape.GetEnumerableShape());
-        }
-
-        static Type? GetEnumerableElementType(Type type)
-        {
-            foreach (Type interfaceTy in type.GetInterfaces())
-            {
-                if (interfaceTy.IsGenericType && interfaceTy.GetGenericTypeDefinition() == typeof(IEnumerable<>))
-                {
-                    return interfaceTy.GetGenericArguments()[0];
-                }
-            }
-
-            return null;
         }
     }
 
@@ -475,6 +434,42 @@ public abstract class TypeShapeProviderTests
     }
 }
 
+public static class ReflectionHelpers
+{
+    public static Type[]? GetDictionaryKeyValueTypes(this Type type)
+    {
+        if (type.GetCompatibleGenericInterface(typeof(IReadOnlyDictionary<,>)) is { } rod)
+        {
+            return rod.GetGenericArguments();
+        }
+
+        if (type.GetCompatibleGenericInterface(typeof(IDictionary<,>)) is { } d)
+        {
+            return d.GetGenericArguments();
+        }
+
+        if (typeof(IDictionary).IsAssignableFrom(type))
+        {
+            return new [] { typeof(object), typeof(object) };
+        }
+
+        return null;
+    }
+
+    public static Type? GetCompatibleGenericInterface(this Type type, Type genericInterface)
+    {
+        foreach (Type interfaceTy in type.GetInterfaces())
+        {
+            if (interfaceTy.IsGenericType && interfaceTy.GetGenericTypeDefinition() == genericInterface)
+            {
+                return interfaceTy;
+            }
+        }
+
+        return null;
+    }
+}
+
 public sealed class TypeShapeProviderTests_Reflection : TypeShapeProviderTests
 {
     protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: false);
@@ -492,4 +487,3 @@ public sealed class TypeShapeProviderTests_SourceGen : TypeShapeProviderTests
     protected override ITypeShapeProvider Provider { get; } = SourceGenTypeShapeProvider.Default;
     protected override bool SupportsNonPublicMembers => false;
 }
-

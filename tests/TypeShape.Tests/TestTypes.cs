@@ -87,6 +87,9 @@ public static class TestTypes
         yield return Create(new DerivedList { 1, 2, 3 });
         yield return Create(new DerivedDictionary { ["key"] = "value" });
 
+        yield return Create(new StructList<int> { 1, 2, 3 });
+        yield return Create(new StructDictionary<string, string> { ["key"] = "value" });
+
         yield return Create(ImmutableArray.Create(1, 2, 3));
         yield return Create(ImmutableList.Create("1", "2", "3"));
         yield return Create(ImmutableQueue.Create(1, 2, 3));
@@ -306,6 +309,48 @@ public static class TestTypes
 
 public class DerivedList : List<int> { }
 public class DerivedDictionary : Dictionary<string, string> { }
+
+public readonly struct StructList<T> : IList<T>
+{
+    private readonly List<T> _values;
+    public StructList() => _values = new();
+    public T this[int index] { get => _values[index]; set => _values[index] = value; }
+    public int Count => _values.Count;
+    public bool IsReadOnly => false;
+    public void Add(T item) => _values.Add(item);
+    public void Clear() => _values.Clear();
+    public bool Contains(T item) => _values.Contains(item);
+    public void CopyTo(T[] array, int arrayIndex) => _values.CopyTo(array, arrayIndex);
+    public int IndexOf(T item) => _values.IndexOf(item);
+    public void Insert(int index, T item) => _values.Insert(index, item);
+    public bool Remove(T item) => _values.Remove(item);
+    public void RemoveAt(int index) => _values.RemoveAt(index);
+    public IEnumerator<T> GetEnumerator() => _values.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => _values.GetEnumerator();
+}
+
+public readonly struct StructDictionary<TKey, TValue> : IDictionary<TKey, TValue>
+    where TKey : notnull
+{
+    private readonly Dictionary<TKey, TValue> _dictionary;
+    public StructDictionary() => _dictionary = new();
+    public TValue this[TKey key] { get => _dictionary[key]; set => _dictionary[key] = value; }
+    public ICollection<TKey> Keys => _dictionary.Keys;
+    public ICollection<TValue> Values => _dictionary.Values;
+    public int Count => _dictionary.Count;
+    public bool IsReadOnly => false;
+    public void Add(TKey key, TValue value) => _dictionary.Add(key, value);
+    public void Add(KeyValuePair<TKey, TValue> item) => _dictionary.Add(item.Key, item.Value);
+    public void Clear() => _dictionary.Clear();
+    public bool Contains(KeyValuePair<TKey, TValue> item) => _dictionary.Contains(item);
+    public bool ContainsKey(TKey key) => _dictionary.ContainsKey(key);
+    public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex) => ((IDictionary<TKey,TValue>)_dictionary).CopyTo(array, arrayIndex);
+    public bool Remove(TKey key) => _dictionary.Remove(key);
+    public bool Remove(KeyValuePair<TKey, TValue> item) => ((IDictionary<TKey, TValue>)_dictionary).Remove(item);
+    public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value) => _dictionary.TryGetValue(key, out value);
+    public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => _dictionary.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => _dictionary.GetEnumerator();
+}
 
 public class PocoWithListAndDictionaryProps
 {
@@ -671,6 +716,8 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 [GenerateShape(typeof(ArrayList))]
 [GenerateShape(typeof(DerivedList))]
 [GenerateShape(typeof(DerivedDictionary))]
+[GenerateShape(typeof(StructList<int>))]
+[GenerateShape(typeof(StructDictionary<string, string>))]
 [GenerateShape(typeof(PocoWithListAndDictionaryProps))]
 [GenerateShape(typeof(BaseClass))]
 [GenerateShape(typeof(DerivedClass))]
