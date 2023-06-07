@@ -40,22 +40,22 @@ Here's a [benchmark](https://github.com/eiriktsarpalis/typeshape-csharp/blob/mai
 
 #### Serialization
 
-|                          Method |     Mean |   Error |  StdDev | Ratio |   Gen0 | Allocated | Alloc Ratio |
-|-------------------------------- |---------:|--------:|--------:|------:|-------:|----------:|------------:|
-|         Serialize_StjReflection | 514.3 ns | 4.32 ns | 3.83 ns |  1.00 | 0.0381 |     488 B |        1.00 |
-|          Serialize_StjSourceGen | 500.2 ns | 4.32 ns | 4.04 ns |  0.97 | 0.0381 |     488 B |        1.00 |
-| Serialize_StjSourceGen_FastPath | 261.4 ns | 2.23 ns | 2.08 ns |  0.51 | 0.0138 |     176 B |        0.36 |
-|   Serialize_TypeShapeReflection | 424.2 ns | 2.29 ns | 2.03 ns |  0.82 | 0.0215 |     272 B |        0.56 |
-|    Serialize_TypeShapeSourceGen | 419.7 ns | 2.04 ns | 1.90 ns |  0.82 | 0.0215 |     272 B |        0.56 |
+|                          Method |     Mean |    Error |   StdDev | Ratio | RatioSD |   Gen0 | Allocated | Alloc Ratio |
+|-------------------------------- |---------:|---------:|---------:|------:|--------:|-------:|----------:|------------:|
+|         Serialize_StjReflection | 567.0 ns | 11.10 ns | 12.78 ns |  1.00 |    0.00 | 0.0381 |     488 B |        1.00 |
+|          Serialize_StjSourceGen | 571.5 ns | 10.80 ns | 11.09 ns |  1.01 |    0.04 | 0.0381 |     488 B |        1.00 |
+| Serialize_StjSourceGen_FastPath | 293.3 ns |  5.54 ns |  6.16 ns |  0.52 |    0.02 | 0.0138 |     176 B |        0.36 |
+|   Serialize_TypeShapeReflection | 412.0 ns |  8.01 ns | 10.42 ns |  0.73 |    0.03 | 0.0138 |     176 B |        0.36 |
+|    Serialize_TypeShapeSourceGen | 402.2 ns |  8.01 ns |  9.23 ns |  0.71 |    0.02 | 0.0138 |     176 B |        0.36 |
 
 #### Deserialization
 
 |                          Method |       Mean |    Error |   StdDev | Ratio | RatioSD |   Gen0 | Allocated | Alloc Ratio |
 |-------------------------------- |-----------:|---------:|---------:|------:|--------:|-------:|----------:|------------:|
-|       Deserialize_StjReflection | 1,367.6 ns | 26.26 ns | 24.57 ns |  1.00 |    0.00 | 0.0782 |     992 B |        1.00 |
-|        Deserialize_StjSourceGen | 1,400.7 ns | 10.08 ns |  9.43 ns |  1.02 |    0.02 | 0.0763 |     968 B |        0.98 |
-| Deserialize_TypeShapeReflection |   734.6 ns |  4.21 ns |  3.51 ns |  0.53 |    0.01 | 0.0343 |     440 B |        0.44 |
-|  Deserialize_TypeShapeSourceGen |   726.0 ns |  6.26 ns |  5.86 ns |  0.53 |    0.01 | 0.0343 |     440 B |        0.44 |
+|       Deserialize_StjReflection | 1,589.5 ns | 31.56 ns | 68.60 ns |  1.00 |    0.00 | 0.0782 |     992 B |        1.00 |
+|        Deserialize_StjSourceGen | 1,574.9 ns | 24.86 ns | 19.41 ns |  0.96 |    0.04 | 0.0763 |     968 B |        0.98 |
+| Deserialize_TypeShapeReflection |   848.8 ns | 16.65 ns | 23.88 ns |  0.52 |    0.02 | 0.0343 |     440 B |        0.44 |
+|  Deserialize_TypeShapeSourceGen |   828.6 ns | 16.04 ns | 15.76 ns |  0.50 |    0.01 | 0.0343 |     440 B |        0.44 |
 
 Even though both serializers target the same underlying `JsonConverter` infrastructure, the TypeShape implementation is ~30% faster for serialization and ~90% for deserialization,
 when compared with System.Text.Json's metadata serializer. As expected, fast-path serialization is still fastest since its implementation is fully inlined.

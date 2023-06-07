@@ -1,18 +1,18 @@
 ﻿namespace TypeShape.Applications.JsonSerializer.Converters;
 
-using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using TypeShape.Applications.Common;
 
 internal class JsonEnumerableConverter<TEnumerable, TElement> : JsonConverter<TEnumerable>
 {
     private protected readonly JsonConverter<TElement> _elementConverter;
-    private readonly Func<TEnumerable, IEnumerable<TElement>> _getEnumerable;
+    private readonly IIterator<TEnumerable, TElement> _iterator;
 
-    public JsonEnumerableConverter(JsonConverter<TElement> elementConverter, Func<TEnumerable, IEnumerable<TElement>> getEnumerable)
+    public JsonEnumerableConverter(JsonConverter<TElement> elementConverter, IEnumerableShape<TEnumerable, TElement> shape)
     {
         _elementConverter = elementConverter;
-        _getEnumerable = getEnumerable;
+        _iterator = Iterator.Create(shape);
     }
 
     public override TEnumerable? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -28,14 +28,17 @@ internal class JsonEnumerableConverter<TEnumerable, TElement> : JsonConverter<TE
             return;
         }
 
-        JsonConverter<TElement> elementConverter = _elementConverter;
-
         writer.WriteStartArray();
-        foreach (TElement element in _getEnumerable(value))
-        {
-            elementConverter.Write(writer, element, options);
-        }
+
+        (Utf8JsonWriter, JsonConverter<TElement>, JsonSerializerOptions) state = (writer, _elementConverter, options);
+        _iterator.Iterate(value, WriteElement, ref state);
+
         writer.WriteEndArray();
+
+        static void WriteElement(TElement element, ref (Utf8JsonWriter writer, JsonConverter<TElement> converter, JsonSerializerOptions options) state)
+        {
+            state.converter.Write(state.writer, element, state.options);
+        }
     }
 }
 
@@ -45,11 +48,11 @@ internal sealed class JsonMutableEnumerableConverter<TEnumerable, TElement> : Js
     private readonly Setter<TEnumerable, TElement> _addDelegate;
 
     public JsonMutableEnumerableConverter(
-        JsonConverter<TElement> elementConverter, 
-        Func<TEnumerable, IEnumerable<TElement>> getEnumerable, 
+        JsonConverter<TElement> elementConverter,
+        IEnumerableShape<TEnumerable, TElement> shape,
         Func<TEnumerable> createObject, 
         Setter<TEnumerable, TElement> addDelegate)
-        : base(elementConverter, getEnumerable)
+        : base(elementConverter, shape)
     {
         _createObject = createObject;
         _addDelegate = addDelegate;
@@ -87,9 +90,9 @@ internal sealed class JsonImmutableEnumerableConverter<TEnumerable, TElement> : 
 
     public JsonImmutableEnumerableConverter(
         JsonConverter<TElement> elementConverter,
-        Func<TEnumerable, IEnumerable<TElement>> getEnumerable, 
+        IEnumerableShape<TEnumerable, TElement> shape,
         Func<IEnumerable<TElement>, TEnumerable> constructor)
-        : base(elementConverter, getEnumerable)
+        : base(elementConverter, shape)
     {
         _constructor = constructor;
     }

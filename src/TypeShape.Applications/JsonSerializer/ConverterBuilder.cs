@@ -135,7 +135,6 @@ public static partial class ConverterBuilder
         public object? VisitEnumerable<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> enumerableShape, object? state)
         {
             var elementConverter = (JsonConverter<TElement>)enumerableShape.ElementType.Accept(this, null)!;
-            Func<TEnumerable, IEnumerable<TElement>> getEnumerable = enumerableShape.GetGetEnumerable();
 
             IConstructorShape<TEnumerable>? constructor = enumerableShape.Type.GetConstructors(nonPublic: false)
                 .Where(ctor =>
@@ -150,8 +149,8 @@ public static partial class ConverterBuilder
                 case { ParameterCount: 0 }:
                     Debug.Assert(enumerableShape.IsMutable);
                     return new JsonMutableEnumerableConverter<TEnumerable, TElement>(
-                        elementConverter, 
-                        getEnumerable, 
+                        elementConverter,
+                        enumerableShape, 
                         constructor.GetDefaultConstructor(), 
                         enumerableShape.GetAddElement()
                     );
@@ -161,13 +160,13 @@ public static partial class ConverterBuilder
 
                     return new JsonImmutableEnumerableConverter<TEnumerable, TElement>(
                         elementConverter,
-                        getEnumerable,
+                        enumerableShape,
                         enumerableCtor.GetParameterizedConstructor()
                     );
 
                 default:
                     Debug.Assert(constructor is null);
-                    return new JsonEnumerableConverter<TEnumerable, TElement>(elementConverter, getEnumerable);
+                    return new JsonEnumerableConverter<TEnumerable, TElement>(elementConverter, enumerableShape);
             }
         }
 
@@ -176,7 +175,6 @@ public static partial class ConverterBuilder
         {
             var keyConverter = (JsonConverter<TKey>)dictionaryShape.KeyType.Accept(this, null)!;
             var valueConverter = (JsonConverter<TValue>)dictionaryShape.ValueType.Accept(this, null)!;
-            Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getDictionary = dictionaryShape.GetGetDictionary();
 
             IConstructorShape<TDictionary>? constructor = dictionaryShape.Type.GetConstructors(nonPublic: false)
                 .Where(ctor =>
@@ -193,7 +191,7 @@ public static partial class ConverterBuilder
                     return new JsonMutableDictionaryConverter<TDictionary, TKey, TValue>(
                         keyConverter,
                         valueConverter,
-                        getDictionary,
+                        dictionaryShape,
                         constructor.GetDefaultConstructor(),
                         dictionaryShape.GetAddKeyValuePair());
 
@@ -202,12 +200,12 @@ public static partial class ConverterBuilder
                     return new JsonImmutableDictionaryConverter<TDictionary, TKey, TValue>(
                         keyConverter,
                         valueConverter,
-                        getDictionary,
+                        dictionaryShape,
                         enumerableCtor.GetParameterizedConstructor());
 
                 default:
                     Debug.Assert(constructor is null);
-                    return new JsonDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, getDictionary);
+                    return new JsonDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, dictionaryShape);
             }
         }
 

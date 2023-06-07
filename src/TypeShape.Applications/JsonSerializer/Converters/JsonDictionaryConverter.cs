@@ -3,18 +3,20 @@
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using TypeShape.Applications.Common;
 
 internal class JsonDictionaryConverter<TDictionary, TKey, TValue> : JsonConverter<TDictionary>
+    where TKey : notnull
 {
     private protected readonly JsonConverter<TKey> _keyConverter;
     private protected readonly JsonConverter<TValue> _valueConverter;
-    private readonly Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> _getDictionary;
+    private readonly IIterator<TDictionary, KeyValuePair<TKey, TValue>> _iterator;
 
-    public JsonDictionaryConverter(JsonConverter<TKey> keyConverter, JsonConverter<TValue> valueConverter, Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getDictionary)
+    public JsonDictionaryConverter(JsonConverter<TKey> keyConverter, JsonConverter<TValue> valueConverter, IDictionaryShape<TDictionary, TKey, TValue> shape)
     {
         _keyConverter = keyConverter;
         _valueConverter = valueConverter;
-        _getDictionary = getDictionary;
+        _iterator = Iterator.Create(shape);
     }
 
     public override TDictionary? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -30,31 +32,34 @@ internal class JsonDictionaryConverter<TDictionary, TKey, TValue> : JsonConverte
             return;
         }
 
-        JsonConverter<TKey> keyConverter = _keyConverter;
-        JsonConverter<TValue> valueConverter = _valueConverter;
-
         writer.WriteStartObject();
-        foreach (KeyValuePair<TKey, TValue> kvp in _getDictionary(value))
-        {
-            keyConverter.WriteAsPropertyName(writer, kvp.Key, options);
-            valueConverter.Write(writer, kvp.Value, options);
-        }
+
+        (Utf8JsonWriter, JsonConverter<TKey>, JsonConverter<TValue>, JsonSerializerOptions) state = (writer, _keyConverter, _valueConverter, options);
+        _iterator.Iterate(value, WriteDictionaryEntry, ref state);
+
         writer.WriteEndObject();
+
+        static void WriteDictionaryEntry(KeyValuePair<TKey, TValue> entry, ref (Utf8JsonWriter writer, JsonConverter<TKey> keyConverter, JsonConverter<TValue> valueConverter, JsonSerializerOptions options) state)
+        {
+            state.keyConverter.WriteAsPropertyName(state.writer, entry.Key, state.options);
+            state.valueConverter.Write(state.writer, entry.Value, state.options);
+        }
     }
 }
 
 internal sealed class JsonMutableDictionaryConverter<TDictionary, TKey, TValue> : JsonDictionaryConverter<TDictionary, TKey, TValue>
+    where TKey : notnull
 {
     private readonly Func<TDictionary> _createObject;
     private readonly Setter<TDictionary, KeyValuePair<TKey, TValue>> _addDelegate;
 
     public JsonMutableDictionaryConverter(
         JsonConverter<TKey> keyConverter, 
-        JsonConverter<TValue> valueConverter, 
-        Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getDictionary,
+        JsonConverter<TValue> valueConverter,
+        IDictionaryShape<TDictionary, TKey, TValue> shape,
         Func<TDictionary> createObject, 
         Setter<TDictionary, KeyValuePair<TKey, TValue>> addDelegate)
-        : base(keyConverter, valueConverter, getDictionary)
+        : base(keyConverter, valueConverter, shape)
     {
         _createObject = createObject;
         _addDelegate = addDelegate;
@@ -93,15 +98,16 @@ internal sealed class JsonMutableDictionaryConverter<TDictionary, TKey, TValue> 
 }
 
 internal sealed class JsonImmutableDictionaryConverter<TDictionary, TKey, TValue> : JsonDictionaryConverter<TDictionary, TKey, TValue>
+    where TKey : notnull
 {
     private readonly Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> _constructor;
 
     public JsonImmutableDictionaryConverter(
         JsonConverter<TKey> keyConverter,
         JsonConverter<TValue> valueConverter,
-        Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getDictionary,
+        IDictionaryShape<TDictionary, TKey, TValue> shape,
         Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> constructor)
-        : base(keyConverter, valueConverter, getDictionary)
+        : base(keyConverter, valueConverter, shape)
     {
         _constructor = constructor;
     }
