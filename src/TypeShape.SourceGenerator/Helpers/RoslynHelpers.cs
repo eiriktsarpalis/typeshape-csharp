@@ -1,7 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace TypeShape.SourceGenerator.Helpers;
@@ -57,6 +57,10 @@ internal static class RoslynHelpers
 
     public static string GetFullyQualifiedName(this ITypeSymbol typeSymbol)
         => typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+    public static bool IsGenericTypeDefinition(this ITypeSymbol typeSymbol)
+        => typeSymbol is INamedTypeSymbol { IsGenericType: true } namedTy && 
+           SymbolEqualityComparer.Default.Equals(namedTy.OriginalDefinition, typeSymbol);
 
     public static string GetGeneratedPropertyName(this ITypeSymbol typeSymbol)
     {
@@ -231,7 +235,7 @@ internal static class RoslynHelpers
         }
     }
 
-    public static bool IsAssignableFrom(this ITypeSymbol? baseType, ITypeSymbol? type)
+    public static bool IsAssignableFrom([NotNullWhen(true)] this ITypeSymbol? baseType, [NotNullWhen(true)] ITypeSymbol? type)
     {
         if (baseType is null || type is null)
         {
@@ -257,6 +261,42 @@ internal static class RoslynHelpers
         }
 
         return false;
+    }
+
+    public static INamedTypeSymbol? GetCompatibleGenericBaseType(this ITypeSymbol type, [NotNullWhen(true)] INamedTypeSymbol? genericType)
+    {
+        if (genericType is null)
+        {
+            return null;
+        }
+
+        Debug.Assert(genericType.IsGenericTypeDefinition());
+
+        if (genericType.TypeKind is TypeKind.Interface)
+        {
+            foreach (INamedTypeSymbol interfaceType in type.AllInterfaces)
+            {
+                if (IsMatchingGenericType(interfaceType, genericType))
+                {
+                    return interfaceType;
+                }
+            }
+        }
+
+        for (INamedTypeSymbol? current = type as INamedTypeSymbol; current != null; current = current.BaseType)
+        {
+            if (IsMatchingGenericType(current, genericType))
+            {
+                return current;
+            }
+        }
+
+        return null;
+
+        static bool IsMatchingGenericType(INamedTypeSymbol candidate, INamedTypeSymbol baseType)
+        {
+            return candidate.IsGenericType && SymbolEqualityComparer.Default.Equals(candidate.ConstructedFrom, baseType);
+        }
     }
 
     public static IMethodSymbol? GetMethodSymbol(this ITypeSymbol? type, Func<IMethodSymbol, bool> predicate)

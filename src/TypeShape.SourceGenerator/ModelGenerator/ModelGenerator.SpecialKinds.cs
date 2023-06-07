@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using System.Diagnostics;
+using TypeShape.SourceGenerator.Helpers;
 using TypeShape.SourceGenerator.Model;
 
 namespace TypeShape.SourceGenerator;
@@ -78,6 +79,12 @@ public sealed partial class ModelGenerator
             return null;
         }
 
+        if (!_knownSymbols.IEnumerable.IsAssignableFrom(type))
+        {
+            // Type is not IEnumerable
+            return null;
+        }
+
         if (type is IArrayTypeSymbol array)
         {
             if (array.Rank > 1)
@@ -88,43 +95,29 @@ public sealed partial class ModelGenerator
             elementType = array.ElementType;
             kind = EnumerableKind.ArrayOfT;
         }
-        else if (type is not INamedTypeSymbol namedType)
+        else if (type.GetCompatibleGenericBaseType(_knownSymbols.ICollectionOfT) is { } collectionOfT)
         {
-            return null;
+            elementType = collectionOfT.TypeArguments[0];
+            resolvedInterface = collectionOfT;
+            kind = IsImmutableCollection(type) ? EnumerableKind.ImmutableOfT : EnumerableKind.ICollectionOfT;
         }
-        else if(
-            type.AllInterfaces.FirstOrDefault(i => i.OriginalDefinition.SpecialType is SpecialType.System_Collections_Generic_IEnumerable_T)
-            is { } enumerableOfT)
+        else if (type.GetCompatibleGenericBaseType(_knownSymbols.IEnumerableOfT) is { } enumerableOfT)
         {
             elementType = enumerableOfT.TypeArguments[0];
-            ITypeSymbol? collectionOfT = type.AllInterfaces.FirstOrDefault(i =>
-                i.OriginalDefinition.SpecialType is SpecialType.System_Collections_Generic_ICollection_T &&
-                SymbolEqualityComparer.Default.Equals(i.TypeArguments[0], elementType));
-
-            resolvedInterface = collectionOfT ?? enumerableOfT;
-            kind = IsImmutableCollection(type) ? EnumerableKind.ImmutableOfT : collectionOfT != null ? EnumerableKind.ICollectionOfT : EnumerableKind.IEnumerableOfT;
+            resolvedInterface = enumerableOfT;
+            kind = IsImmutableCollection(type) ? EnumerableKind.ImmutableOfT : EnumerableKind.IEnumerableOfT;
         }
-        else if (
-            type.AllInterfaces.FirstOrDefault(i => i.OriginalDefinition.SpecialType is SpecialType.System_Collections_IEnumerable)
-            is { } enumerable)
+        else if (_knownSymbols.IList.IsAssignableFrom(type))
         {
-            if (_knownSymbols.IList is { } ilist && type.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, ilist)))
-            {
-                resolvedInterface = ilist;
-                kind = EnumerableKind.IList;
-            }
-            else
-            {
-                resolvedInterface = enumerable;
-                kind = EnumerableKind.IEnumerable;
-            }
-
             elementType = _semanticModel.Compilation.ObjectType;
+            resolvedInterface = _knownSymbols.IList;
+            kind = EnumerableKind.IList;
         }
-
-        if (elementType is null)
+        else
         {
-            return null;
+            elementType = _semanticModel.Compilation.ObjectType;
+            resolvedInterface = _knownSymbols.IEnumerable;
+            kind = EnumerableKind.IEnumerable;
         }
 
         IMethodSymbol? addMethod = null;
@@ -155,36 +148,30 @@ public sealed partial class ModelGenerator
         DictionaryKind kind = default;
         resolvedInterface = null;
 
-        if (_knownSymbols.IReadOnlyDictionaryOfTKeyTValue is { } genericReadOnlyIDict &&
-            type.AllInterfaces.FirstOrDefault(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, genericReadOnlyIDict)) is { } genericReadOnlyIDictInstance)
+        if (type.GetCompatibleGenericBaseType(_knownSymbols.IReadOnlyDictionaryOfTKeyTValue) is { } genericReadOnlyIDictInstance)
         {
             keyType = genericReadOnlyIDictInstance.TypeArguments[0];
             valueType = genericReadOnlyIDictInstance.TypeArguments[1];
             kind = DictionaryKind.IReadOnlyDictionaryOfKV;
             resolvedInterface = genericReadOnlyIDictInstance;
         }
-        else if (
-            _knownSymbols.IDictionaryOfTKeyTValue is { } genericIDict &&
-            type.AllInterfaces.FirstOrDefault(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, genericIDict)) is { } genericIDictInstance)
+        else if (type.GetCompatibleGenericBaseType(_knownSymbols.IDictionaryOfTKeyTValue) is { } genericIDictInstance)
         {
             keyType = genericIDictInstance.TypeArguments[0];
             valueType = genericIDictInstance.TypeArguments[1];
             kind = DictionaryKind.IDictionaryOfKV;
             resolvedInterface = genericIDictInstance;
         }
-        else if (
-            _knownSymbols.IDictionary is { } iDictionary &&
-            type.AllInterfaces.FirstOrDefault(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, iDictionary)) is { })
+        else if (!_knownSymbols.IDictionary.IsAssignableFrom(type))
+        {
+            return null;
+        }
+        else
         {
             keyType = _semanticModel.Compilation.ObjectType;
             valueType = _semanticModel.Compilation.ObjectType;
             kind = DictionaryKind.IDictionary;
-            resolvedInterface = iDictionary;
-        }
-
-        if (keyType is null)
-        {
-            return null;
+            resolvedInterface = _knownSymbols.IDictionary;
         }
 
         Debug.Assert(valueType != null);
@@ -192,7 +179,7 @@ public sealed partial class ModelGenerator
         bool hasSettableIndexer = type.GetMembers()
             .OfType<IPropertySymbol>()
             .Any(prop =>
-                prop is { IsStatic: false, IsIndexer: true, Parameters.Length: 1, SetMethod: { } } &&
+                prop is { IsStatic: false, IsIndexer: true, Parameters.Length: 1, SetMethod: not null } &&
                 SymbolEqualityComparer.Default.Equals(prop.Parameters[0].Type, keyType) &&
                 IsAccessibleFromGeneratedType(prop));
 

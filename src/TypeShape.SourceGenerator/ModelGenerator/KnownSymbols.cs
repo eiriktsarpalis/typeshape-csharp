@@ -29,6 +29,15 @@ public sealed class KnownSymbols
     public INamedTypeSymbol? IDictionary => GetOrResolveType("System.Collections.IDictionary", ref _IDictionary);
     private Option<INamedTypeSymbol?> _IDictionary;
 
+    public INamedTypeSymbol IEnumerableOfT => _IEnumerableOfT ??= Compilation.GetSpecialType(SpecialType.System_Collections_Generic_IEnumerable_T);
+    private INamedTypeSymbol? _IEnumerableOfT;
+
+    public INamedTypeSymbol ICollectionOfT => _ICollectionOfT ??= Compilation.GetSpecialType(SpecialType.System_Collections_Generic_ICollection_T);
+    private INamedTypeSymbol? _ICollectionOfT;
+
+    public INamedTypeSymbol IEnumerable => _IEnumerable ??= Compilation.GetSpecialType(SpecialType.System_Collections_IEnumerable);
+    private INamedTypeSymbol? _IEnumerable;
+
     public INamedTypeSymbol? IList => GetOrResolveType("System.Collections.IList", ref _IList);
     private Option<INamedTypeSymbol?> _IList;
 
