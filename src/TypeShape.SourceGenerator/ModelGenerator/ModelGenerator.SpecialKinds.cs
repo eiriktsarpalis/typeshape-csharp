@@ -124,7 +124,7 @@ public sealed partial class ModelGenerator
 
         if (kind is not EnumerableKind.ImmutableOfT)
         {
-            addMethod = type.GetMembers()
+            addMethod = type.GetAllMembers()
                 .OfType<IMethodSymbol>()
                 .FirstOrDefault(method =>
                     method is { IsStatic: false, ReturnsVoid: true, Name: "Add" or "Enqueue" or "Push", Parameters.Length: 1 } &&
@@ -176,7 +176,7 @@ public sealed partial class ModelGenerator
 
         Debug.Assert(valueType != null);
 
-        bool hasSettableIndexer = type.GetMembers()
+        bool hasSettableIndexer = type.GetAllMembers()
             .OfType<IPropertySymbol>()
             .Any(prop =>
                 prop is { IsStatic: false, IsIndexer: true, Parameters.Length: 1, SetMethod: not null } &&

@@ -77,7 +77,6 @@ public static partial class StructuralEqualityComparer
             {
                 var comparer = new DictionaryOfKVEqualityComparer<TKey, TValue>();
                 _visited.Add(typeof(TDictionary), comparer);
-                comparer.GetDictionary = (Func<Dictionary<TKey, TValue>, IReadOnlyDictionary<TKey, TValue>>)(object)dictionaryShape.GetGetDictionary();
                 comparer.KeyComparer = (IEqualityComparer<TKey>)dictionaryShape.KeyType.Accept(this, state)!;
                 comparer.ValueComparer = (IEqualityComparer<TValue>)dictionaryShape.ValueType.Accept(this, state)!;
                 return comparer;
@@ -85,6 +84,7 @@ public static partial class StructuralEqualityComparer
             else
             {
                 var comparer = new DictionaryEqualityComparer<TDictionary, TKey, TValue>();
+                _visited.Add(typeof(TDictionary), comparer);
                 comparer.GetDictionary = dictionaryShape.GetGetDictionary();
                 comparer.KeyComparer = (IEqualityComparer<TKey>)dictionaryShape.KeyType.Accept(this, state)!;
                 comparer.ValueComparer = (IEqualityComparer<TValue>)dictionaryShape.ValueType.Accept(this, state)!;

@@ -99,5 +99,21 @@ public static partial class StructuralEqualityComparer
 
             return AreEqual(new(x, KeyComparer), y);
         }
+
+        public override int GetHashCode([DisallowNull] Dictionary<TKey, TValue> obj)
+        {
+            Debug.Assert(KeyComparer != null);
+            Debug.Assert(ValueComparer != null);
+
+            int hashCode = 0;
+            foreach (KeyValuePair<TKey, TValue> kvp in obj)
+            {
+                int keyHash = kvp.Key is null ? 0 : KeyComparer.GetHashCode(kvp.Key);
+                int valueHash = kvp.Value is null ? 0 : ValueComparer.GetHashCode(kvp.Value);
+                hashCode ^= HashCode.Combine(keyHash, valueHash);
+            }
+
+            return hashCode;
+        }
     }
 }

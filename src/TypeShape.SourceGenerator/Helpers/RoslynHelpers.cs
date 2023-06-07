@@ -214,12 +214,12 @@ internal static class RoslynHelpers
         return Location.Create(location.SourceTree?.FilePath ?? string.Empty, location.SourceSpan, location.GetLineSpan().Span);
     }
 
-    public static INamedTypeSymbol[] GetSortedTypeHierarchy(this INamedTypeSymbol type)
+    public static ITypeSymbol[] GetSortedTypeHierarchy(this ITypeSymbol type)
     {
         if (type.TypeKind != TypeKind.Interface)
         {
-            var list = new List<INamedTypeSymbol>();
-            for (INamedTypeSymbol? current = type; current != null; current = current.BaseType)
+            var list = new List<ITypeSymbol>();
+            for (ITypeSymbol? current = type; current != null; current = current.BaseType)
             {
                 list.Add(current);
             }
@@ -231,9 +231,12 @@ internal static class RoslynHelpers
             // Interface hierarchies support multiple inheritance.
             // For consistency with class hierarchy resolution order,
             // sort topologically from most derived to least derived.
-            return CommonHelpers.TraverseGraphWithTopologicalSort<INamedTypeSymbol>(type, static t => t.AllInterfaces, SymbolEqualityComparer.Default);
+            return CommonHelpers.TraverseGraphWithTopologicalSort<ITypeSymbol>(type, static t => t.AllInterfaces, SymbolEqualityComparer.Default);
         }
     }
+
+    public static IEnumerable<ISymbol> GetAllMembers(this ITypeSymbol type)
+        => type.GetSortedTypeHierarchy().SelectMany(t => t.GetMembers());
 
     public static bool IsAssignableFrom([NotNullWhen(true)] this ITypeSymbol? baseType, [NotNullWhen(true)] ITypeSymbol? type)
     {

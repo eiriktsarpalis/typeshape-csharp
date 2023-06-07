@@ -84,6 +84,9 @@ public static class TestTypes
         yield return Create(new ConcurrentStack<int>(new int[] { 1, 2, 3 }), isStack: true);
         yield return Create(new ConcurrentDictionary<string, string> { ["key"] = "value" });
 
+        yield return Create(new DerivedList { 1, 2, 3 });
+        yield return Create(new DerivedDictionary { ["key"] = "value" });
+
         yield return Create(ImmutableArray.Create(1, 2, 3));
         yield return Create(ImmutableList.Create("1", "2", "3"));
         yield return Create(ImmutableQueue.Create(1, 2, 3));
@@ -300,6 +303,9 @@ public static class TestTypes
         static TestCase<T> Create<T>(T value, bool isStack = false) => new TestCase<T>(value) { IsStack = isStack };
     }
 }
+
+public class DerivedList : List<int> { }
+public class DerivedDictionary : Dictionary<string, string> { }
 
 public class PocoWithListAndDictionaryProps
 {
@@ -663,6 +669,8 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 [GenerateShape(typeof(HashSet<string>))]
 [GenerateShape(typeof(Hashtable))]
 [GenerateShape(typeof(ArrayList))]
+[GenerateShape(typeof(DerivedList))]
+[GenerateShape(typeof(DerivedDictionary))]
 [GenerateShape(typeof(PocoWithListAndDictionaryProps))]
 [GenerateShape(typeof(BaseClass))]
 [GenerateShape(typeof(DerivedClass))]
