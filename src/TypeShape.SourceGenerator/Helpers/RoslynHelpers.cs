@@ -55,6 +55,15 @@ internal static class RoslynHelpers
         return type;
     }
 
+    /// <summary>
+    /// this.QualifiedNameOnly = containingSymbol.QualifiedNameOnly + "." + this.Name
+    /// </summary>
+    public static SymbolDisplayFormat QualifiedNameOnlyFormat { get; } = 
+        new SymbolDisplayFormat(
+            globalNamespaceStyle: SymbolDisplayGlobalNamespaceStyle.Omitted,
+            typeQualificationStyle: SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
+            memberOptions: SymbolDisplayMemberOptions.IncludeContainingType);
+
     public static string GetFullyQualifiedName(this ITypeSymbol typeSymbol)
         => typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
@@ -129,6 +138,11 @@ internal static class RoslynHelpers
 
         if (typeSymbol is INamedTypeSymbol namedTypeSymbol)
         {
+            if (namedTypeSymbol.IsUnboundGenericType)
+            {
+                return true;
+            }
+
             for (; namedTypeSymbol != null; namedTypeSymbol = namedTypeSymbol.ContainingType)
             {
                 if (namedTypeSymbol.TypeArguments.Any(arg => arg.ContainsGenericParameters()))
@@ -212,6 +226,12 @@ internal static class RoslynHelpers
     public static Location GetLocationTrimmed(this Location location)
     {
         return Location.Create(location.SourceTree?.FilePath ?? string.Empty, location.SourceSpan, location.GetLineSpan().Span);
+    }
+
+    public static Location? GetLocation(this AttributeData attributeData)
+    {
+        SyntaxReference? asr = attributeData.ApplicationSyntaxReference;
+        return asr?.SyntaxTree.GetLocation(asr.Span);
     }
 
     public static ITypeSymbol[] GetSortedTypeHierarchy(this ITypeSymbol type)

@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Diagnostics;
 using TypeShape.SourceGenerator.Helpers;
 using TypeShape.SourceGenerator.Model;
 
@@ -8,10 +9,6 @@ namespace TypeShape.SourceGenerator;
 
 public sealed partial class ModelGenerator
 {
-    private const string GlobalNamespacePrefix = "global::";
-    private const string GenerateShapeAttributeFQN = "global::TypeShape.GenerateShapeAttribute";
-    private const string GlobalNamespaceIdentifier = "<global namespace>";
-
     private readonly KnownSymbols _knownSymbols;
     private readonly SemanticModel _semanticModel;
     private readonly CancellationToken _cancellationToken;
@@ -96,42 +93,24 @@ public sealed partial class ModelGenerator
 
     private void ReadConfigurationFromAttributes()
     {
-        foreach (AttributeSyntax attributeSyntax in _classDeclarationSyntax.AttributeLists.SelectMany(attrList => attrList.Attributes))
+        foreach (AttributeData attributeData in _declaredTypeSymbol.GetAttributes())
         {
-            if (_semanticModel.GetSymbolInfo(attributeSyntax, _cancellationToken).Symbol is not IMethodSymbol attributeSymbol)
-            {
-                continue;
-            }
+            INamedTypeSymbol? attributeType = attributeData.AttributeClass;
 
-            INamedTypeSymbol attributeTypeSymbol = attributeSymbol.ContainingType;
-            if (attributeTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == GenerateShapeAttributeFQN &&
-                ReadTypeSymbolFromGenerateShapeAttribute(attributeSyntax) is { } typeSymbol)
+            if (SymbolEqualityComparer.Default.Equals(attributeType, _knownSymbols.GenerateShapeAttributeType))
             {
-                if (!IsSupportedType(typeSymbol) || !IsAccessibleFromGeneratedType(typeSymbol))
+                Debug.Assert(attributeData.ConstructorArguments.Length == 1);
+                ITypeSymbol? typeSymbol = attributeData.ConstructorArguments[0].Value as ITypeSymbol;
+
+                if (typeSymbol is null || !IsSupportedType(typeSymbol) || !IsAccessibleFromGeneratedType(typeSymbol))
                 {
-                    ReportDiagnostic(TypeNotSupported, attributeSyntax.GetLocation(), typeSymbol.ToDisplayString());
-
+                    ReportDiagnostic(TypeNotSupported, attributeData.GetLocation(), typeSymbol?.ToDisplayString() ?? "null");
                     continue;
                 }
 
                 EnqueueForGeneration(typeSymbol);
             }
         }
-    }
-
-    private ITypeSymbol? ReadTypeSymbolFromGenerateShapeAttribute(AttributeSyntax attributeSyntax)
-    {
-        foreach (SyntaxNode syntaxNode in attributeSyntax.DescendantNodes())
-        {
-            if (syntaxNode is AttributeArgumentSyntax &&
-                syntaxNode.ChildNodes().FirstOrDefault() is TypeOfExpressionSyntax typeofExpr)
-            {
-                SyntaxNode typeExpr = typeofExpr.ChildNodes().Single();
-                return _semanticModel.GetTypeInfo(typeExpr, _cancellationToken).ConvertedType;
-            }
-        }
-
-        return null;
     }
 
     private TypeId EnqueueForGeneration(ITypeSymbol type)
@@ -162,7 +141,7 @@ public sealed partial class ModelGenerator
         bool hierarchyNotPartial = !IsSyntaxKind(classSyntax, SyntaxKind.PartialKeyword);
 
         Stack<string>? parents = null;
-        for (SyntaxNode? current = classSyntax.Parent; current is ClassDeclarationSyntax parent; current = current.Parent)
+        for (SyntaxNode? current = classSyntax.Parent; current is TypeDeclarationSyntax parent; current = current.Parent)
         {
             hierarchyNotPartial |= !IsSyntaxKind(parent, SyntaxKind.PartialKeyword);
             (parents ??= new()).Push(FormatTypeDeclarationHeader(parent));
@@ -176,7 +155,7 @@ public sealed partial class ModelGenerator
         parentHeaders = parents != null ? parentHeaders = parents.ToImmutableEquatableArray() : ImmutableEquatableArray.Empty<string>();
         return FormatTypeDeclarationHeader(classSyntax);
 
-        static string FormatTypeDeclarationHeader(ClassDeclarationSyntax classSyntax)
+        static string FormatTypeDeclarationHeader(TypeDeclarationSyntax classSyntax)
         {
             string accessibilityModifier =
                 IsSyntaxKind(classSyntax, SyntaxKind.PublicKeyword) ? "public " :
@@ -188,21 +167,15 @@ public sealed partial class ModelGenerator
             return $"{accessibilityModifier}partial {kindToken} {classSyntax.Identifier.ValueText}";
         }
 
-        static bool IsSyntaxKind(ClassDeclarationSyntax classSyntax, SyntaxKind kind)
+        static bool IsSyntaxKind(TypeDeclarationSyntax classSyntax, SyntaxKind kind)
             => classSyntax.Modifiers.Any(m => m.IsKind(kind));
     }
 
     private static string? FormatNamespace(ITypeSymbol type)
     {
-        if (type.ContainingNamespace is { } ns)
+        if (type.ContainingNamespace is { IsGlobalNamespace: false } ns)
         {
-            string fmt = ns.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            return fmt switch
-            {
-                GlobalNamespaceIdentifier => null,
-                _ when (fmt.StartsWith(GlobalNamespacePrefix, StringComparison.Ordinal)) => fmt.Remove(0, GlobalNamespacePrefix.Length),
-                _ => fmt
-            };
+            return ns.ToDisplayString(RoslynHelpers.QualifiedNameOnlyFormat);
         }
 
         return null;

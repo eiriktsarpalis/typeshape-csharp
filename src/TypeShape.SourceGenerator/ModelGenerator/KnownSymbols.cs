@@ -11,6 +11,9 @@ public sealed class KnownSymbols
 
     public Compilation Compilation { get; }
 
+    public INamedTypeSymbol? GenerateShapeAttributeType => GetOrResolveType("TypeShape.GenerateShapeAttribute", ref _GenerateShapeAttributeType);
+    private Option<INamedTypeSymbol?> _GenerateShapeAttributeType;
+
     public IAssemblySymbol CoreLibAssembly => _CoreLibAssembly ??= Compilation.GetSpecialType(SpecialType.System_Int32).ContainingAssembly;
     private IAssemblySymbol? _CoreLibAssembly;
 
