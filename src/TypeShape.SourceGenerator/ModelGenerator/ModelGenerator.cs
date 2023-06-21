@@ -2,6 +2,7 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Diagnostics;
+using System.Text;
 using TypeShape.SourceGenerator.Helpers;
 using TypeShape.SourceGenerator.Model;
 
@@ -138,37 +139,47 @@ public sealed partial class ModelGenerator
 
     private string ResolveDeclarationHeader(ClassDeclarationSyntax classSyntax, out ImmutableEquatableArray<string> parentHeaders)
     {
-        bool hierarchyNotPartial = !IsSyntaxKind(classSyntax, SyntaxKind.PartialKeyword);
+        string typeDeclarationHeader = FormatTypeDeclarationHeader(classSyntax, _semanticModel, _cancellationToken, out bool isPartialHierarchy);
 
-        Stack<string>? parents = null;
-        for (SyntaxNode? current = classSyntax.Parent; current is TypeDeclarationSyntax parent; current = current.Parent)
+        Stack<string>? parentStack = null;
+        for (SyntaxNode? parentNode = classSyntax.Parent; parentNode is TypeDeclarationSyntax parentType; parentNode = parentNode.Parent)
         {
-            hierarchyNotPartial |= !IsSyntaxKind(parent, SyntaxKind.PartialKeyword);
-            (parents ??= new()).Push(FormatTypeDeclarationHeader(parent));
+            string parentHeader = FormatTypeDeclarationHeader(parentType, _semanticModel, _cancellationToken, out bool isPartialType);
+            (parentStack ??= new()).Push(parentHeader);
+            isPartialHierarchy &= isPartialType;
         }
 
-        if (hierarchyNotPartial)
+        if (!isPartialHierarchy)
         {
             ReportDiagnostic(ProviderTypeNotPartial, classSyntax.GetLocation(), classSyntax.Identifier);
         }
 
-        parentHeaders = parents != null ? parentHeaders = parents.ToImmutableEquatableArray() : ImmutableEquatableArray.Empty<string>();
-        return FormatTypeDeclarationHeader(classSyntax);
+        parentHeaders = parentStack?.ToImmutableEquatableArray() ?? ImmutableEquatableArray.Empty<string>();
+        return typeDeclarationHeader;
 
-        static string FormatTypeDeclarationHeader(TypeDeclarationSyntax classSyntax)
+        static string FormatTypeDeclarationHeader(TypeDeclarationSyntax typeDeclaration, SemanticModel semanticModel, CancellationToken cancellationToken, out bool isPartialType)
         {
-            string accessibilityModifier =
-                IsSyntaxKind(classSyntax, SyntaxKind.PublicKeyword) ? "public " :
-                IsSyntaxKind(classSyntax, SyntaxKind.InternalKeyword) ? "internal " :
-                IsSyntaxKind(classSyntax, SyntaxKind.PrivateKeyword) ? "private " : "";
+            StringBuilder stringBuilder = new();
+            isPartialType = false;
 
-            string kindToken = classSyntax.Kind() == SyntaxKind.ClassDeclaration ? "class" : "struct";
+            foreach (SyntaxToken modifier in typeDeclaration.Modifiers)
+            {
+                stringBuilder.Append(modifier.Text);
+                stringBuilder.Append(' ');
+                isPartialType |= modifier.IsKind(SyntaxKind.PartialKeyword);
+            }
 
-            return $"{accessibilityModifier}partial {kindToken} {classSyntax.Identifier.ValueText}";
+            stringBuilder.Append(typeDeclaration.GetTypeKindKeyword());
+            stringBuilder.Append(' ');
+
+            INamedTypeSymbol? typeSymbol = semanticModel.GetDeclaredSymbol(typeDeclaration, cancellationToken);
+            Debug.Assert(typeSymbol != null);
+
+            string typeName = typeSymbol!.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+            stringBuilder.Append(typeName);
+
+            return stringBuilder.ToString();
         }
-
-        static bool IsSyntaxKind(TypeDeclarationSyntax classSyntax, SyntaxKind kind)
-            => classSyntax.Modifiers.Any(m => m.IsKind(kind));
     }
 
     private static string? FormatNamespace(ITypeSymbol type)
