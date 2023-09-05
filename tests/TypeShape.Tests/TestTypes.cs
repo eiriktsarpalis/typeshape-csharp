@@ -15,8 +15,8 @@ public sealed record TestCase<T>(T Value) : ITestCase
     Type ITestCase.Type => typeof(T);
     object? ITestCase.Value => Value;
     public bool IsAbstractClass => typeof(T).IsInterface && !typeof(IEnumerable).IsAssignableFrom(typeof(T));
-    public bool IsTuple => Value is ITuple;
     public bool IsEquatable => Value is IEquatable<T> && !(Value.GetType().IsGenericType && Value.GetType().GetGenericTypeDefinition() == typeof(ImmutableArray<>));
+    public bool IsTuple => Value is ITuple;
     public bool IsLongTuple => Value is ITuple t && t.Length > 7;
     public bool IsStack { get; init; }
 }

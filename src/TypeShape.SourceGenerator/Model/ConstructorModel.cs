@@ -10,6 +10,7 @@ public sealed record ConstructorModel
     public required string? StaticFactoryName { get; init; }
 
     public int TotalArity => Parameters.Count + MemberInitializers.Count;
+    public bool IsStaticFactory => StaticFactoryName != null;
 }
 
 public sealed record ConstructorParameterModel

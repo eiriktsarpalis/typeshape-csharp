@@ -11,7 +11,7 @@ public sealed partial class ModelGenerator
     {
         if (TryResolveFactoryMethod(type) is { } factoryMethod)
         {
-            return ImmutableEquatableArray.Create(MapConstructor(typeId, factoryMethod));
+            return ImmutableEquatableArray.Create(MapConstructor(type, typeId, factoryMethod));
         }
 
         if (disallowMemberResolution || type.TypeKind is not (TypeKind.Struct or TypeKind.Class) || type.SpecialType is not SpecialType.None)
@@ -48,11 +48,11 @@ public sealed partial class ModelGenerator
                 collectionInterface is null ||
                 ctor.Parameters.Length == 0 ||
                 ctor.Parameters.Length == 1 && SymbolEqualityComparer.Default.Equals(ctor.Parameters[0].Type, collectionInterface))
-            .Select(ctor => MapConstructor(typeId, ctor, requiredOrInitMembers))
+            .Select(ctor => MapConstructor(type, typeId, ctor, requiredOrInitMembers))
             .ToImmutableEquatableArray();
     }
 
-    private ConstructorModel MapConstructor(TypeId typeId, IMethodSymbol constructor, ConstructorParameterModel[]? requiredOrInitOnlyMembers = null)
+    private ConstructorModel MapConstructor(ITypeSymbol type, TypeId typeId, IMethodSymbol constructor, ConstructorParameterModel[]? requiredOrInitOnlyMembers = null)
     {
         Debug.Assert(constructor.MethodKind is MethodKind.Constructor || constructor.IsStatic);
         Debug.Assert(IsAccessibleFromGeneratedType(constructor));
@@ -90,7 +90,10 @@ public sealed partial class ModelGenerator
 
         return new ConstructorModel
         {
-            DeclaringType = typeId,
+            DeclaringType = SymbolEqualityComparer.Default.Equals(constructor.ContainingType, type)
+                ? typeId
+                : CreateTypeId(constructor.ContainingType),
+
             Parameters = parameters.ToImmutableEquatableArray(),
             MemberInitializers = memberInitializers.ToImmutableEquatableArray(),
             StaticFactoryName = constructor.IsStatic 
@@ -204,6 +207,9 @@ public sealed partial class ModelGenerator
 
     private IMethodSymbol? TryResolveFactoryMethod(ITypeSymbol type)
     {
+        // TODO add support for CollectionBuilderAttribute resolution
+        // cf. https://github.com/dotnet/runtime/issues/87569
+
         if (type is IArrayTypeSymbol arrayType && arrayType.Rank == 1)
         {
             return _semanticModel.Compilation.GetTypeByMetadataName("System.Linq.Enumerable")

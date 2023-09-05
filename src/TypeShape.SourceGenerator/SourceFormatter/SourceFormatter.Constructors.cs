@@ -30,7 +30,7 @@ internal static partial class SourceFormatter
             writer.WriteLine($$"""
                 yield return new global::TypeShape.SourceGenModel.SourceGenConstructorShape<{{type.Id.FullyQualifiedName}}, {{constructorArgumentStateFQN}}>
                 {
-                    DeclaringType = {{constructor.DeclaringType.GeneratedPropertyName}},
+                    DeclaringType = {{type.Id.GeneratedPropertyName}},
                     ParameterCount = {{constructor.TotalArity}},
                     GetParametersFunc = {{(constructor.TotalArity == 0 ? "null" : FormatConstructorParameterFactoryName(type, i))}},
                     DefaultConstructorFunc = {{FormatDefaultCtor(type, constructor)}},
@@ -44,7 +44,7 @@ internal static partial class SourceFormatter
 
             static string FormatAttributeProviderFunc(TypeModel type, ConstructorModel constructor)
             {
-                if (type.IsValueTupleType || type.IsClassTupleType)
+                if (type.IsValueTupleType || type.IsClassTupleType || constructor.IsStaticFactory)
                 {
                     return "null";
                 }
@@ -123,7 +123,7 @@ internal static partial class SourceFormatter
             static string FormatDefaultCtor(TypeModel type, ConstructorModel constructor)
                 => constructor.TotalArity switch
                 {
-                    0 when (type.IsValueTupleType) => $"static () => default({constructor.DeclaringType.FullyQualifiedName})",
+                    0 when (type.IsValueTupleType) => $"static () => default({type.Id.FullyQualifiedName})",
                     0 => $"static () => {FormatConstructorName(constructor)}()",
                     _ => "null",
                 };
@@ -181,7 +181,7 @@ internal static partial class SourceFormatter
 
             static string FormatAttributeProviderFunc(TypeModel type, ConstructorModel constructor, ConstructorParameterModel parameter)
             {
-                if (type.IsValueTupleType || type.IsClassTupleType)
+                if (type.IsValueTupleType || type.IsClassTupleType || constructor.IsStaticFactory)
                 {
                     return "null";
                 }
