@@ -67,7 +67,7 @@ public static partial class PrettyPrinter
                         WriteLine(sb, indentation);
                         sb.Append('}');
                     });
-            };
+            }
         }
 
         public override object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
