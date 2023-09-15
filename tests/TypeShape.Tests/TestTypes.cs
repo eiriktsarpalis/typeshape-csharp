@@ -84,6 +84,20 @@ public static class TestTypes
         yield return Create(new ConcurrentStack<int>(new int[] { 1, 2, 3 }), isStack: true);
         yield return Create(new ConcurrentDictionary<string, string> { ["key"] = "value" });
 
+        yield return Create<IEnumerable>(new List<object> { 1, 2, 3 });
+        yield return Create<IList>(new List<object> { 1, 2, 3 });
+        yield return Create<ICollection>(new List<object> { 1, 2, 3 });
+        yield return Create<IDictionary>(new Dictionary<object, object> { [42] = 42 });
+        yield return Create<IEnumerable<int>>(new List<int> { 1, 2, 3 });
+        yield return Create<ICollection<int>>(new List<int> { 1, 2, 3 });
+        yield return Create<IList<int>>(new List<int> { 1, 2, 3 });
+        yield return Create<IReadOnlyCollection<int>>(new List<int> { 1, 2, 3 });
+        yield return Create<IReadOnlyList<int>>(new List<int> { 1, 2, 3 });
+        yield return Create<ISet<int>>(new HashSet<int> { 1, 2, 3 });
+        yield return Create<IReadOnlySet<int>>(new HashSet<int> { 1, 2, 3 });
+        yield return Create<IDictionary<int, int>>(new Dictionary<int, int> { [42] = 42 });
+        yield return Create<IReadOnlyDictionary<int, int>>(new Dictionary<int, int> { [42] = 42 });
+
         yield return Create(new DerivedList { 1, 2, 3 });
         yield return Create(new DerivedDictionary { ["key"] = "value" });
 
@@ -741,6 +755,19 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 [GenerateShape(typeof(ImmutableSortedSet<int>))]
 [GenerateShape(typeof(ImmutableDictionary<string, string>))]
 [GenerateShape(typeof(ImmutableSortedDictionary<string, string>))]
+[GenerateShape(typeof(IEnumerable))]
+[GenerateShape(typeof(IList))]
+[GenerateShape(typeof(ICollection))]
+[GenerateShape(typeof(IDictionary))]
+[GenerateShape(typeof(IEnumerable<int>))]
+[GenerateShape(typeof(ICollection<int>))]
+[GenerateShape(typeof(IList<int>))]
+[GenerateShape(typeof(IReadOnlyCollection<int>))]
+[GenerateShape(typeof(IReadOnlyList<int>))]
+[GenerateShape(typeof(ISet<int>))]
+[GenerateShape(typeof(IReadOnlySet<int>))]
+[GenerateShape(typeof(IDictionary<int, int>))]
+[GenerateShape(typeof(IReadOnlyDictionary<int, int>))]
 [GenerateShape(typeof(ComplexStruct))]
 [GenerateShape(typeof(ComplexStructWithProperties))]
 [GenerateShape(typeof(StructWithDefaultCtor))]

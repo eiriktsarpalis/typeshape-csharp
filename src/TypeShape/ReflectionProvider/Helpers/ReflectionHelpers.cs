@@ -74,6 +74,36 @@ internal static class ReflectionHelpers
         return memberInfo is FieldInfo f ? f.FieldType : ((PropertyInfo)memberInfo).PropertyType;
     }
 
+    public static IEnumerable<Type> GetAllInterfaces(this Type type)
+    {
+        if (type.IsInterface)
+        {
+            yield return type;
+        }
+
+        foreach (Type interfaceType in type.GetInterfaces())
+        {
+            yield return interfaceType;
+        }
+    }
+
+    public static bool ImplementsInterface(this Type type, Type interfaceType)
+    {
+        Debug.Assert(interfaceType.IsInterface && !interfaceType.IsConstructedGenericType);
+
+        foreach (Type otherInterface in type.GetAllInterfaces())
+        {
+            if (otherInterface.IsGenericType
+                ? otherInterface.GetGenericTypeDefinition() == interfaceType
+                : otherInterface == interfaceType)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static bool IsExplicitInterfaceImplementation(this MethodInfo methodInfo)
     {
         Debug.Assert(!methodInfo.IsStatic);

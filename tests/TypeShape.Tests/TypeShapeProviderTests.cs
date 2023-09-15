@@ -387,7 +387,7 @@ public abstract class TypeShapeProviderTests
 
             MethodBase ctorInfo = Assert.IsAssignableFrom<MethodBase>(attributeProvider);
             Assert.True(ctorInfo is MethodInfo { IsStatic: true } or ConstructorInfo);
-            Assert.Equal(typeof(T), ctorInfo is MethodInfo m ? m.ReturnType : ctorInfo.DeclaringType);
+            Assert.True(typeof(T).IsAssignableFrom(ctorInfo is MethodInfo m ? m.ReturnType : ctorInfo.DeclaringType));
             ParameterInfo[] parameters = ctorInfo.GetParameters();
             Assert.True(parameters.Length <= constructor.ParameterCount);
 
@@ -458,6 +458,11 @@ public static class ReflectionHelpers
 
     public static Type? GetCompatibleGenericInterface(this Type type, Type genericInterface)
     {
+        if (type.IsInterface && type.IsGenericType && type.GetGenericTypeDefinition() == genericInterface)
+        {
+            return type;
+        }
+
         foreach (Type interfaceTy in type.GetInterfaces())
         {
             if (interfaceTy.IsGenericType && interfaceTy.GetGenericTypeDefinition() == genericInterface)

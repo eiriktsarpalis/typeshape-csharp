@@ -117,7 +117,7 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
             return (IEnumerableShape)Activator.CreateInstance(enumerableTypeTy, this)!;
         }
 
-        foreach (Type interfaceTy in type.GetInterfaces())
+        foreach (Type interfaceTy in type.GetAllInterfaces())
         {
             if (interfaceTy.IsGenericType)
             {
@@ -149,7 +149,7 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
     {
         Type? dictionaryTypeTy = null;
 
-        foreach (Type interfaceTy in type.GetInterfaces())
+        foreach (Type interfaceTy in type.GetAllInterfaces())
         {
             if (interfaceTy.IsGenericType)
             {

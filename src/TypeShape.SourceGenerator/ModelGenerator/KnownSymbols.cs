@@ -11,6 +11,9 @@ public sealed class KnownSymbols
 
     public Compilation Compilation { get; }
 
+    public INamedTypeSymbol ObjectType => _ObjectType ??= Compilation.GetSpecialType(SpecialType.System_Object);
+    private INamedTypeSymbol? _ObjectType;
+
     public INamedTypeSymbol? GenerateShapeAttributeType => GetOrResolveType("TypeShape.GenerateShapeAttribute", ref _GenerateShapeAttributeType);
     private Option<INamedTypeSymbol?> _GenerateShapeAttributeType;
 
@@ -40,6 +43,15 @@ public sealed class KnownSymbols
 
     public INamedTypeSymbol IEnumerable => _IEnumerable ??= Compilation.GetSpecialType(SpecialType.System_Collections_IEnumerable);
     private INamedTypeSymbol? _IEnumerable;
+
+    public INamedTypeSymbol? ListOfT => GetOrResolveType("System.Collections.Generic.List`1", ref _ListOfT);
+    private Option<INamedTypeSymbol?> _ListOfT;
+
+    public INamedTypeSymbol? HashSetOfT => GetOrResolveType("System.Collections.Generic.HashSet`1", ref _HashSetOfT);
+    private Option<INamedTypeSymbol?> _HashSetOfT;
+
+    public INamedTypeSymbol? DictionaryOfTKeyTValue => GetOrResolveType("System.Collections.Generic.Dictionary`2", ref _DictionaryOfTKeyTValue);
+    private Option<INamedTypeSymbol?> _DictionaryOfTKeyTValue;
 
     public INamedTypeSymbol? IList => GetOrResolveType("System.Collections.IList", ref _IList);
     private Option<INamedTypeSymbol?> _IList;

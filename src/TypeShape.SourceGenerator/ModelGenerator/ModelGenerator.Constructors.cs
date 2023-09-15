@@ -219,12 +219,63 @@ public sealed partial class ModelGenerator
                 .MakeGenericMethod(arrayType.ElementType);
         }
 
-        if (type is not INamedTypeSymbol namedType || !namedType.IsGenericType)
+        if (type is not INamedTypeSymbol namedType)
         {
             return null;
         }
 
         SymbolEqualityComparer cmp = SymbolEqualityComparer.Default;
+
+        if (!namedType.IsGenericType)
+        {
+            if (namedType.IsAssignableFrom(_knownSymbols.IList))
+            {
+                // Handle IList, ICollection and IEnumerable interfaces using object[]
+                return _semanticModel.Compilation.GetTypeByMetadataName("System.Linq.Enumerable")
+                    .GetMethodSymbol(method =>
+                        method.IsStatic && method.IsGenericMethod && method.Name is "ToArray" &&
+                        method.Parameters.Length == 1 && method.Parameters[0].Type.Name == "IEnumerable")
+                    .MakeGenericMethod(_knownSymbols.ObjectType);
+            }
+
+            if (cmp.Equals(namedType, _knownSymbols.IDictionary))
+            {
+                // Handle IDictionary using Dictionary<object, object>
+                return _knownSymbols.DictionaryOfTKeyTValue?.Construct(_knownSymbols.ObjectType, _knownSymbols.ObjectType).Constructors
+                    .FirstOrDefault(ctor => ctor.Parameters.Length == 1 && ctor.Parameters[0].Type.Name == "IEnumerable");
+            }
+
+            return null;
+        }
+
+        if (namedType.TypeKind is TypeKind.Interface)
+        {
+            if (namedType.TypeArguments.Length == 1 && _knownSymbols.ListOfT?.GetCompatibleGenericBaseType(namedType.ConstructedFrom) != null)
+            {
+                // Handle IEnumerable<T>, ICollection<T>, IList<T>, IReadOnlyCollection<T> and IReadOnlyList<T> types using List<T>
+                return _semanticModel.Compilation.GetTypeByMetadataName("System.Linq.Enumerable")
+                    .GetMethodSymbol(method =>
+                        method.IsStatic && method.IsGenericMethod && method.Name is "ToList" &&
+                        method.Parameters.Length == 1 && method.Parameters[0].Type.Name == "IEnumerable")
+                    .MakeGenericMethod(namedType.TypeArguments[0]);
+            }
+
+            if (namedType.TypeArguments.Length == 1 && _knownSymbols.HashSetOfT?.GetCompatibleGenericBaseType(namedType.ConstructedFrom) != null)
+            {
+                // Handle ISet<T> and IReadOnlySet<T> types using HashSet<T>
+                return _knownSymbols.HashSetOfT?.Construct(namedType.TypeArguments[0]).Constructors
+                    .FirstOrDefault(ctor => ctor.Parameters.Length == 1 && ctor.Parameters[0].Type.Name == "IEnumerable");
+            }
+
+            if (namedType.TypeArguments.Length == 2 && _knownSymbols.DictionaryOfTKeyTValue?.GetCompatibleGenericBaseType(namedType.ConstructedFrom) != null)
+            {
+                // Handle IDictionary<TKey, TValue> and IReadOnlyDictionary<TKey, TValue> using Dictionary<TKey, TValue>
+                return _knownSymbols.DictionaryOfTKeyTValue?.Construct(namedType.TypeArguments[0], namedType.TypeArguments[1]).Constructors
+                    .FirstOrDefault(ctor => ctor.Parameters.Length == 1 && ctor.Parameters[0].Type.Name == "IEnumerable");
+            }
+
+            return null;
+        }
 
         if (cmp.Equals(namedType.ConstructedFrom, _knownSymbols.ImmutableArray))
         { 

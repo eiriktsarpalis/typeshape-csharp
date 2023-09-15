@@ -24,7 +24,7 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
 
     public IEnumerable<IConstructorShape> GetConstructors(bool nonPublic)
     {
-        if (TryGetFactoryMethod(typeof(T)) is MethodInfo factory)
+        if (TryGetFactoryMethod(typeof(T)) is { } factory)
         {
             var ctorInfo = new MethodConstructorShapeInfo(typeof(T), factory);
             yield return _provider.CreateConstructor(ctorInfo);
@@ -163,7 +163,7 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
         }
     }
 
-    private static MethodInfo? TryGetFactoryMethod(Type type)
+    private static MethodBase? TryGetFactoryMethod(Type type)
     {
         const BindingFlags factoryFlags = BindingFlags.Public | BindingFlags.Static;
 
@@ -173,83 +173,124 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
             return gm?.MakeGenericMethod(type.GetElementType()!);
         }
 
-        if (type.IsGenericType)
+        if (!type.IsGenericType)
         {
-            Type genericTypeDef = type.GetGenericTypeDefinition();
-            Type[] genericArgs = type.GetGenericArguments();
-
-            if (genericTypeDef == typeof(ImmutableArray<>))
+            if (type.IsAssignableFrom(typeof(IList)))
             {
-                return typeof(ImmutableArray).GetMethods(factoryFlags)
-                    .Where(m => m.Name is nameof(ImmutableArray.CreateRange))
-                    .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
-                    .Select(m => m.MakeGenericMethod(genericArgs))
-                    .FirstOrDefault();
+                // Handle IList, ICollection and IEnumerable interfaces using object[]
+                MethodInfo? gm = typeof(Enumerable).GetMethod(nameof(Enumerable.ToArray), factoryFlags);
+                return gm?.MakeGenericMethod(typeof(object));
             }
 
-            if (genericTypeDef == typeof(ImmutableList<>))
+            if (type == typeof(IDictionary))
             {
-                return typeof(ImmutableList).GetMethods(factoryFlags)
-                    .Where(m => m.Name is nameof(ImmutableList.CreateRange))
-                    .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
-                    .Select(m => m.MakeGenericMethod(genericArgs))
-                    .FirstOrDefault();
+                // Handle IDictionary using Dictionary<object, object>
+                return typeof(Dictionary<object, object>).GetConstructor(new[] { typeof(IEnumerable<KeyValuePair<object, object>>) });
             }
 
+            return null;
+        }
 
-            if (genericTypeDef == typeof(ImmutableQueue<>))
+        Type genericTypeDef = type.GetGenericTypeDefinition();
+        Type[] genericArgs = type.GetGenericArguments();
+
+        if (genericTypeDef.IsInterface)
+        {
+            if (genericArgs.Length == 1 && typeof(List<>).ImplementsInterface(genericTypeDef))
             {
-                return typeof(ImmutableQueue).GetMethods(factoryFlags)
-                    .Where(m => m.Name is nameof(ImmutableQueue.CreateRange))
-                    .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
-                    .Select(m => m.MakeGenericMethod(genericArgs))
-                    .FirstOrDefault();
+                // Handle IEnumerable<T>, ICollection<T>, IList<T>, IReadOnlyCollection<T> and IReadOnlyList<T> types using List<T>
+                MethodInfo? gm = typeof(Enumerable).GetMethod(nameof(Enumerable.ToList), factoryFlags);
+                return gm?.MakeGenericMethod(genericArgs);
             }
 
-            if (genericTypeDef == typeof(ImmutableStack<>))
+            if (genericArgs.Length == 1 && typeof(HashSet<>).ImplementsInterface(genericTypeDef))
             {
-                return typeof(ImmutableStack).GetMethods(factoryFlags)
-                    .Where(m => m.Name is nameof(ImmutableStack.CreateRange))
-                    .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
-                    .Select(m => m.MakeGenericMethod(genericArgs))
-                    .FirstOrDefault();
+                // Handle ISet<T> and IReadOnlySet<T> types using HashSet<T>
+                return typeof(HashSet<>).MakeGenericType(genericArgs).GetConstructors()
+                    .FirstOrDefault(ctor => ctor.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable());
             }
 
-            if (genericTypeDef == typeof(ImmutableHashSet<>))
+            if (genericArgs.Length == 2 && typeof(Dictionary<,>).ImplementsInterface(genericTypeDef))
             {
-                return typeof(ImmutableHashSet).GetMethods(factoryFlags)
-                    .Where(m => m.Name is nameof(ImmutableHashSet.CreateRange))
-                    .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
-                    .Select(m => m.MakeGenericMethod(genericArgs))
-                    .FirstOrDefault();
+                // Handle IDictionary<TKey, TValue> and IReadOnlyDictionary<TKey, TValue> using Dictionary<TKey, TValue>
+                return typeof(Dictionary<,>).MakeGenericType(genericArgs).GetConstructors()
+                    .FirstOrDefault(ctor => ctor.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable());
             }
 
-            if (genericTypeDef == typeof(ImmutableSortedSet<>))
-            {
-                return typeof(ImmutableSortedSet).GetMethods(factoryFlags)
-                    .Where(m => m.Name is nameof(ImmutableSortedSet.CreateRange))
-                    .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
-                    .Select(m => m.MakeGenericMethod(genericArgs))
-                    .FirstOrDefault();
-            }
+            return null;
+        }
 
-            if (genericTypeDef == typeof(ImmutableDictionary<,>))
-            {
-                return typeof(ImmutableDictionary).GetMethods(factoryFlags)
-                    .Where(m => m.Name is nameof(ImmutableDictionary.CreateRange))
-                    .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
-                    .Select(m => m.MakeGenericMethod(genericArgs))
-                    .FirstOrDefault();
-            }
+        if (genericTypeDef == typeof(ImmutableArray<>))
+        {
+            return typeof(ImmutableArray).GetMethods(factoryFlags)
+                .Where(m => m.Name is nameof(ImmutableArray.CreateRange))
+                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                .Select(m => m.MakeGenericMethod(genericArgs))
+                .FirstOrDefault();
+        }
 
-            if (genericTypeDef == typeof(ImmutableSortedDictionary<,>))
-            {
-                return typeof(ImmutableSortedDictionary).GetMethods(factoryFlags)
-                    .Where(m => m.Name is nameof(ImmutableSortedDictionary.CreateRange))
-                    .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
-                    .Select(m => m.MakeGenericMethod(genericArgs))
-                    .FirstOrDefault();
-            }
+        if (genericTypeDef == typeof(ImmutableList<>))
+        {
+            return typeof(ImmutableList).GetMethods(factoryFlags)
+                .Where(m => m.Name is nameof(ImmutableList.CreateRange))
+                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                .Select(m => m.MakeGenericMethod(genericArgs))
+                .FirstOrDefault();
+        }
+
+
+        if (genericTypeDef == typeof(ImmutableQueue<>))
+        {
+            return typeof(ImmutableQueue).GetMethods(factoryFlags)
+                .Where(m => m.Name is nameof(ImmutableQueue.CreateRange))
+                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                .Select(m => m.MakeGenericMethod(genericArgs))
+                .FirstOrDefault();
+        }
+
+        if (genericTypeDef == typeof(ImmutableStack<>))
+        {
+            return typeof(ImmutableStack).GetMethods(factoryFlags)
+                .Where(m => m.Name is nameof(ImmutableStack.CreateRange))
+                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                .Select(m => m.MakeGenericMethod(genericArgs))
+                .FirstOrDefault();
+        }
+
+        if (genericTypeDef == typeof(ImmutableHashSet<>))
+        {
+            return typeof(ImmutableHashSet).GetMethods(factoryFlags)
+                .Where(m => m.Name is nameof(ImmutableHashSet.CreateRange))
+                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                .Select(m => m.MakeGenericMethod(genericArgs))
+                .FirstOrDefault();
+        }
+
+        if (genericTypeDef == typeof(ImmutableSortedSet<>))
+        {
+            return typeof(ImmutableSortedSet).GetMethods(factoryFlags)
+                .Where(m => m.Name is nameof(ImmutableSortedSet.CreateRange))
+                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                .Select(m => m.MakeGenericMethod(genericArgs))
+                .FirstOrDefault();
+        }
+
+        if (genericTypeDef == typeof(ImmutableDictionary<,>))
+        {
+            return typeof(ImmutableDictionary).GetMethods(factoryFlags)
+                .Where(m => m.Name is nameof(ImmutableDictionary.CreateRange))
+                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                .Select(m => m.MakeGenericMethod(genericArgs))
+                .FirstOrDefault();
+        }
+
+        if (genericTypeDef == typeof(ImmutableSortedDictionary<,>))
+        {
+            return typeof(ImmutableSortedDictionary).GetMethods(factoryFlags)
+                .Where(m => m.Name is nameof(ImmutableSortedDictionary.CreateRange))
+                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                .Select(m => m.MakeGenericMethod(genericArgs))
+                .FirstOrDefault();
         }
 
         return null;
@@ -313,7 +354,7 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
         }
         else
         {
-            foreach (Type interfaceTy in type.GetInterfaces())
+            foreach (Type interfaceTy in type.GetAllInterfaces())
             {
                 if (interfaceTy.IsGenericType)
                 {
