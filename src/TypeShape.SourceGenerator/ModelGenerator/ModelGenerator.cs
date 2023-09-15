@@ -98,10 +98,11 @@ public sealed partial class ModelGenerator
         {
             INamedTypeSymbol? attributeType = attributeData.AttributeClass;
 
-            if (SymbolEqualityComparer.Default.Equals(attributeType, _knownSymbols.GenerateShapeAttributeType))
+            if (SymbolEqualityComparer.Default.Equals(attributeType, _knownSymbols.GenerateShapeAttributeType) &&
+                attributeData.ConstructorArguments is [ { Value: var value } ] &&
+                value is null or ITypeSymbol)
             {
-                Debug.Assert(attributeData.ConstructorArguments.Length == 1);
-                ITypeSymbol? typeSymbol = attributeData.ConstructorArguments[0].Value as ITypeSymbol;
+                ITypeSymbol? typeSymbol = value as ITypeSymbol;
 
                 if (typeSymbol is null || !IsSupportedType(typeSymbol) || !IsAccessibleFromGeneratedType(typeSymbol))
                 {
