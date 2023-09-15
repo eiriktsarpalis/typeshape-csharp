@@ -8,10 +8,11 @@
 	<WarningsAsErrors>Nullable</WarningsAsErrors>
 	<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
 	<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+	<ServerGarbageCollection>true</ServerGarbageCollection>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" Version="0.13.5" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.8" />
   </ItemGroup>
 
   <ItemGroup>
