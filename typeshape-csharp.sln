@@ -39,43 +39,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{2668091C-3A5
 		src\Directory.Build.props = src\Directory.Build.props
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TypeShape.Packaging", "TypeShape.Packaging", "{7AEC84ED-7C25-4E82-B3EA-8F9A750FFAE2}"
-	ProjectSection(SolutionItems) = preProject
-		src\TypeShape.Packaging\README.md = src\TypeShape.Packaging\README.md
-		src\TypeShape.Packaging\TypeShape.Packaging.msbuildproj = src\TypeShape.Packaging\TypeShape.Packaging.msbuildproj
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "bin", "bin", "{D2E14AD1-F0BF-4133-9A15-050C7A563595}"
-	ProjectSection(SolutionItems) = preProject
-		src\TypeShape.Packaging\bin\typeshape-csharp.nuspec = src\TypeShape.Packaging\bin\typeshape-csharp.nuspec
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "obj", "obj", "{BE365C5C-058D-4043-B3D3-1B09A64C5EBF}"
-	ProjectSection(SolutionItems) = preProject
-		src\TypeShape.Packaging\obj\project.assets.json = src\TypeShape.Packaging\obj\project.assets.json
-		src\TypeShape.Packaging\obj\project.nuget.cache = src\TypeShape.Packaging\obj\project.nuget.cache
-		src\TypeShape.Packaging\obj\TypeShape.Packaging.msbuildproj.nuget.dgspec.json = src\TypeShape.Packaging\obj\TypeShape.Packaging.msbuildproj.nuget.dgspec.json
-		src\TypeShape.Packaging\obj\TypeShape.Packaging.msbuildproj.nuget.g.props = src\TypeShape.Packaging\obj\TypeShape.Packaging.msbuildproj.nuget.g.props
-		src\TypeShape.Packaging\obj\TypeShape.Packaging.msbuildproj.nuget.g.targets = src\TypeShape.Packaging\obj\TypeShape.Packaging.msbuildproj.nuget.g.targets
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Debug", "Debug", "{01A60EAB-A25A-4833-B95B-B3C92C2D22F1}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "net6.0", "net6.0", "{A227D32B-32CF-47B4-98C2-80008E3B03C7}"
-	ProjectSection(SolutionItems) = preProject
-		src\TypeShape.Packaging\obj\Debug\net6.0\TypeShape.Packaging.assets.cache = src\TypeShape.Packaging\obj\Debug\net6.0\TypeShape.Packaging.assets.cache
-		src\TypeShape.Packaging\obj\Debug\net6.0\TypeShape.Packaging.msbuildproj.FileListAbsolute.txt = src\TypeShape.Packaging\obj\Debug\net6.0\TypeShape.Packaging.msbuildproj.FileListAbsolute.txt
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Release", "Release", "{80B0E557-1819-4DCD-BDD3-BA83A7A16BC8}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "net6.0", "net6.0", "{0869A686-65F8-4AF1-BEED-1366052337B9}"
-	ProjectSection(SolutionItems) = preProject
-		src\TypeShape.Packaging\obj\Release\net6.0\TypeShape.Packaging.assets.cache = src\TypeShape.Packaging\obj\Release\net6.0\TypeShape.Packaging.assets.cache
-		src\TypeShape.Packaging\obj\Release\net6.0\TypeShape.Packaging.msbuildproj.FileListAbsolute.txt = src\TypeShape.Packaging\obj\Release\net6.0\TypeShape.Packaging.msbuildproj.FileListAbsolute.txt
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0FAF9FD5-6B61-4508-927B-FCA5108A722D}"
+EndProject
+Project("{13B669BE-BB05-4DDF-9536-439F39A36129}") = "TypeShape.Packaging", "src\TypeShape.Packaging\TypeShape.Packaging.msbuildproj", "{CF0B26AF-A5FC-4DA2-A7CF-4852CCFE991A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -111,6 +77,10 @@ Global
 		{CFDE3986-D81D-4184-BDAC-984E981DC346}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CFDE3986-D81D-4184-BDAC-984E981DC346}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CFDE3986-D81D-4184-BDAC-984E981DC346}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CF0B26AF-A5FC-4DA2-A7CF-4852CCFE991A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF0B26AF-A5FC-4DA2-A7CF-4852CCFE991A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CF0B26AF-A5FC-4DA2-A7CF-4852CCFE991A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CF0B26AF-A5FC-4DA2-A7CF-4852CCFE991A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -124,13 +94,7 @@ Global
 		{F07534A0-ADE7-40EE-941A-1C1126420521} = {0FAF9FD5-6B61-4508-927B-FCA5108A722D}
 		{CFDE3986-D81D-4184-BDAC-984E981DC346} = {0FAF9FD5-6B61-4508-927B-FCA5108A722D}
 		{1345B3A0-17D8-4BDC-B393-B120C3EF8840} = {EFF71ECF-B91B-4FE2-9D7A-D1600DFA75C1}
-		{7AEC84ED-7C25-4E82-B3EA-8F9A750FFAE2} = {2668091C-3A5E-4089-AD2A-2070EF35F481}
-		{D2E14AD1-F0BF-4133-9A15-050C7A563595} = {7AEC84ED-7C25-4E82-B3EA-8F9A750FFAE2}
-		{BE365C5C-058D-4043-B3D3-1B09A64C5EBF} = {7AEC84ED-7C25-4E82-B3EA-8F9A750FFAE2}
-		{01A60EAB-A25A-4833-B95B-B3C92C2D22F1} = {BE365C5C-058D-4043-B3D3-1B09A64C5EBF}
-		{A227D32B-32CF-47B4-98C2-80008E3B03C7} = {01A60EAB-A25A-4833-B95B-B3C92C2D22F1}
-		{80B0E557-1819-4DCD-BDD3-BA83A7A16BC8} = {BE365C5C-058D-4043-B3D3-1B09A64C5EBF}
-		{0869A686-65F8-4AF1-BEED-1366052337B9} = {80B0E557-1819-4DCD-BDD3-BA83A7A16BC8}
+		{CF0B26AF-A5FC-4DA2-A7CF-4852CCFE991A} = {2668091C-3A5E-4089-AD2A-2070EF35F481}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {FC08FADA-DFAB-4FB0-BE7C-582825962AD6}
