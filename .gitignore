@@ -364,3 +364,6 @@ FodyWeavers.xsd
 
 # VS Code C# tools.
 .vscode/
+
+# Artifacts folder
+artifacts/
