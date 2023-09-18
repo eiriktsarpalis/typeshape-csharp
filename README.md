@@ -45,8 +45,8 @@ TypeShape is a library that facilitates the development of high-performance data
 1. A simplified data model for .NET types that abstracts away concerns of the C# type system. Types can contain properties, have constructors, be collections, but not much else.
 2. A [variation on the visitor pattern](https://www.microsoft.com/research/publication/generalized-algebraic-data-types-and-object-oriented-programming/) that enables strongly-typed traversal of arbitrary object graphs, incurring zero allocation cost.
 3. Two built-in shape providers that map .NET types to the type model:
-    * The [reflection provider](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape/ReflectionProvider): uses reflection to derive type models at runtime.
-    * The [source generator](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.SourceGenerator): generates type models at compile-time and works with trimmed/Native AOT applications.
+    * A [reflection provider](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape/ReflectionProvider): uses reflection to derive type models at runtime.
+    * A [source generator](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.SourceGenerator): generates type models at compile-time and works with trimmed/Native AOT applications.
 
 In the simplest terms, the library defines a strongly typed reflection model:
 
