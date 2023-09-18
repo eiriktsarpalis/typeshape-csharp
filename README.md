@@ -4,7 +4,7 @@ Defines a port of the F# [TypeShape](https://github.com/eiriktsarpalis/TypeShape
 
 ## Motivation
 
-Datatype-generic programs (a.k.a. polytypic programs) refers to components that are capable of acting on the structure of arbitrary types without necessitating any type-specific specialization on behalf of their callers. Common examples include serialization libraries, structured loggers, data mappers, validation libraries, parsers, random generators, equality comparers, and many more. 
+Datatype-generic programs (a.k.a. polytypic programs) refers to components that are capable of acting on the structure of arbitrary types without necessitating any type-specific specialization on behalf of their callers. Common examples include serialization libraries, structured loggers, data mappers, validation libraries, parsers, random generators, equality comparers, and many more.
 
 In System.Text.Json, the method:
 
@@ -203,8 +203,7 @@ Here's a [benchmark](https://github.com/eiriktsarpalis/typeshape-csharp/blob/mai
 | Deserialize_TypeShapeReflection |   848.8 ns | 16.65 ns | 23.88 ns |  0.52 |    0.02 | 0.0343 |     440 B |        0.44 |
 |  Deserialize_TypeShapeSourceGen |   828.6 ns | 16.04 ns | 15.76 ns |  0.50 |    0.01 | 0.0343 |     440 B |        0.44 |
 
-Even though both serializers target the same underlying `JsonConverter` infrastructure, the TypeShape implementation is ~30% faster for serialization and ~90% for deserialization,
-when compared with System.Text.Json's metadata serializer. As expected, fast-path serialization is still fastest since its implementation is fully inlined.
+Even though both serializers target the same underlying `JsonConverter` infrastructure, the TypeShape implementation is ~30% faster for serialization and ~90% for deserialization, when compared with System.Text.Json's metadata serializer. As expected, fast-path serialization is still fastest since its implementation is fully inlined.
 
 ## Project structure
 

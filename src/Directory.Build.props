@@ -8,5 +8,10 @@
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
         <WarningsAsErrors>Nullable</WarningsAsErrors>
         <WarningLevel>9999</WarningLevel>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    </PropertyGroup>
+    
+    <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
     </PropertyGroup>
 </Project>

@@ -3,18 +3,19 @@ ARTIFACT_PATH := $(SOURCE_DIRECTORY)artifacts
 CONFIGURATION ?= Release
 NUGET_SOURCE ?= "https://api.nuget.org/v3/index.json"
 NUGET_API_KEY ?= ""
+ADDITIONAL_ARGS ?= "-p:ContinuousIntegrationBuild=true"
 
 clean:
 	dotnet clean -c $(CONFIGURATION) && rm -rf $(ARTIFACT_PATH)
 
 build: clean
-	dotnet build -c $(CONFIGURATION)
+	dotnet build -c $(CONFIGURATION) $(ADDITIONAL_ARGS)
 
 test: clean
-	dotnet test -c $(CONFIGURATION)
+	dotnet test -c $(CONFIGURATION) $(ADDITIONAL_ARGS)
 
 pack: test
-	dotnet pack -c $(CONFIGURATION)
+	dotnet pack -c $(CONFIGURATION) $(ADDITIONAL_ARGS)
 
 push: pack
 	for nupkg in `ls $(ARTIFACT_PATH)/*.nupkg`; do \
