@@ -1,34 +1,176 @@
 # typeshape-csharp [![Build & Tests](https://github.com/eiriktsarpalis/typeshape-csharp/actions/workflows/build.yml/badge.svg)](https://github.com/eiriktsarpalis/typeshape-csharp/actions/workflows/build.yml) [![NuGet Badge](https://buildstats.info/nuget/typeshape-csharp)](https://www.nuget.org/packages/typeshape-csharp/)
 
-Contains a proof-of-concept port of the [TypeShape](https://github.com/eiriktsarpalis/TypeShape) library, adapted to patterns and idioms available in C#.
-The library provides a .NET datatype model that facilitates developing high-performance datatype-generic components such as serializers, loggers, transformers and validators.
-At its core, the programming model employs a [variation on the visitor pattern](https://www.microsoft.com/en-us/research/publication/generalized-algebraic-data-types-and-object-oriented-programming/) that enables strongly-typed traversal of arbitrary type graphs: it can be used to generate object traversal algorithms that incur zero allocation cost.
+Defines a port of the F# [TypeShape](https://github.com/eiriktsarpalis/TypeShape) library, adapted to patterns and idioms available in C#.
 
-The project includes two typeshape model providers: one [reflection-derived](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape/ReflectionProvider) and one [source generated](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.SourceGenerator).
-It follows that any datatype-generic application built on top of the typeshape model gets trim safety/NativeAOT support for free once it targets source generated models.
+## Introduction
 
-## Project structure
+Datatype-generic programs (a.k.a. polytypic programs) refers to components that are capable of acting on the structure of arbitrary types without necessitating any type-specific specialization on behalf of their callers. Common examples include serialization libraries, structured loggers, data mappers, validation libraries, parsers, random generators, equality comparers, and many more. In System.Text.Json, the method:
 
-The repo consists of the following projects:
+```C#
+public static class JsonSerializer
+{
+    public static string Serialize<T>(T value);
+}
+```
 
-* The core `TypeShape` library containing:
-  * The [set of abstractions](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape/Abstractions) defining the type model.
-  * A [reflection provider](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape/ReflectionProvider) implementation.
-  * The [model classes](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape/SourceGenModel) used by the source generator.
-* The [`TypeShape.SourceGenerator`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.SourceGenerator) implementation.
-  * Defines an incremental source generator following a [triggering model](https://github.com/eiriktsarpalis/typeshape-csharp/blob/7f517209fd34cf80b5ba83b21306c6e8bf836ae9/tests/TypeShape.SourceGenApp/Program.cs#L38-L41) identical to `System.Text.Json`.
-* [`TypeShape.Applications`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Applications) containing generic program examples:
-  * A serializer generator targeting System.Text.Json's `JsonConverter`,
-  * A simple pretty-printer for .NET values,
-  * A generic random value generator based on `System.Random`,
-  * A structural `IEqualityComparer<T>` generator for POCOs and collections,
-  * An object validator in the style of System.ComponentModel.DataAnnotations.
-  * A serializer built on top of System.Formats.Cbor.
-* [`TypeShape.ReflectionApp`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/tests/TypeShape.ReflectionApp) and [`TypeShape.SourceGenApp`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/tests/TypeShape.SourceGenApp) define simple console apps for testing generic programs in CoreCLR and NativeAOT.
+is an example of a datatype-generic program since it accepts values of any type and the schema of the generated JSON is predicated on the shape of the type `T`. Similarly, the method found in Microsoft.Extensions.Configuration:
 
-## Getting Started
+```C#
+public static class ConfigurationBinder
+{
+    public static T? Get<T>(IConfiguration configuration);
+}
+```
 
-For a quick end-to-end overview of how the programming model works, I would recommend looking at the [PrettyPrinter](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Applications/PrettyPrinter) example. At just below 300 loc, it is the simplest component defined in the repo. You can use the console apps found in the `tests` folder to experiment with the implementation.
+is a datatype-generic program since the way that configuration is bound is entirely dictated by the shape of `T`.
+
+Authoring datatype-generic programs can be particularly challenging since the code needs to be able to handle _any type_ that the language can declare (including failing gracefully in cases where particular type shapes are not supported). It also needs to be evolved in tandem with new language features as they are being added. In the case of C# libraries, here is a short list of language features that a production ready datatype-generic library is expected to handle correctly:
+
+* Constructors, properties, fields and their visibility.
+* Class inheritance, interface inheritance, virtual members.
+* `required`, `readonly` and `init`-only members.
+* Collection types, including interface collections, immutable collections, non-generic collections and multi-dimensional arrays.
+* Recursive types, e.g. linked list and tree types.
+* Record types, structs, ref structs and pointers.
+* Special types such as `Nullable<T>` and tuples.
+
+TypeShape is a library that facilitates the development of high-performance datatype-generic programs. It provides:
+
+1. A simplified data model for .NET types that abstracts away concerns of the C# type system. Types can contain properties, have constructors, be collections, but not much else.
+2. A [variation on the visitor pattern](https://www.microsoft.com/research/publication/generalized-algebraic-data-types-and-object-oriented-programming/) that enables strongly-typed traversal of arbitrary object graphs, incurring zero allocation cost.
+3. Two built-in shape providers that map .NET types to the type model:
+    * The [reflection provider](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape/ReflectionProvider): uses reflection to derive type models at runtime.
+    * The [source generator](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.SourceGenerator): generates type models at compile-time and works with trimmed/Native AOT applications.
+
+## Programming Model
+
+In the simplest terms, the library defines a strongly typed reflection model:
+
+```C#
+public interface ITypeShape<TDeclaringType> : ITypeShape
+{
+    IEnumerable<IPropertyShape> GetProperties();
+}
+
+public interface IPropertyShape<TDeclaringType, TPropertyType> : IPropertyShape
+{
+    Func<TDeclaringType, TPropertyType> GetGetter();
+    ITypeShape<TPropertyType> PropertyType { get; }
+}
+```
+
+which can be traversed using generic visitors:
+
+```C#
+public interface ITypeShape
+{
+    object? Accept(ITypeShapeVisitor visitor, object? state);
+}
+
+public interface IPropertyShape
+{
+    object? Accept(ITypeShapeVisitor visitor, object? state);
+}
+
+public interface ITypeShapeVisitor
+{
+    object? Visit<TDeclaringType>(ITypeShape<TDeclaringType> typeShape, object? state);
+    object? Visit<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> typeShape, object? state);
+}
+```
+
+The shape for any given type can be generated either using the reflection provider:
+
+```C#
+using TypeShape.ReflectionProvider;
+
+ITypeShape<MyPoco> shape = ReflectionTypeShapeProvider.Default.GetShape<MyPoco>();
+
+public record MyPoco(string x, string y);
+```
+
+or via the source generator:
+
+```C#
+ITypeShape<MyPoco> shape = SourceGenProvider.Default.MyPoco;
+
+public record MyPoco(string x, string y);
+
+[GenerateShape(typeof(MyPoco))]
+public partial class SourceGenProvider { }
+```
+
+Models for types can be fed into datatype-generic consumers that are declared using TypeShape's visitor pattern.
+
+### Example: Writing a datatype-generic counter
+
+The simplest possible example of a datatype-generic programming is counting the number of nodes that exist in a given object graph. This can be implemented by extending the `TypeShapeVisitor` class:
+
+```C#
+public sealed partial class CounterVisitor : TypeShapeVisitor
+{
+    public override object? VisitType<T>(ITypeShape<T> typeShape, object? state)
+    {
+        // For the sake of simplicity, ignore collection types and just focus on properties/fields.
+
+        // Recursive generate counters for each individual property/field:
+        Func<T, int>[] propertyCounters = typeShape.GetProperties(nonPublic: false, includeFields: true)
+            .Where(prop => prop.HasGetter)
+            .Select(prop => (Func<T, int>)prop.Accept(this, null)!)
+            .ToArray();
+
+        // Compose into a counter for the current type.
+        return new Func<T, int>(value =>
+        {
+            if (value is null)
+                return 0;
+
+            int count = 1; // the current node itself
+            foreach (Func<T, int> propertyCounter in propertyCounters)
+                count += propertyCounter(value);
+
+            return count;
+        });
+    }
+
+    public override object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> propertyShape, object? state)
+    {
+        Getter<TDeclaringType, TPropertyType> getter = propertyShape.GetGetter(); // extract the getter delegate
+        var propertyTypeCounter = (Func<TPropertyType, int>)propertyShape.PropertyType.Accept(this, null)!; // extract the counter for the property type
+        return new Func<TDeclaringType, int>(obj => propertyTypeCounter(getter(ref obj))); // compose to a property-specific counter
+    }
+}
+```
+
+We can now define a counter factory using the visitor:
+
+```C#
+public static class Counter
+{
+    private readonly static CounterVisitor s_visitor = new();
+
+    public static Func<T, int> CreateCounter<T>(ITypeShape<T> typeShape)
+        => (Func<T, int>)typeShape.Accept(s_visitor, null)!;
+}
+```
+
+That we can then apply to the shape of our POCO like so:
+
+```C#
+ITypeShape<MyPoco> shape = SourceGenProvider.Default.MyPoco;
+Func<MyPoco, int> pocoCounter = Counter.CreateCounter(shape);
+
+pocoCounter(new MyPoco("x","y")); // 3
+
+public record MyPoco(string x, string y);
+
+[GenerateShape(typeof(MyPoco))]
+public partial class SourceGenProvider { }
+```
+
+In essence, TypeShape uses the visitor to fold a strongly typed `Func<MyPoco, int>` counter delegate, but the delegate itself doesn't depend on the visitor once invoked: it only defines a chain of strongly typed delegate invocations that are fast to invoke once constructed.
+
+For more comprehensive examples, please see the [TypeShape.Applications](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Applications) folder which contains a number of detailed samples. You can use the console apps found in the `tests` folder for more experimentation and exploration.
 
 ## Case Study: Writing a JSON serializer
 
@@ -60,6 +202,25 @@ Here's a [benchmark](https://github.com/eiriktsarpalis/typeshape-csharp/blob/mai
 Even though both serializers target the same underlying `JsonConverter` infrastructure, the TypeShape implementation is ~30% faster for serialization and ~90% for deserialization,
 when compared with System.Text.Json's metadata serializer. As expected, fast-path serialization is still fastest since its implementation is fully inlined.
 
+## Project structure
+
+The repo consists of the following projects:
+
+* The core `TypeShape` library containing:
+  * The [set of abstractions](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape/Abstractions) defining the type model.
+  * A [reflection provider](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape/ReflectionProvider) implementation.
+  * The [model classes](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape/SourceGenModel) used by the source generator.
+* The [`TypeShape.SourceGenerator`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.SourceGenerator) implementation.
+  * Defines an incremental source generator following a [triggering model](https://github.com/eiriktsarpalis/typeshape-csharp/blob/7f517209fd34cf80b5ba83b21306c6e8bf836ae9/tests/TypeShape.SourceGenApp/Program.cs#L38-L41) identical to `System.Text.Json`.
+* [`TypeShape.Applications`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Applications) containing generic program examples:
+  * A serializer generator targeting System.Text.Json's `JsonConverter`,
+  * A simple pretty-printer for .NET values,
+  * A generic random value generator based on `System.Random`,
+  * A structural `IEqualityComparer<T>` generator for POCOs and collections,
+  * An object validator in the style of System.ComponentModel.DataAnnotations.
+  * A serializer built on top of System.Formats.Cbor.
+* [`TypeShape.ReflectionApp`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/tests/TypeShape.ReflectionApp) and [`TypeShape.SourceGenApp`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/tests/TypeShape.SourceGenApp) define simple console apps for testing generic programs in CoreCLR and NativeAOT.
+
 ## Advantages & Disadvantages
 
 The library has a number of advantages:
@@ -78,16 +239,5 @@ At the same time the approach also has a number of drawbacks, namely:
 ## Next Steps
 
 This experiment is an exploration of potential reusable source generator abstractions when applied to datatype-generic programming. It proposes to do so by reducing the rich models found in `ITypeSymbol` (or `System.Type` in the case of runtime reflection) into a simplified, data-oriented model for types. This intermediate representation abstracts away runtime/language concerns such as classes vs. structs, fields vs. properties, implementation and interface inheritance, accessibility modifiers, required and init-only properties, etc.
-
-Under such a data-oriented representation a type consists of:
-
-1. A list of accessible instance properties.
-2. A list of accessible constructors plus relevant parameter metadata.
-3. Additional metadata for special kinds of data types, such as
-    * Element type for enumerable-like types.
-    * Key and Value type for dictionary-like types.
-    * Element type for `Nullable<T>`.
-    * Underlying type for enums.
-4. Attribute metadata for all the nodes described above.
 
 This prototype provides both [compile-time](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.SourceGenerator/Model) and [run-time](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape/Abstractions) representations of the model. Even though the examples here primarily focus on the latter approach, there is potential for reusing the compile-time model in authoring bespoke, "fast-path" source generators for datatype-generic programs. The models are lightweight and implement structural equality, meaning they are easy to apply in incremental source generators.
