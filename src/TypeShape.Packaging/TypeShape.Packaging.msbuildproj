@@ -16,13 +16,5 @@
   <ItemGroup>
     <ProjectReference Include="../TypeShape/TypeShape.csproj" />
     <ProjectReference Include="../TypeShape.SourceGenerator/TypeShape.SourceGenerator.csproj" />
-    <PackageReference Include="MinVer" Version="4.3.0">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="NuGetizer" Version="1.1.1">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
   </ItemGroup>
 </Project>
