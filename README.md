@@ -2,9 +2,11 @@
 
 Defines a port of the F# [TypeShape](https://github.com/eiriktsarpalis/TypeShape) library, adapted to patterns and idioms available in C#.
 
-## Introduction
+## Motivation
 
-Datatype-generic programs (a.k.a. polytypic programs) refers to components that are capable of acting on the structure of arbitrary types without necessitating any type-specific specialization on behalf of their callers. Common examples include serialization libraries, structured loggers, data mappers, validation libraries, parsers, random generators, equality comparers, and many more. In System.Text.Json, the method:
+Datatype-generic programs (a.k.a. polytypic programs) refers to components that are capable of acting on the structure of arbitrary types without necessitating any type-specific specialization on behalf of their callers. Common examples include serialization libraries, structured loggers, data mappers, validation libraries, parsers, random generators, equality comparers, and many more. 
+
+In System.Text.Json, the method:
 
 ```C#
 public static class JsonSerializer
@@ -24,15 +26,19 @@ public static class ConfigurationBinder
 
 is a datatype-generic program since the way that configuration is bound is entirely dictated by the shape of `T`.
 
-Authoring datatype-generic programs can be particularly challenging since the code needs to be able to handle _any type_ that the language can declare (including failing gracefully in cases where particular type shapes are not supported). It also needs to be evolved in tandem with new language features as they are being added. In the case of C# libraries, here is a short list of language features that a production ready datatype-generic library is expected to handle correctly:
+Authoring datatype-generic programs can be particularly challenging since the code needs to be able to handle _any type_ that the language can declare (including failing gracefully in cases where particular type shapes are not supported). It also needs to be evolved in tandem with new language features as they are being added. 
 
-* Constructors, properties, fields and their visibility.
+In the case of C# libraries, here is a non-exhaustive list of language features that a production ready datatype-generic library is expected to handle correctly:
+
+* Constructors, properties, fields and their accessibility modifiers.
 * Class inheritance, interface inheritance, virtual members.
 * `required`, `readonly` and `init`-only members.
 * Collection types, including interface collections, immutable collections, non-generic collections and multi-dimensional arrays.
 * Recursive types, e.g. linked list and tree types.
 * Record types, structs, ref structs and pointers.
 * Special types such as `Nullable<T>` and tuples.
+
+## Introduction
 
 TypeShape is a library that facilitates the development of high-performance datatype-generic programs. It provides:
 
@@ -41,8 +47,6 @@ TypeShape is a library that facilitates the development of high-performance data
 3. Two built-in shape providers that map .NET types to the type model:
     * The [reflection provider](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape/ReflectionProvider): uses reflection to derive type models at runtime.
     * The [source generator](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.SourceGenerator): generates type models at compile-time and works with trimmed/Native AOT applications.
-
-## Programming Model
 
 In the simplest terms, the library defines a strongly typed reflection model:
 
