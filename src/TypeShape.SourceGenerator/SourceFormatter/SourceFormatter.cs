@@ -12,13 +12,13 @@ internal static partial class SourceFormatter
     public static void FormatProvider(SourceProductionContext context, TypeShapeProviderModel provider)
     {
         context.CancellationToken.ThrowIfCancellationRequested();
-        context.AddSource($"{provider.Name}.g.cs", FormatMainFile(provider));
-        context.AddSource($"{provider.Name}.ITypeShapeProvider.g.cs", FormatProviderInterfaceImplementation(provider));
+        context.AddSource($"{provider.SourceFilenamePrefix}.g.cs", FormatMainFile(provider));
+        context.AddSource($"{provider.SourceFilenamePrefix}.ITypeShapeProvider.g.cs", FormatProviderInterfaceImplementation(provider));
 
         foreach (TypeModel type in provider.ProvidedTypes)
         {
             context.CancellationToken.ThrowIfCancellationRequested();
-            context.AddSource($"{provider.Name}.{type.Id.GeneratedPropertyName}.g.cs", FormatType(provider, type));
+            context.AddSource($"{provider.SourceFilenamePrefix}.{type.Id.GeneratedPropertyName}.g.cs", FormatType(provider, type));
         }
     }
 

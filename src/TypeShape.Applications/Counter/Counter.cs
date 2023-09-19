@@ -1,6 +1,4 @@
-﻿using System.Runtime.InteropServices;
-
-namespace TypeShape.Applications.Counter;
+﻿namespace TypeShape.Applications.Counter;
 
 public static class Counter
 {

@@ -43,6 +43,7 @@ public sealed partial class ModelGenerator
         return new TypeShapeProviderModel
         {
             Name = _declaredTypeSymbol.Name,
+            SourceFilenamePrefix = _declaredTypeSymbol.ToDisplayString(RoslynHelpers.QualifiedNameOnlyFormat),
             Namespace = FormatNamespace(_declaredTypeSymbol),
             ProvidedTypes = _generatedTypes.Values.OrderBy(type => type.Id.FullyQualifiedName).ToImmutableEquatableArray(),
             TypeDeclaration = ResolveDeclarationHeader(_classDeclarationSyntax, out ImmutableEquatableArray<string>? containingTypes),

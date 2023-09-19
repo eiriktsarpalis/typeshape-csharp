@@ -10,7 +10,7 @@ public sealed class ImmutableEquatableArray<T> : IEquatable<ImmutableEquatableAr
 #pragma warning restore CA1000 // Do not declare static members on generic types
 
     private readonly T[] _values;
-    public T this[int index] => _values[index];
+    public ref readonly T this[int index] => ref _values[index];
     public int Count => _values.Length;
 
     public ImmutableEquatableArray(IEnumerable<T> values)
@@ -36,6 +36,7 @@ public sealed class ImmutableEquatableArray<T> : IEquatable<ImmutableEquatableAr
     public Enumerator GetEnumerator() => new(_values);
     IEnumerator<T> IEnumerable<T>.GetEnumerator() => ((IEnumerable<T>)_values).GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<T>)_values).GetEnumerator();
+    T IReadOnlyList<T>.this[int index] => _values[index];
 
     public struct Enumerator
     {
@@ -49,7 +50,7 @@ public sealed class ImmutableEquatableArray<T> : IEquatable<ImmutableEquatableAr
         }
 
         public bool MoveNext() => ++_index < _values.Length;
-        public readonly T Current => _values[_index];
+        public readonly ref T Current => ref _values[_index];
     }
 }
 
