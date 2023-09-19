@@ -1,10 +1,10 @@
 # typeshape-csharp [![Build & Tests](https://github.com/eiriktsarpalis/typeshape-csharp/actions/workflows/build.yml/badge.svg)](https://github.com/eiriktsarpalis/typeshape-csharp/actions/workflows/build.yml) [![NuGet Badge](https://buildstats.info/nuget/typeshape-csharp)](https://www.nuget.org/packages/typeshape-csharp/)
 
-Defines a port of the F# [TypeShape](https://github.com/eiriktsarpalis/TypeShape) library, adapted to patterns and idioms available in C#.
+This repo contains a port of the [TypeShape](https://github.com/eiriktsarpalis/TypeShape) F# library, adapted to patterns and idioms available in C#.
 
-## Motivation
+## Background & Motivation
 
-Datatype-generic programs (a.k.a. polytypic programs) refers to components that are capable of acting on the structure of arbitrary types without necessitating any type-specific specialization on behalf of their callers. Common examples include serialization libraries, structured loggers, data mappers, validation libraries, parsers, random generators, equality comparers, and many more.
+Datatype-generic programs (a.k.a. polytypic programs) is a term referring to components that are capable of acting on the structure of arbitrary types, without necessitating any type-specific specialization on behalf of their callers. Common examples of datatype-generic programs include serialization libraries, structured loggers, data mappers, validation libraries, parsers, random generators, equality comparers, and many more.
 
 In System.Text.Json, the method:
 
@@ -33,17 +33,22 @@ In the case of C# libraries, here is a non-exhaustive list of language features 
 * Constructors, properties, fields and their accessibility modifiers.
 * Class inheritance, interface inheritance, virtual members.
 * `required`, `readonly` and `init`-only members.
+* Members with non-nullable reference types.
 * Collection types, including interface collections, immutable collections, non-generic collections and multi-dimensional arrays.
 * Recursive types, e.g. linked list and tree types.
 * Record types, structs, ref structs and pointers.
-* Special types such as `Nullable<T>` and tuples.
+* Special types such as `Nullable<T>` and tuples of any arity.
+
+This is a lot of work that needs to be repeated for every library, whether using reflection or source generators to introspect on the type structure. Even in popular libraries, it is common for support of all language features to be partial or incomplete, or for support to be lagging behind the evolution of the language. It is generally speaking expensive for library authors to respond to and test for all available permutations made available in the latest versions of the language.
+
+The thesis of this project is that much of this complexity can be consolidated behind a single set of reusable abstractions that make authoring datatype-generic programs much simpler to implement and maintain.
 
 ## Introduction
 
 TypeShape is a library that facilitates the development of high-performance datatype-generic programs. It provides:
 
 1. A simplified data model for .NET types that abstracts away concerns of the C# type system. Types can contain properties, have constructors, be collections, but not much else.
-2. A [variation on the visitor pattern](https://www.microsoft.com/research/publication/generalized-algebraic-data-types-and-object-oriented-programming/) that enables strongly-typed traversal of arbitrary object graphs, incurring zero allocation cost.
+2. A [variation on the visitor pattern](https://www.microsoft.com/research/publication/generalized-algebraic-data-types-and-object-oriented-programming/) that enables strongly-typed traversal of arbitrary object graphs, in a way that incurs zero allocation costs.
 3. Two built-in shape providers that map .NET types to the type model:
     * A [reflection provider](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape/ReflectionProvider): uses reflection to derive type models at runtime.
     * A [source generator](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.SourceGenerator): generates type models at compile-time and works with trimmed/Native AOT applications.
@@ -104,7 +109,7 @@ public record MyPoco(string x, string y);
 public partial class SourceGenProvider { }
 ```
 
-Models for types can be fed into datatype-generic consumers that are declared using TypeShape's visitor pattern.
+Shapes of types can then be fed into any datatype-generic program that is declared using TypeShape's visitor pattern.
 
 ### Example: Writing a datatype-generic counter
 
@@ -115,9 +120,9 @@ public sealed partial class CounterVisitor : TypeShapeVisitor
 {
     public override object? VisitType<T>(ITypeShape<T> typeShape, object? state)
     {
-        // For the sake of simplicity, ignore collection types and just focus on properties/fields.
+        // For the sake of simplicity, ignore collections and just focus on properties/fields.
 
-        // Recursive generate counters for each individual property/field:
+        // Recursively generate counters for each individual property/field:
         Func<T, int>[] propertyCounters = typeShape.GetProperties(nonPublic: false, includeFields: true)
             .Where(prop => prop.HasGetter)
             .Select(prop => (Func<T, int>)prop.Accept(this, null)!)
@@ -129,7 +134,7 @@ public sealed partial class CounterVisitor : TypeShapeVisitor
             if (value is null)
                 return 0;
 
-            int count = 1; // the current node itself
+            int count = 1;
             foreach (Func<T, int> propertyCounter in propertyCounters)
                 count += propertyCounter(value);
 
@@ -141,7 +146,7 @@ public sealed partial class CounterVisitor : TypeShapeVisitor
     {
         Getter<TDeclaringType, TPropertyType> getter = propertyShape.GetGetter(); // extract the getter delegate
         var propertyTypeCounter = (Func<TPropertyType, int>)propertyShape.PropertyType.Accept(this, null)!; // extract the counter for the property type
-        return new Func<TDeclaringType, int>(obj => propertyTypeCounter(getter(ref obj))); // compose to a property-specific counter
+        return new Func<TDeclaringType, int>(obj => propertyTypeCounter(getter(ref obj))); // combine into a property-specific counter delegate
     }
 }
 ```
@@ -186,22 +191,22 @@ Here's a [benchmark](https://github.com/eiriktsarpalis/typeshape-csharp/blob/mai
 
 #### Serialization
 
-|                          Method |     Mean |    Error |   StdDev | Ratio | RatioSD |   Gen0 | Allocated | Alloc Ratio |
-|-------------------------------- |---------:|---------:|---------:|------:|--------:|-------:|----------:|------------:|
-|         Serialize_StjReflection | 567.0 ns | 11.10 ns | 12.78 ns |  1.00 |    0.00 | 0.0381 |     488 B |        1.00 |
-|          Serialize_StjSourceGen | 571.5 ns | 10.80 ns | 11.09 ns |  1.01 |    0.04 | 0.0381 |     488 B |        1.00 |
-| Serialize_StjSourceGen_FastPath | 293.3 ns |  5.54 ns |  6.16 ns |  0.52 |    0.02 | 0.0138 |     176 B |        0.36 |
-|   Serialize_TypeShapeReflection | 412.0 ns |  8.01 ns | 10.42 ns |  0.73 |    0.03 | 0.0138 |     176 B |        0.36 |
-|    Serialize_TypeShapeSourceGen | 402.2 ns |  8.01 ns |  9.23 ns |  0.71 |    0.02 | 0.0138 |     176 B |        0.36 |
+| Method                          | Mean     | Error    | StdDev  | Ratio | RatioSD | Gen0   | Allocated | Alloc Ratio |
+|-------------------------------- |---------:|---------:|--------:|------:|--------:|-------:|----------:|------------:|
+| Serialize_StjReflection         | 557.4 ns | 10.25 ns | 9.59 ns |  1.00 |    0.00 | 0.0019 |     488 B |        1.00 |
+| Serialize_StjSourceGen          | 518.7 ns |  4.40 ns | 3.68 ns |  0.93 |    0.02 | 0.0019 |     488 B |        1.00 |
+| Serialize_StjSourceGen_FastPath | 310.6 ns |  3.34 ns | 3.12 ns |  0.56 |    0.01 | 0.0005 |     176 B |        0.36 |
+| Serialize_TypeShapeReflection   | 399.0 ns |  1.92 ns | 1.70 ns |  0.71 |    0.01 | 0.0005 |     176 B |        0.36 |
+| Serialize_TypeShapeSourceGen    | 392.7 ns |  3.39 ns | 3.17 ns |  0.70 |    0.01 | 0.0005 |     176 B |        0.36 |
 
 #### Deserialization
 
-|                          Method |       Mean |    Error |   StdDev | Ratio | RatioSD |   Gen0 | Allocated | Alloc Ratio |
+| Method                          | Mean       | Error    | StdDev   | Ratio | RatioSD | Gen0   | Allocated | Alloc Ratio |
 |-------------------------------- |-----------:|---------:|---------:|------:|--------:|-------:|----------:|------------:|
-|       Deserialize_StjReflection | 1,589.5 ns | 31.56 ns | 68.60 ns |  1.00 |    0.00 | 0.0782 |     992 B |        1.00 |
-|        Deserialize_StjSourceGen | 1,574.9 ns | 24.86 ns | 19.41 ns |  0.96 |    0.04 | 0.0763 |     968 B |        0.98 |
-| Deserialize_TypeShapeReflection |   848.8 ns | 16.65 ns | 23.88 ns |  0.52 |    0.02 | 0.0343 |     440 B |        0.44 |
-|  Deserialize_TypeShapeSourceGen |   828.6 ns | 16.04 ns | 15.76 ns |  0.50 |    0.01 | 0.0343 |     440 B |        0.44 |
+| Deserialize_StjReflection       | 1,646.6 ns | 22.48 ns | 18.77 ns |  1.00 |    0.00 | 0.0038 |     992 B |        1.00 |
+| Deserialize_StjSourceGen        | 1,731.3 ns | 34.00 ns | 40.47 ns |  1.06 |    0.03 | 0.0038 |     968 B |        0.98 |
+| Deserialize_TypeShapeReflection |   803.1 ns | 15.86 ns | 21.18 ns |  0.49 |    0.02 | 0.0010 |     440 B |        0.44 |
+| Deserialize_TypeShapeSourceGen  |   753.4 ns |  4.93 ns |  3.85 ns |  0.46 |    0.01 | 0.0010 |     440 B |        0.44 |
 
 Even though both serializers target the same underlying `JsonConverter` infrastructure, the TypeShape implementation is ~30% faster for serialization and ~90% for deserialization, when compared with System.Text.Json's metadata serializer. As expected, fast-path serialization is still fastest since its implementation is fully inlined.
 
