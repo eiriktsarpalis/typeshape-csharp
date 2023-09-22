@@ -24,6 +24,89 @@ internal static class ReflectionHelpers
         return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>);
     }
 
+    public static void GetNonNullableReferenceInfo(this MemberInfo memberInfo, out bool isGetterNonNullable, out bool isSetterNonNullable)
+    {
+        if (GetNullabilityInfo(memberInfo) is NullabilityInfo info)
+        {
+            isGetterNonNullable = info.ReadState is NullabilityState.NotNull;
+            isSetterNonNullable = info.WriteState is NullabilityState.NotNull;
+        }
+        else
+        {
+            isGetterNonNullable = false;
+            isSetterNonNullable = false;
+        }
+    }
+
+    public static bool IsNonNullableReferenceType(this ParameterInfo parameterInfo)
+    {
+        if (GetNullabilityInfo(parameterInfo) is NullabilityInfo info)
+        {
+            // Workaround for https://github.com/dotnet/runtime/issues/92487
+            if (parameterInfo.Member.TryGetGenericMethodDefinition() is MethodBase genericMethod &&
+                genericMethod.GetParameters()[parameterInfo.Position] is { ParameterType: { IsGenericParameter: true } typeParam })
+            {
+                Attribute? attr = typeParam.GetCustomAttributes().FirstOrDefault(attr =>
+                {
+                    Type attrType = attr.GetType();
+                    return attrType.Namespace == "System.Runtime.CompilerServices" && attrType.Name == "NullableAttribute";
+                });
+
+                byte[]? nullableFlags = (byte[])attr?.GetType().GetField("NullableFlags")?.GetValue(attr)!;
+                return nullableFlags[0] == 1;
+            }
+
+            return info.WriteState is NullabilityState.NotNull;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    public static MethodBase? TryGetGenericMethodDefinition(this MemberInfo methodBase)
+    {
+        Debug.Assert(methodBase is MethodInfo or ConstructorInfo);
+
+        if (methodBase.DeclaringType!.IsGenericType)
+        {
+            Type genericTypeDef = methodBase.DeclaringType.GetGenericTypeDefinition();
+            MethodBase[] methods = methodBase.MemberType is MemberTypes.Constructor
+                ? genericTypeDef.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                : genericTypeDef.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+
+            MethodBase match = methods.First(m => m.MetadataToken == methodBase.MetadataToken);
+            return ReferenceEquals(match, methodBase) ? null : match;
+        }
+
+        if (methodBase is MethodInfo { IsGenericMethod: true } methodInfo)
+        {
+            return methodInfo.GetGenericMethodDefinition();
+        }
+
+        return null;
+    }
+
+    private static NullabilityInfo? GetNullabilityInfo(ICustomAttributeProvider memberInfo)
+    {
+        Debug.Assert(memberInfo is PropertyInfo or FieldInfo or ParameterInfo);
+
+        switch (memberInfo)
+        {
+            case PropertyInfo prop:
+                return prop.PropertyType.IsValueType ? null : new NullabilityInfoContext().Create(prop);
+
+            case FieldInfo field:
+                return field.FieldType.IsValueType ? null : new NullabilityInfoContext().Create(field);
+
+            case ParameterInfo parameter:
+                return parameter.ParameterType.IsValueType ? null : new NullabilityInfoContext().Create(parameter);
+
+            default:
+                return null;
+        }
+    }
+
     public static bool CanBeGenericArgument(this Type type)
     {
         return !(type == typeof(void) || type.IsPointer || type.IsByRef || type.IsByRefLike || type.ContainsGenericParameters);

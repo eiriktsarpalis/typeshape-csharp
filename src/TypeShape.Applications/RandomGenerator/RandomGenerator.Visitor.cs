@@ -1,5 +1,6 @@
 ﻿using System.Buffers.Binary;
 using System.Diagnostics;
+using System.Numerics;
 using System.Text;
 
 namespace TypeShape.Applications.RandomGenerator;
@@ -278,6 +279,7 @@ public partial class RandomGenerator
             yield return Create((random, _) => random.Next());
             yield return Create((random, _) => NextLong(random));
             yield return Create((random, _) => new Int128(NextULong(random), NextULong(random)));
+            yield return Create((random, _) => new BigInteger(NextLong(random)));
 
             yield return Create((random, size) => (Half)((random.NextDouble() - 0.5) * size));
             yield return Create((random, size) => (float)((random.NextDouble() - 0.5) * size));

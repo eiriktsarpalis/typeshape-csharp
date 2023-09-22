@@ -10,9 +10,65 @@ namespace TypeShape.SourceGenerator.Helpers;
 
 internal static class RoslynHelpers
 {
+    public static bool IsNonNullableReferenceType(this ITypeSymbol type)
+    {
+        return !type.IsValueType && type.NullableAnnotation is NullableAnnotation.NotAnnotated;
+    }
+
+    public static bool IsNonNullableReferenceType(this IParameterSymbol parameter)
+    {
+        return !parameter.Type.IsValueType && IsParameterNonNullable(parameter, parameter.NullableAnnotation);
+    }
+
+    public static void GetNullableReferenceTypeInfo(this ISymbol member, out bool isGetterNonNullable, out bool isSetterNonNullable)
+    {
+        Debug.Assert(member is IFieldSymbol or IPropertySymbol);
+
+        if (member is IFieldSymbol { Type.IsValueType: false } field)
+        {
+            isGetterNonNullable = IsReturnValueNonNullable(field, field.NullableAnnotation);
+            isSetterNonNullable = IsParameterNonNullable(field, field.NullableAnnotation);
+        }
+        else if (member is IPropertySymbol { Type.IsValueType: false } property)
+        {
+            Debug.Assert(!property.IsIndexer);
+
+            isGetterNonNullable = property.GetMethod != null && IsReturnValueNonNullable(property, property.NullableAnnotation);
+            isSetterNonNullable = property.SetMethod != null && IsParameterNonNullable(property, property.NullableAnnotation);
+        }
+        else
+        {
+            isGetterNonNullable = false;
+            isSetterNonNullable = false;
+        }
+    }
+
+    private static bool IsReturnValueNonNullable(ISymbol symbol, NullableAnnotation returnTypeAnnotation)
+    {
+        return 
+            !symbol.HasCodeAnalysisAttribute("MaybeNullAttribute") &&
+            (returnTypeAnnotation is NullableAnnotation.NotAnnotated || 
+             symbol.HasCodeAnalysisAttribute("NotNullAttribute"));
+    }
+
+    private static bool IsParameterNonNullable(ISymbol symbol, NullableAnnotation parameterAnnotation)
+    {
+        return
+            !symbol.HasCodeAnalysisAttribute("AllowNullAttribute") &&
+            (parameterAnnotation is NullableAnnotation.NotAnnotated ||
+             symbol.HasCodeAnalysisAttribute("DisallowNullAttribute"));
+    }
+
+    private static bool HasCodeAnalysisAttribute(this ISymbol symbol, string attributeName)
+    {
+        return symbol.GetAttributes().Any(attr =>
+            attr.AttributeClass?.Name == attributeName &&
+            attr.AttributeClass.ContainingNamespace.ToDisplayString() == "System.Diagnostics.CodeAnalysis");
+    }
+
     public static ITypeSymbol EraseCompilerMetadata(this Compilation compilation, ITypeSymbol type)
     {
-        if (type.NullableAnnotation is NullableAnnotation.Annotated)
+        if (type.NullableAnnotation != NullableAnnotation.None)
         {
             type = type.WithNullableAnnotation(NullableAnnotation.None);
         }

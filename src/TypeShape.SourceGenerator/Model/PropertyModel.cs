@@ -8,8 +8,11 @@ public sealed record PropertyModel
     public required TypeId? DeclaringInterfaceType { get; init; }
     public required TypeId PropertyType { get; init; }
     
-    public bool EmitGetter { get; init; }
-    public bool EmitSetter { get; init; }
+    public required bool EmitGetter { get; init; }
+    public required bool EmitSetter { get; init; }
     
-    public bool IsField { get; init; }
+    public required bool IsField { get; init; }
+
+    public required bool IsGetterNonNullableReferenceType { get; init; }
+    public required bool IsSetterNonNullableReferenceType { get; init; }
 }

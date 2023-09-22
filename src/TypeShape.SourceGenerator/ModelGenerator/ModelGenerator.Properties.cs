@@ -69,6 +69,7 @@ public sealed partial class ModelGenerator
     private PropertyModel MapProperty(TypeId typeId, IPropertySymbol property)
     {
         Debug.Assert(!property.IsStatic && !property.IsIndexer);
+        property.GetNullableReferenceTypeInfo(out bool isGetterNonNullable, out bool isSetterNonNullable);
         return new PropertyModel
         {
             Name = property.Name,
@@ -76,14 +77,18 @@ public sealed partial class ModelGenerator
             DeclaringType = typeId,
             DeclaringInterfaceType = property.ContainingType.TypeKind is TypeKind.Interface ? CreateTypeId(property.ContainingType) : null,
             PropertyType = EnqueueForGeneration(property.Type),
+            IsGetterNonNullableReferenceType = isGetterNonNullable,
+            IsSetterNonNullableReferenceType = isSetterNonNullable,
             EmitGetter = property.GetMethod is { } getter && IsAccessibleFromGeneratedType(getter),
             EmitSetter = property.SetMethod is IMethodSymbol { IsInitOnly: false } setter && IsAccessibleFromGeneratedType(setter),
+            IsField = false,
         };
     }
 
     private PropertyModel MapField(TypeId typeId, IFieldSymbol field)
     {
         Debug.Assert(!field.IsStatic);
+        field.GetNullableReferenceTypeInfo(out bool isGetterNonNullable, out bool isSetterNonNullable);
         return new PropertyModel
         {
             Name = field.Name,
@@ -91,6 +96,8 @@ public sealed partial class ModelGenerator
             DeclaringType = typeId,
             DeclaringInterfaceType = null,
             PropertyType = EnqueueForGeneration(field.Type),
+            IsGetterNonNullableReferenceType = isGetterNonNullable,
+            IsSetterNonNullableReferenceType = isSetterNonNullable,
             EmitGetter = true,
             EmitSetter = !field.IsReadOnly,
             IsField = true,
@@ -99,6 +106,7 @@ public sealed partial class ModelGenerator
 
     private PropertyModel MapClassTupleElement(TypeId typeId, ITypeSymbol element, int index)
     {
+        bool isNonNullableReferenceType = element.IsNonNullableReferenceType();
         return new PropertyModel
         {
             Name = $"Item{index + 1}",
@@ -106,8 +114,11 @@ public sealed partial class ModelGenerator
             DeclaringType = typeId,
             DeclaringInterfaceType = null,
             PropertyType = EnqueueForGeneration(element),
+            IsGetterNonNullableReferenceType = isNonNullableReferenceType,
+            IsSetterNonNullableReferenceType = isNonNullableReferenceType,
             EmitGetter = true,
             EmitSetter = false,
+            IsField = false
         };
     }
 }

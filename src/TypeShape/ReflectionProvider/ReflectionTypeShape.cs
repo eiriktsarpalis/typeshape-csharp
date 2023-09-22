@@ -1,7 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Immutable;
 using System.Reflection;
-using System.Text;
 
 namespace TypeShape.ReflectionProvider;
 
@@ -395,9 +394,9 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
             type == typeof(TimeSpan) ||
             type == typeof(TimeOnly) ||
             type == typeof(Guid) ||
-            type == typeof(Rune) ||
             type == typeof(Version) ||
             type == typeof(Uri) ||
+            type == typeof(System.Text.Rune) ||
             ReflectionHelpers.IsNullable<T>() ||
             typeof(MemberInfo).IsAssignableFrom(type) ||
             typeof(Delegate).IsAssignableFrom(type);

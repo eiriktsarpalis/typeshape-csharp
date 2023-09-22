@@ -170,6 +170,7 @@ internal static partial class SourceFormatter
                     Name = "{{parameter.Name}}",
                     ParameterType = {{parameter.ParameterType.GeneratedPropertyName}},
                     IsRequired = {{FormatBool(parameter.IsRequired)}},
+                    IsNonNullableReferenceType = {{FormatBool(parameter.IsNonNullableReferenceType)}},
                     HasDefaultValue = {{FormatBool(parameter.HasDefaultValue)}},
                     DefaultValue = {{FormatDefaultValueExpr(parameter)}},
                     Setter = static (ref {{constructorArgumentStateFQN}} state, {{parameter.ParameterType.FullyQualifiedName}} value) => {{FormatSetterBody(constructor, parameter)}},

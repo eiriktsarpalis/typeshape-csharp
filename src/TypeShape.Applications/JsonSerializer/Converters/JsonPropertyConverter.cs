@@ -27,11 +27,15 @@ internal sealed class JsonPropertyConverter<TDeclaringType, TPropertyType> : Jso
     private readonly JsonConverter<TPropertyType> _propertyTypeConverter;
     private readonly Getter<TDeclaringType, TPropertyType>? _getter;
     private readonly Setter<TDeclaringType, TPropertyType>? _setter;
+    private readonly bool _getterDisallowsNull;
+    private readonly bool _setterDisallowsNull;
 
     public JsonPropertyConverter(IPropertyShape<TDeclaringType, TPropertyType> property, JsonConverter<TPropertyType> propertyTypeConverter)
         : base(property.Name)
     {
         _propertyTypeConverter = propertyTypeConverter;
+        _getterDisallowsNull = property.IsGetterNonNullableReferenceType;
+        _setterDisallowsNull = property.IsSetterNonNullableReferenceType;
 
         if (property.HasGetter)
         {
@@ -48,6 +52,7 @@ internal sealed class JsonPropertyConverter<TDeclaringType, TPropertyType> : Jso
         : base(parameter.Name!)
     {
         _propertyTypeConverter = propertyConverter;
+        _setterDisallowsNull = parameter.IsNonNullableReferenceType;
         _setter = parameter.GetSetter();
     }
 
@@ -59,6 +64,12 @@ internal sealed class JsonPropertyConverter<TDeclaringType, TPropertyType> : Jso
         Debug.Assert(_setter != null);
 
         TPropertyType? result = _propertyTypeConverter.Read(ref reader, typeof(TPropertyType), options);
+        if (result is null && _setterDisallowsNull)
+        {
+            Throw();
+            void Throw() => JsonHelpers.ThrowJsonException($"The property '{Name}' cannot be set to null.");
+        }
+
         _setter(ref declaringType, result!);
     }
 
@@ -67,6 +78,12 @@ internal sealed class JsonPropertyConverter<TDeclaringType, TPropertyType> : Jso
         Debug.Assert(_getter != null);
 
         TPropertyType value = _getter(ref declaringType);
+        if (value is null && _getterDisallowsNull)
+        {
+            Throw();
+            void Throw() => JsonHelpers.ThrowJsonException($"The property '{Name}' cannot contain null.");
+        }
+
         _propertyTypeConverter.Write(writer, value, options);
     }
 }

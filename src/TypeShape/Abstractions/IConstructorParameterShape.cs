@@ -43,6 +43,11 @@ public interface IConstructorParameterShape
     bool IsRequired { get; }
 
     /// <summary>
+    /// Specifies whether the parameter is a non-nullable reference type.
+    /// </summary>
+    bool IsNonNullableReferenceType { get; }
+
+    /// <summary>
     /// The provider used for parameter-level attribute resolution.
     /// </summary>
     ICustomAttributeProvider? AttributeProvider { get; }

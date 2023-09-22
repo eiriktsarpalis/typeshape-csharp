@@ -29,6 +29,7 @@ internal sealed class ReflectionConstructorParameterShape<TArgumentState, TParam
     public string? Name => _parameterInfo.Name;
     public bool HasDefaultValue => _parameterInfo.HasDefaultValue;
     public bool IsRequired => _parameterInfo.IsRequired;
+    public bool IsNonNullableReferenceType => _parameterInfo.IsNonNullableReferenceType;
     public TParameter? DefaultValue => (TParameter?)_parameterInfo.DefaultValue;
     object? IConstructorParameterShape.DefaultValue => _parameterInfo.DefaultValue;
     public ICustomAttributeProvider? AttributeProvider => _parameterInfo.AttributeProvider;
@@ -46,6 +47,7 @@ internal interface IParameterShapeInfo
     string? Name { get; }
     ICustomAttributeProvider? AttributeProvider { get; }
     bool IsRequired { get; }
+    bool IsNonNullableReferenceType { get; }
     bool HasDefaultValue { get; }
     object? DefaultValue { get; }
 }
@@ -56,6 +58,7 @@ internal sealed class MethodParameterShapeInfo : IParameterShapeInfo
     {
         Name = logicalName ?? parameterInfo.Name;
         ParameterInfo = parameterInfo;
+        IsNonNullableReferenceType = parameterInfo.IsNonNullableReferenceType();
 
         if (parameterInfo.TryGetDefaultValueNormalized(out object? defaultValue))
         {
@@ -70,6 +73,7 @@ internal sealed class MethodParameterShapeInfo : IParameterShapeInfo
     public string? Name { get; }
     public ICustomAttributeProvider? AttributeProvider => ParameterInfo;
     public bool IsRequired => !ParameterInfo.HasDefaultValue;
+    public bool IsNonNullableReferenceType { get; }
     public bool HasDefaultValue { get; }
     public object? DefaultValue { get; }
 }
@@ -84,12 +88,16 @@ internal sealed class MemberInitializerShapeInfo : IParameterShapeInfo
         MemberInfo = memberInfo;
         IsRequired = isRequired;
         IsInitOnly = isInitOnly;
+
+        memberInfo.GetNonNullableReferenceInfo(out _, out bool isSetterNonNullableReferenceType);
+        IsNonNullableReferenceType = isSetterNonNullableReferenceType;
     }
 
     public Type Type { get; }
     public MemberInfo MemberInfo { get; }
     public bool IsRequired { get; }
     public bool IsInitOnly { get; }
+    public bool IsNonNullableReferenceType { get; }
 
     public string Name => MemberInfo.Name;
     public ICustomAttributeProvider? AttributeProvider => MemberInfo;

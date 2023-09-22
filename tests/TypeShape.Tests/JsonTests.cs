@@ -182,6 +182,43 @@ public abstract class JsonTests
         Assert.Null(deserializedValue);
     }
 
+    [Fact]
+    public void Serialize_NonNullablePropertyWithNullValue_ThrowsJsonException()
+    {
+        var serializer = GetSerializerUnderTest<NonNullableStringRecord>();
+        var invalidValue = new NonNullableStringRecord(null!);
+        Assert.Throws<JsonException>(() => serializer.Serialize(invalidValue));
+    }
+
+    [Fact]
+    public void Deserialize_NonNullablePropertyWithNullJsonValue_ThrowsJsonException()
+    {
+        var serializer = GetSerializerUnderTest<NonNullableStringRecord>();
+        Assert.Throws<JsonException>(() => serializer.Deserialize("""{"value":null}"""));
+    }
+
+    [Fact]
+    public void Serialize_NullablePropertyWithNullValue_WorksAsExpected()
+    {
+        var serializer = GetSerializerUnderTest<NullableStringRecord>();
+        var valueWithNull = new NullableStringRecord(null);
+        
+        string json = serializer.Serialize(valueWithNull);
+
+        Assert.Equal("""{"value":null}""", json);
+    }
+
+    [Fact]
+    public void Serialize_NullablePropertyWithNullJsonValue_WorksAsExpected()
+    {
+        var serializer = GetSerializerUnderTest<NullableStringRecord>();
+        
+        NullableStringRecord? result = serializer.Deserialize("""{"value":null}""");
+
+        Assert.NotNull(result);
+        Assert.Null(result.value);
+    }
+
     [Theory]
     [MemberData(nameof(GetLongTuplesAndExpectedJson))]
     public void LongTuples_SerializedAsFlatJson<Tuple>(Tuple tuple, string expectedJson)

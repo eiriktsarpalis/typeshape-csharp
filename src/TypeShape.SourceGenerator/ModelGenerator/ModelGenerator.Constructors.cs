@@ -113,6 +113,7 @@ public sealed partial class ModelGenerator
             IsRequired = !parameter.HasExplicitDefaultValue,
             IsMemberInitializer = false,
             IsAutoProperty = false,
+            IsNonNullableReferenceType = parameter.IsNonNullableReferenceType(),
             HasDefaultValue = parameter.HasExplicitDefaultValue,
             DefaultValue = parameter.HasExplicitDefaultValue ? parameter.ExplicitDefaultValue : null,
             DefaultValueRequiresCast = parameter.Type 
@@ -129,6 +130,7 @@ public sealed partial class ModelGenerator
         }
 
         TypeId typeId = EnqueueForGeneration(propertySymbol.Type);
+        propertySymbol.GetNullableReferenceTypeInfo(out _, out bool isSetterNonNullable);
         return new ConstructorParameterModel
         {
             ParameterType = typeId,
@@ -137,6 +139,7 @@ public sealed partial class ModelGenerator
             IsRequired = propertySymbol.IsRequired,
             IsMemberInitializer = true,
             IsAutoProperty = propertySymbol.IsAutoProperty(),
+            IsNonNullableReferenceType = isSetterNonNullable,
             HasDefaultValue = false,
             DefaultValue = null,
             DefaultValueRequiresCast = false,
@@ -151,6 +154,7 @@ public sealed partial class ModelGenerator
         }
 
         TypeId typeId = EnqueueForGeneration(fieldSymbol.Type);
+        fieldSymbol.GetNullableReferenceTypeInfo(out _, out bool isSetterNonNullable);
         return new ConstructorParameterModel
         {
             ParameterType = typeId,
@@ -159,6 +163,7 @@ public sealed partial class ModelGenerator
             IsRequired = fieldSymbol.IsRequired,
             IsMemberInitializer = true,
             IsAutoProperty = false,
+            IsNonNullableReferenceType = isSetterNonNullable,
             HasDefaultValue = false,
             DefaultValue = null,
             DefaultValueRequiresCast = false,
@@ -198,6 +203,7 @@ public sealed partial class ModelGenerator
                 HasDefaultValue = false,
                 IsRequired = true,
                 IsMemberInitializer = false,
+                IsNonNullableReferenceType = tupleElement.IsNonNullableReferenceType(),
                 IsAutoProperty = false,
                 DefaultValue = null,
                 DefaultValueRequiresCast = false,

@@ -32,6 +32,10 @@ internal sealed class ReflectionPropertyShape<TDeclaringType, TPropertyType> : I
             HasGetter = p.CanRead && (nonPublic || p.GetMethod!.IsPublic);
             HasSetter = p.CanWrite && (nonPublic || p.SetMethod!.IsPublic) && !p.IsInitOnly();
         }
+
+        memberInfo.GetNonNullableReferenceInfo(out bool isGetterNonNullable, out bool isSetterNonNullable);
+        IsGetterNonNullableReferenceType = isGetterNonNullable;
+        IsSetterNonNullableReferenceType = isSetterNonNullable;
     }
 
     public string Name { get; }
@@ -40,6 +44,8 @@ internal sealed class ReflectionPropertyShape<TDeclaringType, TPropertyType> : I
     public ITypeShape PropertyType => _provider.GetShape<TPropertyType>();
 
     public bool IsField { get; }
+    public bool IsGetterNonNullableReferenceType { get; }
+    public bool IsSetterNonNullableReferenceType { get; }
 
     public bool HasGetter { get; }
     public bool HasSetter { get; }

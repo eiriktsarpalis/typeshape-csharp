@@ -7,6 +7,7 @@ public sealed class SourceGenConstructorParameterShape<TArgumentState, TParamete
     public required int Position { get; init; }
     public required string? Name { get; init; }
     public required bool IsRequired { get; init; }
+    public required bool IsNonNullableReferenceType { get; init; }
     public required ITypeShape<TParameter> ParameterType { get; init; }
     public required Setter<TArgumentState, TParameter> Setter { get; init; }
     public Func<ICustomAttributeProvider>? AttributeProviderFunc { get; init; }

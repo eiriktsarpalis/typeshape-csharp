@@ -43,6 +43,16 @@ public interface IPropertyShape
     bool IsField { get; }
 
     /// <summary>
+    /// Specifies whether the getter returns a non-nullable reference type.
+    /// </summary>
+    bool IsGetterNonNullableReferenceType { get; }
+
+    /// <summary>
+    /// Specifies whether the setter accepts a non-nullable reference type.
+    /// </summary>
+    bool IsSetterNonNullableReferenceType { get; }
+
+    /// <summary>
     /// Accepts an <see cref="ITypeShapeVisitor"/> for strongly typed traversal.
     /// </summary>
     /// <param name="visitor">The visitor to accept.</param>

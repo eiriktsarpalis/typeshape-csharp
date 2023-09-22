@@ -17,6 +17,8 @@ public sealed class SourceGenPropertyShape<TDeclaringType, TPropertyType> : IPro
     public bool HasGetter => Getter is not null;
     public bool HasSetter => Setter is not null;
     public bool IsField { get; init; }
+    public required bool IsGetterNonNullableReferenceType { get; init; }
+    public required bool IsSetterNonNullableReferenceType { get; init; }
 
     public object? Accept(ITypeShapeVisitor visitor, object? state)
         => visitor.VisitProperty(this, state);

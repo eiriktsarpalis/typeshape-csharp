@@ -30,6 +30,8 @@ internal static partial class SourceFormatter
                     Setter = {{(property.EmitSetter ? $"static (ref {type.Id.FullyQualifiedName} obj, {property.PropertyType.FullyQualifiedName} value) => obj.{property.UnderlyingMemberName} = value" : "null")}},
                     AttributeProviderFunc = {{FormatAttributeProviderFunc(type, property)}},
                     IsField = {{FormatBool(property.IsField)}},
+                    IsGetterNonNullableReferenceType = {{FormatBool(property.IsGetterNonNullableReferenceType)}},
+                    IsSetterNonNullableReferenceType = {{FormatBool(property.IsSetterNonNullableReferenceType)}},
                 };
                 """);
 
