@@ -169,9 +169,12 @@ That we can then apply to the shape of our POCO like so:
 ITypeShape<MyPoco> shape = SourceGenProvider.Default.MyPoco;
 Func<MyPoco, int> pocoCounter = Counter.CreateCounter(shape);
 
-pocoCounter(new MyPoco("x","y")); // 3
+pocoCounter(new MyPoco("x", "y")); // 3
+pocoCounter(new MyPoco("x", null)); // 2
+pocoCounter(new MyPoco(null, null)); // 1
+pocoCounter(null!); // 0
 
-public record MyPoco(string x, string y);
+public record MyPoco(string? x, string? y);
 
 [GenerateShape(typeof(MyPoco))]
 public partial class SourceGenProvider { }
