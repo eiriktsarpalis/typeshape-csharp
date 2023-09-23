@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using Microsoft.CodeAnalysis;
+using System.Diagnostics;
 using System.Text;
 using TypeShape.SourceGenerator.Helpers;
 using TypeShape.SourceGenerator.Model;
@@ -59,7 +60,7 @@ internal static partial class SourceFormatter
             static string FormatArgumentStateCtorExpr(ConstructorModel constructor, string constructorArgumentStateFQN)
                 => (constructor.Parameters.Count, constructor.MemberInitializers.Count) switch
                 {
-                    (0, 0) => "null",
+                    (0, 0) => "null!",
                     (1, 0) => FormatDefaultValueExpr(constructor.Parameters[0]),
                     (0, 1) => FormatDefaultValueExpr(constructor.MemberInitializers[0]),
                     _ when (!constructor.Parameters.Any(p => p.HasDefaultValue)) => $"default({constructorArgumentStateFQN})",
@@ -170,7 +171,7 @@ internal static partial class SourceFormatter
                     Name = "{{parameter.Name}}",
                     ParameterType = {{parameter.ParameterType.GeneratedPropertyName}},
                     IsRequired = {{FormatBool(parameter.IsRequired)}},
-                    IsNonNullableReferenceType = {{FormatBool(parameter.IsNonNullableReferenceType)}},
+                    IsNonNullableReferenceType = {{FormatBool(parameter.NullableAnnotation is NullableAnnotation.NotAnnotated)}},
                     HasDefaultValue = {{FormatBool(parameter.HasDefaultValue)}},
                     DefaultValue = {{FormatDefaultValueExpr(parameter)}},
                     Setter = static (ref {{constructorArgumentStateFQN}} state, {{parameter.ParameterType.FullyQualifiedName}} value) => {{FormatSetterBody(constructor, parameter)}},
@@ -189,7 +190,7 @@ internal static partial class SourceFormatter
 
                 if (parameter.IsMemberInitializer)
                 {
-                    return $"static () => typeof({constructor.DeclaringType.FullyQualifiedName}).GetMember(\"{parameter.Name}\", {InstanceBindingFlagsConstMember})[0]";
+                    return $"static () => typeof({constructor.DeclaringType.FullyQualifiedName}).GetMember({FormatStringLiteral(parameter.Name)}, {InstanceBindingFlagsConstMember})[0]";
                 }
 
                 string parameterTypes = constructor.Parameters.Count == 0
@@ -215,15 +216,15 @@ internal static partial class SourceFormatter
     {
         if (!constructorParameter.HasDefaultValue)
         {
-            return $"default({constructorParameter.ParameterType.FullyQualifiedName})";
+            return $"default({constructorParameter.ParameterType.FullyQualifiedName}){(constructorParameter.ParameterType.IsValueType ? "" : "!")}";
         }
 
         string literalExpr = constructorParameter.DefaultValue switch
         {
-            null => "null",
+            null => "null!",
             false => "false",
             true => "true",
-            string s => $"\"{s}\"",
+            string s => FormatStringLiteral(s),
             char c => $"'{c}'",
             float f => $"{f}f",
             decimal d => $"{d}M",

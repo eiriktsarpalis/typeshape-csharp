@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using Microsoft.CodeAnalysis;
+using System.Diagnostics;
 using TypeShape.SourceGenerator.Helpers;
 using TypeShape.SourceGenerator.Model;
 
@@ -20,18 +21,19 @@ internal static partial class SourceFormatter
             if (i++ > 0)
                 writer.WriteLine();
 
+            bool isNullableGetter = property.GetterNullableAnnotation is NullableAnnotation.Annotated;
             writer.WriteLine($$"""
                 yield return new global::TypeShape.SourceGenModel.SourceGenPropertyShape<{{type.Id.FullyQualifiedName}}, {{property.PropertyType.FullyQualifiedName}}>
                 {
                     Name = "{{property.Name}}",
                     DeclaringType = {{type.Id.GeneratedPropertyName}},
                     PropertyType = {{property.PropertyType.GeneratedPropertyName}},
-                    Getter = {{(property.EmitGetter ? $"static (ref {type.Id.FullyQualifiedName} obj) => obj.{property.UnderlyingMemberName}" : "null")}},
+                    Getter = {{(property.EmitGetter ? $"static (ref {type.Id.FullyQualifiedName} obj) => obj.{property.UnderlyingMemberName}{(isNullableGetter ? "!" : "")}" : "null")}},
                     Setter = {{(property.EmitSetter ? $"static (ref {type.Id.FullyQualifiedName} obj, {property.PropertyType.FullyQualifiedName} value) => obj.{property.UnderlyingMemberName} = value" : "null")}},
                     AttributeProviderFunc = {{FormatAttributeProviderFunc(type, property)}},
                     IsField = {{FormatBool(property.IsField)}},
-                    IsGetterNonNullableReferenceType = {{FormatBool(property.IsGetterNonNullableReferenceType)}},
-                    IsSetterNonNullableReferenceType = {{FormatBool(property.IsSetterNonNullableReferenceType)}},
+                    IsGetterNonNullableReferenceType = {{FormatBool(property.GetterNullableAnnotation is NullableAnnotation.NotAnnotated)}},
+                    IsSetterNonNullableReferenceType = {{FormatBool(property.SetterNullableAnnotation is NullableAnnotation.NotAnnotated)}},
                 };
                 """);
 
@@ -44,8 +46,8 @@ internal static partial class SourceFormatter
 
                 TypeId declaringType = property.DeclaringInterfaceType ?? property.DeclaringType;
                 return property.IsField
-                    ? $"static () => typeof({declaringType.FullyQualifiedName}).GetField(\"{property.Name}\", {InstanceBindingFlagsConstMember})"
-                    : $"static () => typeof({declaringType.FullyQualifiedName}).GetProperty(\"{property.Name}\", {InstanceBindingFlagsConstMember})";
+                    ? $"static () => typeof({declaringType.FullyQualifiedName}).GetField({FormatStringLiteral(property.Name)}, {InstanceBindingFlagsConstMember})"
+                    : $"static () => typeof({declaringType.FullyQualifiedName}).GetProperty({FormatStringLiteral(property.Name)}, {InstanceBindingFlagsConstMember})";
             }
         }
 

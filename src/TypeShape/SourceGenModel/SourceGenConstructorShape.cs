@@ -9,7 +9,7 @@ public sealed class SourceGenConstructorShape<TDeclaringType, TArgumentState> : 
     public Func<ICustomAttributeProvider?>? AttributeProviderFunc { get; init; }
     public ICustomAttributeProvider? AttributeProvider => AttributeProviderFunc?.Invoke();
 
-    public required Func<IEnumerable<IConstructorParameterShape>> GetParametersFunc { get; init; }
+    public required Func<IEnumerable<IConstructorParameterShape>>? GetParametersFunc { get; init; }
 
     public Func<TDeclaringType>? DefaultConstructorFunc { get; init; }
     public required Func<TArgumentState> ArgumentStateConstructorFunc { get; init; }

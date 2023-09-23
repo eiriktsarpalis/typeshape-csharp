@@ -113,7 +113,7 @@ public sealed partial class ModelGenerator
             IsRequired = !parameter.HasExplicitDefaultValue,
             IsMemberInitializer = false,
             IsAutoProperty = false,
-            IsNonNullableReferenceType = parameter.IsNonNullableReferenceType(),
+            NullableAnnotation = parameter.ResolveNullableAnnotation(),
             HasDefaultValue = parameter.HasExplicitDefaultValue,
             DefaultValue = parameter.HasExplicitDefaultValue ? parameter.ExplicitDefaultValue : null,
             DefaultValueRequiresCast = parameter.Type 
@@ -130,7 +130,7 @@ public sealed partial class ModelGenerator
         }
 
         TypeId typeId = EnqueueForGeneration(propertySymbol.Type);
-        propertySymbol.GetNullableReferenceTypeInfo(out _, out bool isSetterNonNullable);
+        propertySymbol.ResolveNullableAnnotation(out _, out NullableAnnotation setterAnnotation);
         return new ConstructorParameterModel
         {
             ParameterType = typeId,
@@ -139,7 +139,7 @@ public sealed partial class ModelGenerator
             IsRequired = propertySymbol.IsRequired,
             IsMemberInitializer = true,
             IsAutoProperty = propertySymbol.IsAutoProperty(),
-            IsNonNullableReferenceType = isSetterNonNullable,
+            NullableAnnotation = setterAnnotation,
             HasDefaultValue = false,
             DefaultValue = null,
             DefaultValueRequiresCast = false,
@@ -154,7 +154,7 @@ public sealed partial class ModelGenerator
         }
 
         TypeId typeId = EnqueueForGeneration(fieldSymbol.Type);
-        fieldSymbol.GetNullableReferenceTypeInfo(out _, out bool isSetterNonNullable);
+        fieldSymbol.ResolveNullableAnnotation(out _, out NullableAnnotation setterAnnotation);
         return new ConstructorParameterModel
         {
             ParameterType = typeId,
@@ -163,7 +163,7 @@ public sealed partial class ModelGenerator
             IsRequired = fieldSymbol.IsRequired,
             IsMemberInitializer = true,
             IsAutoProperty = false,
-            IsNonNullableReferenceType = isSetterNonNullable,
+            NullableAnnotation = setterAnnotation,
             HasDefaultValue = false,
             DefaultValue = null,
             DefaultValueRequiresCast = false,
@@ -203,7 +203,7 @@ public sealed partial class ModelGenerator
                 HasDefaultValue = false,
                 IsRequired = true,
                 IsMemberInitializer = false,
-                IsNonNullableReferenceType = tupleElement.IsNonNullableReferenceType(),
+                NullableAnnotation = tupleElement.ResolveNullableAnnotation(),
                 IsAutoProperty = false,
                 DefaultValue = null,
                 DefaultValueRequiresCast = false,

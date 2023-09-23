@@ -1,4 +1,5 @@
-﻿using TypeShape.SourceGenerator.Helpers;
+﻿using Microsoft.CodeAnalysis;
+using TypeShape.SourceGenerator.Helpers;
 
 namespace TypeShape.SourceGenerator.Model;
 
@@ -19,7 +20,7 @@ public sealed record ConstructorParameterModel
     public required TypeId ParameterType { get; init; }
     public required int Position { get; init; }
     public required bool IsRequired { get; init; }
-    public required bool IsNonNullableReferenceType { get; init; }
+    public required NullableAnnotation NullableAnnotation { get; init; }
     public required bool IsMemberInitializer { get; init; }
     public required bool IsAutoProperty { get; init; }
     public required bool HasDefaultValue { get; init; }

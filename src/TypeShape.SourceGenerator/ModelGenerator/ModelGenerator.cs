@@ -136,6 +136,7 @@ public sealed partial class ModelGenerator
         {
             FullyQualifiedName = type.GetFullyQualifiedName(),
             GeneratedPropertyName = type.GetGeneratedPropertyName(),
+            IsValueType = type.IsValueType,
         };
     }
 

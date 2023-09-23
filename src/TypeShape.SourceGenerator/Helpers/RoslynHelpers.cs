@@ -10,53 +10,82 @@ namespace TypeShape.SourceGenerator.Helpers;
 
 internal static class RoslynHelpers
 {
-    public static bool IsNonNullableReferenceType(this ITypeSymbol type)
+    public static NullableAnnotation ResolveNullableAnnotation(this ITypeSymbol type)
     {
-        return !type.IsValueType && type.NullableAnnotation is NullableAnnotation.NotAnnotated;
+        return type.IsValueType ? NullableAnnotation.None : type.NullableAnnotation;
     }
 
-    public static bool IsNonNullableReferenceType(this IParameterSymbol parameter)
+    public static NullableAnnotation ResolveNullableAnnotation(this IParameterSymbol parameter)
     {
-        return !parameter.Type.IsValueType && IsParameterNonNullable(parameter, parameter.NullableAnnotation);
+        return ResolveParameterAnnotation(parameter, parameter.Type);
     }
 
-    public static void GetNullableReferenceTypeInfo(this ISymbol member, out bool isGetterNonNullable, out bool isSetterNonNullable)
+    public static void ResolveNullableAnnotation(this ISymbol member, out NullableAnnotation getterAnnotation, out NullableAnnotation setterAnnotation)
     {
         Debug.Assert(member is IFieldSymbol or IPropertySymbol);
 
-        if (member is IFieldSymbol { Type.IsValueType: false } field)
+        getterAnnotation = NullableAnnotation.None;
+        setterAnnotation = NullableAnnotation.None;
+
+        if (member is IFieldSymbol field)
         {
-            isGetterNonNullable = IsReturnValueNonNullable(field, field.NullableAnnotation);
-            isSetterNonNullable = IsParameterNonNullable(field, field.NullableAnnotation);
+            getterAnnotation = ResolveReturnValueAnnotation(field, field.Type);
+            setterAnnotation = ResolveParameterAnnotation(field, field.Type);
         }
-        else if (member is IPropertySymbol { Type.IsValueType: false } property)
+        else if (member is IPropertySymbol property)
         {
             Debug.Assert(!property.IsIndexer);
 
-            isGetterNonNullable = property.GetMethod != null && IsReturnValueNonNullable(property, property.NullableAnnotation);
-            isSetterNonNullable = property.SetMethod != null && IsParameterNonNullable(property, property.NullableAnnotation);
+            if (property.GetMethod != null)
+            {
+                getterAnnotation = ResolveReturnValueAnnotation(property, property.Type);
+            }
+
+            if (property.SetMethod != null)
+            {
+                setterAnnotation = ResolveParameterAnnotation(property, property.Type);
+            }
         }
-        else
+    }
+
+    private static NullableAnnotation ResolveReturnValueAnnotation(ISymbol symbol, ITypeSymbol returnType)
+    {
+        if (returnType.IsValueType)
         {
-            isGetterNonNullable = false;
-            isSetterNonNullable = false;
+            return NullableAnnotation.None;
         }
+
+        if (symbol.HasCodeAnalysisAttribute("MaybeNullAttribute"))
+        {
+            return NullableAnnotation.Annotated;
+        }
+
+        if (symbol.HasCodeAnalysisAttribute("NotNullAttribute"))
+        {
+            return NullableAnnotation.NotAnnotated;
+        }
+
+        return returnType.NullableAnnotation;
     }
 
-    private static bool IsReturnValueNonNullable(ISymbol symbol, NullableAnnotation returnTypeAnnotation)
+    private static NullableAnnotation ResolveParameterAnnotation(ISymbol symbol, ITypeSymbol parameterType)
     {
-        return 
-            !symbol.HasCodeAnalysisAttribute("MaybeNullAttribute") &&
-            (returnTypeAnnotation is NullableAnnotation.NotAnnotated || 
-             symbol.HasCodeAnalysisAttribute("NotNullAttribute"));
-    }
+        if (parameterType.IsValueType)
+        {
+            return NullableAnnotation.None;
+        }
 
-    private static bool IsParameterNonNullable(ISymbol symbol, NullableAnnotation parameterAnnotation)
-    {
-        return
-            !symbol.HasCodeAnalysisAttribute("AllowNullAttribute") &&
-            (parameterAnnotation is NullableAnnotation.NotAnnotated ||
-             symbol.HasCodeAnalysisAttribute("DisallowNullAttribute"));
+        if (symbol.HasCodeAnalysisAttribute("AllowNullAttribute"))
+        {
+            return NullableAnnotation.Annotated;
+        }
+
+        if (symbol.HasCodeAnalysisAttribute("DisallowNullAttribute"))
+        {
+            return NullableAnnotation.NotAnnotated;
+        }
+
+        return parameterType.NullableAnnotation;
     }
 
     private static bool HasCodeAnalysisAttribute(this ISymbol symbol, string attributeName)

@@ -1,4 +1,6 @@
-﻿namespace TypeShape.SourceGenerator.Model;
+﻿using Microsoft.CodeAnalysis;
+
+namespace TypeShape.SourceGenerator.Model;
 
 public sealed record PropertyModel
 {
@@ -13,6 +15,6 @@ public sealed record PropertyModel
     
     public required bool IsField { get; init; }
 
-    public required bool IsGetterNonNullableReferenceType { get; init; }
-    public required bool IsSetterNonNullableReferenceType { get; init; }
+    public required NullableAnnotation GetterNullableAnnotation { get; init; }
+    public required NullableAnnotation SetterNullableAnnotation { get; init; }
 }
