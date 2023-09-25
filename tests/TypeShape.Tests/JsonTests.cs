@@ -185,15 +185,15 @@ public abstract class JsonTests
     [Fact]
     public void Serialize_NonNullablePropertyWithNullValue_ThrowsJsonException()
     {
-        var serializer = GetSerializerUnderTest<NonNullableStringRecord>();
-        var invalidValue = new NonNullableStringRecord(null!);
+        var serializer = GetSerializerUnderTest<NonNullStringRecord>();
+        var invalidValue = new NonNullStringRecord(null!);
         Assert.Throws<JsonException>(() => serializer.Serialize(invalidValue));
     }
 
     [Fact]
     public void Deserialize_NonNullablePropertyWithNullJsonValue_ThrowsJsonException()
     {
-        var serializer = GetSerializerUnderTest<NonNullableStringRecord>();
+        var serializer = GetSerializerUnderTest<NonNullStringRecord>();
         Assert.Throws<JsonException>(() => serializer.Deserialize("""{"value":null}"""));
     }
 

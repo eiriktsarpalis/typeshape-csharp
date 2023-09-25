@@ -15,6 +15,6 @@ public sealed record PropertyModel
     
     public required bool IsField { get; init; }
 
-    public required NullableAnnotation GetterNullableAnnotation { get; init; }
-    public required NullableAnnotation SetterNullableAnnotation { get; init; }
+    public required bool IsGetterNonNullable { get; init; }
+    public required bool IsSetterNonNullable { get; init; }
 }

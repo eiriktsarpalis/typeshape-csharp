@@ -189,7 +189,7 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
 
     internal INullableShape CreateNullableShape(Type nullableType)
     {
-        Debug.Assert(nullableType.IsNullable());
+        Debug.Assert(nullableType.IsNullableStruct());
         Type nullableTypeTy = typeof(ReflectionNullableShape<>).MakeGenericType(nullableType.GetGenericArguments());
         return (INullableShape)Activator.CreateInstance(nullableTypeTy, this)!;
     }

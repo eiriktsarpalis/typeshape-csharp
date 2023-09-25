@@ -34,8 +34,8 @@ internal sealed class JsonPropertyConverter<TDeclaringType, TPropertyType> : Jso
         : base(property.Name)
     {
         _propertyTypeConverter = propertyTypeConverter;
-        _getterDisallowsNull = property.IsGetterNonNullableReferenceType;
-        _setterDisallowsNull = property.IsSetterNonNullableReferenceType;
+        _getterDisallowsNull = property.IsGetterNonNullable;
+        _setterDisallowsNull = property.IsSetterNonNullable;
 
         if (property.HasGetter)
         {
@@ -52,7 +52,7 @@ internal sealed class JsonPropertyConverter<TDeclaringType, TPropertyType> : Jso
         : base(parameter.Name!)
     {
         _propertyTypeConverter = propertyConverter;
-        _setterDisallowsNull = parameter.IsNonNullableReferenceType;
+        _setterDisallowsNull = parameter.IsNonNullable;
         _setter = parameter.GetSetter();
     }
 

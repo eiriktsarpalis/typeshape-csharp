@@ -69,7 +69,10 @@ public sealed partial class ModelGenerator
     private PropertyModel MapProperty(TypeId typeId, IPropertySymbol property)
     {
         Debug.Assert(!property.IsStatic && !property.IsIndexer);
-        property.ResolveNullableAnnotation(out NullableAnnotation getterAnnotation, out NullableAnnotation setterAnnotation);
+        property.ResolveNullableAnnotation(out bool isGetterNonNullable, out bool isSetterNonNullable);
+        bool emitGetter = property.GetMethod is { } getter && IsAccessibleFromGeneratedType(getter);
+        bool emitSetter = property.SetMethod is IMethodSymbol { IsInitOnly: false } setter && IsAccessibleFromGeneratedType(setter);
+
         return new PropertyModel
         {
             Name = property.Name,
@@ -77,10 +80,10 @@ public sealed partial class ModelGenerator
             DeclaringType = typeId,
             DeclaringInterfaceType = property.ContainingType.TypeKind is TypeKind.Interface ? CreateTypeId(property.ContainingType) : null,
             PropertyType = EnqueueForGeneration(property.Type),
-            GetterNullableAnnotation = getterAnnotation,
-            SetterNullableAnnotation = setterAnnotation,
-            EmitGetter = property.GetMethod is { } getter && IsAccessibleFromGeneratedType(getter),
-            EmitSetter = property.SetMethod is IMethodSymbol { IsInitOnly: false } setter && IsAccessibleFromGeneratedType(setter),
+            IsGetterNonNullable = emitGetter && isGetterNonNullable,
+            IsSetterNonNullable = emitSetter && isSetterNonNullable,
+            EmitGetter = emitGetter,
+            EmitSetter = emitSetter,
             IsField = false,
         };
     }
@@ -88,7 +91,7 @@ public sealed partial class ModelGenerator
     private PropertyModel MapField(TypeId typeId, IFieldSymbol field)
     {
         Debug.Assert(!field.IsStatic);
-        field.ResolveNullableAnnotation(out NullableAnnotation getterAnnotation, out NullableAnnotation setterAnnotation);
+        field.ResolveNullableAnnotation(out bool isGetterNonNullable, out bool isSetterNonNullable);
         return new PropertyModel
         {
             Name = field.Name,
@@ -96,8 +99,8 @@ public sealed partial class ModelGenerator
             DeclaringType = typeId,
             DeclaringInterfaceType = null,
             PropertyType = EnqueueForGeneration(field.Type),
-            GetterNullableAnnotation = getterAnnotation,
-            SetterNullableAnnotation = setterAnnotation,
+            IsGetterNonNullable = isGetterNonNullable,
+            IsSetterNonNullable = !field.IsReadOnly && isSetterNonNullable,
             EmitGetter = true,
             EmitSetter = !field.IsReadOnly,
             IsField = true,
@@ -106,7 +109,6 @@ public sealed partial class ModelGenerator
 
     private PropertyModel MapClassTupleElement(TypeId typeId, ITypeSymbol element, int index)
     {
-        NullableAnnotation nullableAnnotation = element.ResolveNullableAnnotation();
         return new PropertyModel
         {
             Name = $"Item{index + 1}",
@@ -114,10 +116,10 @@ public sealed partial class ModelGenerator
             DeclaringType = typeId,
             DeclaringInterfaceType = null,
             PropertyType = EnqueueForGeneration(element),
-            GetterNullableAnnotation = nullableAnnotation,
-            SetterNullableAnnotation = nullableAnnotation,
             EmitGetter = true,
             EmitSetter = false,
+            IsGetterNonNullable = element.IsNonNullableAnnotation(),
+            IsSetterNonNullable = false, // No setter is emitted
             IsField = false
         };
     }

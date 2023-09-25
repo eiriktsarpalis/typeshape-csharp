@@ -133,8 +133,11 @@ public static class TestTypes
         yield return Create(new ParameterlessStructRecord());
 
         yield return Create(new ClassWithNullabilityAttributes());
-        yield return Create(new NonNullableStringRecord("str"));
+        yield return Create(new ClassWithStructNullabilityAttributes());
+        yield return Create(new NonNullStringRecord("str"));
         yield return Create(new NullableStringRecord(null));
+        yield return Create(new NotNullGenericRecord<string>("str"));
+        yield return Create(new NullObliviousGenericRecord<string>("str"));
 
         yield return Create(new SimpleRecord(42));
         yield return Create(new GenericRecord<int>(42));
@@ -655,12 +658,69 @@ public class ClassWithNullabilityAttributes
     public string? DisallowNullField = "";
 }
 
+public class ClassWithStructNullabilityAttributes
+{
+    private int? _maybeNull = 0;
+    private int? _allowNull = 0;
+    private int? _notNull = 0;
+    private int? _disallowNull = 0;
+
+    public ClassWithStructNullabilityAttributes() { }
+
+    public ClassWithStructNullabilityAttributes([AllowNull] int? allowNull, [DisallowNull] int? disallowNull)
+    {
+        _allowNull = allowNull;
+        _disallowNull = disallowNull;
+    }
+
+    [MaybeNull]
+    public int? MaybeNullProperty
+    {
+        get => _maybeNull;
+        set => _maybeNull = value;
+    }
+
+    [AllowNull]
+    public int? AllowNullProperty
+    {
+        get => _allowNull ?? 0;
+        set => _allowNull = value;
+    }
+
+    [NotNull]
+    public int? NotNullProperty
+    {
+        get => _notNull ?? 0;
+        set => _notNull = value;
+    }
+
+    [DisallowNull]
+    public int? DisallowNullProperty
+    {
+        get => _disallowNull;
+        set => _disallowNull = value;
+    }
+
+    [MaybeNull]
+    public int MaybeNullField = 0;
+    [AllowNull]
+    public int AllowNullField = 0;
+    [NotNull]
+    public int? NotNullField = 0;
+    [DisallowNull]
+    public int? DisallowNullField = 0;
+}
+
 public record ParameterlessRecord();
 public record struct ParameterlessStructRecord();
 public record SimpleRecord(int value);
-public record NonNullableStringRecord(string value);
+public record NonNullStringRecord(string value);
 public record NullableStringRecord(string? value);
 public record GenericRecord<T>(T value);
+public record NotNullGenericRecord<T>(T value) where T : notnull;
+#nullable disable
+public record NullObliviousGenericRecord<T>(T value);
+#nullable restore
 
 public record ClassRecord(int x, int? y, int z, int w);
 public record struct StructRecord(int x, int y, int z, int w);
@@ -802,7 +862,7 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 [GenerateShape(typeof(ParameterlessRecord))]
 [GenerateShape(typeof(ParameterlessStructRecord))]
 [GenerateShape(typeof(SimpleRecord))]
-[GenerateShape(typeof(NonNullableStringRecord))]
+[GenerateShape(typeof(NonNullStringRecord))]
 [GenerateShape(typeof(NullableStringRecord))]
 [GenerateShape(typeof(GenericRecord<int>))]
 [GenerateShape(typeof(GenericRecord<string>))]
@@ -855,6 +915,9 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 [GenerateShape(typeof(RecordWithNullableDefaultParams2))]
 [GenerateShape(typeof(RecordWithEnumAndNullableParams))]
 [GenerateShape(typeof(ClassWithNullabilityAttributes))]
+[GenerateShape(typeof(ClassWithStructNullabilityAttributes))]
+[GenerateShape(typeof(NotNullGenericRecord<string>))]
+[GenerateShape(typeof(NullObliviousGenericRecord<string>))]
 [GenerateShape(typeof(LinkedList<int>))]
 [GenerateShape(typeof(GenericContainer<string?>.Inner))]
 [GenerateShape(typeof(GenericContainer<string?>.Inner<string?>))]

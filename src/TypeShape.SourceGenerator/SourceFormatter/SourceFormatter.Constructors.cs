@@ -99,7 +99,7 @@ internal static partial class SourceFormatter
                             indentation++;
                         }
 
-                        sb.Append($"{stateVar}.Item{i + 1}, ");
+                        sb.Append($"{FormatCtorParameterExpr(constructor.Parameters[i])}, ");
                     }
 
                     sb.Length -= 2;
@@ -117,8 +117,19 @@ internal static partial class SourceFormatter
                     (_, _) => $$"""{{FormatConstructorName(constructor)}}({{FormatCtorArgumentsBody()}}) { {{FormatInitializerBody()}} }""",
                 };
 
-                string FormatCtorArgumentsBody() => string.Join(", ", constructor.Parameters.Select(p => $"state.Item{p.Position + 1}"));
-                string FormatInitializerBody() => string.Join(", ", constructor.MemberInitializers.Select(p => $"{p.Name} = state.Item{p.Position + 1}"));
+                string FormatCtorArgumentsBody() => string.Join(", ", constructor.Parameters.Select(p => FormatCtorParameterExpr(p)));
+                string FormatInitializerBody() => string.Join(", ", constructor.MemberInitializers.Select(p => $"{p.Name} = {FormatCtorParameterExpr(p)}"));
+                string FormatCtorParameterExpr(ConstructorParameterModel parameter)
+                {
+                    // Reserved for cases where we have Nullable<T> ctor parameters with [DisallowNull] annotation.
+                    bool requiresSuppression = parameter is
+                    {
+                        ParameterType.SpecialType: SpecialType.System_Nullable_T,
+                        IsNonNullable: true
+                    };
+
+                    return $"{stateVar}.Item{parameter.Position + 1}{(requiresSuppression ? "!" : "")}";
+                }
             }
 
             static string FormatDefaultCtor(TypeModel type, ConstructorModel constructor)
@@ -171,7 +182,7 @@ internal static partial class SourceFormatter
                     Name = "{{parameter.Name}}",
                     ParameterType = {{parameter.ParameterType.GeneratedPropertyName}},
                     IsRequired = {{FormatBool(parameter.IsRequired)}},
-                    IsNonNullableReferenceType = {{FormatBool(parameter.NullableAnnotation is NullableAnnotation.NotAnnotated)}},
+                    IsNonNullable = {{FormatBool(parameter.IsNonNullable)}},
                     HasDefaultValue = {{FormatBool(parameter.HasDefaultValue)}},
                     DefaultValue = {{FormatDefaultValueExpr(parameter)}},
                     Setter = static (ref {{constructorArgumentStateFQN}} state, {{parameter.ParameterType.FullyQualifiedName}} value) => {{FormatSetterBody(constructor, parameter)}},

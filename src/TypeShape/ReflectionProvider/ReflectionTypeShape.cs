@@ -397,7 +397,7 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
             type == typeof(Version) ||
             type == typeof(Uri) ||
             type == typeof(System.Text.Rune) ||
-            ReflectionHelpers.IsNullable<T>() ||
+            ReflectionHelpers.IsNullableStruct<T>() ||
             typeof(MemberInfo).IsAssignableFrom(type) ||
             typeof(Delegate).IsAssignableFrom(type);
     }

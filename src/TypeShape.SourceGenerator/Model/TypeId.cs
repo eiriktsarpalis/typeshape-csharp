@@ -1,10 +1,13 @@
-﻿namespace TypeShape.SourceGenerator.Model;
+﻿using Microsoft.CodeAnalysis;
+
+namespace TypeShape.SourceGenerator.Model;
 
 public readonly struct TypeId : IEquatable<TypeId>
 {
     public required string FullyQualifiedName { get; init; }
     public required string GeneratedPropertyName { get; init; }
     public required bool IsValueType { get; init; }
+    public required SpecialType SpecialType { get; init; }
 
     public bool Equals(TypeId other) => FullyQualifiedName == other.FullyQualifiedName;
     public override int GetHashCode() => FullyQualifiedName.GetHashCode();

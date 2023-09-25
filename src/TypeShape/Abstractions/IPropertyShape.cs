@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 
 namespace TypeShape;
 
@@ -43,14 +44,28 @@ public interface IPropertyShape
     bool IsField { get; }
 
     /// <summary>
-    /// Specifies whether the getter returns a non-nullable reference type.
+    /// Specifies whether the getter returns non-null values.
     /// </summary>
-    bool IsGetterNonNullableReferenceType { get; }
+    /// <remarks>
+    /// Returns <see langword="true" /> if the property type is a non-nullable struct, a non-nullable reference type 
+    /// or the property has been annotated with the <see cref="NotNullAttribute"/>.
+    /// 
+    /// Conversely, it could return <see langword="false"/> if a non-nullable property 
+    /// has been annotated with <see cref="MaybeNullAttribute"/>.
+    /// </remarks>
+    bool IsGetterNonNullable { get; }
 
     /// <summary>
-    /// Specifies whether the setter accepts a non-nullable reference type.
+    /// Specifies whether the setter requires non-null values.
     /// </summary>
-    bool IsSetterNonNullableReferenceType { get; }
+    /// <remarks>
+    /// Returns <see langword="true" /> if the property type is a non-nullable struct, a non-nullable reference type 
+    /// or the property has been annotated with the <see cref="DisallowNullAttribute"/>.
+    /// 
+    /// Conversely, it could return <see langword="false"/> if a non-nullable property 
+    /// has been annotated with <see cref="AllowNullAttribute"/>.
+    /// </remarks>
+    bool IsSetterNonNullable { get; }
 
     /// <summary>
     /// Accepts an <see cref="ITypeShapeVisitor"/> for strongly typed traversal.

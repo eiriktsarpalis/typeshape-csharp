@@ -21,19 +21,32 @@ internal static partial class SourceFormatter
             if (i++ > 0)
                 writer.WriteLine();
 
-            bool isNullableGetter = property.GetterNullableAnnotation is NullableAnnotation.Annotated;
+            // Suppress property getters that are nullable, but are not Nullable<T>
+            bool suppressGetter = property is
+            {
+                PropertyType.SpecialType: not SpecialType.System_Nullable_T,
+                IsGetterNonNullable: false
+            };
+
+            // Suppress non-nullable Nullable<T> property setters (i.e. setters with [DisallowNull] annotation)
+            bool suppressSetter = property is 
+            { 
+                PropertyType.SpecialType: SpecialType.System_Nullable_T,
+                IsSetterNonNullable: true,
+            };
+
             writer.WriteLine($$"""
                 yield return new global::TypeShape.SourceGenModel.SourceGenPropertyShape<{{type.Id.FullyQualifiedName}}, {{property.PropertyType.FullyQualifiedName}}>
                 {
                     Name = "{{property.Name}}",
                     DeclaringType = {{type.Id.GeneratedPropertyName}},
                     PropertyType = {{property.PropertyType.GeneratedPropertyName}},
-                    Getter = {{(property.EmitGetter ? $"static (ref {type.Id.FullyQualifiedName} obj) => obj.{property.UnderlyingMemberName}{(isNullableGetter ? "!" : "")}" : "null")}},
-                    Setter = {{(property.EmitSetter ? $"static (ref {type.Id.FullyQualifiedName} obj, {property.PropertyType.FullyQualifiedName} value) => obj.{property.UnderlyingMemberName} = value" : "null")}},
+                    Getter = {{(property.EmitGetter ? $"static (ref {type.Id.FullyQualifiedName} obj) => obj.{property.UnderlyingMemberName}{(suppressGetter ? "!" : "")}" : "null")}},
+                    Setter = {{(property.EmitSetter ? $"static (ref {type.Id.FullyQualifiedName} obj, {property.PropertyType.FullyQualifiedName} value) => obj.{property.UnderlyingMemberName} = value{(suppressSetter ? "!" : "")}" : "null")}},
                     AttributeProviderFunc = {{FormatAttributeProviderFunc(type, property)}},
                     IsField = {{FormatBool(property.IsField)}},
-                    IsGetterNonNullableReferenceType = {{FormatBool(property.GetterNullableAnnotation is NullableAnnotation.NotAnnotated)}},
-                    IsSetterNonNullableReferenceType = {{FormatBool(property.SetterNullableAnnotation is NullableAnnotation.NotAnnotated)}},
+                    IsGetterNonNullable = {{FormatBool(property.IsGetterNonNullable)}},
+                    IsSetterNonNullable = {{FormatBool(property.IsSetterNonNullable)}},
                 };
                 """);
 

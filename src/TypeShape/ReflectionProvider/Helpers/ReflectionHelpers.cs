@@ -9,14 +9,19 @@ internal static class ReflectionHelpers
     public readonly static Type? Int128Type = typeof(int).Assembly.GetType("System.Int128");
     public readonly static Type? UInt128Type = typeof(int).Assembly.GetType("System.UInt128");
 
-    public static bool IsNullable<T>()
+    public static bool IsNullableStruct<T>()
     {
         return default(T) is null && typeof(T).IsValueType;
     }
 
-    public static bool IsNullable(this Type type)
+    public static bool IsNullableStruct(this Type type)
     {
         return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);
+    }
+
+    public static bool IsNullable(this Type type)
+    {
+        return !type.IsValueType || type.IsNullableStruct();
     }
 
     public static bool IsIEnumerable(this Type type)
@@ -24,7 +29,7 @@ internal static class ReflectionHelpers
         return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>);
     }
 
-    public static void GetNonNullableReferenceInfo(this MemberInfo memberInfo, out bool isGetterNonNullable, out bool isSetterNonNullable)
+    public static void ResolveNullableAnnotation(this MemberInfo memberInfo, out bool isGetterNonNullable, out bool isSetterNonNullable)
     {
         if (GetNullabilityInfo(memberInfo) is NullabilityInfo info)
         {
@@ -33,58 +38,70 @@ internal static class ReflectionHelpers
         }
         else
         {
-            isGetterNonNullable = false;
-            isSetterNonNullable = false;
+            // The member type is a non-nullable struct.
+            isGetterNonNullable = true;
+            isSetterNonNullable = true;
         }
     }
 
-    public static bool IsNonNullableReferenceType(this ParameterInfo parameterInfo)
+    public static bool IsNonNullableAnnotation(this ParameterInfo parameterInfo)
     {
         if (GetNullabilityInfo(parameterInfo) is NullabilityInfo info)
         {
             // Workaround for https://github.com/dotnet/runtime/issues/92487
-            if (parameterInfo.Member.TryGetGenericMethodDefinition() is MethodBase genericMethod &&
-                genericMethod.GetParameters()[parameterInfo.Position] is { ParameterType: { IsGenericParameter: true } typeParam })
+            if (parameterInfo.GetGenericParameterDefinition() is { ParameterType: { IsGenericTypeParameter: true } typeParam })
             {
-                Attribute? attr = typeParam.GetCustomAttributes().FirstOrDefault(attr =>
+                // Step 1. Look for nullable annotations on the type parameter.
+                if (GetNullableFlags(typeParam) is byte[] flags)
                 {
-                    Type attrType = attr.GetType();
-                    return attrType.Namespace == "System.Runtime.CompilerServices" && attrType.Name == "NullableAttribute";
-                });
+                    return flags[0] == 1;
+                }
 
-                byte[]? nullableFlags = (byte[])attr?.GetType().GetField("NullableFlags")?.GetValue(attr)!;
-                return nullableFlags[0] == 1;
+                // Step 2. Look for nullable annotations on the generic method declaration.
+                if (typeParam.DeclaringMethod != null && GetNullableContextFlag(typeParam.DeclaringMethod) is byte flag)
+                {
+                    return flag == 1;
+                }
+
+                // Step 3. Look for nullable annotations on the generic method declaration.
+                if (GetNullableContextFlag(typeParam.DeclaringType!) is byte flag2)
+                {
+                    return flag2 == 1;
+                }
+
+                // Default to nullable.
+                return false;
+
+                static byte[]? GetNullableFlags(MemberInfo member)
+                {
+                    Attribute? attr = member.GetCustomAttributes().FirstOrDefault(attr =>
+                    {
+                        Type attrType = attr.GetType();
+                        return attrType.Namespace == "System.Runtime.CompilerServices" && attrType.Name == "NullableAttribute";
+                    });
+
+                    return (byte[])attr?.GetType().GetField("NullableFlags")?.GetValue(attr)!;
+                }
+
+                static byte? GetNullableContextFlag(MemberInfo member)
+                {
+                    Attribute? attr = member.GetCustomAttributes().FirstOrDefault(attr =>
+                    {
+                        Type attrType = attr.GetType();
+                        return attrType.Namespace == "System.Runtime.CompilerServices" && attrType.Name == "NullableContextAttribute";
+                    });
+
+                    return (byte?)attr?.GetType().GetField("Flag")?.GetValue(attr)!;
+                }
             }
 
             return info.WriteState is NullabilityState.NotNull;
         }
         else
         {
-            return false;
+            // The parameter type is a non-nullable struct.
+            return true;
         }
-    }
-
-    public static MethodBase? TryGetGenericMethodDefinition(this MemberInfo methodBase)
-    {
-        Debug.Assert(methodBase is MethodInfo or ConstructorInfo);
-
-        if (methodBase.DeclaringType!.IsGenericType)
-        {
-            Type genericTypeDef = methodBase.DeclaringType.GetGenericTypeDefinition();
-            MethodBase[] methods = methodBase.MemberType is MemberTypes.Constructor
-                ? genericTypeDef.GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-                : genericTypeDef.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-
-            MethodBase match = methods.First(m => m.MetadataToken == methodBase.MetadataToken);
-            return ReferenceEquals(match, methodBase) ? null : match;
-        }
-
-        if (methodBase is MethodInfo { IsGenericMethod: true } methodInfo)
-        {
-            return methodInfo.GetGenericMethodDefinition();
-        }
-
-        return null;
     }
 
     private static NullabilityInfo? GetNullabilityInfo(ICustomAttributeProvider memberInfo)
@@ -93,18 +110,55 @@ internal static class ReflectionHelpers
 
         switch (memberInfo)
         {
-            case PropertyInfo prop:
-                return prop.PropertyType.IsValueType ? null : new NullabilityInfoContext().Create(prop);
+            case PropertyInfo prop when (prop.PropertyType.IsNullable()):
+                return new NullabilityInfoContext().Create(prop);
 
-            case FieldInfo field:
-                return field.FieldType.IsValueType ? null : new NullabilityInfoContext().Create(field);
+            case FieldInfo field when (field.FieldType.IsNullable()):
+                return new NullabilityInfoContext().Create(field);
 
-            case ParameterInfo parameter:
-                return parameter.ParameterType.IsValueType ? null : new NullabilityInfoContext().Create(parameter);
-
-            default:
-                return null;
+            case ParameterInfo parameter when (parameter.ParameterType.IsNullable()):
+                return new NullabilityInfoContext().Create(parameter);
         }
+
+        return null;
+    }
+
+    public static ParameterInfo GetGenericParameterDefinition(this ParameterInfo parameter)
+    {
+        if (parameter.Member is { DeclaringType.IsConstructedGenericType: true }
+                             or MethodInfo { IsConstructedGenericMethod: true })
+        {
+            var genericMethod = (MethodBase)parameter.Member.GetGenericMemberDefinition()!;
+            return genericMethod.GetParameters()[parameter.Position];
+        }
+
+        return parameter;
+    }
+
+    public static MemberInfo GetGenericMemberDefinition(this MemberInfo member)
+    {
+        if (member is Type type)
+        {
+            return type.IsConstructedGenericType ? type.GetGenericTypeDefinition() : type;
+        }
+
+        if (member.DeclaringType!.IsConstructedGenericType)
+        {
+            const BindingFlags AllMemberFlags = 
+                BindingFlags.Static | BindingFlags.Instance | 
+                BindingFlags.Public | BindingFlags.NonPublic;
+
+            return member.DeclaringType.GetGenericTypeDefinition()
+                .GetMember(member.Name, AllMemberFlags)
+                .First(m => m.MetadataToken == member.MetadataToken);
+        }
+
+        if (member is MethodInfo { IsConstructedGenericMethod: true } method)
+        {
+            return method.GetGenericMethodDefinition();
+        }
+
+        return member;
     }
 
     public static bool CanBeGenericArgument(this Type type)
@@ -215,7 +269,7 @@ internal static class ReflectionHelpers
         {
             // ParameterInfo can report null defaults for value types, ignore such cases.
             result = null;
-            return !parameterType.IsValueType || parameterType.IsNullable();
+            return !parameterType.IsValueType || parameterType.IsNullableStruct();
         }
 
         Debug.Assert(defaultValue is not DBNull, "should have been caught by the HasDefaultValue check.");

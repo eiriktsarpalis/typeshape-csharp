@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 
 namespace TypeShape;
 
@@ -43,9 +44,16 @@ public interface IConstructorParameterShape
     bool IsRequired { get; }
 
     /// <summary>
-    /// Specifies whether the parameter is a non-nullable reference type.
+    /// Specifies whether the parameter requires non-null values.
     /// </summary>
-    bool IsNonNullableReferenceType { get; }
+    /// <remarks>
+    /// Returns <see langword="true" /> if the parameter type is a non-nullable struct, a non-nullable reference type 
+    /// or the parameter has been annotated with the <see cref="DisallowNullAttribute"/>.
+    /// 
+    /// Conversely, it could return <see langword="false"/> if a non-nullable parameter 
+    /// has been annotated with <see cref="AllowNullAttribute"/>.
+    /// </remarks>
+    bool IsNonNullable { get; }
 
     /// <summary>
     /// The provider used for parameter-level attribute resolution.
