@@ -137,6 +137,8 @@ public static class TestTypes
         yield return Create(new NonNullStringRecord("str"));
         yield return Create(new NullableStringRecord(null));
         yield return Create(new NotNullGenericRecord<string>("str"));
+        yield return Create(new NotNullClassGenericRecord<string>("str"));
+        yield return Create(new NullClassGenericRecord<string>("str"));
         yield return Create(new NullObliviousGenericRecord<string>("str"));
 
         yield return Create(new SimpleRecord(42));
@@ -718,6 +720,8 @@ public record NonNullStringRecord(string value);
 public record NullableStringRecord(string? value);
 public record GenericRecord<T>(T value);
 public record NotNullGenericRecord<T>(T value) where T : notnull;
+public record NotNullClassGenericRecord<T>(T value) where T : class;
+public record NullClassGenericRecord<T>(T value) where T : class?;
 #nullable disable
 public record NullObliviousGenericRecord<T>(T value);
 #nullable restore
@@ -917,6 +921,8 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 [GenerateShape(typeof(ClassWithNullabilityAttributes))]
 [GenerateShape(typeof(ClassWithStructNullabilityAttributes))]
 [GenerateShape(typeof(NotNullGenericRecord<string>))]
+[GenerateShape(typeof(NotNullClassGenericRecord<string>))]
+[GenerateShape(typeof(NullClassGenericRecord<string>))]
 [GenerateShape(typeof(NullObliviousGenericRecord<string>))]
 [GenerateShape(typeof(LinkedList<int>))]
 [GenerateShape(typeof(GenericContainer<string?>.Inner))]
