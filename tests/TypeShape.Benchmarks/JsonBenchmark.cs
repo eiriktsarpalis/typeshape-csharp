@@ -10,7 +10,7 @@ public static class JsonData
 {
     public static readonly MyPoco Value = new MyPoco(@string: "myString")
     {
-        List = new() { 1, 2, 3 },
+        List = [1, 2, 3],
         Dict = new() { ["key1"] = 42, ["key2"] = -1 },
     };
 

@@ -9,7 +9,7 @@ public partial class CounterBenchmark
 {
     private readonly MyPoco _value = new MyPoco(@string: "myString")
     {
-        List = new() { 1, 2, 3 },
+        List = [1, 2, 3],
         Dict = new() { ["key1"] = 42, ["key2"] = -1 },
     };
 

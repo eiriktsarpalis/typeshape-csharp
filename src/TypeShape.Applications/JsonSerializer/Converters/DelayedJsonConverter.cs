@@ -4,19 +4,14 @@ using System.Text.Json.Serialization;
 
 namespace TypeShape.Applications.JsonSerializer.Converters;
 
-internal sealed class DelayedJsonConverter<T> : JsonConverter<T>
+internal sealed class DelayedJsonConverter<T>(ResultHolder<JsonConverter<T>> holder) : JsonConverter<T>
 {
-    private readonly ResultHolder<JsonConverter<T>> _holder;
-
-    public DelayedJsonConverter(ResultHolder<JsonConverter<T>> holder)
-        => _holder = holder;
-
     public JsonConverter<T> Underlying
     {
         get
         {
-            Debug.Assert(_holder.Value != null);
-            return _holder.Value;
+            Debug.Assert(holder.Value != null);
+            return holder.Value;
         }
     }
 

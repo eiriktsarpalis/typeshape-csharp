@@ -5,16 +5,10 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-internal abstract class JsonPropertyConverter<TDeclaringType>
+internal abstract class JsonPropertyConverter<TDeclaringType>(string name)
 {
-    public JsonPropertyConverter(string name)
-    {
-        Name = name;
-        EncodedName = JsonEncodedText.Encode(name);
-    }
-
-    public string Name { get; }
-    public JsonEncodedText EncodedName { get; }
+    public string Name { get; } = name;
+    public JsonEncodedText EncodedName { get; } = JsonEncodedText.Encode(name);
     public abstract bool HasGetter { get; }
     public abstract bool HasSetter { get; }
 

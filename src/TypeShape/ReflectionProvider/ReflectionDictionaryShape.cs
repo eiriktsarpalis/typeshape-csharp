@@ -4,20 +4,15 @@ using System.Reflection;
 
 namespace TypeShape.ReflectionProvider;
 
-internal sealed class ReflectionGenericDictionaryShape<TDictionary, TKey, TValue> : IDictionaryShape<TDictionary, TKey, TValue>
+internal sealed class ReflectionGenericDictionaryShape<TDictionary, TKey, TValue>(ReflectionTypeShapeProvider provider) : IDictionaryShape<TDictionary, TKey, TValue>
     where TDictionary : IDictionary<TKey, TValue>
     where TKey : notnull
 {
-    private readonly ReflectionTypeShapeProvider _provider;
-    
-    public ReflectionGenericDictionaryShape(ReflectionTypeShapeProvider provider)
-        => _provider = provider;
+    public ITypeShape Type => provider.GetShape<TDictionary>();
 
-    public ITypeShape Type => _provider.GetShape<TDictionary>();
+    public ITypeShape KeyType => provider.GetShape<TKey>();
 
-    public ITypeShape KeyType => _provider.GetShape<TKey>();
-
-    public ITypeShape ValueType => _provider.GetShape<TValue>();
+    public ITypeShape ValueType => provider.GetShape<TValue>();
 
     public bool IsMutable => true;
 
@@ -35,20 +30,15 @@ internal sealed class ReflectionGenericDictionaryShape<TDictionary, TKey, TValue
     }
 }
 
-internal sealed class ReflectionReadOnlyDictionaryShape<TDictionary, TKey, TValue> : IDictionaryShape<TDictionary, TKey, TValue>
+internal sealed class ReflectionReadOnlyDictionaryShape<TDictionary, TKey, TValue>(ReflectionTypeShapeProvider provider) : IDictionaryShape<TDictionary, TKey, TValue>
     where TDictionary : IReadOnlyDictionary<TKey, TValue>
     where TKey : notnull
 {
-    private readonly ReflectionTypeShapeProvider _provider;
+    public ITypeShape Type => provider.GetShape<TDictionary>();
 
-    public ReflectionReadOnlyDictionaryShape(ReflectionTypeShapeProvider provider)
-        => _provider = provider;
+    public ITypeShape KeyType => provider.GetShape<TKey>();
 
-    public ITypeShape Type => _provider.GetShape<TDictionary>();
-
-    public ITypeShape KeyType => _provider.GetShape<TKey>();
-
-    public ITypeShape ValueType => _provider.GetShape<TValue>();
+    public ITypeShape ValueType => provider.GetShape<TValue>();
 
     public bool IsMutable => _isMutable ??= DetermineIsMutable();
     private MethodInfo? _addMethod;
@@ -82,7 +72,7 @@ internal sealed class ReflectionReadOnlyDictionaryShape<TDictionary, TKey, TValu
         }
 
         Debug.Assert(_addMethod != null);
-        return _provider.MemberAccessor.CreateDictionaryAddDelegate<TDictionary, TKey, TValue>(_addMethod);
+        return provider.MemberAccessor.CreateDictionaryAddDelegate<TDictionary, TKey, TValue>(_addMethod);
     }
 
     public Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> GetGetDictionary()
@@ -91,19 +81,14 @@ internal sealed class ReflectionReadOnlyDictionaryShape<TDictionary, TKey, TValu
     }
 }
 
-internal sealed class ReflectionDictionaryShape<TDictionary> : IDictionaryShape<TDictionary, object, object?>
+internal sealed class ReflectionDictionaryShape<TDictionary>(ReflectionTypeShapeProvider provider) : IDictionaryShape<TDictionary, object, object?>
     where TDictionary : IDictionary
 {
-    private readonly ReflectionTypeShapeProvider _provider;
+    public ITypeShape Type => provider.GetShape<TDictionary>();
 
-    public ReflectionDictionaryShape(ReflectionTypeShapeProvider provider)
-        => _provider = provider;
+    public ITypeShape KeyType => provider.GetShape<object>();
 
-    public ITypeShape Type => _provider.GetShape<TDictionary>();
-
-    public ITypeShape KeyType => _provider.GetShape<object>();
-
-    public ITypeShape ValueType => _provider.GetShape<object>();
+    public ITypeShape ValueType => provider.GetShape<object>();
 
     public bool IsMutable => true;
 

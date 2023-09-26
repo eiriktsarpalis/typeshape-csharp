@@ -4,16 +4,12 @@ using System.Reflection;
 
 namespace TypeShape.ReflectionProvider;
 
-internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
+internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provider) : ITypeShape<T>
 {
-    private readonly ReflectionTypeShapeProvider _provider;
-    public ReflectionTypeShape(ReflectionTypeShapeProvider provider)
-        => _provider = provider;
-
     public Type Type => typeof(T);
     public ICustomAttributeProvider AttributeProvider => typeof(T);
 
-    public ITypeShapeProvider Provider => _provider;
+    public ITypeShapeProvider Provider => provider;
 
     public TypeKind Kind => _kind ??= GetTypeKind();
     private TypeKind? _kind;
@@ -26,7 +22,7 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
         if (TryGetFactoryMethod(typeof(T)) is { } factory)
         {
             var ctorInfo = new MethodConstructorShapeInfo(typeof(T), factory);
-            yield return _provider.CreateConstructor(ctorInfo);
+            yield return provider.CreateConstructor(ctorInfo);
             yield break;
         }
 
@@ -38,12 +34,12 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
         if (typeof(T).IsNestedTupleRepresentation())
         {
             IConstructorShapeInfo ctorInfo = ReflectionHelpers.CreateNestedTupleConstructorShapeInfo(typeof(T));
-            yield return _provider.CreateConstructor(ctorInfo);
+            yield return provider.CreateConstructor(ctorInfo);
 
             if (typeof(T).IsValueType)
             {
                 ctorInfo = CreateDefaultConstructor(memberInitializers: null);
-                yield return _provider.CreateConstructor(ctorInfo);
+                yield return provider.CreateConstructor(ctorInfo);
             }
 
             yield break;
@@ -96,14 +92,14 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
             }
 
             var ctorShapeInfo = new MethodConstructorShapeInfo(typeof(T), constructorInfo, memberInitializers.ToArray());
-            yield return _provider.CreateConstructor(ctorShapeInfo);
+            yield return provider.CreateConstructor(ctorShapeInfo);
             isDefaultConstructorFound |= parameters.Length == 0;
         }
 
         if (typeof(T).IsValueType && !isDefaultConstructorFound)
         {
             MethodConstructorShapeInfo ctorShapeInfo = CreateDefaultConstructor(requiredOrInitOnlyMembers);
-            yield return _provider.CreateConstructor(ctorShapeInfo);
+            yield return provider.CreateConstructor(ctorShapeInfo);
         }
         
         static MethodConstructorShapeInfo CreateDefaultConstructor(MemberInitializerShapeInfo[]? memberInitializers)
@@ -116,7 +112,7 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
         {
             foreach (var field in ReflectionHelpers.EnumerateTupleMemberPaths(typeof(T)))
             {
-                yield return _provider.CreateProperty(typeof(T), field.Member, field.ParentMembers, logicalName: field.LogicalName, nonPublic: false);
+                yield return provider.CreateProperty(typeof(T), field.Member, field.ParentMembers, logicalName: field.LogicalName, nonPublic: false);
             }
 
             yield break;
@@ -124,7 +120,7 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
 
         foreach (MemberInfo memberInfo in GetMembers(nonPublic, includeFields))
         {
-            yield return _provider.CreateProperty(typeof(T), memberInfo, parentMembers:null, nonPublic);
+            yield return provider.CreateProperty(typeof(T), memberInfo, parentMembers:null, nonPublic);
         }
     }
 
@@ -298,25 +294,25 @@ internal sealed class ReflectionTypeShape<T> : ITypeShape<T>
     public IEnumShape GetEnumShape()
     {
         ValidateKind(TypeKind.Enum);
-        return _provider.CreateEnumShape(typeof(T));
+        return provider.CreateEnumShape(typeof(T));
     }
 
     public INullableShape GetNullableShape()
     {
         ValidateKind(TypeKind.Nullable);
-        return _provider.CreateNullableShape(typeof(T));
+        return provider.CreateNullableShape(typeof(T));
     }
 
     public IEnumerableShape GetEnumerableShape()
     {
         ValidateKind(TypeKind.Enumerable);
-        return _provider.CreateEnumerableShape(typeof(T));
+        return provider.CreateEnumerableShape(typeof(T));
     }
 
     public IDictionaryShape GetDictionaryShape()
     {
         ValidateKind(TypeKind.Dictionary);
-        return _provider.CreateDictionaryShape(typeof(T));
+        return provider.CreateDictionaryShape(typeof(T));
     }
 
     private void ValidateKind(TypeKind expectedKind)

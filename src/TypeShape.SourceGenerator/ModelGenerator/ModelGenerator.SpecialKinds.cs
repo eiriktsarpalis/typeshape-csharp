@@ -79,7 +79,7 @@ public sealed partial class ModelGenerator
             return null;
         }
 
-        if (!_knownSymbols.IEnumerable.IsAssignableFrom(type))
+        if (!knownSymbols.IEnumerable.IsAssignableFrom(type))
         {
             // Type is not IEnumerable
             return null;
@@ -95,28 +95,28 @@ public sealed partial class ModelGenerator
             elementType = array.ElementType;
             kind = EnumerableKind.ArrayOfT;
         }
-        else if (type.GetCompatibleGenericBaseType(_knownSymbols.ICollectionOfT) is { } collectionOfT)
+        else if (type.GetCompatibleGenericBaseType(knownSymbols.ICollectionOfT) is { } collectionOfT)
         {
             elementType = collectionOfT.TypeArguments[0];
             resolvedInterface = collectionOfT;
             kind = IsImmutableCollection(type) ? EnumerableKind.ImmutableOfT : EnumerableKind.ICollectionOfT;
         }
-        else if (type.GetCompatibleGenericBaseType(_knownSymbols.IEnumerableOfT) is { } enumerableOfT)
+        else if (type.GetCompatibleGenericBaseType(knownSymbols.IEnumerableOfT) is { } enumerableOfT)
         {
             elementType = enumerableOfT.TypeArguments[0];
             resolvedInterface = enumerableOfT;
             kind = IsImmutableCollection(type) ? EnumerableKind.ImmutableOfT : EnumerableKind.IEnumerableOfT;
         }
-        else if (_knownSymbols.IList.IsAssignableFrom(type))
+        else if (knownSymbols.IList.IsAssignableFrom(type))
         {
-            elementType = _semanticModel.Compilation.ObjectType;
-            resolvedInterface = _knownSymbols.IList;
+            elementType = semanticModel.Compilation.ObjectType;
+            resolvedInterface = knownSymbols.IList;
             kind = EnumerableKind.IList;
         }
         else
         {
-            elementType = _semanticModel.Compilation.ObjectType;
-            resolvedInterface = _knownSymbols.IEnumerable;
+            elementType = semanticModel.Compilation.ObjectType;
+            resolvedInterface = knownSymbols.IEnumerable;
             kind = EnumerableKind.IEnumerable;
         }
 
@@ -148,30 +148,30 @@ public sealed partial class ModelGenerator
         DictionaryKind kind = default;
         resolvedInterface = null;
 
-        if (type.GetCompatibleGenericBaseType(_knownSymbols.IReadOnlyDictionaryOfTKeyTValue) is { } genericReadOnlyIDictInstance)
+        if (type.GetCompatibleGenericBaseType(knownSymbols.IReadOnlyDictionaryOfTKeyTValue) is { } genericReadOnlyIDictInstance)
         {
             keyType = genericReadOnlyIDictInstance.TypeArguments[0];
             valueType = genericReadOnlyIDictInstance.TypeArguments[1];
             kind = DictionaryKind.IReadOnlyDictionaryOfKV;
             resolvedInterface = genericReadOnlyIDictInstance;
         }
-        else if (type.GetCompatibleGenericBaseType(_knownSymbols.IDictionaryOfTKeyTValue) is { } genericIDictInstance)
+        else if (type.GetCompatibleGenericBaseType(knownSymbols.IDictionaryOfTKeyTValue) is { } genericIDictInstance)
         {
             keyType = genericIDictInstance.TypeArguments[0];
             valueType = genericIDictInstance.TypeArguments[1];
             kind = DictionaryKind.IDictionaryOfKV;
             resolvedInterface = genericIDictInstance;
         }
-        else if (!_knownSymbols.IDictionary.IsAssignableFrom(type))
+        else if (!knownSymbols.IDictionary.IsAssignableFrom(type))
         {
             return null;
         }
         else
         {
-            keyType = _semanticModel.Compilation.ObjectType;
-            valueType = _semanticModel.Compilation.ObjectType;
+            keyType = semanticModel.Compilation.ObjectType;
+            valueType = semanticModel.Compilation.ObjectType;
             kind = DictionaryKind.IDictionary;
-            resolvedInterface = _knownSymbols.IDictionary;
+            resolvedInterface = knownSymbols.IDictionary;
         }
 
         Debug.Assert(valueType != null);
@@ -202,13 +202,13 @@ public sealed partial class ModelGenerator
 
         SymbolEqualityComparer cmp = SymbolEqualityComparer.Default;
         return 
-            cmp.Equals(definition, _knownSymbols.ImmutableArray) ||
-            cmp.Equals(definition, _knownSymbols.ImmutableList) ||
-            cmp.Equals(definition, _knownSymbols.ImmutableStack) ||
-            cmp.Equals(definition, _knownSymbols.ImmutableQueue) ||
-            cmp.Equals(definition, _knownSymbols.ImmutableHashSet) ||
-            cmp.Equals(definition, _knownSymbols.ImmutableSortedSet) ||
-            cmp.Equals(definition, _knownSymbols.ImmutableDictionary) ||
-            cmp.Equals(definition, _knownSymbols.ImmutableSortedDictionary);
+            cmp.Equals(definition, knownSymbols.ImmutableArray) ||
+            cmp.Equals(definition, knownSymbols.ImmutableList) ||
+            cmp.Equals(definition, knownSymbols.ImmutableStack) ||
+            cmp.Equals(definition, knownSymbols.ImmutableQueue) ||
+            cmp.Equals(definition, knownSymbols.ImmutableHashSet) ||
+            cmp.Equals(definition, knownSymbols.ImmutableSortedSet) ||
+            cmp.Equals(definition, knownSymbols.ImmutableDictionary) ||
+            cmp.Equals(definition, knownSymbols.ImmutableSortedDictionary);
     }
 }

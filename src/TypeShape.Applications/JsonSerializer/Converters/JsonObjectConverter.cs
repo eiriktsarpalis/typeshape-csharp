@@ -5,14 +5,9 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-internal class JsonObjectConverter<T> : JsonConverter<T>
+internal class JsonObjectConverter<T>(JsonPropertyConverter<T>[] properties) : JsonConverter<T>
 {
-    private JsonPropertyConverter<T>[] _propertiesToWrite;
-
-    public JsonObjectConverter(JsonPropertyConverter<T>[] properties)
-    {
-        _propertiesToWrite = properties.Where(prop => prop.HasGetter).ToArray();
-    }
+    private JsonPropertyConverter<T>[] _propertiesToWrite = properties.Where(prop => prop.HasGetter).ToArray();
 
     public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         => throw new NotSupportedException($"Deserialization for type {typeof(T)} is not supported.");
@@ -37,17 +32,11 @@ internal class JsonObjectConverter<T> : JsonConverter<T>
     }
 }
 
-internal abstract class JsonObjectConverterWithCtor<T> : JsonObjectConverter<T>
+internal abstract class JsonObjectConverterWithCtor<T>(JsonPropertyConverter<T>[] properties) : JsonObjectConverter<T>(properties)
 {
-    private readonly JsonPropertyDictionary<T> _propertiesToRead;
+    private readonly JsonPropertyDictionary<T> _propertiesToRead = JsonPropertyDictionary.Create(properties.Where(prop => prop.HasSetter), isCaseSensitive: true);
 
     protected abstract T ReadConstructorParametersAndCreateObject(scoped ref Utf8JsonReader reader, JsonSerializerOptions options);
-
-    public JsonObjectConverterWithCtor(JsonPropertyConverter<T>[] properties)
-        : base(properties)
-    {
-        _propertiesToRead = JsonPropertyDictionary.Create(properties.Where(prop => prop.HasSetter), isCaseSensitive: true);
-    }
 
     public sealed override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
@@ -85,42 +74,24 @@ internal abstract class JsonObjectConverterWithCtor<T> : JsonObjectConverter<T>
     }
 }
 
-internal sealed class JsonObjectConverterWithDefaultCtor<T> : JsonObjectConverterWithCtor<T>
+internal sealed class JsonObjectConverterWithDefaultCtor<T>(Func<T> defaultConstructor, JsonPropertyConverter<T>[] properties) : JsonObjectConverterWithCtor<T>(properties)
 {
-    private readonly Func<T> _defaultConstructor;
-
-    public JsonObjectConverterWithDefaultCtor(Func<T> defaultConstructor, JsonPropertyConverter<T>[] properties)
-        : base(properties)
-    {
-        _defaultConstructor = defaultConstructor;
-    }
-
     protected override T ReadConstructorParametersAndCreateObject(scoped ref Utf8JsonReader reader, JsonSerializerOptions options)
-        => _defaultConstructor();
+        => defaultConstructor();
 }
 
-internal sealed class JsonObjectConverterWithParameterizedCtor<TDeclaringType, TArgumentState> : JsonObjectConverterWithCtor<TDeclaringType>
+internal sealed class JsonObjectConverterWithParameterizedCtor<TDeclaringType, TArgumentState>(
+    Func<TArgumentState> createArgumentState,
+    Func<TArgumentState, TDeclaringType> createObject,
+    JsonPropertyConverter<TArgumentState>[] constructorParameters,
+    JsonPropertyConverter<TDeclaringType>[] properties) : JsonObjectConverterWithCtor<TDeclaringType>(properties)
 {
-    private readonly Func<TArgumentState> _createArgumentState;
-    private readonly Func<TArgumentState, TDeclaringType> _createObject;
-    private readonly JsonPropertyDictionary<TArgumentState> _constructorParameters;
-
-    public JsonObjectConverterWithParameterizedCtor(
-        Func<TArgumentState> createArgumentState, 
-        Func<TArgumentState, TDeclaringType> createObject,
-        JsonPropertyConverter<TArgumentState>[] constructorParameters,
-        JsonPropertyConverter<TDeclaringType>[] properties)
-        : base(properties)
-    {
-        _createArgumentState = createArgumentState;
-        _createObject = createObject;
-        _constructorParameters = JsonPropertyDictionary.Create(constructorParameters, isCaseSensitive: false);
-    }
+    private readonly JsonPropertyDictionary<TArgumentState> _constructorParameters = JsonPropertyDictionary.Create(constructorParameters, isCaseSensitive: false);
 
     protected override TDeclaringType ReadConstructorParametersAndCreateObject(scoped ref Utf8JsonReader reader, JsonSerializerOptions options)
     {
         JsonPropertyDictionary<TArgumentState> ctorParams = _constructorParameters;
-        TArgumentState argumentState = _createArgumentState();
+        TArgumentState argumentState = createArgumentState();
 
         while (reader.TokenType != JsonTokenType.EndObject)
         {
@@ -138,6 +109,6 @@ internal sealed class JsonObjectConverterWithParameterizedCtor<TDeclaringType, T
             reader.EnsureRead();
         }
 
-        return _createObject(argumentState);
+        return createObject(argumentState);
     }
 }

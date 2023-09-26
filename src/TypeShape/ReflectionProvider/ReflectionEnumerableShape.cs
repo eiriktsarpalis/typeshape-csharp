@@ -4,16 +4,11 @@ using System.Reflection;
 
 namespace TypeShape.ReflectionProvider;
 
-internal class ReflectionEnumerableShape<TEnumerable, TElement> : IEnumerableShape<TEnumerable, TElement>
+internal class ReflectionEnumerableShape<TEnumerable, TElement>(ReflectionTypeShapeProvider provider) : IEnumerableShape<TEnumerable, TElement>
     where TEnumerable : IEnumerable<TElement>
 {
-    private readonly ReflectionTypeShapeProvider _provider;
-
-    public ReflectionEnumerableShape(ReflectionTypeShapeProvider provider)
-        => _provider = provider;
-
-    public ITypeShape Type => _provider.GetShape<TEnumerable>();
-    public ITypeShape ElementType => _provider.GetShape<TElement>();
+    public ITypeShape Type => provider.GetShape<TEnumerable>();
+    public ITypeShape ElementType => provider.GetShape<TElement>();
 
     public virtual bool IsMutable => _isMutable ??= DetermineIsMutable();
     private MethodInfo? _addMethod;
@@ -47,29 +42,25 @@ internal class ReflectionEnumerableShape<TEnumerable, TElement> : IEnumerableSha
         }
 
         Debug.Assert(_addMethod != null);
-        return _provider.MemberAccessor.CreateEnumerableAddDelegate<TEnumerable, TElement>(_addMethod);
+        return provider.MemberAccessor.CreateEnumerableAddDelegate<TEnumerable, TElement>(_addMethod);
     }
 
     public Func<TEnumerable, IEnumerable<TElement>> GetGetEnumerable()
         => static enumerable => enumerable;
 }
 
-internal sealed class ReflectionCollectionShape<TEnumerable, TElement> : ReflectionEnumerableShape<TEnumerable, TElement>
+internal sealed class ReflectionCollectionShape<TEnumerable, TElement>(ReflectionTypeShapeProvider provider) : ReflectionEnumerableShape<TEnumerable, TElement>(provider)
     where TEnumerable : ICollection<TElement>
 {
-    public ReflectionCollectionShape(ReflectionTypeShapeProvider provider) : base(provider) { }
     public override bool IsMutable => true;
     public override Setter<TEnumerable, TElement> GetAddElement()
         => static (ref TEnumerable enumerable, TElement element) => enumerable.Add(element);
 }
 
-internal class ReflectionEnumerableShape<TEnumerable> : IEnumerableShape<TEnumerable, object?>
+internal class ReflectionEnumerableShape<TEnumerable>(ReflectionTypeShapeProvider provider) : IEnumerableShape<TEnumerable, object?>
     where TEnumerable : IEnumerable
 {
-    private readonly ReflectionTypeShapeProvider _provider;
-
-    public ReflectionEnumerableShape(ReflectionTypeShapeProvider provider)
-        => _provider = provider;
+    private readonly ReflectionTypeShapeProvider _provider = provider;
 
     public ITypeShape Type => _provider.GetShape<TEnumerable>();
     public ITypeShape ElementType => _provider.GetShape<object>();
@@ -113,10 +104,9 @@ internal class ReflectionEnumerableShape<TEnumerable> : IEnumerableShape<TEnumer
         => static enumerable => enumerable.Cast<object?>();
 }
 
-internal sealed class ReflectionListShape<TEnumerable> : ReflectionEnumerableShape<TEnumerable>
+internal sealed class ReflectionListShape<TEnumerable>(ReflectionTypeShapeProvider provider) : ReflectionEnumerableShape<TEnumerable>(provider)
     where TEnumerable : IList
 {
-    public ReflectionListShape(ReflectionTypeShapeProvider provider) : base(provider) { }
     public override bool IsMutable => true;
     public override Setter<TEnumerable, object?> GetAddElement()
         => static (ref TEnumerable enumerable, object? value) => enumerable.Add(value);

@@ -2,14 +2,9 @@
 
 namespace TypeShape.SourceGenerator.Model;
 
-public sealed class KnownSymbols
+public sealed class KnownSymbols(Compilation compilation)
 {
-    public KnownSymbols(Compilation compilation)
-    {
-        Compilation = compilation;
-    }
-
-    public Compilation Compilation { get; }
+    public Compilation Compilation { get; } = compilation;
 
     public INamedTypeSymbol ObjectType => _ObjectType ??= Compilation.GetSpecialType(SpecialType.System_Object);
     private INamedTypeSymbol? _ObjectType;

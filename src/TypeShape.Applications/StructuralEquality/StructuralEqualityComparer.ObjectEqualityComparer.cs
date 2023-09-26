@@ -61,17 +61,8 @@ public static partial class StructuralEqualityComparer
         }
     }
 
-    private sealed class PolymorphicObjectEqualityComparer : EqualityComparer<object>
+    private sealed class PolymorphicObjectEqualityComparer(Visitor visitor, ITypeShapeProvider provider) : EqualityComparer<object>
     {
-        private readonly Visitor _visitor;
-        private readonly ITypeShapeProvider _provider;
-
-        public PolymorphicObjectEqualityComparer(Visitor visitor, ITypeShapeProvider provider)
-        {
-            _visitor = visitor;
-            _provider = provider;
-        }
-
         public override bool Equals(object? x, object? y)
         {
             if (x is null || y is null)
@@ -84,13 +75,13 @@ public static partial class StructuralEqualityComparer
             if (runtimeType == typeof(object))
                 return true;
 
-            return _visitor.GetPolymorphicEqualityComparer(runtimeType, _provider).Equals(x, y);
+            return visitor.GetPolymorphicEqualityComparer(runtimeType, provider).Equals(x, y);
         }
 
         public override int GetHashCode([DisallowNull] object obj)
         {
             Type runtimeType = obj.GetType();
-            return runtimeType == typeof(object) ? 1 : _visitor.GetPolymorphicEqualityComparer(runtimeType, _provider).GetHashCode(obj);
+            return runtimeType == typeof(object) ? 1 : visitor.GetPolymorphicEqualityComparer(runtimeType, provider).GetHashCode(obj);
         }
     }
 }

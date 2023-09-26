@@ -2,14 +2,9 @@
 
 namespace TypeShape.Applications.CborSerializer.Converters;
 
-internal sealed class CborNullableConverter<T> : CborConverter<T?>
+internal sealed class CborNullableConverter<T>(CborConverter<T> elementConverter) : CborConverter<T?>
     where T : struct
 {
-    private readonly CborConverter<T> _elementConverter;
-
-    public CborNullableConverter(CborConverter<T> elementConverter)
-        => _elementConverter = elementConverter;
-
     public override T? Read(CborReader reader)
     {
         if (reader.PeekState() is CborReaderState.Null)
@@ -18,7 +13,7 @@ internal sealed class CborNullableConverter<T> : CborConverter<T?>
             return null;
         }
 
-        return _elementConverter.Read(reader);
+        return elementConverter.Read(reader);
     }
 
     public override void Write(CborWriter writer, T? value)
@@ -29,6 +24,6 @@ internal sealed class CborNullableConverter<T> : CborConverter<T?>
             return;
         }
 
-        _elementConverter.Write(writer, value.Value);
+        elementConverter.Write(writer, value.Value);
     }
 }

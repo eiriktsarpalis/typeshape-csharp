@@ -100,21 +100,17 @@ public sealed class TypeCache
         }
     }
 
-    private sealed class ResultHolderCore<T> : ResultHolder<T>
+    private sealed class ResultHolderCore<T>(Func<ResultHolder<T>, T> delayedValueFactory) : ResultHolder<T>
         where T : class
     {
-        private readonly Func<ResultHolder<T>, T> _delayedValueFactory;
         private T? _delayedValue;
-
-        public ResultHolderCore(Func<ResultHolder<T>, T> delayedValueFactory)
-            => _delayedValueFactory = delayedValueFactory;
 
         public T GetDelayedResult()
         {
             return _delayedValue ??= GetDelayedResultCore();
             T GetDelayedResultCore()
             {
-                T delayedValue = _delayedValueFactory(this);
+                T delayedValue = delayedValueFactory(this);
                 return delayedValue is null ? throw new ArgumentNullException("delayedValueFactory") : delayedValue;
             }
         }

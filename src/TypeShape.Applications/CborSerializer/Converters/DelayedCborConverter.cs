@@ -3,19 +3,14 @@ using System.Formats.Cbor;
 
 namespace TypeShape.Applications.CborSerializer.Converters
 {
-    internal sealed class DelayedCborConverter<T> : CborConverter<T>
+    internal sealed class DelayedCborConverter<T>(ResultHolder<CborConverter<T>> holder) : CborConverter<T>
     {
-        private readonly ResultHolder<CborConverter<T>> _holder;
-
-        public DelayedCborConverter(ResultHolder<CborConverter<T>> holder)
-            => _holder = holder;
-
         public CborConverter<T> Underlying
         {
             get
             {
-                Debug.Assert(_holder.Value != null);
-                return _holder.Value;
+                Debug.Assert(holder.Value != null);
+                return holder.Value;
             }
         }
 

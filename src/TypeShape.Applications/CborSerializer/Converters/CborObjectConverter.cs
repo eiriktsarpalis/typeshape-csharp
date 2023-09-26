@@ -2,14 +2,9 @@
 
 namespace TypeShape.Applications.CborSerializer.Converters;
 
-internal class CborObjectConverter<T> : CborConverter<T>
+internal class CborObjectConverter<T>(CborPropertyConverter<T>[] properties) : CborConverter<T>
 {
-    private readonly CborPropertyConverter<T>[] _propertiesToWrite;
-
-    public CborObjectConverter(CborPropertyConverter<T>[] properties)
-    {
-        _propertiesToWrite = properties.Where(prop => prop.HasGetter).ToArray();
-    }
+    private readonly CborPropertyConverter<T>[] _propertiesToWrite = properties.Where(prop => prop.HasGetter).ToArray();
 
     public override T? Read(CborReader reader)
         => throw new NotSupportedException($"Deserialization for type {typeof(T)} is not supported.");
@@ -33,16 +28,11 @@ internal class CborObjectConverter<T> : CborConverter<T>
     }
 }
 
-internal abstract class CborObjectConverterWithCtor<T> : CborObjectConverter<T>
+internal abstract class CborObjectConverterWithCtor<T>(CborPropertyConverter<T>[] properties) : CborObjectConverter<T>(properties)
 {
-    private readonly Dictionary<string, CborPropertyConverter<T>> _propertiesToRead;
+    private readonly Dictionary<string, CborPropertyConverter<T>> _propertiesToRead = properties.Where(prop => prop.HasSetter).ToDictionary(prop => prop.Name);
 
     protected abstract T ReadConstructorParametersAndCreateObject(CborReader reader, out string? pendingPropertyName);
-
-    public CborObjectConverterWithCtor(CborPropertyConverter<T>[] properties) : base(properties)
-    {
-        _propertiesToRead = properties.Where(prop => prop.HasSetter).ToDictionary(prop => prop.Name);
-    }
 
     public sealed override T? Read(CborReader reader)
     {
@@ -75,44 +65,29 @@ internal abstract class CborObjectConverterWithCtor<T> : CborObjectConverter<T>
     }
 }
 
-internal sealed class CborObjectConverterWithDefaultCtor<T> : CborObjectConverterWithCtor<T>
+internal sealed class CborObjectConverterWithDefaultCtor<T>(
+    Func<T> defaultConstructor, 
+    CborPropertyConverter<T>[] properties) : CborObjectConverterWithCtor<T>(properties)
 {
-    private readonly Func<T> _defaultConstructor;
-
-    public CborObjectConverterWithDefaultCtor(Func<T> defaultConstructor, CborPropertyConverter<T>[] properties) : base(properties)
-    {
-        _defaultConstructor = defaultConstructor;
-    }
-
     protected override T ReadConstructorParametersAndCreateObject(CborReader reader, out string? pendingPropertyName)
     {
         pendingPropertyName = null;
-        return _defaultConstructor();
+        return defaultConstructor();
     }
 }
 
-internal sealed class CborObjectConverterWithParameterizedCtor<TDeclaringType, TArgumentState> : CborObjectConverterWithCtor<TDeclaringType>
+internal sealed class CborObjectConverterWithParameterizedCtor<TDeclaringType, TArgumentState>(
+    Func<TArgumentState> createArgumentState,
+    Func<TArgumentState, TDeclaringType> createObject,
+    CborPropertyConverter<TArgumentState>[] constructorParameters,
+    CborPropertyConverter<TDeclaringType>[] properties) : CborObjectConverterWithCtor<TDeclaringType>(properties)
 {
-    private readonly Func<TArgumentState> _createArgumentState;
-    private readonly Func<TArgumentState, TDeclaringType> _createObject;
-    private readonly Dictionary<string, CborPropertyConverter<TArgumentState>> _constructorParameters;
-
-    public CborObjectConverterWithParameterizedCtor(
-        Func<TArgumentState> createArgumentState, 
-        Func<TArgumentState, TDeclaringType> createObject,
-        CborPropertyConverter<TArgumentState>[] constructorParameters,
-        CborPropertyConverter<TDeclaringType>[] properties)
-        : base(properties)
-    {
-        _createArgumentState = createArgumentState;
-        _createObject = createObject;
-        _constructorParameters = constructorParameters.ToDictionary(param => param.Name, StringComparer.OrdinalIgnoreCase);
-    }
+    private readonly Dictionary<string, CborPropertyConverter<TArgumentState>> _constructorParameters = constructorParameters.ToDictionary(param => param.Name, StringComparer.OrdinalIgnoreCase);
 
     protected override TDeclaringType ReadConstructorParametersAndCreateObject(CborReader reader, out string? pendingPropertyName)
     {
         Dictionary<string, CborPropertyConverter<TArgumentState>> ctorParams = _constructorParameters;
-        TArgumentState argumentState = _createArgumentState();
+        TArgumentState argumentState = createArgumentState();
         pendingPropertyName = null;
 
         while (reader.PeekState() != CborReaderState.EndMap)
@@ -128,6 +103,6 @@ internal sealed class CborObjectConverterWithParameterizedCtor<TDeclaringType, T
             propertyConverter.Read(reader, ref argumentState);
         }
 
-        return _createObject(argumentState);
+        return createObject(argumentState);
     }
 }

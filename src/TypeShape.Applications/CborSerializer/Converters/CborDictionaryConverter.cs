@@ -2,18 +2,13 @@
 
 namespace TypeShape.Applications.CborSerializer.Converters;
 
-internal class CborDictionaryConverter<TDictionary, TKey, TValue> : CborConverter<TDictionary>
+internal class CborDictionaryConverter<TDictionary, TKey, TValue>(
+    CborConverter<TKey> keyConverter, 
+    CborConverter<TValue> valueConverter, 
+    Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getDictionary) : CborConverter<TDictionary>
 {
-    private protected readonly CborConverter<TKey> _keyConverter;
-    private protected readonly CborConverter<TValue> _valueConverter;
-    private readonly Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> _getDictionary;
-
-    public CborDictionaryConverter(CborConverter<TKey> keyConverter, CborConverter<TValue> valueConverter, Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getDictionary)
-    {
-        _keyConverter = keyConverter;
-        _valueConverter = valueConverter;
-        _getDictionary = getDictionary;
-    }
+    private protected readonly CborConverter<TKey> _keyConverter = keyConverter;
+    private protected readonly CborConverter<TValue> _valueConverter = valueConverter;
 
     public override TDictionary? Read(CborReader reader)
     {
@@ -28,7 +23,7 @@ internal class CborDictionaryConverter<TDictionary, TKey, TValue> : CborConverte
             return;
         }
 
-        var kvEnumerable = _getDictionary(value);
+        var kvEnumerable = getDictionary(value);
         int? definiteLength = kvEnumerable.TryGetNonEnumeratedCount(out int count) ? count : null;
 
         CborConverter<TKey> keyConverter = _keyConverter;
@@ -45,22 +40,14 @@ internal class CborDictionaryConverter<TDictionary, TKey, TValue> : CborConverte
     }
 }
 
-internal sealed class CborMutableDictionaryConverter<TDictionary, TKey, TValue> : CborDictionaryConverter<TDictionary, TKey, TValue>
+internal sealed class CborMutableDictionaryConverter<TDictionary, TKey, TValue>(
+    CborConverter<TKey> keyConverter,
+    CborConverter<TValue> valueConverter,
+    Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getDictionary,
+    Func<TDictionary> createObject,
+    Setter<TDictionary, KeyValuePair<TKey, TValue>> addDelegate) : CborDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, getDictionary)
 {
-    private readonly Func<TDictionary> _createObject;
-    private readonly Setter<TDictionary, KeyValuePair<TKey, TValue>> _addDelegate;
-
-    public CborMutableDictionaryConverter(
-        CborConverter<TKey> keyConverter,
-        CborConverter<TValue> valueConverter,
-        Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getDictionary,
-        Func<TDictionary> createObject,
-        Setter<TDictionary, KeyValuePair<TKey, TValue>> addDelegate)
-        : base(keyConverter, valueConverter, getDictionary)
-    {
-        _createObject = createObject;
-        _addDelegate = addDelegate;
-    }
+    private readonly Setter<TDictionary, KeyValuePair<TKey, TValue>> _addDelegate = addDelegate;
 
     public override TDictionary? Read(CborReader reader)
     {
@@ -71,7 +58,7 @@ internal sealed class CborMutableDictionaryConverter<TDictionary, TKey, TValue> 
         }
 
         reader.ReadStartMap();
-        TDictionary result = _createObject();
+        TDictionary result = createObject();
 
         CborConverter<TKey> keyConverter = _keyConverter;
         CborConverter<TValue> valueConverter = _valueConverter;
@@ -89,20 +76,12 @@ internal sealed class CborMutableDictionaryConverter<TDictionary, TKey, TValue> 
     }
 }
 
-internal sealed class CborImmutableDictionaryConverter<TDictionary, TKey, TValue> : CborDictionaryConverter<TDictionary, TKey, TValue>
+internal sealed class CborImmutableDictionaryConverter<TDictionary, TKey, TValue>(
+    CborConverter<TKey> keyConverter,
+    CborConverter<TValue> valueConverter,
+    Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getDictionary,
+    Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> constructor) : CborDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, getDictionary)
 {
-    private readonly Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> _constructor;
-
-    public CborImmutableDictionaryConverter(
-        CborConverter<TKey> keyConverter,
-        CborConverter<TValue> valueConverter,
-        Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getDictionary,
-        Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> constructor)
-        : base(keyConverter, valueConverter, getDictionary)
-    {
-        _constructor = constructor;
-    }
-
     public override TDictionary? Read(CborReader reader)
     {
         if (default(TDictionary) is null && reader.PeekState() is CborReaderState.Null)
@@ -124,7 +103,7 @@ internal sealed class CborImmutableDictionaryConverter<TDictionary, TKey, TValue
         }
 
         reader.ReadEndMap();
-        return _constructor(buffer);
+        return constructor(buffer);
     }
 }
 

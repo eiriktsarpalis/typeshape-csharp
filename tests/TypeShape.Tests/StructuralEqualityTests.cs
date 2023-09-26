@@ -14,7 +14,7 @@ public abstract class StructuralEqualityTests
     {
         if (!typeof(T).IsValueType && typeof(T) != typeof(string))
         {
-            Assert.NotSame((object)left.Value!, (object)right.Value!); // ensure we're not using reference equality
+            Assert.NotSame((object?)left.Value, (object?)right.Value); // ensure we're not using reference equality
         }
 
         IEqualityComparer<T> cmp = GetEqualityComparerUnderTest<T>();

@@ -17,14 +17,10 @@ internal static class JsonPropertyDictionary
         ? new CaseSensitivePropertyDictionary<TDeclaringType>(propertiesToRead)
         : new CaseInsensitivePropertyDictionary<TDeclaringType>(propertiesToRead);
 
-    private sealed class CaseSensitivePropertyDictionary<TDeclaringType> : JsonPropertyDictionary<TDeclaringType>
+    private sealed class CaseSensitivePropertyDictionary<TDeclaringType>(
+        IEnumerable<JsonPropertyConverter<TDeclaringType>> propertiesToRead) : JsonPropertyDictionary<TDeclaringType>
     {
-        private readonly SpanDictionary<byte, JsonPropertyConverter<TDeclaringType>> _dict;
-
-        public CaseSensitivePropertyDictionary(IEnumerable<JsonPropertyConverter<TDeclaringType>> propertiesToRead)
-        {
-            _dict = propertiesToRead.ToSpanDictionary(p => Encoding.UTF8.GetBytes(p.Name), ByteSpanEqualityComparer.Ordinal);
-        }
+        private readonly SpanDictionary<byte, JsonPropertyConverter<TDeclaringType>> _dict = propertiesToRead.ToSpanDictionary(p => Encoding.UTF8.GetBytes(p.Name), ByteSpanEqualityComparer.Ordinal);
 
         public override JsonPropertyConverter<TDeclaringType>? LookupProperty(scoped ref Utf8JsonReader reader)
         {
@@ -61,15 +57,10 @@ internal static class JsonPropertyDictionary
         }
     }
 
-    private sealed class CaseInsensitivePropertyDictionary<TDeclaringType> : JsonPropertyDictionary<TDeclaringType>
+    private sealed class CaseInsensitivePropertyDictionary<TDeclaringType>(IEnumerable<JsonPropertyConverter<TDeclaringType>> propertiesToRead) : JsonPropertyDictionary<TDeclaringType>
     {
-        private readonly SpanDictionary<char, JsonPropertyConverter<TDeclaringType>> _dict;
-
-        public CaseInsensitivePropertyDictionary(IEnumerable<JsonPropertyConverter<TDeclaringType>> propertiesToRead)
-        {
-            // Currently, the easiest way to calculate case-insensitive hashcode and equality is to transcode to UTF-16 so do that.
-            _dict = propertiesToRead.ToSpanDictionary(p => p.Name.ToCharArray(), CharSpanEqualityComparer.OrdinalIgnoreCase);
-        }
+        // Currently, the easiest way to calculate case-insensitive hashcode and equality is to transcode to UTF-16 so do that.
+        private readonly SpanDictionary<char, JsonPropertyConverter<TDeclaringType>> _dict = propertiesToRead.ToSpanDictionary(p => p.Name.ToCharArray(), CharSpanEqualityComparer.OrdinalIgnoreCase);
 
         public override JsonPropertyConverter<TDeclaringType>? LookupProperty(scoped ref Utf8JsonReader reader)
         {

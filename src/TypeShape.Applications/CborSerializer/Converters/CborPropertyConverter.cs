@@ -3,14 +3,9 @@ using System.Formats.Cbor;
 
 namespace TypeShape.Applications.CborSerializer.Converters;
 
-internal abstract class CborPropertyConverter<TDeclaringType>
+internal abstract class CborPropertyConverter<TDeclaringType>(string name)
 {
-    public CborPropertyConverter(string name)
-    {
-        Name = name;
-    }
-
-    public string Name { get; }
+    public string Name { get; } = name;
     public abstract bool HasGetter { get; }
     public abstract bool HasSetter { get; }
 

@@ -4,16 +4,10 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeShape.Applications.Common;
 
-internal class JsonEnumerableConverter<TEnumerable, TElement> : JsonConverter<TEnumerable>
+internal class JsonEnumerableConverter<TEnumerable, TElement>(JsonConverter<TElement> elementConverter, IEnumerableShape<TEnumerable, TElement> shape) : JsonConverter<TEnumerable>
 {
-    private protected readonly JsonConverter<TElement> _elementConverter;
-    private readonly IIterator<TEnumerable, TElement> _iterator;
-
-    public JsonEnumerableConverter(JsonConverter<TElement> elementConverter, IEnumerableShape<TEnumerable, TElement> shape)
-    {
-        _elementConverter = elementConverter;
-        _iterator = Iterator.Create(shape);
-    }
+    private protected readonly JsonConverter<TElement> _elementConverter = elementConverter;
+    private readonly IIterator<TEnumerable, TElement> _iterator = Iterator.Create(shape);
 
     public override TEnumerable? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
@@ -42,21 +36,13 @@ internal class JsonEnumerableConverter<TEnumerable, TElement> : JsonConverter<TE
     }
 }
 
-internal sealed class JsonMutableEnumerableConverter<TEnumerable, TElement> : JsonEnumerableConverter<TEnumerable, TElement>
+internal sealed class JsonMutableEnumerableConverter<TEnumerable, TElement>(
+    JsonConverter<TElement> elementConverter,
+    IEnumerableShape<TEnumerable, TElement> shape,
+    Func<TEnumerable> createObject,
+    Setter<TEnumerable, TElement> addDelegate) : JsonEnumerableConverter<TEnumerable, TElement>(elementConverter, shape)
 {
-    private readonly Func<TEnumerable> _createObject;
-    private readonly Setter<TEnumerable, TElement> _addDelegate;
-
-    public JsonMutableEnumerableConverter(
-        JsonConverter<TElement> elementConverter,
-        IEnumerableShape<TEnumerable, TElement> shape,
-        Func<TEnumerable> createObject, 
-        Setter<TEnumerable, TElement> addDelegate)
-        : base(elementConverter, shape)
-    {
-        _createObject = createObject;
-        _addDelegate = addDelegate;
-    }
+    private readonly Setter<TEnumerable, TElement> _addDelegate = addDelegate;
 
     public override TEnumerable? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
@@ -67,7 +53,7 @@ internal sealed class JsonMutableEnumerableConverter<TEnumerable, TElement> : Js
 
         reader.EnsureTokenType(JsonTokenType.StartArray);
 
-        TEnumerable result = _createObject();
+        TEnumerable result = createObject();
         reader.EnsureRead();
 
         JsonConverter<TElement> elementConverter = _elementConverter;
@@ -84,19 +70,11 @@ internal sealed class JsonMutableEnumerableConverter<TEnumerable, TElement> : Js
     }
 }
 
-internal sealed class JsonImmutableEnumerableConverter<TEnumerable, TElement> : JsonEnumerableConverter<TEnumerable, TElement>
+internal sealed class JsonImmutableEnumerableConverter<TEnumerable, TElement>(
+    JsonConverter<TElement> elementConverter,
+    IEnumerableShape<TEnumerable, TElement> shape,
+    Func<IEnumerable<TElement>, TEnumerable> constructor) : JsonEnumerableConverter<TEnumerable, TElement>(elementConverter, shape)
 {
-    private readonly Func<IEnumerable<TElement>, TEnumerable> _constructor;
-
-    public JsonImmutableEnumerableConverter(
-        JsonConverter<TElement> elementConverter,
-        IEnumerableShape<TEnumerable, TElement> shape,
-        Func<IEnumerable<TElement>, TEnumerable> constructor)
-        : base(elementConverter, shape)
-    {
-        _constructor = constructor;
-    }
-
     public override TEnumerable? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {   
         if (default(TEnumerable) is null && reader.TokenType is JsonTokenType.Null)
@@ -118,6 +96,6 @@ internal sealed class JsonImmutableEnumerableConverter<TEnumerable, TElement> : 
             reader.EnsureRead();
         }
 
-        return _constructor(buffer);
+        return constructor(buffer);
     }
 }

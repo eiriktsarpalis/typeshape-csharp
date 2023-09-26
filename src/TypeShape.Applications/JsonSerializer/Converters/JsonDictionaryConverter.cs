@@ -5,19 +5,12 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeShape.Applications.Common;
 
-internal class JsonDictionaryConverter<TDictionary, TKey, TValue> : JsonConverter<TDictionary>
+internal class JsonDictionaryConverter<TDictionary, TKey, TValue>(JsonConverter<TKey> keyConverter, JsonConverter<TValue> valueConverter, IDictionaryShape<TDictionary, TKey, TValue> shape) : JsonConverter<TDictionary>
     where TKey : notnull
 {
-    private protected readonly JsonConverter<TKey> _keyConverter;
-    private protected readonly JsonConverter<TValue> _valueConverter;
-    private readonly IIterator<TDictionary, KeyValuePair<TKey, TValue>> _iterator;
-
-    public JsonDictionaryConverter(JsonConverter<TKey> keyConverter, JsonConverter<TValue> valueConverter, IDictionaryShape<TDictionary, TKey, TValue> shape)
-    {
-        _keyConverter = keyConverter;
-        _valueConverter = valueConverter;
-        _iterator = Iterator.Create(shape);
-    }
+    private protected readonly JsonConverter<TKey> _keyConverter = keyConverter;
+    private protected readonly JsonConverter<TValue> _valueConverter = valueConverter;
+    private readonly IIterator<TDictionary, KeyValuePair<TKey, TValue>> _iterator = Iterator.Create(shape);
 
     public override TDictionary? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
@@ -47,23 +40,15 @@ internal class JsonDictionaryConverter<TDictionary, TKey, TValue> : JsonConverte
     }
 }
 
-internal sealed class JsonMutableDictionaryConverter<TDictionary, TKey, TValue> : JsonDictionaryConverter<TDictionary, TKey, TValue>
+internal sealed class JsonMutableDictionaryConverter<TDictionary, TKey, TValue>(
+    JsonConverter<TKey> keyConverter,
+    JsonConverter<TValue> valueConverter,
+    IDictionaryShape<TDictionary, TKey, TValue> shape,
+    Func<TDictionary> createObject,
+    Setter<TDictionary, KeyValuePair<TKey, TValue>> addDelegate) : JsonDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, shape)
     where TKey : notnull
 {
-    private readonly Func<TDictionary> _createObject;
-    private readonly Setter<TDictionary, KeyValuePair<TKey, TValue>> _addDelegate;
-
-    public JsonMutableDictionaryConverter(
-        JsonConverter<TKey> keyConverter, 
-        JsonConverter<TValue> valueConverter,
-        IDictionaryShape<TDictionary, TKey, TValue> shape,
-        Func<TDictionary> createObject, 
-        Setter<TDictionary, KeyValuePair<TKey, TValue>> addDelegate)
-        : base(keyConverter, valueConverter, shape)
-    {
-        _createObject = createObject;
-        _addDelegate = addDelegate;
-    }
+    private readonly Setter<TDictionary, KeyValuePair<TKey, TValue>> _addDelegate = addDelegate;
 
     public override TDictionary? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
@@ -74,7 +59,7 @@ internal sealed class JsonMutableDictionaryConverter<TDictionary, TKey, TValue> 
 
         reader.EnsureTokenType(JsonTokenType.StartObject);
 
-        TDictionary result = _createObject();
+        TDictionary result = createObject();
         reader.EnsureRead();
 
         JsonConverter<TKey> keyConverter = _keyConverter;
@@ -97,21 +82,13 @@ internal sealed class JsonMutableDictionaryConverter<TDictionary, TKey, TValue> 
     }
 }
 
-internal sealed class JsonImmutableDictionaryConverter<TDictionary, TKey, TValue> : JsonDictionaryConverter<TDictionary, TKey, TValue>
+internal sealed class JsonImmutableDictionaryConverter<TDictionary, TKey, TValue>(
+    JsonConverter<TKey> keyConverter,
+    JsonConverter<TValue> valueConverter,
+    IDictionaryShape<TDictionary, TKey, TValue> shape,
+    Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> constructor) : JsonDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, shape)
     where TKey : notnull
 {
-    private readonly Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> _constructor;
-
-    public JsonImmutableDictionaryConverter(
-        JsonConverter<TKey> keyConverter,
-        JsonConverter<TValue> valueConverter,
-        IDictionaryShape<TDictionary, TKey, TValue> shape,
-        Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> constructor)
-        : base(keyConverter, valueConverter, shape)
-    {
-        _constructor = constructor;
-    }
-
     public override TDictionary? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if (default(TDictionary) is null && reader.TokenType is JsonTokenType.Null)
@@ -138,6 +115,6 @@ internal sealed class JsonImmutableDictionaryConverter<TDictionary, TKey, TValue
             buffer.Add(new(key, value));
         }
 
-        return _constructor(buffer);
+        return constructor(buffer);
     }
 }

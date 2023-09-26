@@ -63,14 +63,14 @@ public static class TestTypes
         yield return Create(TimeOnly.MaxValue);
         yield return Create(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 
-        yield return Create(new int[] { });
-        yield return Create(new int[] { 1, 2, 3 });
-        yield return Create(new int[][] { new int[] { 1, 0, 0 }, new int[] { 0, 1, 0 }, new int[] { 0, 0, 1 } });
-        yield return Create(new byte[] { 1, 2, 3 });
-        yield return Create(new List<string> { "1", "2", "3" });
-        yield return Create(new List<byte>());
-        yield return Create(new Queue<int>(new int[] { 1, 2, 3 }));
-        yield return Create(new Stack<int>(new int[] { 1, 2, 3 }), isStack: true);
+        yield return Create(new int[0]);
+        yield return Create<int[]>([1, 2, 3]);
+        yield return Create<int[][]>([[1, 0, 0 ], [ 0, 1, 0 ], [ 0, 0, 1 ] ]);
+        yield return Create<byte[]>([1, 2, 3]);
+        yield return Create<List<string>>(["1", "2", "3"]);
+        yield return Create<List<byte>>([]);
+        yield return Create(new Queue<int>([ 1, 2, 3 ]));
+        yield return Create(new Stack<int>([ 1, 2, 3 ]), isStack: true);
         yield return Create(new Dictionary<string, int> { ["key1"] = 42, ["key2"] = -1 });
         yield return Create(new HashSet<string> { "apple", "orange", "banana" });
         yield return Create(new HashSet<string> { "apple", "orange", "banana" });
@@ -78,44 +78,44 @@ public static class TestTypes
         yield return Create(new SortedDictionary<string, int> { ["key1"] = 42, ["key2"] = -1 });
 
         yield return Create(new Hashtable { ["key1"] = 42 });
-        yield return Create(new ArrayList { 1, 2, 3 });
+        yield return Create<ArrayList>([1, 2, 3]);
 
-        yield return Create(new ConcurrentQueue<int>(new int[] { 1, 2, 3 }));
-        yield return Create(new ConcurrentStack<int>(new int[] { 1, 2, 3 }), isStack: true);
+        yield return Create(new ConcurrentQueue<int>([1, 2, 3]));
+        yield return Create(new ConcurrentStack<int>([1, 2, 3]), isStack: true);
         yield return Create(new ConcurrentDictionary<string, string> { ["key"] = "value" });
 
         yield return Create<IEnumerable>(new List<object> { 1, 2, 3 });
         yield return Create<IList>(new List<object> { 1, 2, 3 });
         yield return Create<ICollection>(new List<object> { 1, 2, 3 });
         yield return Create<IDictionary>(new Dictionary<object, object> { [42] = 42 });
-        yield return Create<IEnumerable<int>>(new List<int> { 1, 2, 3 });
-        yield return Create<ICollection<int>>(new List<int> { 1, 2, 3 });
-        yield return Create<IList<int>>(new List<int> { 1, 2, 3 });
-        yield return Create<IReadOnlyCollection<int>>(new List<int> { 1, 2, 3 });
-        yield return Create<IReadOnlyList<int>>(new List<int> { 1, 2, 3 });
+        yield return Create<IEnumerable<int>>([1, 2, 3]);
+        yield return Create<ICollection<int>>([1, 2, 3 ]);
+        yield return Create<IList<int>>([1, 2, 3]);
+        yield return Create<IReadOnlyCollection<int>>([1, 2, 3]);
+        yield return Create<IReadOnlyList<int>>([1, 2, 3]);
         yield return Create<ISet<int>>(new HashSet<int> { 1, 2, 3 });
         yield return Create<IReadOnlySet<int>>(new HashSet<int> { 1, 2, 3 });
         yield return Create<IDictionary<int, int>>(new Dictionary<int, int> { [42] = 42 });
         yield return Create<IReadOnlyDictionary<int, int>>(new Dictionary<int, int> { [42] = 42 });
 
-        yield return Create(new DerivedList { 1, 2, 3 });
+        yield return Create<DerivedList>([1, 2, 3]);
         yield return Create(new DerivedDictionary { ["key"] = "value" });
 
-        yield return Create(new StructList<int> { 1, 2, 3 });
+        yield return Create<StructList<int>>([1, 2, 3]);
         yield return Create(new StructDictionary<string, string> { ["key"] = "value" });
 
-        yield return Create(ImmutableArray.Create(1, 2, 3));
-        yield return Create(ImmutableList.Create("1", "2", "3"));
-        yield return Create(ImmutableQueue.Create(1, 2, 3));
-        yield return Create(ImmutableStack.Create(1, 2, 3), isStack: true);
-        yield return Create(ImmutableHashSet.Create(1, 2, 3));
-        yield return Create(ImmutableSortedSet.Create(1, 2, 3));
+        yield return Create<ImmutableArray<int>>([1, 2, 3]);
+        yield return Create<ImmutableList<string>>(["1", "2", "3"]);
+        yield return Create<ImmutableQueue<int>>([1, 2, 3]);
+        yield return Create<ImmutableStack<int>>([1, 2, 3], isStack: true);
+        yield return Create<ImmutableHashSet<int>>([1, 2, 3]);
+        yield return Create<ImmutableSortedSet<int>>([1, 2, 3]);
         yield return Create(ImmutableDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }));
         yield return Create(ImmutableSortedDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }));
 
         yield return Create(new PocoWithListAndDictionaryProps(@string: "myString")
         {
-            List = new() { 1, 2, 3 },
+            List = [1, 2, 3],
             Dict = new() { ["key1"] = 42, ["key2"] = -1 },
         });
 

@@ -2,16 +2,11 @@
 
 namespace TypeShape.Applications.CborSerializer.Converters;
 
-internal class CborEnumerableConverter<TEnumerable, TElement> : CborConverter<TEnumerable>
+internal class CborEnumerableConverter<TEnumerable, TElement>(
+    CborConverter<TElement> elementConverter, 
+    Func<TEnumerable, IEnumerable<TElement>> getEnumerable) : CborConverter<TEnumerable>
 {
-    private protected readonly CborConverter<TElement> _elementConverter;
-    private readonly Func<TEnumerable, IEnumerable<TElement>> _getEnumerable;
-
-    public CborEnumerableConverter(CborConverter<TElement> elementConverter, Func<TEnumerable, IEnumerable<TElement>> getEnumerable)
-    {
-        _elementConverter = elementConverter;
-        _getEnumerable = getEnumerable;
-    }
+    private protected readonly CborConverter<TElement> _elementConverter = elementConverter;
 
     public override TEnumerable? Read(CborReader reader)
     {
@@ -26,7 +21,7 @@ internal class CborEnumerableConverter<TEnumerable, TElement> : CborConverter<TE
             return;
         }
 
-        var enumerable = _getEnumerable(value);
+        var enumerable = getEnumerable(value);
         int? definiteLength = enumerable.TryGetNonEnumeratedCount(out int count) ? count : null;
         CborConverter<TElement> elementConverter = _elementConverter;
 
@@ -39,21 +34,13 @@ internal class CborEnumerableConverter<TEnumerable, TElement> : CborConverter<TE
     }
 }
 
-internal sealed class CborMutableEnumerableConverter<TEnumerable, TElement> : CborEnumerableConverter<TEnumerable, TElement>
+internal sealed class CborMutableEnumerableConverter<TEnumerable, TElement>(
+    CborConverter<TElement> elementConverter,
+    Func<TEnumerable, IEnumerable<TElement>> getEnumerable,
+    Func<TEnumerable> createObject,
+    Setter<TEnumerable, TElement> addDelegate) : CborEnumerableConverter<TEnumerable, TElement>(elementConverter, getEnumerable)
 {
-    private readonly Func<TEnumerable> _createObject;
-    private readonly Setter<TEnumerable, TElement> _addDelegate;
-
-    public CborMutableEnumerableConverter(
-        CborConverter<TElement> elementConverter,
-        Func<TEnumerable, IEnumerable<TElement>> getEnumerable,
-        Func<TEnumerable> createObject,
-        Setter<TEnumerable, TElement> addDelegate)
-        : base(elementConverter, getEnumerable)
-    {
-        _createObject = createObject;
-        _addDelegate = addDelegate;
-    }
+    private readonly Setter<TEnumerable, TElement> _addDelegate = addDelegate;
 
     public override TEnumerable? Read(CborReader reader)
     {
@@ -64,7 +51,7 @@ internal sealed class CborMutableEnumerableConverter<TEnumerable, TElement> : Cb
         }
 
         reader.ReadStartArray();
-        TEnumerable result = _createObject();
+        TEnumerable result = createObject();
 
         CborConverter<TElement> elementConverter = _elementConverter;
         Setter<TEnumerable, TElement> addDelegate = _addDelegate;
@@ -80,19 +67,11 @@ internal sealed class CborMutableEnumerableConverter<TEnumerable, TElement> : Cb
     }
 }
 
-internal sealed class CborImmutableEnumerableConverter<TEnumerable, TElement> : CborEnumerableConverter<TEnumerable, TElement>
+internal sealed class CborImmutableEnumerableConverter<TEnumerable, TElement>(
+    CborConverter<TElement> elementConverter,
+    Func<TEnumerable, IEnumerable<TElement>> getEnumerable,
+    Func<IEnumerable<TElement>, TEnumerable> constructor) : CborEnumerableConverter<TEnumerable, TElement>(elementConverter, getEnumerable)
 {
-    private readonly Func<IEnumerable<TElement>, TEnumerable> _constructor;
-
-    public CborImmutableEnumerableConverter(
-        CborConverter<TElement> elementConverter,
-        Func<TEnumerable, IEnumerable<TElement>> getEnumerable,
-        Func<IEnumerable<TElement>, TEnumerable> constructor)
-        : base(elementConverter, getEnumerable)
-    {
-        _constructor = constructor;
-    }
-
     public override TEnumerable? Read(CborReader reader)
     {
         if (default(TEnumerable) is null && reader.PeekState() == CborReaderState.Null)
@@ -112,6 +91,6 @@ internal sealed class CborImmutableEnumerableConverter<TEnumerable, TElement> : 
         }
 
         reader.ReadEndArray();
-        return _constructor(buffer!);
+        return constructor(buffer!);
     }
 }
