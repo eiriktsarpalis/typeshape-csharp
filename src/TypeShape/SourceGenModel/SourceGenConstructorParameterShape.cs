@@ -16,7 +16,7 @@ public sealed class SourceGenConstructorParameterShape<TArgumentState, TParamete
     public bool HasDefaultValue { get; init; }
     public TParameter? DefaultValue { get; init; }
 
-    object? IConstructorParameterShape.DefaultValue => DefaultValue;
+    object? IConstructorParameterShape.DefaultValue => HasDefaultValue ? DefaultValue : null;
     ITypeShape IConstructorParameterShape.ParameterType => ParameterType;
 
     public object? Accept(ITypeShapeVisitor visitor, object? state)

@@ -1,6 +1,8 @@
 ﻿using System.Collections;
 using System.Diagnostics;
+using System.Globalization;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using TypeShape.Applications.RandomGenerator;
 using TypeShape.ReflectionProvider;
 using Xunit;
@@ -366,6 +368,7 @@ public abstract class TypeShapeProviderTests
                 Assert.Equal(typeof(T), fieldInfo.ReflectedType);
                 Assert.Equal(property.Name, fieldInfo.Name);
                 Assert.Equal(property.PropertyType.Type, fieldInfo.FieldType);
+                Assert.True(property.IsField);
             }
             else
             {
@@ -375,6 +378,7 @@ public abstract class TypeShapeProviderTests
                 Assert.Equal(property.PropertyType.Type, propertyInfo.PropertyType);
                 Assert.True(!property.HasGetter || propertyInfo.CanRead);
                 Assert.True(!property.HasSetter || propertyInfo.CanWrite);
+                Assert.False(property.IsField);
             }
         }
 
@@ -402,6 +406,11 @@ public abstract class TypeShapeProviderTests
                     Assert.Equal(actualParameter.ParameterType, ctorParam.ParameterType.Type);
                     Assert.Equal(actualParameter.Name, ctorParam.Name);
 
+                    bool hasDefaultValue = actualParameter.TryGetDefaultValueNormalized(out object? defaultValue);
+                    Assert.Equal(hasDefaultValue, ctorParam.HasDefaultValue);
+                    Assert.Equal(defaultValue, ctorParam.DefaultValue);
+                    Assert.Equal(!hasDefaultValue, ctorParam.IsRequired);
+
                     ParameterInfo paramInfo = Assert.IsAssignableFrom<ParameterInfo>(ctorParam.AttributeProvider);
                     Assert.Equal(actualParameter.Position, paramInfo.Position);
                     Assert.Equal(actualParameter.Name, paramInfo.Name);
@@ -415,6 +424,10 @@ public abstract class TypeShapeProviderTests
                     Assert.Equal(memberInfo.Name, ctorParam.Name);
                     Assert.False(ctorParam.HasDefaultValue);
                     Assert.Equal(i, ctorParam.Position);
+                    Assert.False(ctorParam.HasDefaultValue);
+                    Assert.Null(ctorParam.DefaultValue);
+                    Assert.Equal(memberInfo.GetCustomAttribute<RequiredMemberAttribute>() != null, ctorParam.IsRequired);
+
                     Assert.True(memberInfo is PropertyInfo or FieldInfo);
 
                     if (memberInfo is PropertyInfo p)
@@ -523,6 +536,11 @@ public static class ReflectionHelpers
         }
 
         return null;
+    }
+
+    public static bool IsNullableStruct(this Type type)
+    {
+        return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);
     }
 
     public static bool IsNullable(this Type type)
@@ -661,6 +679,47 @@ public static class ReflectionHelpers
         }
 
         return member;
+    }
+
+    public static bool TryGetDefaultValueNormalized(this ParameterInfo parameterInfo, out object? result)
+    {
+        if (!parameterInfo.HasDefaultValue)
+        {
+            result = null;
+            return false;
+        }
+
+        Type parameterType = parameterInfo.ParameterType;
+        object? defaultValue = parameterInfo.DefaultValue;
+
+        if (defaultValue is null)
+        {
+            // ParameterInfo can report null defaults for value types, ignore such cases.
+            result = null;
+            return !parameterType.IsValueType || parameterType.IsNullableStruct();
+        }
+
+        Debug.Assert(defaultValue is not DBNull, "should have been caught by the HasDefaultValue check.");
+
+        if (parameterType.IsEnum)
+        {
+            defaultValue = Enum.ToObject(parameterType, defaultValue);
+        }
+        else if (Nullable.GetUnderlyingType(parameterType) is Type underlyingType && underlyingType.IsEnum)
+        {
+            defaultValue = Enum.ToObject(underlyingType, defaultValue);
+        }
+        else if (parameterType == typeof(IntPtr))
+        {
+            defaultValue = checked((IntPtr)Convert.ToInt64(defaultValue, CultureInfo.InvariantCulture));
+        }
+        else if (parameterType == typeof(UIntPtr))
+        {
+            defaultValue = checked((UIntPtr)Convert.ToUInt64(defaultValue, CultureInfo.InvariantCulture));
+        }
+
+        result = defaultValue;
+        return true;
     }
 }
 

@@ -1,5 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using TypeShape.SourceGenerator.Helpers;
 using TypeShape.SourceGenerator.Model;
@@ -235,11 +237,24 @@ internal static partial class SourceFormatter
             null => "null!",
             false => "false",
             true => "true",
-            string s => FormatStringLiteral(s),
-            char c => $"'{c}'",
-            float f => $"{f}f",
-            decimal d => $"{d}M",
-            object val => val.ToString(),
+
+            string s => SymbolDisplay.FormatLiteral(s, quote: true),
+            char c => SymbolDisplay.FormatLiteral(c, quote: true),
+
+            double.NaN => "double.NaN",
+            double.NegativeInfinity => "double.NegativeInfinity",
+            double.PositiveInfinity => "double.PositiveInfinity",
+            double d => $"{d.ToString("G17", CultureInfo.InvariantCulture)}d",
+
+            float.NaN => "float.NaN",
+            float.NegativeInfinity => "float.NegativeInfinity",
+            float.PositiveInfinity => "float.PositiveInfinity",
+            float f => $"{f.ToString("G9", CultureInfo.InvariantCulture)}f",
+
+            decimal d => $"{d.ToString(CultureInfo.InvariantCulture)}m",
+
+            // Must be one of the other numeric types or an enum
+            object num => Convert.ToString(num, CultureInfo.InvariantCulture),
         };
 
         return constructorParameter.DefaultValueRequiresCast 

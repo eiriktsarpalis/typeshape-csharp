@@ -245,6 +245,8 @@ public static class TestTypes
         yield return Create(new RecordWithNullableDefaultParams());
         yield return Create(new RecordWithNullableDefaultParams2());
 
+        yield return Create(new RecordWithSpecialValueDefaultParams(0,0,0,0,0,0,0,0,0,0,0,0));
+
         yield return Create(new RecordWithEnumAndNullableParams(MyEnum.A, MyEnum.C));
         yield return Create(new RecordWithNullableDefaultEnum());
 
@@ -735,6 +737,13 @@ public record RecordWithDefaultParams2(ulong x1 = 10, float x2 = 3.1f, double x3
 public record RecordWithNullableDefaultParams(bool? x1 = true, byte? x2 = 10, sbyte? x3 = 10, char? x4 = 'x', ushort? x5 = 10, short? x6 = 10, long? x7 = 10);
 public record RecordWithNullableDefaultParams2(ulong? x1 = 10, float? x2 = 3.1f, double? x3 = 3.1d, decimal? x4 = -3.1415926m, string? x5 = "str", string? x6 = null, object? x7 = null);
 
+public record RecordWithSpecialValueDefaultParams(
+    double d1 = double.PositiveInfinity, double d2 = double.NegativeInfinity, double d3 = double.NaN,
+    double? dn1 = double.PositiveInfinity, double? dn2 = double.NegativeInfinity, double? dn3 = double.NaN,
+    float f1 = float.PositiveInfinity, float f2 = float.NegativeInfinity, float f3 = float.NaN,
+    float? fn1 = float.PositiveInfinity, float? fn2 = float.NegativeInfinity, float? fn3 = float.NaN,
+    string s = "\"😀葛🀄🤯𐐀𐐨\"", char c = '\'');
+
 [Flags]
 public enum MyEnum { A = 1, B = 2, C = 4, D = 8, E = 16, F = 32, G = 64, H = 128 }
 public record RecordWithEnumAndNullableParams(MyEnum flags1, MyEnum? flags2, MyEnum flags3 = MyEnum.A, MyEnum? flags4 = null);
@@ -917,6 +926,7 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 [GenerateShape(typeof(RecordWithDefaultParams2))]
 [GenerateShape(typeof(RecordWithNullableDefaultParams))]
 [GenerateShape(typeof(RecordWithNullableDefaultParams2))]
+[GenerateShape(typeof(RecordWithSpecialValueDefaultParams))]
 [GenerateShape(typeof(RecordWithEnumAndNullableParams))]
 [GenerateShape(typeof(ClassWithNullabilityAttributes))]
 [GenerateShape(typeof(ClassWithStructNullabilityAttributes))]

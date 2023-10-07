@@ -91,5 +91,5 @@ internal static partial class SourceFormatter
     private static string FormatBool(bool value) => value ? "true" : "false";
     private static string FormatNull(string? stringExpr) => stringExpr is null ? "null" : stringExpr;
     private static string FormatStringLiteral(string value)
-        => SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(value)).ToFullString();
+        => SymbolDisplay.FormatLiteral(value, quote: true);
 }
