@@ -1,8 +1,6 @@
 ﻿namespace TypeShape.Applications.JsonSerializer;
 
 using System.Diagnostics;
-using System.Numerics;
-using System.Text;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using TypeShape.Applications.JsonSerializer.Converters;
@@ -17,36 +15,35 @@ public static partial class ConverterBuilder
 
     private sealed class Visitor : ITypeShapeVisitor
     {
-        private static readonly Dictionary<Type, JsonConverter> s_defaultConverters = new()
+        private static readonly Dictionary<Type, JsonConverter> s_defaultConverters = new JsonConverter[]
         {
-            [typeof(bool)] = JsonMetadataServices.BooleanConverter,
-            [typeof(string)] = JsonMetadataServices.StringConverter,
-            [typeof(sbyte)] = JsonMetadataServices.SByteConverter,
-            [typeof(short)] = JsonMetadataServices.Int16Converter,
-            [typeof(int)] = JsonMetadataServices.Int32Converter,
-            [typeof(long)] = JsonMetadataServices.Int64Converter,
-            [typeof(Int128)] = new Int128Converter(),
-            [typeof(byte)] = JsonMetadataServices.ByteConverter,
-            [typeof(byte[])] = JsonMetadataServices.ByteArrayConverter,
-            [typeof(ushort)] = JsonMetadataServices.UInt16Converter,
-            [typeof(uint)] = JsonMetadataServices.UInt32Converter,
-            [typeof(ulong)] = JsonMetadataServices.UInt64Converter,
-            [typeof(UInt128)] = new UInt128Converter(),
-            [typeof(char)] = JsonMetadataServices.CharConverter,
-            [typeof(string)] = JsonMetadataServices.StringConverter,
-            [typeof(Half)] = new HalfConverter(),
-            [typeof(float)] = JsonMetadataServices.SingleConverter,
-            [typeof(double)] = JsonMetadataServices.DoubleConverter,
-            [typeof(decimal)] = JsonMetadataServices.DecimalConverter,
-            [typeof(DateTime)] = JsonMetadataServices.DateTimeConverter,
-            [typeof(TimeSpan)] = JsonMetadataServices.TimeSpanConverter,
-            [typeof(DateOnly)] = JsonMetadataServices.DateOnlyConverter,
-            [typeof(TimeOnly)] = JsonMetadataServices.TimeOnlyConverter,
-            [typeof(Guid)] = JsonMetadataServices.GuidConverter,
-            [typeof(BigInteger)] = new BigIntegerConverter(),
-            [typeof(Rune)] = new RuneConverter(),
-            [typeof(object)] = new JsonObjectConverter(),
-        };
+            JsonMetadataServices.BooleanConverter,
+            JsonMetadataServices.SByteConverter,
+            JsonMetadataServices.Int16Converter,
+            JsonMetadataServices.Int32Converter,
+            JsonMetadataServices.Int64Converter,
+            new Int128Converter(),
+            JsonMetadataServices.ByteConverter,
+            JsonMetadataServices.ByteArrayConverter,
+            JsonMetadataServices.UInt16Converter,
+            JsonMetadataServices.UInt32Converter,
+            JsonMetadataServices.UInt64Converter,
+            new UInt128Converter(),
+            JsonMetadataServices.CharConverter,
+            JsonMetadataServices.StringConverter,
+            new HalfConverter(),
+            JsonMetadataServices.SingleConverter,
+            JsonMetadataServices.DoubleConverter,
+            JsonMetadataServices.DecimalConverter,
+            JsonMetadataServices.DateTimeConverter,
+            JsonMetadataServices.TimeSpanConverter,
+            JsonMetadataServices.DateOnlyConverter,
+            JsonMetadataServices.TimeOnlyConverter,
+            JsonMetadataServices.GuidConverter,
+            new BigIntegerConverter(),
+            new RuneConverter(),
+            new JsonObjectConverter(),
+        }.ToDictionary(conv => conv.Type!);
 
         private readonly TypeCache _cache = new();
 

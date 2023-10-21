@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -24,6 +25,6 @@ internal sealed class DelayedJsonConverter<T>(ResultHolder<JsonConverter<T>> hol
     public override T ReadAsPropertyName(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         => Underlying.ReadAsPropertyName(ref reader, typeToConvert, options);
 
-    public override void WriteAsPropertyName(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
+    public override void WriteAsPropertyName(Utf8JsonWriter writer, [DisallowNull] T value, JsonSerializerOptions options)
         => Underlying.WriteAsPropertyName(writer, value, options);
 }
