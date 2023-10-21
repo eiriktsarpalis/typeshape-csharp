@@ -29,6 +29,11 @@ public interface IEnumerableShape
     bool IsMutable { get; }
 
     /// <summary>
+    /// Gets the rank of the enumerable, if a multi-dimensional array.
+    /// </summary>
+    int Rank { get; }
+
+    /// <summary>
     /// Accepts an <see cref="ITypeShapeVisitor"/> for strongly-typed traversal.
     /// </summary>
     /// <param name="visitor">The visitor to accept.</param>

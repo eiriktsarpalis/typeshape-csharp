@@ -45,6 +45,7 @@ internal static partial class SourceFormatter
                     ElementType = {{enumerableType.ElementType.GeneratedPropertyName}},
                     GetEnumerableFunc = {{FormatGetEnumerableFunc(enumerableType)}},
                     AddElementFunc = {{FormatAddElementFunc(enumerableType)}},
+                    Rank = {{enumerableType.Rank}},
                 };
             }
             """);
@@ -59,6 +60,7 @@ internal static partial class SourceFormatter
                 EnumerableKind.ImmutableOfT => "static obj => obj",
                 EnumerableKind.IEnumerable or
                 EnumerableKind.IList => "static obj => global::System.Linq.Enumerable.Cast<object>(obj)",
+                EnumerableKind.MultiDimensionalArrayOfT => $"static obj => global::System.Linq.Enumerable.Cast<{enumerableType.ElementType.FullyQualifiedName}>(obj)",
                 _ => throw new ArgumentException(enumerableType.Kind.ToString()),
             };
         }

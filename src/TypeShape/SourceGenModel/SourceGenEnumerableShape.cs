@@ -6,6 +6,7 @@ public sealed class SourceGenEnumerableShape<TEnumerable, TElement> : IEnumerabl
     public required ITypeShape ElementType { get; init; }
 
     public bool IsMutable => AddElementFunc is not null;
+    public required int Rank { get; init; }
 
     public required Func<TEnumerable, IEnumerable<TElement>> GetEnumerableFunc { get; init; }
     public Setter<TEnumerable, TElement>? AddElementFunc { get; init; }

@@ -81,7 +81,7 @@ public abstract class CborTests
 
         string cborHex = converter.EncodeToHex(testCase.Value);
 
-        if (testCase.IsAbstractClass)
+        if (!testCase.HasConstructors)
         {
             Assert.Throws<NotSupportedException>(() => converter.DecodeFromHex(cborHex));
         }

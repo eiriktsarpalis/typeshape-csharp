@@ -22,12 +22,17 @@ public abstract class JsonTests
             return; // The STJ baseline doesn't support long tuples -- run in dedicated test below.
         }
 
+        if (testCase.IsMultiDimensionalArray)
+        {
+            return; // The STJ baseline doesn't support MD arrays -- run in dedicated test below.
+        }
+
         var serializer = GetSerializerUnderTest<T>();
 
         string json = serializer.Serialize(testCase.Value);
         Assert.Equal(ToJsonBaseline(testCase.Value), json);
 
-        if (testCase.IsAbstractClass)
+        if (!testCase.HasConstructors)
         {
             Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
         }
@@ -60,13 +65,18 @@ public abstract class JsonTests
             return; // The STJ baseline doesn't support long tuples -- run in dedicated test below.
         }
 
+        if (testCase.IsMultiDimensionalArray)
+        {
+            return; // The STJ baseline doesn't support MD arrays -- run in dedicated test below.
+        }
+
         var serializer = GetSerializerUnderTest<PocoWithGenericProperty<T>>();
         PocoWithGenericProperty<T> poco = new PocoWithGenericProperty<T> { Value = testCase.Value };
 
         string json = serializer.Serialize(poco);
         Assert.Equal(ToJsonBaseline(poco), json);
 
-        if (testCase.IsAbstractClass)
+        if (!testCase.HasConstructors)
         {
             Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
         }
@@ -99,13 +109,18 @@ public abstract class JsonTests
             return; // The STJ baseline doesn't support long tuples -- run in dedicated test below.
         }
 
+        if (testCase.IsMultiDimensionalArray)
+        {
+            return; // The STJ baseline doesn't support MD arrays -- run in dedicated test below.
+        }
+
         var serializer = GetSerializerUnderTest<List<T>>();
         var list = new List<T> { testCase.Value, testCase.Value, testCase.Value };
 
         string json = serializer.Serialize(list);
         Assert.Equal(ToJsonBaseline(list), json);
 
-        if (testCase.IsAbstractClass)
+        if (!testCase.HasConstructors)
         {
             Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
         }
@@ -138,13 +153,18 @@ public abstract class JsonTests
             return; // The STJ baseline doesn't support long tuples -- run in dedicated test below.
         }
 
+        if (testCase.IsMultiDimensionalArray)
+        {
+            return; // The STJ baseline doesn't support MD arrays -- run in dedicated test below.
+        }
+
         var serializer = GetSerializerUnderTest<Dictionary<string, T>>();
         var dict = new Dictionary<string, T> { ["key1"] = testCase.Value, ["key2"] = testCase.Value, ["key3"] = testCase.Value };
 
         string json = serializer.Serialize(dict);
         Assert.Equal(ToJsonBaseline(dict), json);
 
-        if (testCase.IsAbstractClass)
+        if (!testCase.HasConstructors)
         {
             Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
         }
@@ -253,7 +273,42 @@ public abstract class JsonTests
             """{"Item1":1,"Item2":2,"Item3":3,"Item4":4,"Item5":5,"Item6":6,"Item7":7,"Item8":8,"Item9":9,"Item10":10,"Item11":11,"Item12":12,"Item13":13,"Item14":14,"Item15":15}""");
 
         static object?[] Wrap<Tuple>(Tuple tuple, string expectedJson)
-            => new object?[] { tuple, expectedJson };
+            => [tuple, expectedJson];
+    }
+
+    [Theory]
+    [MemberData(nameof(GetMultiDimensionalArraysAndExpectedJson))]
+    public void MultiDimensionalArrays_SerializedAsFlattenedEnumerable<TArray>(TArray array, string expectedJson)
+    {
+        // Multi-dimensional arrays are serialized as flattened JSON
+        // TODO implement a jagged array scheme.
+        var serializer = GetSerializerUnderTest<TArray>();
+
+        string json = serializer.Serialize(array);
+        Assert.Equal(expectedJson, json);
+
+        // Deserialization not supported, for now.
+        Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
+    }
+
+    public static IEnumerable<object?[]> GetMultiDimensionalArraysAndExpectedJson()
+    {
+        yield return Wrap(new int[,] { }, """[]""");
+
+        yield return Wrap(
+            new int[,] { { 1, 0, }, { 0, 1 } },
+            """[1,0,0,1]""");
+
+        yield return Wrap(
+            new int[,] { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } },
+            """[1,0,0,0,1,0,0,0,1]""");
+
+        yield return Wrap(
+            new int[,,] { { { 1 } }},
+            """[1]""");
+
+        static object?[] Wrap<TArray>(TArray tuple, string expectedJson)
+            => [tuple, expectedJson];
     }
 
     public class PocoWithGenericProperty<T>
@@ -281,7 +336,6 @@ public abstract class JsonTests
             new RuneConverter(),
         },
     };
-
 
     protected TypeShapeJsonSerializer<T> GetSerializerUnderTest<T>()
     {

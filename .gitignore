@@ -367,3 +367,9 @@ FodyWeavers.xsd
 
 # Artifacts folder
 artifacts/
+
+# JetBrains Rider
+.idea/
+
+# macOS files
+.DS_Store

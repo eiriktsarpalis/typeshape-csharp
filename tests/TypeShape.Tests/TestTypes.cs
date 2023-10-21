@@ -14,10 +14,15 @@ public sealed record TestCase<T>(T Value) : ITestCase
 {
     Type ITestCase.Type => typeof(T);
     object? ITestCase.Value => Value;
-    public bool IsAbstractClass => typeof(T).IsInterface && !typeof(IEnumerable).IsAssignableFrom(typeof(T));
+    public bool HasConstructors => 
+        !(IsAbstract && !typeof(IEnumerable).IsAssignableFrom(typeof(T))) &&
+        !IsMultiDimensionalArray;
+
     public bool IsEquatable => Value is IEquatable<T> && !(Value.GetType().IsGenericType && Value.GetType().GetGenericTypeDefinition() == typeof(ImmutableArray<>));
     public bool IsTuple => Value is ITuple;
-    public bool IsLongTuple => Value is ITuple t && t.Length > 7;
+    public bool IsLongTuple => Value is ITuple { Length: > 7 };
+    public bool IsMultiDimensionalArray => typeof(T).IsArray && typeof(T).GetArrayRank() != 1;
+    public bool IsAbstract => typeof(T).IsAbstract || typeof(T).IsInterface;
     public bool IsStack { get; init; }
 }
 
@@ -25,7 +30,7 @@ public interface ITestCase
 {
     public Type Type { get; }
     public object? Value { get; }
-    public bool IsAbstractClass { get; }
+    public bool HasConstructors { get; }
 }
 
 public static class TestTypes
@@ -72,13 +77,16 @@ public static class TestTypes
         yield return Create(new Queue<int>([ 1, 2, 3 ]));
         yield return Create(new Stack<int>([ 1, 2, 3 ]), isStack: true);
         yield return Create(new Dictionary<string, int> { ["key1"] = 42, ["key2"] = -1 });
-        yield return Create(new HashSet<string> { "apple", "orange", "banana" });
-        yield return Create(new HashSet<string> { "apple", "orange", "banana" });
-        yield return Create(new SortedSet<string> { "apple", "orange", "banana" });
+        yield return Create<HashSet<string>>(["apple", "orange", "banana"]);
+        yield return Create<HashSet<string>>(["apple", "orange", "banana"]);
+        yield return Create<SortedSet<string>>(["apple", "orange", "banana"]);
         yield return Create(new SortedDictionary<string, int> { ["key1"] = 42, ["key2"] = -1 });
 
         yield return Create(new Hashtable { ["key1"] = 42 });
         yield return Create<ArrayList>([1, 2, 3]);
+
+        yield return Create(new int[,] { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } });
+        yield return Create(new int[,,] { { { 1 } }});
 
         yield return Create(new ConcurrentQueue<int>([1, 2, 3]));
         yield return Create(new ConcurrentStack<int>([1, 2, 3]), isStack: true);
@@ -844,6 +852,8 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 [GenerateShape(typeof(BindingFlags))]
 [GenerateShape(typeof(int[]))]
 [GenerateShape(typeof(int[][]))]
+[GenerateShape(typeof(int[,]))]
+[GenerateShape(typeof(int[,,]))]
 [GenerateShape(typeof(List<string>))]
 [GenerateShape(typeof(List<byte>))]
 [GenerateShape(typeof(Stack<int>))]

@@ -31,9 +31,14 @@ public static class Iterator
     /// </summary>
     public static IIterator<TEnumerable, TElement> Create<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> shape)
     {
-        if (typeof(TEnumerable) == typeof(TElement[]))
+        if (typeof(TEnumerable).IsArray)
         {
-            return (IIterator<TEnumerable, TElement>)(object)new ArrayIterator<TElement>();
+            return typeof(TEnumerable).GetArrayRank() switch
+            {
+                1 => (IIterator<TEnumerable, TElement>)(object)new ArrayIterator<TElement>(),
+                2 => (IIterator<TEnumerable, TElement>)(object)new Array2DIterator<TElement>(),
+                _ => (IIterator<TEnumerable, TElement>)(object)new MultiDimensionalArrayIterator<TElement>(),
+            };
         }
 
         if (typeof(TEnumerable) == typeof(ImmutableArray<TElement>))
@@ -89,6 +94,34 @@ public static class Iterator
             for (int i = 0; i < iterable.Length; i++)
             {
                 iteration(iterable[i], ref state);
+            }
+        }
+    }
+
+    private sealed class Array2DIterator<T> : IIterator<T[,], T>
+    {
+        public void Iterate<TState>(T[,] iterable, Consumer<T, TState> iteration, ref TState state)
+        {
+            int n = iterable.GetLength(0);
+            int m = iterable.GetLength(1);
+
+            for (int i = 0; i < n; i++)
+            {
+                for (int j = 0; j < m; j++)
+                {
+                    iteration(iterable[i, j], ref state);
+                }
+            }
+        }
+    }
+
+    private sealed class MultiDimensionalArrayIterator<TElement> : IIterator<IList, TElement>
+    {
+        public void Iterate<TState>(IList iterable, Consumer<TElement, TState> iteration, ref TState state)
+        {
+            foreach (object element in iterable)
+            {
+                iteration((TElement)element, ref state);
             }
         }
     }

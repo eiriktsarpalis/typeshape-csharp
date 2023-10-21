@@ -113,8 +113,19 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
 
         if (type.IsArray)
         {
-            Type enumerableTypeTy = typeof(ReflectionEnumerableShape<,>).MakeGenericType(type, type.GetElementType()!);
-            return (IEnumerableShape)Activator.CreateInstance(enumerableTypeTy, this)!;
+            Type elementType = type.GetElementType()!;
+            int rank = type.GetArrayRank();
+
+            if (rank == 1)
+            {
+                Type enumerableTypeTy = typeof(ReflectionEnumerableShape<,>).MakeGenericType(type, elementType);
+                return (IEnumerableShape)Activator.CreateInstance(enumerableTypeTy, this)!;
+            }
+            else
+            {
+                Type enumerableTypeTy = typeof(MultiDimensionalArrayShape<,>).MakeGenericType(type, elementType);
+                return (IEnumerableShape)Activator.CreateInstance(enumerableTypeTy, this, rank)!;
+            }
         }
 
         foreach (Type interfaceTy in type.GetAllInterfaces())

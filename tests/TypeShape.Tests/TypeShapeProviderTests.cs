@@ -302,14 +302,17 @@ public abstract class TypeShapeProviderTests
             if (typeof(T).GetCompatibleGenericInterface(typeof(IEnumerable<>)) is { } enumerableImplementation)
             {
                 Assert.Equal(enumerableImplementation.GetGenericArguments()[0], enumerableType.ElementType.Type);
+                Assert.Equal(1, enumerableType.Rank);
             }
             else if (typeof(T).IsArray)
             {
                 Assert.Equal(typeof(T).GetElementType(), enumerableType.ElementType.Type);
+                Assert.Equal(typeof(T).GetArrayRank(), enumerableType.Rank);
             }
             else
             {
                 Assert.Equal(typeof(object), enumerableType.ElementType.Type);
+                Assert.Equal(1, enumerableType.Rank);
             }
 
             var visitor = new EnumerableTestVisitor();

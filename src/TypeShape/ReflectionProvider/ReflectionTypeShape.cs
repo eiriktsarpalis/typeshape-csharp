@@ -164,8 +164,15 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
 
         if (type.IsArray)
         {
-            MethodInfo? gm = typeof(Enumerable).GetMethod(nameof(Enumerable.ToArray), factoryFlags);
-            return gm?.MakeGenericMethod(type.GetElementType()!);
+            if (type.GetArrayRank() == 1)
+            {
+                MethodInfo? gm = typeof(Enumerable).GetMethod(nameof(Enumerable.ToArray), factoryFlags);
+                return gm?.MakeGenericMethod(type.GetElementType()!);
+            }
+            else
+            {
+                return null;
+            }
         }
 
         if (!type.IsGenericType)
@@ -372,8 +379,8 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
         ? BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance
         : BindingFlags.Public | BindingFlags.Instance;
 
-    private readonly static bool s_disallowMemberResolution = DisallowPropertyResolution();
-    private static bool DisallowPropertyResolution()
+    private readonly static bool s_disallowMemberResolution = DisallowMemberResolution();
+    private static bool DisallowMemberResolution()
     {
         Type type = typeof(T);
         return type.IsPrimitive ||

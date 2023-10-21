@@ -57,7 +57,7 @@ public static partial class CborSerializer
                     converter = (CborConverter<T>)type.GetNullableShape().Accept(this, null)!;
                     break;
 
-                case TypeKind kind when ((kind & TypeKind.Dictionary) != 0):
+                case TypeKind kind when (kind & TypeKind.Dictionary) != 0:
                     converter = (CborConverter<T>)type.GetDictionaryShape().Accept(this, null)!;
                     break;
 

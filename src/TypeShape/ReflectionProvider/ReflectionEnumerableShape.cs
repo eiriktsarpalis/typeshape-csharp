@@ -11,6 +11,8 @@ internal class ReflectionEnumerableShape<TEnumerable, TElement>(ReflectionTypeSh
     public ITypeShape ElementType => provider.GetShape<TElement>();
 
     public virtual bool IsMutable => _isMutable ??= DetermineIsMutable();
+    public int Rank => 1;
+
     private MethodInfo? _addMethod;
     private bool? _isMutable;
 
@@ -66,6 +68,8 @@ internal class ReflectionEnumerableShape<TEnumerable>(ReflectionTypeShapeProvide
     public ITypeShape ElementType => _provider.GetShape<object>();
 
     public virtual bool IsMutable => _isMutable ??= DetermineIsMutable();
+    public int Rank => 1;
+
     private MethodInfo? _addMethod;
     private bool? _isMutable;
 
@@ -110,4 +114,22 @@ internal sealed class ReflectionListShape<TEnumerable>(ReflectionTypeShapeProvid
     public override bool IsMutable => true;
     public override Setter<TEnumerable, object?> GetAddElement()
         => static (ref TEnumerable enumerable, object? value) => enumerable.Add(value);
+}
+
+internal sealed class MultiDimensionalArrayShape<TEnumerable, TElement>(ReflectionTypeShapeProvider provider, int rank) : IEnumerableShape<TEnumerable, TElement>
+    where TEnumerable : IEnumerable
+{
+    public ITypeShape Type => provider.GetShape<TEnumerable>();
+    public ITypeShape ElementType => provider.GetShape<TElement>();
+    public bool IsMutable => false;
+    public int Rank => rank;
+
+    public object? Accept(ITypeShapeVisitor visitor, object? state)
+        => visitor.VisitEnumerable(this, state);
+
+    public Setter<TEnumerable, TElement> GetAddElement()
+        => throw new InvalidOperationException("The current enumerable shape does not support mutation.");
+
+    public Func<TEnumerable, IEnumerable<TElement>> GetGetEnumerable()
+        => static enumerable => enumerable.Cast<TElement>();
 }

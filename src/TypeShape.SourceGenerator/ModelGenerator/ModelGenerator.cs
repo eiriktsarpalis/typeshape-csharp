@@ -17,7 +17,7 @@ public sealed partial class ModelGenerator(
     private readonly ITypeSymbol _declaredTypeSymbol = semanticModel.GetDeclaredSymbol(classDeclarationSyntax, cancellationToken)!;
     private readonly Dictionary<ITypeSymbol, TypeModel> _generatedTypes = new(SymbolEqualityComparer.Default);
     private readonly Queue<(TypeId, ITypeSymbol)> _typesToGenerate = new();
-    private readonly List<DiagnosticInfo> _diagnostics = new();
+    private readonly List<DiagnosticInfo> _diagnostics = [];
 
     public static TypeShapeProviderModel Compile(KnownSymbols knownSymbols, ClassDeclarationSyntax classDeclarationSyntax, SemanticModel semanticModel, CancellationToken cancellationToken)
     {

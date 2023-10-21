@@ -72,6 +72,7 @@ public sealed partial class ModelGenerator
         ITypeSymbol? elementType = null;
         EnumerableKind kind = default;
         resolvedInterface = null;
+        int rank = 1;
 
         if (type.SpecialType is SpecialType.System_String)
         {
@@ -87,13 +88,9 @@ public sealed partial class ModelGenerator
 
         if (type is IArrayTypeSymbol array)
         {
-            if (array.Rank > 1)
-            {
-                throw new NotImplementedException("Multi-dimensional arrays.");
-            }
-
             elementType = array.ElementType;
-            kind = EnumerableKind.ArrayOfT;
+            kind = array.Rank == 1 ? EnumerableKind.ArrayOfT : EnumerableKind.MultiDimensionalArrayOfT;
+            rank = array.Rank;
         }
         else if (type.GetCompatibleGenericBaseType(knownSymbols.ICollectionOfT) is { } collectionOfT)
         {
@@ -137,6 +134,7 @@ public sealed partial class ModelGenerator
             Type = typeId,
             ElementType = EnqueueForGeneration(elementType),
             Kind = kind,
+            Rank = rank,
             AddElementMethod = addMethod?.Name
         };
     }

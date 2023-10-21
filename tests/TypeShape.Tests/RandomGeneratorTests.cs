@@ -13,8 +13,7 @@ public abstract class RandomGeneratorTests
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void ProducesDeterministicRandomValues<T>(TestCase<T> testCase)
     {
-        _ = testCase; // ignore the value
-        if (testCase.IsAbstractClass)
+        if (!testCase.HasConstructors)
         {
             return; // Random value generation not supported
         }
