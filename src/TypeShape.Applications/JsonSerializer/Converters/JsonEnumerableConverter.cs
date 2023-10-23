@@ -1,5 +1,7 @@
 ﻿namespace TypeShape.Applications.JsonSerializer.Converters;
 
+using System;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeShape.Applications.Common;
@@ -83,10 +85,9 @@ internal sealed class JsonImmutableEnumerableConverter<TEnumerable, TElement>(
         }
 
         reader.EnsureTokenType(JsonTokenType.StartArray);
-
-        List<TElement> buffer = new();
         reader.EnsureRead();
 
+        List<TElement> buffer = [];
         JsonConverter<TElement> elementConverter = _elementConverter;
 
         while (reader.TokenType != JsonTokenType.EndArray)
@@ -97,5 +98,79 @@ internal sealed class JsonImmutableEnumerableConverter<TEnumerable, TElement>(
         }
 
         return constructor(buffer);
+    }
+}
+
+internal sealed class Json2DArrayConverter<TElement>(JsonConverter<TElement> elementConverter) : JsonConverter<TElement[,]>
+{
+    public override TElement[,]? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType is JsonTokenType.Null)
+        {
+            return null;
+        }
+
+        reader.EnsureTokenType(JsonTokenType.StartArray);
+        reader.EnsureRead();
+
+        List<List<TElement>?>? rows = null;
+        int n = 0, m = 0;
+
+        while (reader.TokenType != JsonTokenType.EndArray)
+        {
+            reader.EnsureTokenType(JsonTokenType.StartArray);
+            reader.EnsureRead();
+
+            List<TElement>? row = null;
+
+            while (reader.TokenType != JsonTokenType.EndArray)
+            {
+                TElement? element = elementConverter.Read(ref reader, typeof(TElement), options);
+                (row ??= []).Add(element!);
+                reader.EnsureRead();
+            }
+
+            (rows ??= []).Add(row);
+            m = Math.Max(m, row?.Count ?? 0);
+            reader.EnsureRead();
+        }
+
+        n = rows?.Count ?? 0;
+        TElement[,] result = new TElement[n, m];
+
+        for (int i = 0; i < n; i++)
+        {
+            Debug.Assert(rows != null);
+
+            if (rows[i] is { } row)
+            {
+                for (int j = 0; j < row.Count; j++)
+                {
+                    result[i, j] = row[j];
+                }
+            }
+        }
+
+        return result;
+    }
+
+    public override void Write(Utf8JsonWriter writer, TElement[,] value, JsonSerializerOptions options)
+    {
+        int n = value.GetLength(0);
+        int m = value.GetLength(1);
+
+        writer.WriteStartArray();
+        for (int i = 0; i < n; i++)
+        {
+            writer.WriteStartArray();
+            for (int j = 0; j < m; j++)
+            {
+                elementConverter.Write(writer, value[i, j], options);
+            }
+
+            writer.WriteEndArray();
+        }
+
+        writer.WriteEndArray();
     }
 }

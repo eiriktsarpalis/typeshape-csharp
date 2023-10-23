@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Collections;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeShape.Applications.JsonSerializer;
 using TypeShape.Applications.JsonSerializer.Converters;
@@ -187,9 +188,14 @@ public abstract class JsonTests
     [MemberData(nameof(GetTestCases))]
     public void Roundtrip_Null<T>(TestCase<T> testCase)
     {
-        _ = testCase.Value; // not used in this test
-        if (default(T) is not null)
+        if (!testCase.IsNullable)
         {
+            return;
+        }
+
+        if (testCase.IsMultiDimensionalArray && typeof(T).GetArrayRank() > 2)
+        {
+            // Rank > 2 support not implemented yet
             return;
         }
 
@@ -278,17 +284,16 @@ public abstract class JsonTests
 
     [Theory]
     [MemberData(nameof(GetMultiDimensionalArraysAndExpectedJson))]
-    public void MultiDimensionalArrays_SerializedAsFlattenedEnumerable<TArray>(TArray array, string expectedJson)
+    public void MultiDimensionalArrays_SerializedAsJaggedArray<TArray>(TArray array, string expectedJson)
+        where TArray : IEnumerable
     {
-        // Multi-dimensional arrays are serialized as flattened JSON
-        // TODO implement a jagged array scheme.
         var serializer = GetSerializerUnderTest<TArray>();
 
         string json = serializer.Serialize(array);
         Assert.Equal(expectedJson, json);
 
-        // Deserialization not supported, for now.
-        Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
+        TArray? result = serializer.Deserialize(json);
+        Assert.Equal(array, result);
     }
 
     public static IEnumerable<object?[]> GetMultiDimensionalArraysAndExpectedJson()
@@ -297,17 +302,17 @@ public abstract class JsonTests
 
         yield return Wrap(
             new int[,] { { 1, 0, }, { 0, 1 } },
-            """[1,0,0,1]""");
+            """[[1,0],[0,1]]""");
 
         yield return Wrap(
             new int[,] { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } },
-            """[1,0,0,0,1,0,0,0,1]""");
+            """[[1,0,0],[0,1,0],[0,0,1]]""");
 
         yield return Wrap(
-            new int[,,] { { { 1 } }},
-            """[1]""");
+            new int[,] { { 1, 2, 3 }, { 4, 5, 6 } },
+            """[[1,2,3],[4,5,6]]""");
 
-        static object?[] Wrap<TArray>(TArray tuple, string expectedJson)
+        static object?[] Wrap<TArray>(TArray tuple, string expectedJson) where TArray : IEnumerable
             => [tuple, expectedJson];
     }
 

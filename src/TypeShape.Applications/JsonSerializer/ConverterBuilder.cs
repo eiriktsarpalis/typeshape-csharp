@@ -133,6 +133,16 @@ public static partial class ConverterBuilder
         {
             var elementConverter = (JsonConverter<TElement>)enumerableShape.ElementType.Accept(this, null)!;
 
+            if (enumerableShape.Rank > 1)
+            {
+                Debug.Assert(typeof(TEnumerable).IsArray);
+                return enumerableShape.Rank switch
+                {
+                    2 => new Json2DArrayConverter<TElement>(elementConverter),
+                    _ => throw new NotImplementedException("Array rank > 2 not implemented."),
+                };
+            }
+
             IConstructorShape<TEnumerable>? constructor = enumerableShape.Type.GetConstructors(nonPublic: false)
                 .Where(ctor =>
                     (ctor.ParameterCount == 0 && enumerableShape.IsMutable) ||

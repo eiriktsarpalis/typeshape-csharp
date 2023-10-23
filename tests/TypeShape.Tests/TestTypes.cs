@@ -18,6 +18,7 @@ public sealed record TestCase<T>(T Value) : ITestCase
         !(IsAbstract && !typeof(IEnumerable).IsAssignableFrom(typeof(T))) &&
         !IsMultiDimensionalArray;
 
+    public bool IsNullable => default(T) is null;
     public bool IsEquatable => Value is IEquatable<T> && !(Value.GetType().IsGenericType && Value.GetType().GetGenericTypeDefinition() == typeof(ImmutableArray<>));
     public bool IsTuple => Value is ITuple;
     public bool IsLongTuple => Value is ITuple { Length: > 7 };
