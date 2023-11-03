@@ -114,8 +114,7 @@ public abstract class ValidationTests
             @"Validation error in $.PhoneNumber: value does not match regex pattern '^\+?[0-9]{7,14}$'."
         });
 
-        static object?[] Create<T>(T value, List<string>? expectedErrors = null)
-            => new object?[] { value, expectedErrors };
+        static object?[] Create<T>(T value, List<string>? expectedErrors = null) => [value, expectedErrors];
     }
 
     private Validator<T> GetValidatorUnderTest<T>()

@@ -12,7 +12,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         Debug.Assert(memberInfo is FieldInfo or MemberInfo);
         Debug.Assert(parentMembers is null || typeof(TDeclaringType).IsNestedTupleRepresentation());
 
-        DynamicMethod dynamicMethod = CreateDynamicMethod(memberInfo.Name, typeof(TPropertyType), new[] { typeof(TDeclaringType).MakeByRefType() });
+        DynamicMethod dynamicMethod = CreateDynamicMethod(memberInfo.Name, typeof(TPropertyType), [typeof(TDeclaringType).MakeByRefType()]);
         ILGenerator generator = dynamicMethod.GetILGenerator();
 
         generator.Emit(OpCodes.Ldarg_0);
@@ -76,7 +76,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         Debug.Assert(memberInfo is FieldInfo or MemberInfo);
         Debug.Assert(parentMembers is null || typeof(TDeclaringType).IsNestedTupleRepresentation());
 
-        DynamicMethod dynamicMethod = CreateDynamicMethod(memberInfo.Name, typeof(void), new[] { typeof(TDeclaringType).MakeByRefType(), typeof(TPropertyType) });
+        DynamicMethod dynamicMethod = CreateDynamicMethod(memberInfo.Name, typeof(void), [typeof(TDeclaringType).MakeByRefType(), typeof(TPropertyType)]);
         ILGenerator generator = dynamicMethod.GetILGenerator();
 
         generator.Emit(OpCodes.Ldarg_0);
@@ -128,7 +128,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
 
     public Setter<TEnumerable, TElement> CreateEnumerableAddDelegate<TEnumerable, TElement>(MethodInfo methodInfo)
     {
-        DynamicMethod dynamicMethod = CreateDynamicMethod(methodInfo.Name, typeof(void), new[] { typeof(TEnumerable).MakeByRefType(), typeof(TElement) });
+        DynamicMethod dynamicMethod = CreateDynamicMethod(methodInfo.Name, typeof(void), [typeof(TEnumerable).MakeByRefType(), typeof(TElement)]);
         ILGenerator generator = dynamicMethod.GetILGenerator();
 
         generator.Emit(OpCodes.Ldarg_0);
@@ -155,7 +155,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
     public Setter<TDictionary, KeyValuePair<TKey, TValue>> CreateDictionaryAddDelegate<TDictionary, TKey, TValue>(MethodInfo methodInfo)
     {
         Type keyValuePairTy = typeof(KeyValuePair<TKey, TValue>);
-        DynamicMethod dynamicMethod = CreateDynamicMethod(methodInfo.Name, typeof(void), new[] { typeof(TDictionary).MakeByRefType(), keyValuePairTy });
+        DynamicMethod dynamicMethod = CreateDynamicMethod(methodInfo.Name, typeof(void), [typeof(TDictionary).MakeByRefType(), keyValuePairTy]);
         ILGenerator generator = dynamicMethod.GetILGenerator();
 
         generator.Emit(OpCodes.Ldarg_0);
@@ -193,7 +193,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
             return static () => default!;
         }
 
-        DynamicMethod dynamicMethod = CreateDynamicMethod("defaultCtor", typeof(TDeclaringType), Array.Empty<Type>());
+        DynamicMethod dynamicMethod = CreateDynamicMethod("defaultCtor", typeof(TDeclaringType), []);
         ILGenerator generator = dynamicMethod.GetILGenerator();
 
         EmitCall(generator, methodCtor.ConstructorMethod);
@@ -250,7 +250,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         {
             Debug.Assert(typeof(TArgumentState).IsValueTupleType());
 
-            DynamicMethod dynamicMethod = CreateDynamicMethod("ctorArgumentStateCtor", typeof(TArgumentState), Array.Empty<Type>());
+            DynamicMethod dynamicMethod = CreateDynamicMethod("ctorArgumentStateCtor", typeof(TArgumentState), []);
             ILGenerator generator = dynamicMethod.GetILGenerator();
 
             // Load the default constructor arguments
@@ -299,7 +299,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         {
             Debug.Assert(typeof(TArgumentState).IsValueTupleType());
 
-            DynamicMethod dynamicMethod = CreateDynamicMethod("argumentStateSetter", typeof(void), new Type[] { typeof(TArgumentState).MakeByRefType(), typeof(TParameter) });
+            DynamicMethod dynamicMethod = CreateDynamicMethod("argumentStateSetter", typeof(void), [typeof(TArgumentState).MakeByRefType(), typeof(TParameter)]);
             ILGenerator generator = dynamicMethod.GetILGenerator();
             Type tupleType = typeof(TArgumentState);
 
@@ -340,7 +340,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
 
     private static DynamicMethod EmitParameterizedConstructorMethod(Type declaringType, Type argumentStateType, IConstructorShapeInfo ctorInfo)
     {
-        DynamicMethod dynamicMethod = CreateDynamicMethod("parameterizedCtor", declaringType, new Type[] { argumentStateType });
+        DynamicMethod dynamicMethod = CreateDynamicMethod("parameterizedCtor", declaringType, [argumentStateType]);
         ILGenerator generator = dynamicMethod.GetILGenerator();
 
         if (ctorInfo is MethodConstructorShapeInfo methodCtor)
@@ -639,7 +639,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
             {
                 Type elementType = type.GetGenericArguments()[0];
                 Debug.Assert(value.GetType() != type);
-                ConstructorInfo ctorInfo = type.GetConstructor(new Type[] { elementType })!;
+                ConstructorInfo ctorInfo = type.GetConstructor([elementType])!;
                 LdLiteral(generator, elementType, value);
                 generator.Emit(OpCodes.Newobj, ctorInfo);
             }
@@ -701,7 +701,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
                 break;
 
             case decimal d:
-                ConstructorInfo ctor = typeof(decimal).GetConstructor(new[] { typeof(int), typeof(int), typeof(int), typeof(bool), typeof(byte) })!;
+                ConstructorInfo ctor = typeof(decimal).GetConstructor([typeof(int), typeof(int), typeof(int), typeof(bool), typeof(byte)])!;
                 int[] bits = decimal.GetBits(d);
                 bool sign = (bits[3] & 0x80000000) != 0;
                 byte scale = (byte)(bits[3] >> 16 & 0x7F);

@@ -301,7 +301,7 @@ internal static class ReflectionHelpers
         {
             // No need to walk the class hierarchy in reflection,
             // all members are reported in the current type.
-            return new[] { type };
+            return [type];
         }
         else
         {

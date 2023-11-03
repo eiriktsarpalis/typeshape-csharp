@@ -27,8 +27,16 @@ public abstract class PrettyPrinterTests
         yield return GetPair((int?)null, "null");
         yield return GetPair((int?)42, "42");
         yield return GetPair(MyEnum.A, "\"A\"");
-        yield return GetPair(Array.Empty<int>(), "new Int32[] { }");
-        yield return GetPair(new int[] { 1, 2, 3 }, "new Int32[] { 1, 2, 3 }");
+        yield return GetPair<int[]>([], "[]");
+        yield return GetPair<int[]>([1, 2, 3], "[1, 2, 3]");
+        yield return GetPair<int[][]>([[1, 0, 0], [0, 1, 0], [0, 0, 1]], 
+            """
+            [
+              [1, 0, 0],
+              [0, 1, 0],
+              [0, 0, 1]
+            ]
+            """);
         yield return GetPair(new object(), "new Object()");
         yield return GetPair(new SimpleRecord(42), 
             """
@@ -55,9 +63,9 @@ public abstract class PrettyPrinterTests
             }
             """);
         
-        yield return GetPair(ImmutableArray.Create(1,2,3), """new ImmutableArray`1 { 1, 2, 3 }""");
-        yield return GetPair(ImmutableList.Create("1", "2", "3"), """new ImmutableList`1 { "1", "2", "3" }""");
-        yield return GetPair(ImmutableQueue.Create(1, 2, 3), """new ImmutableQueue`1 { 1, 2, 3 }""");
+        yield return GetPair(ImmutableArray.Create(1,2,3), """[1, 2, 3]""");
+        yield return GetPair(ImmutableList.Create("1", "2", "3"), """["1", "2", "3"]""");
+        yield return GetPair(ImmutableQueue.Create(1, 2, 3), """[1, 2, 3]""");
         yield return GetPair(
             ImmutableDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }),
             """
@@ -76,7 +84,7 @@ public abstract class PrettyPrinterTests
             }
             """);
 
-        static object?[] GetPair<T>(T? value, string expected) => new object?[] { value, expected };
+        static object?[] GetPair<T>(T? value, string expected) => [value, expected];
     }
 
     private PrettyPrinter<T> GetPrettyPrinterUnderTest<T>()

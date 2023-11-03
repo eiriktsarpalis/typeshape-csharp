@@ -47,7 +47,7 @@ public sealed class SourceGenTypeShape<T> : ITypeShape<T>
             throw new InvalidOperationException("Getting non-public members is not supported in source gen.");
         }
 
-        return CreateConstructorsFunc is null ? Array.Empty<IConstructorShape>() : CreateConstructorsFunc();
+        return CreateConstructorsFunc is null ? [] : CreateConstructorsFunc();
     }
 
     public IEnumerable<IPropertyShape> GetProperties(bool nonPublic, bool includeFields)
@@ -57,7 +57,7 @@ public sealed class SourceGenTypeShape<T> : ITypeShape<T>
             throw new InvalidOperationException("Getting non-public members is not supported in source gen.");
         }
 
-        var properties = CreatePropertiesFunc is null ? Array.Empty<IPropertyShape>() : CreatePropertiesFunc();
+        var properties = CreatePropertiesFunc is null ? [] : CreatePropertiesFunc();
         return includeFields ? properties : properties.Where(prop => !prop.IsField);
     }
 

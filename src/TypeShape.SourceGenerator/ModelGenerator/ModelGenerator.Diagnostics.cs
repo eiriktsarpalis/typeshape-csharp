@@ -11,7 +11,7 @@ public sealed partial class ModelGenerator
         { 
             Descriptor = descriptor, 
             Location = location?.GetLocationTrimmed(), 
-            MessageArgs = messageArgs ?? Array.Empty<object?>(),
+            MessageArgs = messageArgs ?? [],
         });
     }
 

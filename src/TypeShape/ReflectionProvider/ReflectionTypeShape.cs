@@ -187,7 +187,7 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
             if (type == typeof(IDictionary))
             {
                 // Handle IDictionary using Dictionary<object, object>
-                return typeof(Dictionary<object, object>).GetConstructor(new[] { typeof(IEnumerable<KeyValuePair<object, object>>) });
+                return typeof(Dictionary<object, object>).GetConstructor([typeof(IEnumerable<KeyValuePair<object, object>>)]);
             }
 
             return null;

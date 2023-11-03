@@ -45,11 +45,11 @@ public abstract class StructuralEqualityTests
         yield return NotEqual(-1, 4);
         yield return NotEqual(3.14, -7.5);
         yield return NotEqual(DateTime.MinValue, DateTime.MaxValue);
-        yield return NotEqual(new int[] { 1,2,3}, Array.Empty<int>());
-        yield return NotEqual(new int[] { 1, 2, 3 }, new int[] { 1, 2, 0 });
-        yield return NotEqual(
-            new int[][] { new int[] { 1, 0, 0 }, new int[] { 0, 1, 0 }, new int[] { 0, 0, 1 } },
-            new int[][] { new int[] { 1, 0, 0 }, new int[] { 0, 0, 0 }, new int[] { 0, 0, 1 } });
+        yield return NotEqual<int[]>([1, 2, 3], []);
+        yield return NotEqual<int[]>([1, 2, 3], [1, 2, 0]);
+        yield return NotEqual<int[][]>(
+            [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+            [[1, 0, 0], [0, 0, 0], [0, 0, 1]]);
 
         yield return NotEqual(
             new Dictionary<string, int> { ["key1"] = 42, ["key2"] = -1 },
@@ -87,7 +87,7 @@ public abstract class StructuralEqualityTests
                 }
             });
 
-        static object[] NotEqual<T>(T left, T right) => new object[] { left!, right! };
+        static object[] NotEqual<T>(T left, T right) => [left!, right!];
     }
 
     private IEqualityComparer<T> GetEqualityComparerUnderTest<T>()

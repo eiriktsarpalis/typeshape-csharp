@@ -59,12 +59,12 @@ internal sealed class MethodConstructorShapeInfo : IConstructorShapeInfo
         ConstructedType = constructedType;
         ConstructorMethod = constructorMethod;
         ConstructorParameters = constructorMethod is null
-            ? Array.Empty<MethodParameterShapeInfo>()
+            ? []
             : constructorMethod.GetParameters()
                 .Select(p => new MethodParameterShapeInfo(p))
                 .ToArray();
 
-        MemberInitializers = memberInitializers ?? Array.Empty<MemberInitializerShapeInfo>();
+        MemberInitializers = memberInitializers ?? [];
 
         var parameters = new IParameterShapeInfo[ConstructorParameters.Length + MemberInitializers.Length];
         ConstructorParameters.CopyTo(parameters, 0);
