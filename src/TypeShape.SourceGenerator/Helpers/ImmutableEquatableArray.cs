@@ -1,20 +1,24 @@
 ﻿using System.Collections;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace TypeShape.SourceGenerator.Helpers;
 
+[CollectionBuilder(typeof(ImmutableEquatableArray), "Create")]
 public sealed class ImmutableEquatableArray<T> : IEquatable<ImmutableEquatableArray<T>>, IReadOnlyList<T>
     where T : IEquatable<T>
 {
 #pragma warning disable CA1000 // Do not declare static members on generic types
-    public static ImmutableEquatableArray<T> Empty { get; } = new ImmutableEquatableArray<T>(Array.Empty<T>());
+    public static ImmutableEquatableArray<T> Empty { get; } = new([]);
 #pragma warning restore CA1000 // Do not declare static members on generic types
 
     private readonly T[] _values;
     public ref readonly T this[int index] => ref _values[index];
     public int Count => _values.Length;
 
-    public ImmutableEquatableArray(IEnumerable<T> values)
-        => _values = values.ToArray();
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    internal ImmutableEquatableArray(T[] values)
+        => _values = values;
 
     public bool Equals(ImmutableEquatableArray<T> other)
         => ((ReadOnlySpan<T>)_values).SequenceEqual(other._values);
@@ -56,12 +60,9 @@ public sealed class ImmutableEquatableArray<T> : IEquatable<ImmutableEquatableAr
 
 public static class ImmutableEquatableArray
 {
-    public static ImmutableEquatableArray<T> Empty<T>() where T : IEquatable<T>
-        => ImmutableEquatableArray<T>.Empty;
-
     public static ImmutableEquatableArray<T> ToImmutableEquatableArray<T>(this IEnumerable<T> values) where T : IEquatable<T>
-        => new(values);
+        => values is ICollection { Count: 0 } ? ImmutableEquatableArray<T>.Empty : new(values.ToArray());
 
-    public static ImmutableEquatableArray<T> Create<T>(params T[] values) where T : IEquatable<T>
-        => values is null or { Length: 0 } ? ImmutableEquatableArray<T>.Empty : new(values);
+    public static ImmutableEquatableArray<T> Create<T>(ReadOnlySpan<T> values) where T : IEquatable<T>
+        => values.IsEmpty ? ImmutableEquatableArray<T>.Empty : new(values.ToArray());
 }

@@ -11,7 +11,7 @@ public sealed partial class ModelGenerator
     {
         if (disallowMemberResolution || type.TypeKind is not (TypeKind.Struct or TypeKind.Class or TypeKind.Interface) || type.SpecialType is not SpecialType.None)
         {
-            return ImmutableEquatableArray.Empty<PropertyModel>();
+            return [];
         }
 
         if (classTupleElements is not null)

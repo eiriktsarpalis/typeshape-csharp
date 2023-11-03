@@ -517,7 +517,7 @@ public static class ReflectionHelpers
 
         if (typeof(IDictionary).IsAssignableFrom(type))
         {
-            return new [] { typeof(object), typeof(object) };
+            return [typeof(object), typeof(object)];
         }
 
         return null;

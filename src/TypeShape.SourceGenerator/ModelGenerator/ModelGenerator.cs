@@ -148,7 +148,7 @@ public sealed partial class ModelGenerator(
             ReportDiagnostic(ProviderTypeNotPartial, classSyntax.GetLocation(), classSyntax.Identifier);
         }
 
-        parentHeaders = parentStack?.ToImmutableEquatableArray() ?? ImmutableEquatableArray.Empty<string>();
+        parentHeaders = parentStack?.ToImmutableEquatableArray() ?? [];
         return typeDeclarationHeader;
 
         static string FormatTypeDeclarationHeader(TypeDeclarationSyntax typeDeclaration, SemanticModel semanticModel, CancellationToken cancellationToken, out bool isPartialType)

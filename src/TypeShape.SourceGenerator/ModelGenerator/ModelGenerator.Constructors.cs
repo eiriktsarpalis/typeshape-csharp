@@ -11,12 +11,12 @@ public sealed partial class ModelGenerator
     {
         if (TryResolveFactoryMethod(type) is { } factoryMethod)
         {
-            return ImmutableEquatableArray.Create(MapConstructor(type, typeId, factoryMethod));
+            return [MapConstructor(type, typeId, factoryMethod)];
         }
 
         if (disallowMemberResolution || type.TypeKind is not (TypeKind.Struct or TypeKind.Class) || type.SpecialType is not SpecialType.None)
         {
-            return ImmutableEquatableArray.Empty<ConstructorModel>();
+            return [];
         }
         
         if (classTupleElements is not null)
@@ -71,7 +71,7 @@ public sealed partial class ModelGenerator
             ? new(parameters.Select(paramModel => (paramModel.ParameterType.FullyQualifiedName, paramModel.Name)))
             : null;
 
-        foreach (ConstructorParameterModel memberInitializer in (requiredOrInitOnlyMembers ?? Array.Empty<ConstructorParameterModel>()))
+        foreach (ConstructorParameterModel memberInitializer in (requiredOrInitOnlyMembers ?? []))
         {
             if (setsRequiredMembers && memberInitializer.IsRequired)
             {
@@ -178,8 +178,8 @@ public sealed partial class ModelGenerator
             yield return new ConstructorModel
             {
                 DeclaringType = typeId,
-                Parameters = ImmutableEquatableArray.Empty<ConstructorParameterModel>(),
-                MemberInitializers = ImmutableEquatableArray.Empty<ConstructorParameterModel>(),
+                Parameters = [],
+                MemberInitializers = [],
                 StaticFactoryName = null,
             };
         }
@@ -188,7 +188,7 @@ public sealed partial class ModelGenerator
         {
             DeclaringType = typeId,
             Parameters = tupleElements.Select(MapTupleConstructorParameter).ToImmutableEquatableArray(),
-            MemberInitializers = ImmutableEquatableArray.Empty<ConstructorParameterModel>(),
+            MemberInitializers = [],
             StaticFactoryName = null,
         };
 

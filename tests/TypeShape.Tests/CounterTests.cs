@@ -24,14 +24,13 @@ public abstract class CounterTests
         yield return Create("string", 1);
         yield return Create(-5, 1);
         yield return Create(false, 1);
-        yield return Create(new int[] { 1, 2, 3, 4, 5 }, 6);
-        yield return Create(new List<int> { 1, 2, 3, 4, 5 }, 6);
+        yield return Create<int[]>([1, 2, 3, 4, 5], 6);
+        yield return Create<List<int>>([1, 2, 3, 4, 5], 6);
         yield return Create(new Dictionary<string, int> { ["k1"] = 1, ["k2"] = 2 }, 5);
         yield return Create(new SimpleRecord(42), 2);
         yield return Create(new LinkedList<SimpleRecord> { Value = new SimpleRecord(1), Next = new() { Value = new SimpleRecord(2), Next = null } }, 6);
 
-        static object?[] Create<T>(T value, long expectedCount)
-            => new object?[] { value, expectedCount };
+        static object?[] Create<T>(T value, long expectedCount) => [value, expectedCount];
     }
 
     [Theory]

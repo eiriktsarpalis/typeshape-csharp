@@ -19,7 +19,7 @@ public sealed class SourceGenConstructorShape<TDeclaringType, TArgumentState> : 
         => visitor.VisitConstructor(this, state);
 
     public IEnumerable<IConstructorParameterShape> GetParameters()
-        => GetParametersFunc is null ? Array.Empty<IConstructorParameterShape>() : GetParametersFunc();
+        => GetParametersFunc is null ? [] : GetParametersFunc();
 
     public Func<TDeclaringType> GetDefaultConstructor()
     {

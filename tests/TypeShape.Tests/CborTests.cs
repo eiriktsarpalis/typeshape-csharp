@@ -55,7 +55,7 @@ public abstract class CborTests
         yield return Wrap((Half)3.14, "F94248");
         yield return Wrap((float)3.1415926, "FA40490FDA");
         yield return Wrap(decimal.MaxValue, "C48200C24CFFFFFFFFFFFFFFFFFFFFFFFF");
-        yield return Wrap(new byte[] { 1, 2, 3}, "43010203");
+        yield return Wrap<byte[]>([1, 2, 3], "43010203");
         yield return Wrap('c', "6163");
         yield return Wrap("Hello, World!", "6D48656C6C6F2C20576F726C6421");
         yield return Wrap(Guid.Empty, "D903EA5000000000000000000000000000000000");
@@ -64,13 +64,13 @@ public abstract class CborTests
         yield return Wrap(DateTimeOffset.MinValue, "C074303030312D30312D30315430303A30303A30305A");
         yield return Wrap(DateOnly.MaxValue, "C074393939392D31322D33315430303A30303A30305A");
         yield return Wrap(TimeOnly.MaxValue, "D825FB40F517FFFFFFE528");
-        yield return Wrap(new int[] { 1, 2, 3 }, "83010203");
-        yield return Wrap(new int[][] { new int[] { 1, 0, 0 }, new int[] { 0, 1, 0 }, new int[] { 0, 0, 1 } }, "83830100008300010083000001");
+        yield return Wrap<int[]>([1, 2, 3], "83010203");
+        yield return Wrap<int[][]>([[1, 0, 0], [0, 1, 0], [0, 0, 1]], "83830100008300010083000001");
         yield return Wrap(new Dictionary<string, int> { ["key0"] = 0, ["key1"] = 1 }, "A2646B65793000646B65793101");
         yield return Wrap(new SimpleRecord(42), "A16576616C7565182A");
         yield return Wrap((42, "str"), "A2654974656D31182A654974656D3263737472");
 
-        static object?[] Wrap<T>(T value, string expectedHexEncoding) => new object?[] { value, expectedHexEncoding };
+        static object?[] Wrap<T>(T value, string expectedHexEncoding) => [value, expectedHexEncoding];
     }
 
     [Theory]

@@ -96,13 +96,11 @@ public static partial class PrettyPrinter
                     return;
                 }
 
-                sb.Append("new ");
-                sb.Append(typeof(TEnumerable).Name);
+                sb.Append('[');
 
                 bool containsElements = false;
                 if (valuesArePrimitives)
                 {
-                    sb.Append(" { ");
                     foreach (TElement element in enumerableGetter(value))
                     {
                         elementPrinter(sb, indentation, element);
@@ -110,16 +108,11 @@ public static partial class PrettyPrinter
                         containsElements = true;
                     }
 
-                    sb.Length--;
                     if (containsElements)
-                        sb.Length--;
-
-                    sb.Append(" }");
+                        sb.Length -= 2;
                 }
                 else
                 {
-                    WriteLine(sb, indentation);
-                    sb.Append('{');
                     foreach (TElement element in enumerableGetter(value))
                     {
                         WriteLine(sb, indentation + 1);
@@ -129,11 +122,12 @@ public static partial class PrettyPrinter
                     }
 
                     if (containsElements)
-                        sb.Length -= 1;
+                        sb.Length--;
 
                     WriteLine(sb, indentation);
-                    sb.Append(" }");
                 }
+
+                sb.Append(']');
             });
         }
 

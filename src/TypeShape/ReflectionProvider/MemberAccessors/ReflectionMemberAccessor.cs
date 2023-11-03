@@ -230,7 +230,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                 Debug.Assert(typeof(TArgumentState) == param.Type);
                 Debug.Assert(tupleCtor.NestedTupleConstructor is null);
                 ConstructorInfo ctor = tupleCtor.ConstructorInfo;
-                return state => (TDeclaringType)ctor.Invoke(new object?[] { state });
+                return state => (TDeclaringType)ctor.Invoke([state]);
             }
 
             Debug.Assert(typeof(TArgumentState) == typeof(object?[]));
@@ -355,7 +355,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                     Debug.Assert(typeof(TArgumentState) == pI.Type);
                     Debug.Assert(methodCtor.ConstructorMethod != null);
                     MethodBase ctor = methodCtor.ConstructorMethod;
-                    return state => (TDeclaringType)ctor.Invoke(new object?[] { state });
+                    return state => (TDeclaringType)ctor.Invoke([state]);
                 }
 
                 Debug.Assert(typeof(TArgumentState) == typeof(object?[]));
@@ -374,7 +374,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
         int arity = ctorInfo.Parameters.Count;
         if (arity == 0)
         {
-            return static () => Array.Empty<object?>();
+            return static () => [];
         }
         else if (ctorInfo.Parameters.Any(param => param.HasDefaultValue))
         {
