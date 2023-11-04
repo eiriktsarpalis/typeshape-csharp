@@ -10,10 +10,6 @@
         <WarningLevel>9999</WarningLevel>
         <EmbedUntrackedSources>true</EmbedUntrackedSources>
     </PropertyGroup>
-    
-    <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
-        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
-    </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="PolySharp">

@@ -30,4 +30,12 @@ public sealed partial class ModelGenerator
         category: "TypeShape.SourceGenerator",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    private static DiagnosticDescriptor TypeNameConflict { get; } = new DiagnosticDescriptor(
+        id: "TS0003",
+        title: "Transitive type graph contains types with conflicting fully qualified names.",
+        messageFormat: "The transitive type graph contains multiple types named '{0}'.",
+        category: "TypeShape.SourceGenerator",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }
