@@ -33,8 +33,10 @@ internal static partial class SourceFormatter
         writer.Indentation++;
 
         writer.WriteLine($$"""
-            private const global::System.Reflection.BindingFlags {{InstanceBindingFlagsConstMember}} = 
-                global::System.Reflection.BindingFlags.Public | global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Instance;
+            private const System.Reflection.BindingFlags {{InstanceBindingFlagsConstMember}} = 
+                System.Reflection.BindingFlags.Public | 
+                System.Reflection.BindingFlags.NonPublic | 
+                System.Reflection.BindingFlags.Instance;
 
             public static {{provider.Name}} Default { get; } = new();
 
@@ -56,13 +58,22 @@ internal static partial class SourceFormatter
 #if DEBUG
         writer.WriteLine("#nullable enable");
 #else
-        writer.WriteLine("#nullable enable annotations");
+        writer.WriteLine("""
+            #nullable enable annotations
+            #nullable disable warnings
+            """);
 #endif
-        writer.WriteLine();
+        writer.WriteLine("""
 
-        writer.WriteLine("// Suppress warnings about [Obsolete] member usage in generated code.");
-        writer.WriteLine("#pragma warning disable CS0612, CS0618");
-        writer.WriteLine();
+            // Suppress warnings about [Obsolete] member usage in generated code.
+            #pragma warning disable CS0612, CS0618
+
+            using System;
+            using System.Collections.Generic;
+            using TypeShape;
+            using TypeShape.SourceGenModel;
+
+            """);
 
         if (provider.Namespace != null)
         {

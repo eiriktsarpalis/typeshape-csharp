@@ -278,9 +278,14 @@ internal static class RoslynHelpers
         return elementList.ToArray();
 
         bool IsClassTupleType(ITypeSymbol type) =>
-            typeSymbol is INamedTypeSymbol namedType && namedType.IsGenericType &&
-            SymbolEqualityComparer.Default.Equals(type.ContainingAssembly, coreLibAssembly) &&
-            type.GetFullyQualifiedName().StartsWith("global::System.Tuple", StringComparison.Ordinal);
+            type is INamedTypeSymbol
+            {
+                IsGenericType: true,
+                IsValueType: false,
+                Name: "Tuple",
+                ContainingNamespace.Name: "System"
+            } &&
+            SymbolEqualityComparer.Default.Equals(type.ContainingAssembly, coreLibAssembly);
     }
 
     public static IEnumerable<IFieldSymbol> GetTupleElementsWithoutLabels(this INamedTypeSymbol tuple)
@@ -303,7 +308,9 @@ internal static class RoslynHelpers
     public static bool HasSetsRequiredMembersAttribute(this IMethodSymbol constructor)
     {
         return constructor.MethodKind is MethodKind.Constructor &&
-            constructor.GetAttributes().Any(attr => attr.AttributeClass?.GetFullyQualifiedName() == "global::System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute");
+            constructor.GetAttributes().Any(attr => 
+                attr.AttributeClass is { Name: "SetsRequiredMembersAttribute", ContainingNamespace: INamespaceSymbol ns } && 
+                ns.ToDisplayString() == "System.Diagnostics.CodeAnalysis");
     }
 
     /// <summary>

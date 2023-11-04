@@ -11,17 +11,17 @@ internal static partial class SourceFormatter
         var writer = new SourceWriter();
         StartFormatSourceFile(writer, provider);
 
-        writer.WriteLine($"{provider.TypeDeclaration} : global::TypeShape.ITypeShapeProvider");
+        writer.WriteLine($"{provider.TypeDeclaration} : ITypeShapeProvider");
         writer.WriteLine('{');
         writer.Indentation++;
 
         writer.WriteLine("""
-                public global::TypeShape.ITypeShape<T>? GetShape<T>()
-                    => (global::TypeShape.ITypeShape<T>?)GetShape(typeof(T));
+                public ITypeShape<T>? GetShape<T>()
+                    => (ITypeShape<T>?)GetShape(typeof(T));
 
                 """);
 
-        writer.WriteLine("public global::TypeShape.ITypeShape? GetShape(Type type)");
+        writer.WriteLine("public ITypeShape? GetShape(Type type)");
         writer.WriteLine('{');
         writer.Indentation++;
 
