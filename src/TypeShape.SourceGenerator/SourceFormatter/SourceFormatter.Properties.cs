@@ -11,7 +11,7 @@ internal static partial class SourceFormatter
     {
         Debug.Assert(type.Properties.Count > 0);
 
-        writer.WriteLine($"private global::System.Collections.Generic.IEnumerable<global::TypeShape.IPropertyShape> {methodName}()");
+        writer.WriteLine($"private IEnumerable<IPropertyShape> {methodName}()");
         writer.WriteLine('{');
         writer.Indentation++;
 
@@ -36,7 +36,7 @@ internal static partial class SourceFormatter
             };
 
             writer.WriteLine($$"""
-                yield return new global::TypeShape.SourceGenModel.SourceGenPropertyShape<{{type.Id.FullyQualifiedName}}, {{property.PropertyType.FullyQualifiedName}}>
+                yield return new SourceGenPropertyShape<{{type.Id.FullyQualifiedName}}, {{property.PropertyType.FullyQualifiedName}}>
                 {
                     Name = "{{property.Name}}",
                     DeclaringType = {{type.Id.GeneratedPropertyName}},

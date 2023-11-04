@@ -9,9 +9,9 @@ internal static partial class SourceFormatter
     private static void FormatEnumTypeFactory(SourceWriter writer, string methodName, EnumTypeModel enumType)
     {
         writer.WriteLine($$"""
-            private global::TypeShape.IEnumShape {{methodName}}()
+            private IEnumShape {{methodName}}()
             {
-                return new global::TypeShape.SourceGenModel.SourceGenEnumShape<{{enumType.Type.FullyQualifiedName}}, {{enumType.UnderlyingType.FullyQualifiedName}}>
+                return new SourceGenEnumShape<{{enumType.Type.FullyQualifiedName}}, {{enumType.UnderlyingType.FullyQualifiedName}}>
                 {
                     Type = {{enumType.Type.GeneratedPropertyName}},
                     UnderlyingType = {{enumType.UnderlyingType.GeneratedPropertyName}},
@@ -23,9 +23,9 @@ internal static partial class SourceFormatter
     private static void FormatNullableTypeFactory(SourceWriter writer, string methodName, NullableTypeModel nullableType)
     {
         writer.WriteLine($$"""
-            private global::TypeShape.INullableShape {{methodName}}()
+            private INullableShape {{methodName}}()
             {
-                return new global::TypeShape.SourceGenModel.SourceGenNullableShape<{{nullableType.ElementType.FullyQualifiedName}}>
+                return new SourceGenNullableShape<{{nullableType.ElementType.FullyQualifiedName}}>
                 {
                     Type = {{nullableType.Type.GeneratedPropertyName}},
                     ElementType = {{nullableType.ElementType.GeneratedPropertyName}},
@@ -37,9 +37,9 @@ internal static partial class SourceFormatter
     private static void FormatEnumerableTypeFactory(SourceWriter writer, string methodName, EnumerableTypeModel enumerableType)
     {
         writer.WriteLine($$"""
-            private global::TypeShape.IEnumerableShape {{methodName}}()
+            private IEnumerableShape {{methodName}}()
             {
-                return new global::TypeShape.SourceGenModel.SourceGenEnumerableShape<{{enumerableType.Type.FullyQualifiedName}}, {{enumerableType.ElementType.FullyQualifiedName}}>
+                return new SourceGenEnumerableShape<{{enumerableType.Type.FullyQualifiedName}}, {{enumerableType.ElementType.FullyQualifiedName}}>
                 {
                     Type = {{enumerableType.Type.GeneratedPropertyName}},
                     ElementType = {{enumerableType.ElementType.GeneratedPropertyName}},
@@ -70,8 +70,8 @@ internal static partial class SourceFormatter
             return enumerableType switch
             {
                 { AddElementMethod: string addMethod } => $"static (ref {enumerableType.Type.FullyQualifiedName} obj, {enumerableType.ElementType.FullyQualifiedName} value) => obj.{addMethod}(value)",
-                { Kind: EnumerableKind.ICollectionOfT } => $"static (ref {enumerableType.Type.FullyQualifiedName} obj, {enumerableType.ElementType.FullyQualifiedName} value) => ((global::System.Collections.Generic.ICollection<{enumerableType.ElementType.FullyQualifiedName}>)obj).Add(value)",
-                { Kind: EnumerableKind.IList } => $"static (ref {enumerableType.Type.FullyQualifiedName} obj, object value) => ((global::System.Collections.IList)obj).Add(value)",
+                { Kind: EnumerableKind.ICollectionOfT } => $"static (ref {enumerableType.Type.FullyQualifiedName} obj, {enumerableType.ElementType.FullyQualifiedName} value) => ((ICollection<{enumerableType.ElementType.FullyQualifiedName}>)obj).Add(value)",
+                { Kind: EnumerableKind.IList } => $"static (ref {enumerableType.Type.FullyQualifiedName} obj, object value) => ((System.Collections.IList)obj).Add(value)",
                 _ => "null",
             };
         }
@@ -80,9 +80,9 @@ internal static partial class SourceFormatter
     private static void FormatDictionaryTypeFactory(SourceWriter writer, string methodName, DictionaryTypeModel dictionaryType)
     {
         writer.WriteLine($$"""
-            private global::TypeShape.IDictionaryShape {{methodName}}()
+            private IDictionaryShape {{methodName}}()
             {
-                return new global::TypeShape.SourceGenModel.SourceGenDictionaryShape<{{dictionaryType.Type.FullyQualifiedName}}, {{dictionaryType.KeyType.FullyQualifiedName}}, {{dictionaryType.ValueType.FullyQualifiedName}}>
+                return new SourceGenDictionaryShape<{{dictionaryType.Type.FullyQualifiedName}}, {{dictionaryType.KeyType.FullyQualifiedName}}, {{dictionaryType.ValueType.FullyQualifiedName}}>
                 {
                     Type = {{dictionaryType.Type.GeneratedPropertyName}},
                     KeyType = {{dictionaryType.KeyType.GeneratedPropertyName}},
@@ -98,8 +98,8 @@ internal static partial class SourceFormatter
             return dictionaryType.Kind switch
             {
                 DictionaryKind.IReadOnlyDictionaryOfKV => "static obj => obj",
-                DictionaryKind.IDictionaryOfKV => $"static obj => global::TypeShape.SourceGenModel.CollectionHelpers.AsReadOnlyDictionary<{dictionaryType.Type.FullyQualifiedName}, {dictionaryType.KeyType.FullyQualifiedName}, {dictionaryType.ValueType.FullyQualifiedName}>(obj)",
-                DictionaryKind.IDictionary => "static obj => global::TypeShape.SourceGenModel.CollectionHelpers.AsReadOnlyDictionary(obj)!",
+                DictionaryKind.IDictionaryOfKV => $"static obj => CollectionHelpers.AsReadOnlyDictionary<{dictionaryType.Type.FullyQualifiedName}, {dictionaryType.KeyType.FullyQualifiedName}, {dictionaryType.ValueType.FullyQualifiedName}>(obj)",
+                DictionaryKind.IDictionary => "static obj => CollectionHelpers.AsReadOnlyDictionary(obj)!",
                 _ => throw new ArgumentException(dictionaryType.Kind.ToString()),
             };
         }
