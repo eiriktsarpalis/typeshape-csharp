@@ -24,11 +24,13 @@ public sealed class TypeShapeIncrementalGenerator : IIncrementalGenerator
             .Combine(knownSymbols)
             .Select((tuple, token) => ModelGenerator.Compile(tuple.Right, tuple.Left.ClassDeclarationSyntax, tuple.Left.SemanticModel, token));
 
-        context.RegisterSourceOutput(generationModels, OnModelCreated);
+        context.RegisterSourceOutput(generationModels, GenerateSource);
     }
 
-    private static void OnModelCreated(SourceProductionContext context, TypeShapeProviderModel provider)
+    private void GenerateSource(SourceProductionContext context, TypeShapeProviderModel provider)
     {
+        OnGeneratingSource?.Invoke(provider);
+
         foreach (DiagnosticInfo diagnostic in provider.Diagnostics)
         {
             context.ReportDiagnostic(diagnostic.CreateDiagnostic());
@@ -36,4 +38,6 @@ public sealed class TypeShapeIncrementalGenerator : IIncrementalGenerator
 
         SourceFormatter.FormatProvider(context, provider);
     }
+
+    public Action<TypeShapeProviderModel>? OnGeneratingSource { get; init; }
 }

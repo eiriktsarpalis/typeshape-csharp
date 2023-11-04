@@ -14,4 +14,5 @@ public readonly struct TypeId : IEquatable<TypeId>
     public override bool Equals(object obj) => obj is TypeId other && Equals(other);
     public static bool operator ==(TypeId left, TypeId right) => left.Equals(right);
     public static bool operator !=(TypeId left, TypeId right) => !(left == right);
+    public override string ToString() => FullyQualifiedName;
 }

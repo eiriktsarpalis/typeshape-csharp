@@ -15,7 +15,8 @@ public sealed partial class ModelGenerator(
     CancellationToken cancellationToken)
 {
     private readonly ITypeSymbol _declaredTypeSymbol = semanticModel.GetDeclaredSymbol(classDeclarationSyntax, cancellationToken)!;
-    private readonly Dictionary<ITypeSymbol, TypeModel> _generatedTypes = new(SymbolEqualityComparer.Default);
+    private readonly Dictionary<ITypeSymbol, TypeId> _visitedTypes = new(SymbolEqualityComparer.Default);
+    private readonly Dictionary<TypeId, TypeModel> _generatedModels = new();
     private readonly Queue<(TypeId, ITypeSymbol)> _typesToGenerate = new();
     private readonly List<DiagnosticInfo> _diagnostics = [];
 
@@ -35,10 +36,10 @@ public sealed partial class ModelGenerator(
             Name = _declaredTypeSymbol.Name,
             SourceFilenamePrefix = _declaredTypeSymbol.ToDisplayString(RoslynHelpers.QualifiedNameOnlyFormat),
             Namespace = FormatNamespace(_declaredTypeSymbol),
-            ProvidedTypes = _generatedTypes.Values.OrderBy(type => type.Id.FullyQualifiedName).ToImmutableEquatableArray(),
+            ProvidedTypes = _generatedModels.ToImmutableEquatableDictionary(),
             TypeDeclaration = ResolveDeclarationHeader(classDeclarationSyntax, out ImmutableEquatableArray<string>? containingTypes),
             ContainingTypes = containingTypes,
-            Diagnostics = _diagnostics.ToImmutableEquatableArray(),
+            Diagnostics = _diagnostics.ToImmutableEquatableSet(),
         };
     }
 
@@ -49,10 +50,14 @@ public sealed partial class ModelGenerator(
             cancellationToken.ThrowIfCancellationRequested();
 
             (TypeId typeId, ITypeSymbol type) = _typesToGenerate.Dequeue();
-            if (!_generatedTypes.ContainsKey(type))
+            if (_generatedModels.ContainsKey(typeId))
+            {
+                ReportDiagnostic(TypeNameConflict, type.Locations.FirstOrDefault(), typeId.FullyQualifiedName);
+            }
+            else
             {
                 TypeModel generatedType = MapType(typeId, type);
-                _generatedTypes.Add(type, generatedType);
+                _generatedModels.Add(typeId, generatedType);
             }
         }
     }
@@ -110,13 +115,14 @@ public sealed partial class ModelGenerator(
     {
         type = semanticModel.Compilation.EraseCompilerMetadata(type);
 
-        if (_generatedTypes.TryGetValue(type, out TypeModel? generated))
+        if (_visitedTypes.TryGetValue(type, out TypeId id))
         {
-            return generated.Id;
+            return id;
         }
 
         TypeId typeId = CreateTypeId(type);
         _typesToGenerate.Enqueue((typeId, type));
+        _visitedTypes.Add(type, typeId);
         return typeId;
     }
 

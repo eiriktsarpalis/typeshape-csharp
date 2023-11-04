@@ -16,7 +16,7 @@ internal static partial class SourceFormatter
         context.AddSource($"{provider.SourceFilenamePrefix}.g.cs", FormatMainFile(provider));
         context.AddSource($"{provider.SourceFilenamePrefix}.ITypeShapeProvider.g.cs", FormatProviderInterfaceImplementation(provider));
 
-        foreach (TypeModel type in provider.ProvidedTypes)
+        foreach (TypeModel type in provider.ProvidedTypes.Values)
         {
             context.CancellationToken.ThrowIfCancellationRequested();
             context.AddSource($"{provider.SourceFilenamePrefix}.{type.Id.GeneratedPropertyName}.g.cs", FormatType(provider, type));

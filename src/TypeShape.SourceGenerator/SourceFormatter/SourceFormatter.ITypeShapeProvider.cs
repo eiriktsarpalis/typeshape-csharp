@@ -25,7 +25,7 @@ internal static partial class SourceFormatter
         writer.WriteLine('{');
         writer.Indentation++;
 
-        foreach (TypeModel generatedType in provider.ProvidedTypes)
+        foreach (TypeModel generatedType in provider.ProvidedTypes.Values)
         {
             writer.WriteLine($"""
                 if (type == typeof({generatedType.Id.FullyQualifiedName}))

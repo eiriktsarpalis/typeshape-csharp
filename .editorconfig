@@ -1,4 +1,10 @@
 ﻿[*.cs]
 
+# CA1000: Do not declare static members on generic types
+dotnet_diagnostic.CA1000.severity = none
+
+# CA1710: Identifiers should not have incorrect suffix
+dotnet_diagnostic.CA1710.severity = none
+
 # CA1711: Identifiers should not have incorrect suffix
 dotnet_diagnostic.CA1711.severity = none
