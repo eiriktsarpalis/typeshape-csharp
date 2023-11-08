@@ -10,7 +10,7 @@ public sealed record ConstructorModel
     public required ImmutableEquatableArray<ConstructorParameterModel> MemberInitializers { get; init; }
     public required string? StaticFactoryName { get; init; }
 
-    public int TotalArity => Parameters.Count + MemberInitializers.Count;
+    public int TotalArity => Parameters.Length + MemberInitializers.Length;
     public bool IsStaticFactory => StaticFactoryName != null;
 }
 

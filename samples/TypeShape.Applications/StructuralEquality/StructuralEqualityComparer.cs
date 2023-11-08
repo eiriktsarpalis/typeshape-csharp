@@ -7,4 +7,10 @@ public static partial class StructuralEqualityComparer
         var visitor = new Visitor();
         return (IEqualityComparer<T>)shape.Accept(visitor, null)!;
     }
+
+    public static IEqualityComparer<T> Create<T>() where T : ITypeShapeProvider<T>
+        => Create(T.GetShape());
+
+    public static IEqualityComparer<T> Create<T, TProvider>() where TProvider : ITypeShapeProvider<T>
+        => Create(TProvider.GetShape());
 }

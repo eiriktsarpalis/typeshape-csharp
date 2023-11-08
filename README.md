@@ -88,25 +88,34 @@ public interface ITypeShapeVisitor
 }
 ```
 
-The shape for any given type can be generated either using the reflection provider:
+Users can extract the typeshape model for a given type either using the built-in source generator:
+
+```C#
+ITypeShape<MyPoco> shape = TypeShapeProvider.GetShape<MyPoco>();
+
+[GenerateShape] // Auto-generates a static abstract factory for ITypeShape<MyPoco>
+public partial record MyPoco(string x, string y);
+```
+
+For types not accessible in the current compilation, the implementation can be generated using a separate witness type:
+
+```C#
+ITypeShape<MyPoco[]> shape = TypeShapeProvider.GetShape<MyPoco[], Witness>();
+ITypeShape<MyPoco[][]> shape = TypeShapeProvider.GetShape<MyPoco[][], Witness>();
+
+// Generates factories for both ITypeShape<MyPoco[]> and ITypeShape<MyPoco[][]>
+[GenerateShape<MyPoco[]>]
+[GenerateShape<MyPoco[][]>]
+public partial class Witness { }
+```
+
+The library also provides a reflection-based provider:
 
 ```C#
 using TypeShape.ReflectionProvider;
 
 ITypeShape<MyPoco> shape = ReflectionTypeShapeProvider.Default.GetShape<MyPoco>();
-
 public record MyPoco(string x, string y);
-```
-
-or via the source generator:
-
-```C#
-ITypeShape<MyPoco> shape = SourceGenProvider.Default.MyPoco;
-
-public record MyPoco(string x, string y);
-
-[GenerateShape(typeof(MyPoco))]
-public partial class SourceGenProvider { }
 ```
 
 Shapes of types can then be fed into any datatype-generic program that is declared using TypeShape's visitor pattern.
@@ -158,26 +167,26 @@ public static class Counter
 {
     private readonly static CounterVisitor s_visitor = new();
 
-    public static Func<T, int> CreateCounter<T>(ITypeShape<T> typeShape)
-        => (Func<T, int>)typeShape.Accept(s_visitor, null)!;
+    public static Func<T, int> CreateCounter<T>() where T : ITypeShapeProvider<T>
+    {
+        ITypeShape<T> typeShape = T.GetShape<T>();
+        return (Func<T, int>)typeShape.Accept(s_visitor, null)!;
+    }
 }
 ```
 
 That we can then apply to the shape of our POCO like so:
 
 ```C#
-ITypeShape<MyPoco> shape = SourceGenProvider.Default.MyPoco;
-Func<MyPoco, int> pocoCounter = Counter.CreateCounter(shape);
+Func<MyPoco, int> pocoCounter = Counter.CreateCounter<MyPoco>();
 
 pocoCounter(new MyPoco("x", "y")); // 3
 pocoCounter(new MyPoco("x", null)); // 2
 pocoCounter(new MyPoco(null, null)); // 1
 pocoCounter(null!); // 0
 
-public record MyPoco(string? x, string? y);
-
-[GenerateShape(typeof(MyPoco))]
-public partial class SourceGenProvider { }
+[GenerateShape]
+public partial record MyPoco(string? x, string? y);
 ```
 
 In essence, TypeShape uses the visitor to fold a strongly typed `Func<MyPoco, int>` counter delegate, but the delegate itself doesn't depend on the visitor once invoked: it only defines a chain of strongly typed delegate invocations that are fast to invoke once constructed.

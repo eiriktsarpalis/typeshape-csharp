@@ -21,7 +21,6 @@ public static class JsonData
     public static readonly JsonTypeInfo<MyPoco> StjSourceGenInfo_fastPath = StjContext_FastPath.Default.MyPoco;
 
     public static readonly TypeShapeJsonSerializer<MyPoco> TypeShapeReflection = TypeShapeJsonSerializer.Create(ReflectionTypeShapeProvider.Default.GetShape<MyPoco>());
-    public static readonly TypeShapeJsonSerializer<MyPoco> TypeShapeSourceGen = TypeShapeJsonSerializer.Create(SourceGenTypeShapeProvider.Default.MyPoco);
 }
 
 [MemoryDiagnoser]
@@ -37,7 +36,7 @@ public class JsonSerializeBenchmark
     [Benchmark]
     public string Serialize_TypeShapeReflection() => JsonData.TypeShapeReflection.Serialize(JsonData.Value);
     [Benchmark]
-    public string Serialize_TypeShapeSourceGen() => JsonData.TypeShapeSourceGen.Serialize(JsonData.Value);
+    public string Serialize_TypeShapeSourceGen() => TypeShapeJsonSerializer.Serialize(JsonData.Value);
 }
 
 [MemoryDiagnoser]
@@ -51,10 +50,11 @@ public class JsonDeserializeBenchmark
     [Benchmark]
     public MyPoco? Deserialize_TypeShapeReflection() => JsonData.TypeShapeReflection.Deserialize(JsonData.JsonValue);
     [Benchmark]
-    public MyPoco? Deserialize_TypeShapeSourceGen() => JsonData.TypeShapeSourceGen.Deserialize(JsonData.JsonValue);
+    public MyPoco? Deserialize_TypeShapeSourceGen() => TypeShapeJsonSerializer.Deserialize<MyPoco>(JsonData.JsonValue);
 }
 
-public class MyPoco
+[GenerateShape]
+public partial class MyPoco
 {
     public MyPoco(bool @bool = true, string @string = "str")
     {
@@ -66,11 +66,6 @@ public class MyPoco
     public string String { get; }
     public List<int>? List { get; set; }
     public Dictionary<string, int>? Dict { get; set; }
-}
-
-[GenerateShape(typeof(MyPoco))]
-public partial class SourceGenTypeShapeProvider
-{
 }
 
 [JsonSerializable(typeof(MyPoco), GenerationMode = JsonSourceGenerationMode.Metadata)]

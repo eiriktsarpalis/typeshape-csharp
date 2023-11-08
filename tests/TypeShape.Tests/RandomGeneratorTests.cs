@@ -46,5 +46,22 @@ public sealed class RandomGeneratorTests_ReflectionEmit : RandomGeneratorTests
 
 public sealed class RandomGeneratorTests_SourceGen : RandomGeneratorTests
 {
-    protected override ITypeShapeProvider Provider { get; } = SourceGenTypeShapeProvider.Default;
+    [Theory]
+    [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
+    public void TypeShapeProvider_ProducesDeterministicRandomValues<T, TProvider>(TestCase<T, TProvider> testCase) where TProvider : ITypeShapeProvider<T>
+    {
+        if (!testCase.HasConstructors)
+        {
+            return; // Random value generation not supported
+        }
+
+        IEqualityComparer<T> comparer = StructuralEqualityComparer.Create<T, TProvider>();
+
+        const int Seed = 42;
+        IEnumerable<T> firstRandomSequence = RandomGenerator.GenerateValues<T, TProvider>(Seed).Take(10);
+        IEnumerable<T> secondRandomSequence = RandomGenerator.GenerateValues<T, TProvider>(Seed).Take(10);
+        Assert.Equal(firstRandomSequence, secondRandomSequence, comparer);
+    }
+
+    protected override ITypeShapeProvider Provider { get; } = SourceGenProvider.Default;
 }

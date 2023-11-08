@@ -4,7 +4,7 @@ using Xunit;
 
 namespace TypeShape.Tests;
 
-public abstract class ValidationTests
+public abstract partial class ValidationTests
 {
     protected abstract ITypeShapeProvider Provider { get; }
 
@@ -28,7 +28,7 @@ public abstract class ValidationTests
         Validator<GenericRecord<T>> validator = GetValidatorUnderTest<GenericRecord<T>>();
         GenericRecord<T> record = new GenericRecord<T>(value);
 
-        expectedErrors = expectedErrors?.Select(error => error.Replace("Validation error in $.", "Validation error in $.value.")).ToList();
+        expectedErrors = expectedErrors?.Select(error => error.Replace("$.", "$.value.")).ToList();
         bool expectedResult = expectedErrors is null;
 
         bool result = validator.TryValidate(record, out List<string>? errors);
@@ -44,7 +44,7 @@ public abstract class ValidationTests
         Validator<List<T>> validator = GetValidatorUnderTest<List<T>>();
         List<T> list = new List<T> { value };
 
-        expectedErrors = expectedErrors?.Select(error => error.Replace("Validation error in $.", "Validation error in $.[0].")).ToList();
+        expectedErrors = expectedErrors?.Select(error => error.Replace("$.", "$.[0].")).ToList();
         bool expectedResult = expectedErrors is null;
 
         bool result = validator.TryValidate(list, out List<string>? errors);
@@ -60,7 +60,7 @@ public abstract class ValidationTests
         Validator<Dictionary<string, T>> validator = GetValidatorUnderTest<Dictionary<string, T>>();
         Dictionary<string, T> dict = new Dictionary<string, T> { ["key"] = value };
 
-        expectedErrors = expectedErrors?.Select(error => error.Replace("Validation error in $.", "Validation error in $.key.")).ToList();
+        expectedErrors = expectedErrors?.Select(error => error.Replace("$.", "$.key.")).ToList();
         bool expectedResult = expectedErrors is null;
 
         bool result = validator.TryValidate(dict, out List<string>? errors);
@@ -86,33 +86,33 @@ public abstract class ValidationTests
         var validModel = new BindingModel
         {
             Id = "id",
-            Components = new() { "1", "2", "3" },
+            Components = ["1", "2", "3"],
             Sample = 0.517,
             PhoneNumber = "+447777777777",
         };
 
         yield return Create(validModel);
-        yield return Create(validModel with { Id = null }, new() { "Validation error in $.Id: value is null or the empty string." });
-        yield return Create(validModel with { Components = new() { "1" } }, new() { "Validation error in $.Components: collection has less than 2 or more than 5 elements." });
-        yield return Create(validModel with { Components = new() { "1", "2", "3", "4", "5", "6" } }, new() { "Validation error in $.Components: collection has less than 2 or more than 5 elements." });
-        yield return Create(validModel with { Sample = -1 }, new() { "Validation error in $.Sample: value is either less than 0 or larger than 1." });
-        yield return Create(validModel with { Sample = 5 }, new() { "Validation error in $.Sample: value is either less than 0 or larger than 1." });
-        yield return Create(validModel with { PhoneNumber = "NaN" }, new() { @"Validation error in $.PhoneNumber: value does not match regex pattern '^\+?[0-9]{7,14}$'." });
+        yield return Create(validModel with { Id = null }, ["$.Id: value is null or empty."]);
+        yield return Create(validModel with { Components = ["1"] }, ["$.Components: contains less than 2 or more than 5 elements."]);
+        yield return Create(validModel with { Components = ["1", "2", "3", "4", "5", "6"] }, ["$.Components: contains less than 2 or more than 5 elements."]);
+        yield return Create(validModel with { Sample = -1 }, ["$.Sample: value is either less than 0 or greater than 1."]);
+        yield return Create(validModel with { Sample = 5 }, ["$.Sample: value is either less than 0 or greater than 1."]);
+        yield return Create(validModel with { PhoneNumber = "NaN" }, [@"$.PhoneNumber: value does not match regex pattern '^\+?[0-9]{7,14}$'."]);
 
         yield return Create(new BindingModel
         {
             Id = null,
-            Components = new() { "1" },
+            Components = ["1"],
             Sample = 1.1,
             PhoneNumber = "NaN"
         },
-        expectedErrors: new()
-        {
-            "Validation error in $.Id: value is null or the empty string.",
-            "Validation error in $.Components: collection has less than 2 or more than 5 elements.",
-            "Validation error in $.Sample: value is either less than 0 or larger than 1.",
-            @"Validation error in $.PhoneNumber: value does not match regex pattern '^\+?[0-9]{7,14}$'."
-        });
+        expectedErrors:
+        [
+            "$.Id: value is null or empty.",
+            "$.Components: contains less than 2 or more than 5 elements.",
+            "$.Sample: value is either less than 0 or greater than 1.",
+            @"$.PhoneNumber: value does not match regex pattern '^\+?[0-9]{7,14}$'."
+        ]);
 
         static object?[] Create<T>(T value, List<string>? expectedErrors = null) => [value, expectedErrors];
     }
@@ -124,7 +124,8 @@ public abstract class ValidationTests
         return Validator.Create(shape);
     }
 
-    public record BindingModel
+    [GenerateShape]
+    public partial record BindingModel
     {
         [Required]
         public string? Id { get; set; }
@@ -152,5 +153,27 @@ public class ValidationTests_ReflectionEmit : ValidationTests
 
 public class ValidationTests_SourceGen : ValidationTests
 {
-    protected override ITypeShapeProvider Provider { get; } = SourceGenTypeShapeProvider.Default;
+    [Theory]
+    [MemberData(nameof(GetValidatorScenaria))]
+    public void SelfShapeProvider_SimpleValidationScenaria<T>(T value, List<string>? expectedErrors) where T : ITypeShapeProvider<T>
+    {
+        bool expectedResult = expectedErrors is null;
+        bool result = value.TryValidate(out List<string>? errors);
+
+        Assert.Equal(expectedResult, result);
+        Assert.Equal(expectedErrors, errors);
+    }
+
+    [Theory]
+    [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
+    public void TypeWithoutAttributeAnnotations_TypeShapeProvider_PassesValidation<T, TProvider>(TestCase<T, TProvider> testCase) 
+        where TProvider : ITypeShapeProvider<T>
+    {
+        bool result = Validator.TryValidate<T, TProvider>(testCase.Value, out List<string>? errors);
+
+        Assert.True(result);
+        Assert.Null(errors);
+    }
+
+    protected override ITypeShapeProvider Provider { get; } = SourceGenProvider.Default;
 }

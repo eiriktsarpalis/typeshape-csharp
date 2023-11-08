@@ -1,44 +1,30 @@
 ﻿using TypeShape;
+using TypeShape.Applications.CborSerializer;
 using TypeShape.Applications.JsonSerializer;
 using TypeShape.Applications.PrettyPrinter;
 using TypeShape.Applications.Validation;
 
-ITypeShape<BindingModel> shape = SourceGenTypeShapeProvider.Default.BindingModel;
-
-TypeShapeJsonSerializer<BindingModel> jsonSerializer = TypeShapeJsonSerializer.Create(shape);
-Validator<BindingModel> validator = Validator.Create(shape);
-PrettyPrinter<BindingModel> printer = PrettyPrinter.Create(shape);
-
 string json = """
-    {
-        "Id" : null,
-        "Components" : ["1"],
-        "Sample" : 1.15,
-        "PhoneNumber" : "NaN"
-    }
-    """;
+{
+    "Id" : null,
+    "Components" : ["1"],
+    "Sample" : 1.15,
+    "PhoneNumber" : "NaN"
+}
+""";
 
-BindingModel? model = jsonSerializer.Deserialize(json);
+BindingModel? model = TypeShapeJsonSerializer.Deserialize<BindingModel>(json);
 
 Console.WriteLine("Deserialized value:");
-Console.WriteLine(printer.PrettyPrint(model));
+Console.WriteLine(PrettyPrinter.Print(model));
 Console.WriteLine();
 
-if (validator.TryValidate(model, out List<string>? errors))
-{
-    Console.WriteLine("No validation errors found");
-}
-else
-{
-    Console.WriteLine("Found validation errors: ");
-    foreach (string error in errors)
-    {
-        Console.WriteLine(error);
-    }
-    Console.WriteLine();
-}
+Console.WriteLine($"CBOR encoding: {CborSerializer.EncodeToHex(model)}");
 
-public record BindingModel
+Validator.Validate(model);
+
+[GenerateShape]
+public partial class BindingModel
 {
     [Required]
     public string? Id { get; set; }
@@ -51,9 +37,4 @@ public record BindingModel
 
     [RegularExpression(Pattern = @"^\+?[0-9]{7,14}$")]
     public string? PhoneNumber { get; set; }
-}
-
-[GenerateShape(typeof(BindingModel))]
-public partial class SourceGenTypeShapeProvider
-{
 }

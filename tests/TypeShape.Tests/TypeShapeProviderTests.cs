@@ -740,6 +740,6 @@ public sealed class TypeShapeProviderTests_ReflectionEmit : TypeShapeProviderTes
 
 public sealed class TypeShapeProviderTests_SourceGen : TypeShapeProviderTests
 {
-    protected override ITypeShapeProvider Provider { get; } = SourceGenTypeShapeProvider.Default;
+    protected override ITypeShapeProvider Provider { get; } = SourceGenProvider.Default;
     protected override bool SupportsNonPublicMembers => false;
 }

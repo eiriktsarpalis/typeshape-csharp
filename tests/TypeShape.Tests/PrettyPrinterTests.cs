@@ -14,7 +14,7 @@ public abstract class PrettyPrinterTests
     public void TestValue<T>(T value, string expected)
     {
         PrettyPrinter<T> prettyPrinter = GetPrettyPrinterUnderTest<T>();
-        Assert.Equal(expected, prettyPrinter.PrettyPrint(value));
+        Assert.Equal(expected, prettyPrinter.Print(value));
     }
 
     public static IEnumerable<object?[]> GetValues()
@@ -107,5 +107,16 @@ public class PrettyPrinterTests_ReflectionEmit : PrettyPrinterTests
 
 public class PrettyPrinterTests_SourceGen : PrettyPrinterTests
 {
-    protected override ITypeShapeProvider Provider { get; } = SourceGenTypeShapeProvider.Default;
+    [Theory]
+    [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
+    public void TypeShapeProvider_ReturnsExpectedResult<T, TProvider>(TestCase<T, TProvider> value) where TProvider : ITypeShapeProvider<T>
+    {
+        string expectedResult = PrettyPrinter.Create(SourceGenProvider.Default.GetShape<T>()!).Print(value.Value);
+
+        string result = PrettyPrinter.Print<T, TProvider>(value.Value);
+
+        Assert.Equal(expectedResult, result);
+    }
+
+    protected override ITypeShapeProvider Provider { get; } = SourceGenProvider.Default;
 }

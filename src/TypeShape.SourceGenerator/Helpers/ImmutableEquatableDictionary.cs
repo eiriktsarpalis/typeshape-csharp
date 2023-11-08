@@ -1,9 +1,12 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.ComponentModel;
 using System.Diagnostics;
 
 namespace TypeShape.SourceGenerator.Helpers;
 
+[DebuggerDisplay("Count = {Count}")]
+[DebuggerTypeProxy(typeof(ImmutableEquatableDictionary<,>.DebugView))]
 public sealed class ImmutableEquatableDictionary<TKey, TValue> : 
     IEquatable<ImmutableEquatableDictionary<TKey, TValue>>,
     IDictionary<TKey, TValue>, 
@@ -112,6 +115,22 @@ public sealed class ImmutableEquatableDictionary<TKey, TValue> :
     void IDictionary.Remove(object key) => throw new InvalidOperationException();
     void IDictionary.Clear() => throw new InvalidOperationException();
     #endregion
+
+    private sealed class DebugView(ImmutableEquatableDictionary<TKey, TValue> collection)
+    {
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public DebugViewDictionaryItem[] Entries => collection._values.Select(kvp => new DebugViewDictionaryItem(kvp)).ToArray();
+    }
+
+    [DebuggerDisplay("{Value}", Name = "[{Key}]")]
+    private readonly struct DebugViewDictionaryItem(KeyValuePair<TKey, TValue> keyValuePair)
+    {
+        [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
+        public TKey Key { get; } = keyValuePair.Key;
+
+        [DebuggerBrowsable(DebuggerBrowsableState.Collapsed)]
+        public TValue Value { get; } = keyValuePair.Value;
+    }
 }
 
 public static class ImmutableEquatableDictionary

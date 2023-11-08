@@ -15,7 +15,7 @@ public abstract class JsonTests
     public bool IsReflectionProvider => Provider is ReflectionTypeShapeProvider;
 
     [Theory]
-    [MemberData(nameof(GetTestCases))]
+    [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void Roundtrip_Value<T>(TestCase<T> testCase)
     {
         if (testCase.IsLongTuple)
@@ -53,7 +53,7 @@ public abstract class JsonTests
     }
 
     [Theory]
-    [MemberData(nameof(GetTestCases))]
+    [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void Roundtrip_Property<T>(TestCase<T> testCase)
     {
         if (!IsReflectionProvider)
@@ -97,7 +97,7 @@ public abstract class JsonTests
     }
 
     [Theory]
-    [MemberData(nameof(GetTestCases))]
+    [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void Roundtrip_CollectionElement<T>(TestCase<T> testCase)
     {
         if (!IsReflectionProvider)
@@ -141,7 +141,7 @@ public abstract class JsonTests
     }
 
     [Theory]
-    [MemberData(nameof(GetTestCases))]
+    [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void Roundtrip_DictionaryEntry<T>(TestCase<T> testCase)
     {
         if (!IsReflectionProvider)
@@ -185,7 +185,7 @@ public abstract class JsonTests
     }
 
     [Theory]
-    [MemberData(nameof(GetTestCases))]
+    [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void Roundtrip_Null<T>(TestCase<T> testCase)
     {
         if (!testCase.IsNullable)
@@ -321,13 +321,7 @@ public abstract class JsonTests
         public T? Value { get; set; }
     }
 
-    public static IEnumerable<object[]> GetTestCases()
-        => TestTypes.GetTestCasesCore()
-            .Where(tc => tc is not TestCase<IDiamondInterface>) // Extract to bespoke test until STJ ordering issue is addressed.
-            .Select(tc => new object[] { tc })
-            .ToArray();
-
-    private static string ToJsonBaseline<T>(T? value) => JsonSerializer.Serialize(value, s_baselineOptions);
+    protected static string ToJsonBaseline<T>(T? value) => JsonSerializer.Serialize(value, s_baselineOptions);
     private static readonly JsonSerializerOptions s_baselineOptions = new()
     { 
         IncludeFields = true,
@@ -362,5 +356,36 @@ public sealed class JsonTests_ReflectionEmit : JsonTests
 
 public sealed class JsonTests_SourceGen : JsonTests
 {
-    protected override ITypeShapeProvider Provider { get; } = SourceGenTypeShapeProvider.Default;
+    [Theory]
+    [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
+    public void Roundtrip_TypeShapeProvider_Value<T, TProvider>(TestCase<T, TProvider> testCase) where TProvider : ITypeShapeProvider<T>
+    {
+        if (testCase.IsLongTuple || testCase.IsMultiDimensionalArray)
+        {
+            return; // The STJ baseline doesn't support long tuples or MD arrays.
+        }
+
+        string json = TypeShapeJsonSerializer.Serialize<T, TProvider>(testCase.Value);
+        Assert.Equal(ToJsonBaseline(testCase.Value), json);
+
+        if (!testCase.HasConstructors)
+        {
+            Assert.Throws<NotSupportedException>(() => TypeShapeJsonSerializer.Deserialize<T, TProvider>(json));
+        }
+        else
+        {
+            T? deserializedValue = TypeShapeJsonSerializer.Deserialize<T, TProvider>(json);
+
+            if (testCase.IsStack)
+            {
+                Assert.Equal(TypeShapeJsonSerializer.Serialize<T, TProvider>(deserializedValue), ToJsonBaseline(deserializedValue));
+            }
+            else
+            {
+                Assert.Equal(json, ToJsonBaseline(deserializedValue));
+            }
+        }
+    }
+
+    protected override ITypeShapeProvider Provider { get; } = SourceGenProvider.Default;
 }

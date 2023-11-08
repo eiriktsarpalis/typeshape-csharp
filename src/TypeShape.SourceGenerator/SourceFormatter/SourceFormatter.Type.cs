@@ -11,17 +11,25 @@ internal static partial class SourceFormatter
         string generatedPropertyType = $"ITypeShape<{type.Id.FullyQualifiedName}>";
         string generatedFactoryMethodName = $"Create_{type.Id.GeneratedPropertyName}";
         string generatedFieldName = "_" + type.Id.GeneratedPropertyName;
-        string? propertiesFactoryMethodName = type.Properties?.Count > 0 ? $"CreateProperties_{type.Id.GeneratedPropertyName}" : null;
-        string? constructorFactoryMethodName = type.Constructors?.Count > 0 ? $"CreateConstructors_{type.Id.GeneratedPropertyName}" : null;
+        string? propertiesFactoryMethodName = type.Properties?.Length > 0 ? $"CreateProperties_{type.Id.GeneratedPropertyName}" : null;
+        string? constructorFactoryMethodName = type.Constructors?.Length > 0 ? $"CreateConstructors_{type.Id.GeneratedPropertyName}" : null;
         string? enumFactoryMethodName = type.EnumType is not null ? $"CreateEnumType_{type.Id.GeneratedPropertyName}" : null;
         string? nullableFactoryMethodName = type.NullableType is not null ? $"CreateNullableType_{type.Id.GeneratedPropertyName}" : null;
         string? dictionaryFactoryMethodName = type.DictionaryType is not null ? $"CreateDictionaryType_{type.Id.GeneratedPropertyName}" : null;
         string? enumerableFactoryMethodName = type.EnumerableType is not null ? $"CreateEnumerableType_{type.Id.GeneratedPropertyName}" : null;
 
         var writer = new SourceWriter();
-        StartFormatSourceFile(writer, provider);
+        StartFormatSourceFile(writer, provider.Declaration);
 
-        writer.WriteLine(provider.TypeDeclaration);
+        if (type.EmitGenericTypeShapeProviderImplementation)
+        {
+            writer.WriteLine($"{provider.Declaration.TypeDeclarationHeader} : ITypeShapeProvider<{type.Id.FullyQualifiedName}>");
+        }
+        else
+        {
+            writer.WriteLine(provider.Declaration.TypeDeclarationHeader);
+        }
+
         writer.WriteLine('{');
         writer.Indentation++;
 
@@ -30,6 +38,14 @@ internal static partial class SourceFormatter
             private {generatedPropertyType}? {generatedFieldName};
 
             """);
+
+        if (type.EmitGenericTypeShapeProviderImplementation)
+        {
+            writer.WriteLine($"""
+                static {generatedPropertyType} ITypeShapeProvider<{type.Id.FullyQualifiedName}>.GetShape() => Default.{type.Id.GeneratedPropertyName};
+
+                """);
+        }
 
         writer.WriteLine($$"""
             private {{generatedPropertyType}} {{generatedFactoryMethodName}}()

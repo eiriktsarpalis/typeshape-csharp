@@ -8,6 +8,24 @@ public static class TypeShapeJsonSerializer
 {
     public static TypeShapeJsonSerializer<T> Create<T>(ITypeShape<T> shape)
         => new(shape);
+
+    public static string Serialize<T>(T? value) where T : ITypeShapeProvider<T>
+        => SerializerCache<T, T>.Value.Serialize(value);
+
+    public static T? Deserialize<T>(string json) where T : ITypeShapeProvider<T>
+        => SerializerCache<T, T>.Value.Deserialize(json);
+
+    public static string Serialize<T, TProvider>(T? value) where TProvider : ITypeShapeProvider<T>
+        => SerializerCache<T, TProvider>.Value.Serialize(value);
+
+    public static T? Deserialize<T, TProvider>(string json) where TProvider : ITypeShapeProvider<T>
+        => SerializerCache<T, TProvider>.Value.Deserialize(json);
+
+    private static class SerializerCache<T, TProvider> where TProvider : ITypeShapeProvider<T>
+    {
+        public static TypeShapeJsonSerializer<T> Value => s_value ??= new(TProvider.GetShape());
+        private static TypeShapeJsonSerializer<T>? s_value;
+    }
 }
 
 public sealed class TypeShapeJsonSerializer<T>

@@ -69,5 +69,16 @@ public class CounterTests_ReflectionEmit : CounterTests
 
 public class CounterTests_SourceGen : CounterTests
 {
-    protected override ITypeShapeProvider Provider { get; } = SourceGenTypeShapeProvider.Default;
+    [Theory]
+    [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
+    public void TypeShapeProvider_ReturnsExpectedCount<T, TProvider>(TestCase<T, TProvider> value) where TProvider : ITypeShapeProvider<T>
+    {
+        long expectedResult = Counter.Create(ReflectionTypeShapeProvider.Default.GetShape<T>())(value.Value);
+
+        long result = Counter.GetCount<T, TProvider>(value.Value);
+
+        Assert.Equal(expectedResult, result);
+    }
+
+    protected override ITypeShapeProvider Provider { get; } = SourceGenProvider.Default;
 }

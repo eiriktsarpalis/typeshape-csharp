@@ -106,13 +106,13 @@ public sealed partial class ModelGenerator
         }
         else if (knownSymbols.IList.IsAssignableFrom(type))
         {
-            elementType = semanticModel.Compilation.ObjectType;
+            elementType = knownSymbols.Compilation.ObjectType;
             resolvedInterface = knownSymbols.IList;
             kind = EnumerableKind.IList;
         }
         else
         {
-            elementType = semanticModel.Compilation.ObjectType;
+            elementType = knownSymbols.Compilation.ObjectType;
             resolvedInterface = knownSymbols.IEnumerable;
             kind = EnumerableKind.IEnumerable;
         }
@@ -166,8 +166,8 @@ public sealed partial class ModelGenerator
         }
         else
         {
-            keyType = semanticModel.Compilation.ObjectType;
-            valueType = semanticModel.Compilation.ObjectType;
+            keyType = knownSymbols.Compilation.ObjectType;
+            valueType = knownSymbols.Compilation.ObjectType;
             kind = DictionaryKind.IDictionary;
             resolvedInterface = knownSymbols.IDictionary;
         }

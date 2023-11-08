@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Runtime.InteropServices.ComTypes;
 using TypeShape.SourceGenerator.Helpers;
 using TypeShape.SourceGenerator.Model;
 
@@ -16,19 +17,36 @@ public sealed class TypeShapeIncrementalGenerator : IIncrementalGenerator
         IncrementalValueProvider<KnownSymbols> knownSymbols = context.CompilationProvider
             .Select((compilation, _) => new KnownSymbols(compilation));
 
-        IncrementalValuesProvider<TypeShapeProviderModel> generationModels = context.SyntaxProvider
-            .ForAttributeWithMetadataName(
-                "TypeShape.GenerateShapeAttribute",
-                (node, _) => node is ClassDeclarationSyntax,
-                (context, _) => (ClassDeclarationSyntax: (ClassDeclarationSyntax)context.TargetNode, context.SemanticModel))
+        IncrementalValuesProvider<TypeShapeProviderModel> generateShapeOfTModels = context.SyntaxProvider
+            .ForTypesWithAttributeDeclaration(
+                "TypeShape.GenerateShapeAttribute<T>",
+                (node, _) => node is ClassDeclarationSyntax)
             .Combine(knownSymbols)
-            .Select((tuple, token) => ModelGenerator.Compile(tuple.Right, tuple.Left.ClassDeclarationSyntax, tuple.Left.SemanticModel, token));
+            .Select((tuple, cancellationToken) => 
+                ModelGenerator.CompileFromGenerateShapeAttributes(
+                    context: tuple.Left,
+                    knownSymbols: tuple.Right, 
+                    cancellationToken));
 
-        context.RegisterSourceOutput(generationModels, GenerateSource);
+        IncrementalValueProvider<TypeShapeProviderModel?> generateShapeModels = context.SyntaxProvider
+            .ForTypesWithAttributeDeclaration(
+                "TypeShape.GenerateShapeAttribute",
+                (node, _) => node is TypeDeclarationSyntax)
+            .Collect()
+            .Combine(knownSymbols)
+            .Select((tuple, token) => ModelGenerator.CompileFromGenerateShapeAttributes(tuple.Left, tuple.Right, token));
+
+        context.RegisterSourceOutput(generateShapeOfTModels, GenerateSource);
+        context.RegisterSourceOutput(generateShapeModels, GenerateSource);
     }
 
-    private void GenerateSource(SourceProductionContext context, TypeShapeProviderModel provider)
+    private void GenerateSource(SourceProductionContext context, TypeShapeProviderModel? provider)
     {
+        if (provider is null)
+        {
+            return;
+        }
+
         OnGeneratingSource?.Invoke(provider);
 
         foreach (DiagnosticInfo diagnostic in provider.Diagnostics)

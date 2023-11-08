@@ -1,9 +1,12 @@
 ﻿using System.Collections;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace TypeShape.SourceGenerator.Helpers;
 
+[DebuggerDisplay("Length = {Length}")]
+[DebuggerTypeProxy(typeof(ImmutableEquatableArray<>.DebugView))]
 [CollectionBuilder(typeof(ImmutableEquatableArray), nameof(ImmutableEquatableArray.Create))]
 public sealed class ImmutableEquatableArray<T> : 
     IEquatable<ImmutableEquatableArray<T>>, 
@@ -17,7 +20,7 @@ public sealed class ImmutableEquatableArray<T> :
 
     private readonly T[] _values;
     public ref readonly T this[int index] => ref _values[index];
-    public int Count => _values.Length;
+    public int Length => _values.Length;
 
     private ImmutableEquatableArray(T[] values)
         => _values = values;
@@ -78,6 +81,10 @@ public sealed class ImmutableEquatableArray<T> :
     bool ICollection.IsSynchronized => false;
     object ICollection.SyncRoot => this;
 
+    int IReadOnlyCollection<T>.Count => Length;
+    int ICollection<T>.Count => Length;
+    int ICollection.Count => Length;
+
     void ICollection<T>.Add(T item) => throw new InvalidOperationException();
     bool ICollection<T>.Remove(T item) => throw new InvalidOperationException();
     void ICollection<T>.Clear() => throw new InvalidOperationException();
@@ -89,6 +96,12 @@ public sealed class ImmutableEquatableArray<T> :
     void IList.Remove(object value) => throw new InvalidOperationException();
     void IList.RemoveAt(int index) => throw new InvalidOperationException();
     #endregion
+
+    private sealed class DebugView(ImmutableEquatableArray<T> array)
+    {
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public T[] Items => array.ToArray();
+    }
 }
 
 public static class ImmutableEquatableArray

@@ -80,7 +80,7 @@ public static partial class Validator
                     {
                         if (!predicate(propertyValue))
                         {
-                            string msg = $"Validation error in $.{string.Join(".", path)}: {errorMessage}";
+                            string msg = $"$.{string.Join(".", path)}: {errorMessage}";
                             (errors ??= new()).Add(msg);
                         }
                     }

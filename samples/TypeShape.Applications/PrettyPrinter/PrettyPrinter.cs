@@ -7,17 +7,28 @@ public delegate void PrettyPrinter<T>(StringBuilder builder, int indentation, T?
 
 public static partial class PrettyPrinter
 {
-    private readonly static Visitor s_Builder = new();
-
     public static PrettyPrinter<T> Create<T>(ITypeShape<T> type)
     {
-        return (PrettyPrinter<T>)type.Accept(s_Builder, null)!;
+        var builder = new Visitor();
+        return (PrettyPrinter<T>)type.Accept(builder, null)!;
     }
 
-    public static string PrettyPrint<T>(this PrettyPrinter<T> pp, T? value)
+    public static string Print<T>(this PrettyPrinter<T> pp, T? value)
     {
         var sb = new StringBuilder();
         pp(sb, 0, value);
         return sb.ToString();
+    }
+
+    public static string Print<T>(T? value) where T : ITypeShapeProvider<T>
+        => PrettyPrinterCache<T, T>.Value.Print(value);
+
+    public static string Print<T, TProvider>(T? value) where TProvider : ITypeShapeProvider<T>
+        => PrettyPrinterCache<T, TProvider>.Value.Print(value);
+
+    private static class PrettyPrinterCache<T, TProvider> where TProvider : ITypeShapeProvider<T>
+    {
+        public static PrettyPrinter<T> Value => s_value ??= Create(TProvider.GetShape());
+        private static PrettyPrinter<T>? s_value;
     }
 }

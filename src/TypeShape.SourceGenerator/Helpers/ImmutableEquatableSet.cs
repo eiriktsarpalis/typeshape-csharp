@@ -5,6 +5,8 @@ using System.Runtime.CompilerServices;
 
 namespace TypeShape.SourceGenerator.Helpers;
 
+[DebuggerDisplay("Count = {Count}")]
+[DebuggerTypeProxy(typeof(ImmutableEquatableSet<>.DebugView))]
 [CollectionBuilder(typeof(ImmutableEquatableSet), nameof(ImmutableEquatableSet.Create))]
 public sealed class ImmutableEquatableSet<T> : 
     IEquatable<ImmutableEquatableSet<T>>, 
@@ -100,6 +102,12 @@ public sealed class ImmutableEquatableSet<T> :
     bool ICollection<T>.Remove(T item) => throw new InvalidOperationException();
     void ICollection<T>.Clear() => throw new InvalidOperationException();
     #endregion
+
+    private sealed class DebugView(ImmutableEquatableSet<T> set)
+    {
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public T[] Items => set.ToArray();
+    }
 }
 
 public static class ImmutableEquatableSet

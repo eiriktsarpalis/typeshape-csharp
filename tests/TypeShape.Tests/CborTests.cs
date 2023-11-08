@@ -125,5 +125,35 @@ public sealed class CborTests_ReflectionEmit : CborTests
 
 public sealed class CborTests_SourceGen : CborTests
 {
-    protected override ITypeShapeProvider Provider { get; } = SourceGenTypeShapeProvider.Default;
+    [Theory]
+    [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
+    public void Roundtrip_TypeShapeProvider<T, TProvider>(TestCase<T, TProvider> testCase) where TProvider : ITypeShapeProvider<T>
+    {
+        string cborHex = CborSerializer.EncodeToHex<T, TProvider>(testCase.Value);
+
+        if (!testCase.HasConstructors)
+        {
+            Assert.Throws<NotSupportedException>(() => CborSerializer.DecodeFromHex<T, TProvider>(cborHex));
+        }
+        else
+        {
+            T? deserializedValue = CborSerializer.DecodeFromHex<T, TProvider>(cborHex);
+
+            if (testCase.IsEquatable)
+            {
+                Assert.Equal(testCase.Value, deserializedValue);
+            }
+            else
+            {
+                if (testCase.IsStack)
+                {
+                    deserializedValue = CborSerializer.DecodeFromHex<T, TProvider>(CborSerializer.EncodeToHex<T, TProvider>(deserializedValue));
+                }
+
+                Assert.Equal(cborHex, CborSerializer.EncodeToHex<T, TProvider>(deserializedValue));
+            }
+        }
+    }
+
+    protected override ITypeShapeProvider Provider { get; } = SourceGenProvider.Default;
 }

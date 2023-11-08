@@ -110,5 +110,23 @@ public class StructuralEqualityTests_ReflectionEmit : StructuralEqualityTests
 
 public class StructuralEqualityTests_SourceGen : StructuralEqualityTests
 {
-    protected override ITypeShapeProvider Provider { get; } = SourceGenTypeShapeProvider.Default;
+    [Theory]
+    [MemberData(nameof(GetEqualValues))]
+    public void EqualityComparer_TypeShapeProvider_EqualValues<T, TProvider>(TestCase<T, TProvider> left, TestCase<T, TProvider> right)
+        where TProvider : ITypeShapeProvider<T>
+    {
+        if (!typeof(T).IsValueType && typeof(T) != typeof(string))
+        {
+            Assert.NotSame((object?)left.Value, (object?)right.Value); // ensure we're not using reference equality
+        }
+
+        IEqualityComparer<T> cmp = StructuralEqualityComparer.Create<T, TProvider>();
+        Assert.Equal(cmp.GetHashCode(left.Value!), cmp.GetHashCode(right.Value!));
+        Assert.Equal(left.Value, right.Value, cmp);
+
+        Assert.Equal(cmp.GetHashCode(right.Value!), cmp.GetHashCode(left.Value!));
+        Assert.Equal(right.Value, left.Value, cmp);
+    }
+
+    protected override ITypeShapeProvider Provider { get; } = SourceGenProvider.Default;
 }

@@ -2,6 +2,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Numerics;
 using System.Text;
 using TypeShape;
 
@@ -10,12 +11,14 @@ public static partial class PrettyPrinter
     private sealed class Visitor : TypeShapeVisitor
     {
         private static readonly Dictionary<Type, object> s_defaultPrinters = new(CreateDefaultPrinters());
+        private readonly TypeCache _cache = new();
 
         public override object? VisitType<T>(ITypeShape<T> type, object? state)
         {
-            // Recursive type handling omitted for simplicity.
-            if (s_defaultPrinters.TryGetValue(typeof(T), out object? result))
+            if (TryGetCachedResult<T>() is { } result)
+            {
                 return result;
+            }
 
             switch (type.Kind)
             {
@@ -37,7 +40,7 @@ public static partial class PrettyPrinter
                         .Where(prop => prop != null)
                         .ToArray();
 
-                    return new PrettyPrinter<T>((sb, indentation, value) =>
+                    return CacheResult<T>((sb, indentation, value) =>
                     {
                         if (value is null)
                         {
@@ -88,7 +91,7 @@ public static partial class PrettyPrinter
             PrettyPrinter<TElement> elementPrinter = (PrettyPrinter<TElement>)enumerableShape.ElementType.Accept(this, null)!;
             bool valuesArePrimitives = s_defaultPrinters.ContainsKey(typeof(TElement));
 
-            return new PrettyPrinter<TEnumerable>((sb, indentation, value) =>
+            return CacheResult<TEnumerable>((sb, indentation, value) =>
             {
                 if (value is null)
                 {
@@ -137,7 +140,7 @@ public static partial class PrettyPrinter
             PrettyPrinter<TKey> keyPrinter = (PrettyPrinter<TKey>)dictionaryShape.KeyType.Accept(this, null)!;
             PrettyPrinter<TValue> valuePrinter = (PrettyPrinter<TValue>)dictionaryShape.ValueType.Accept(this, null)!;
 
-            return new PrettyPrinter<TDictionary>((sb, indentation, value) =>
+            return CacheResult<TDictionary>((sb, indentation, value) =>
             {
                 if (value is null)
                 {
@@ -176,13 +179,13 @@ public static partial class PrettyPrinter
 
         public override object? VisitEnum<TEnum, TUnderlying>(IEnumShape<TEnum, TUnderlying> enumType, object? state)
         {
-            return new PrettyPrinter<TEnum>((sb, _, e) => sb.Append('"').Append(e).Append('"'));
+            return CacheResult<TEnum>((sb, _, e) => sb.Append('"').Append(e).Append('"'));
         }
 
         public override object? VisitNullable<T>(INullableShape<T> nullableShape, object? state) where T : struct
         {
             var elementPrinter = (PrettyPrinter<T>)nullableShape.ElementType.Accept(this, null)!;
-            return new PrettyPrinter<T?>((sb, indentation, value) =>
+            return CacheResult<T?>((sb, indentation, value) =>
             {
                 if (value is null)
                     sb.Append("null");
@@ -220,6 +223,7 @@ public static partial class PrettyPrinter
             yield return Create<float>((builder, _, i) => builder.Append(i));
             yield return Create<double>((builder, _, i) => builder.Append(i));
             yield return Create<decimal>((builder, _, i) => builder.Append(i));
+            yield return Create<BigInteger>((builder, _, i) => builder.Append(i));
 
             yield return Create<char>((builder, _, c) => builder.Append('\'').Append(c).Append('\''));
             yield return Create<string>((builder, _, s) =>
@@ -236,6 +240,22 @@ public static partial class PrettyPrinter
 
             static KeyValuePair<Type, object> Create<T>(PrettyPrinter<T> printer)
                 => new(typeof(T), printer);
+        }
+
+        private PrettyPrinter<T>? TryGetCachedResult<T>()
+        {
+            if (s_defaultPrinters.TryGetValue(typeof(T), out object? result))
+            {
+                return (PrettyPrinter<T>)result;
+            }
+
+            return _cache.GetOrAddDelayedValue<PrettyPrinter<T>>(static holder => ((b,i,v) => holder.Value!(b,i,v)));
+        }
+
+        private PrettyPrinter<T> CacheResult<T>(PrettyPrinter<T> counter)
+        {
+            _cache.Add(counter);
+            return counter;
         }
     }
 }

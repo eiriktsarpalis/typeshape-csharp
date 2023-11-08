@@ -1,45 +1,38 @@
 ﻿using TypeShape;
+using TypeShape.Applications.CborSerializer;
 using TypeShape.Applications.JsonSerializer;
 using TypeShape.Applications.PrettyPrinter;
 using TypeShape.Applications.Validation;
 using TypeShape.ReflectionProvider;
 
+// Use reflection to derive the shape for BindingModel and use it to derive
+// serialization, pretty printing, CBOR encoding and validation programs.
 ITypeShape<BindingModel> shape = ReflectionTypeShapeProvider.Default.GetShape<BindingModel>();
-
 TypeShapeJsonSerializer<BindingModel> jsonSerializer = TypeShapeJsonSerializer.Create(shape);
-Validator<BindingModel> validator = Validator.Create(shape);
 PrettyPrinter<BindingModel> printer = PrettyPrinter.Create(shape);
+CborConverter<BindingModel> cborConverter = CborSerializer.CreateConverter(shape);
+Validator<BindingModel> validator = Validator.Create(shape);
 
 string json = """
-    {
-        "Id" : null,
-        "Components" : ["1"],
-        "Sample" : 1.15,
-        "PhoneNumber" : "NaN"
-    }
-    """;
+{
+    "Id" : null,
+    "Components" : ["1"],
+    "Sample" : 1.15,
+    "PhoneNumber" : "NaN"
+}
+""";
 
 BindingModel? model = jsonSerializer.Deserialize(json);
 
 Console.WriteLine("Deserialized value:");
-Console.WriteLine(printer.PrettyPrint(model));
+Console.WriteLine(printer.Print(model));
 Console.WriteLine();
 
-if (validator.TryValidate(model, out List<string>? errors))
-{
-    Console.WriteLine("No validation errors found");
-}
-else
-{
-    Console.WriteLine("Found validation errors: ");
-    foreach (string error in errors)
-    {
-        Console.WriteLine(error);
-    }
-    Console.WriteLine();
-}
+Console.WriteLine($"CBOR encoding: {cborConverter.EncodeToHex(model)}");
 
-public record BindingModel
+validator.Validate(model);
+
+public class BindingModel
 {
     [Required]
     public string? Id { get; set; }

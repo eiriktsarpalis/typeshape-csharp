@@ -1,24 +1,22 @@
 ﻿namespace TypeShape;
 
 /// <summary>
-/// When applied on a partial class, this attribute instructs the 
-/// TypeShape source generator to emit an <see cref="ITypeShapeProvider"/> 
-/// implementation that includes a shape definition for <see cref="Type"/>.
+/// When applied on a partial type, this attribute instructs the 
+/// TypeShape source generator to emit an <see cref="ITypeShapeProvider{T}"/> 
+/// implementation for the annotated type.
 /// </summary>
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface, AllowMultiple = false, Inherited = false)]
 public sealed class GenerateShapeAttribute : Attribute
 {
-    /// <summary>
-    /// Creates an attribute instance.
-    /// </summary>
-    /// <param name="type">The type for which to generate a shape.</param>
-    public GenerateShapeAttribute(Type type)
-    {
-        Type = type;
-    }
+}
 
-    /// <summary>
-    /// The type for which to generate a shape.
-    /// </summary>
-    public Type Type { get; }
+/// <summary>
+/// When applied on a partial class, instructs the TypeShape source generator 
+/// to emit an <see cref="ITypeShapeProvider"/> implementation that 
+/// includes a shape definition for <typeparamref name="T"/>.
+/// </summary>
+/// <typeparam name="T">The type for which shape metadata will be generated.</typeparam>
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
+public sealed class GenerateShapeAttribute<T> : Attribute
+{
 }

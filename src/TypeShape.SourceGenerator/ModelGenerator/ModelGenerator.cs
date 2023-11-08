@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text;
 using TypeShape.SourceGenerator.Helpers;
@@ -8,37 +9,72 @@ using TypeShape.SourceGenerator.Model;
 
 namespace TypeShape.SourceGenerator;
 
+using TypeToGenerate = (TypeId Id, ITypeSymbol Symbol, bool EmitGenericTypeShapeProviderImplementation);
+
 public sealed partial class ModelGenerator(
+    ISymbol generationScope, 
     KnownSymbols knownSymbols, 
-    ClassDeclarationSyntax classDeclarationSyntax, 
-    SemanticModel semanticModel, 
     CancellationToken cancellationToken)
 {
-    private readonly ITypeSymbol _declaredTypeSymbol = semanticModel.GetDeclaredSymbol(classDeclarationSyntax, cancellationToken)!;
     private readonly Dictionary<ITypeSymbol, TypeId> _visitedTypes = new(SymbolEqualityComparer.Default);
     private readonly Dictionary<TypeId, TypeModel> _generatedModels = new();
-    private readonly Queue<(TypeId, ITypeSymbol)> _typesToGenerate = new();
+    private readonly Queue<TypeToGenerate> _typesToGenerate = new();
     private readonly List<DiagnosticInfo> _diagnostics = [];
 
-    public static TypeShapeProviderModel Compile(KnownSymbols knownSymbols, ClassDeclarationSyntax classDeclarationSyntax, SemanticModel semanticModel, CancellationToken cancellationToken)
+    public static TypeShapeProviderModel CompileFromGenerateShapeAttributes(
+        TypeWithAttributeDeclarationContext context,
+        KnownSymbols knownSymbols,
+        CancellationToken cancellationToken)
     {
-        ModelGenerator compiler = new(knownSymbols, classDeclarationSyntax, semanticModel, cancellationToken);
-        return compiler.Compile();
+        ModelGenerator compiler = new(context.TypeSymbol, knownSymbols, cancellationToken);
+        TypeId declaringTypeId = CreateTypeId(context.TypeSymbol);
+
+        TypeDeclarationModel providerDeclaration = compiler.CreateTypeDeclaration(context, declaringTypeId);
+        compiler.EnqueueTypesFromGenerateShapeOfTAttributes(context.TypeSymbol);
+
+        return compiler.Compile(providerDeclaration, []);
     }
 
-    public TypeShapeProviderModel Compile()
+    public static TypeShapeProviderModel? CompileFromGenerateShapeAttributes(
+        ImmutableArray<TypeWithAttributeDeclarationContext> generateShapeDeclarations,
+        KnownSymbols knownSymbols,
+        CancellationToken cancellationToken)
     {
-        ReadConfigurationFromAttributes();
+        if (generateShapeDeclarations.IsEmpty)
+        {
+            return null;
+        }
+
+        ModelGenerator compiler = new(knownSymbols.Compilation.Assembly, knownSymbols, cancellationToken);
+        ImmutableEquatableArray<TypeDeclarationModel> generateShapeTypes = compiler.EnqueueTypesFromGenerateShapeAttributes(generateShapeDeclarations);
+        TypeDeclarationModel providerDeclaration = new()
+        {
+            Id = new()
+            {
+                FullyQualifiedName = "global::TypeShape.SourceGenerator.GenerateShapeProvider",
+                GeneratedPropertyName = "GenerateShapeProvider",
+                IsValueType = false,
+                SpecialType = SpecialType.None,
+            },
+            Name = "GenerateShapeProvider",
+            Namespace = "TypeShape.SourceGenerator",
+            SourceFilenamePrefix = "GenerateShapeProvider",
+            TypeDeclarationHeader = "internal partial class GenerateShapeProvider",
+            ContainingTypes = [],
+        };
+
+        return compiler.Compile(providerDeclaration, generateShapeTypes);
+    }
+
+    public TypeShapeProviderModel Compile(TypeDeclarationModel providerDeclaration, ImmutableEquatableArray<TypeDeclarationModel> generateShapeTypes)
+    {
         TraverseTypeGraph();
 
         return new TypeShapeProviderModel
         {
-            Name = _declaredTypeSymbol.Name,
-            SourceFilenamePrefix = _declaredTypeSymbol.ToDisplayString(RoslynHelpers.QualifiedNameOnlyFormat),
-            Namespace = FormatNamespace(_declaredTypeSymbol),
+            Declaration = providerDeclaration,
             ProvidedTypes = _generatedModels.ToImmutableEquatableDictionary(),
-            TypeDeclaration = ResolveDeclarationHeader(classDeclarationSyntax, out ImmutableEquatableArray<string>? containingTypes),
-            ContainingTypes = containingTypes,
+            GenerateShapeTypes = generateShapeTypes,
             Diagnostics = _diagnostics.ToImmutableEquatableSet(),
         };
     }
@@ -49,20 +85,20 @@ public sealed partial class ModelGenerator(
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            (TypeId typeId, ITypeSymbol type) = _typesToGenerate.Dequeue();
-            if (_generatedModels.ContainsKey(typeId))
+            TypeToGenerate typeToGenerate = _typesToGenerate.Dequeue();
+            if (_generatedModels.ContainsKey(typeToGenerate.Id))
             {
-                ReportDiagnostic(TypeNameConflict, type.Locations.FirstOrDefault(), typeId.FullyQualifiedName);
+                ReportDiagnostic(TypeNameConflict, typeToGenerate.Symbol.Locations.FirstOrDefault(), typeToGenerate.Id.FullyQualifiedName);
             }
             else
             {
-                TypeModel generatedType = MapType(typeId, type);
-                _generatedModels.Add(typeId, generatedType);
+                TypeModel generatedType = MapType(typeToGenerate.Id, typeToGenerate.Symbol, typeToGenerate.EmitGenericTypeShapeProviderImplementation);
+                _generatedModels.Add(typeToGenerate.Id, generatedType);
             }
         }
     }
 
-    private TypeModel MapType(TypeId typeId, ITypeSymbol type)
+    private TypeModel MapType(TypeId typeId, ITypeSymbol type, bool emitGenericTypeShapeProviderImplementation)
     {
         bool isSpecialTypeKind = TryResolveSpecialTypeKinds(typeId, type,
             out EnumTypeModel? enumType,
@@ -71,7 +107,7 @@ public sealed partial class ModelGenerator(
             out EnumerableTypeModel? enumerableType, 
             out ITypeSymbol? implementedCollectionType);
 
-        ITypeSymbol[]? classTupleElements = semanticModel.Compilation.GetClassTupleElements(knownSymbols.CoreLibAssembly, type);
+        ITypeSymbol[]? classTupleElements = knownSymbols.Compilation.GetClassTupleElements(knownSymbols.CoreLibAssembly, type);
         bool disallowMemberResolution = DisallowMemberResolution(type);
 
         return new TypeModel
@@ -85,35 +121,63 @@ public sealed partial class ModelGenerator(
             DictionaryType = dictionaryType,
             IsValueTupleType = type.IsNonTrivialValueTupleType(),
             IsClassTupleType = classTupleElements is not null,
+            EmitGenericTypeShapeProviderImplementation = emitGenericTypeShapeProviderImplementation,
         };
     }
 
-    private void ReadConfigurationFromAttributes()
+    private void EnqueueTypesFromGenerateShapeOfTAttributes(ITypeSymbol declaringTypeSymbol)
     {
-        foreach (AttributeData attributeData in _declaredTypeSymbol.GetAttributes())
+        Debug.Assert(declaringTypeSymbol.TypeKind is TypeKind.Class);
+
+        foreach (AttributeData attributeData in declaringTypeSymbol.GetAttributes())
         {
             INamedTypeSymbol? attributeType = attributeData.AttributeClass;
 
-            if (SymbolEqualityComparer.Default.Equals(attributeType, knownSymbols.GenerateShapeAttributeType) &&
-                attributeData.ConstructorArguments is [ { Value: var value } ] &&
-                value is null or ITypeSymbol)
+            if (attributeType is { TypeArguments: [ITypeSymbol typeArgument] } &&
+                SymbolEqualityComparer.Default.Equals(attributeType.ConstructedFrom, knownSymbols.GenerateShapeAttributeOfT))
             {
-                ITypeSymbol? typeSymbol = value as ITypeSymbol;
-
-                if (typeSymbol is null || !IsSupportedType(typeSymbol) || !IsAccessibleFromGeneratedType(typeSymbol))
+                if (!IsSupportedType(typeArgument))
                 {
-                    ReportDiagnostic(TypeNotSupported, attributeData.GetLocation(), typeSymbol?.ToDisplayString() ?? "null");
+                    ReportDiagnostic(TypeNotSupported, attributeData.GetLocation(), typeArgument.ToDisplayString());
                     continue;
                 }
 
-                EnqueueForGeneration(typeSymbol);
+                Debug.Assert(IsAccessibleFromGeneratedType(typeArgument));
+                EnqueueForGeneration(typeArgument, emitGenericTypeShapeProviderImplementation: true);
             }
         }
     }
 
-    private TypeId EnqueueForGeneration(ITypeSymbol type)
+    private ImmutableEquatableArray<TypeDeclarationModel> EnqueueTypesFromGenerateShapeAttributes(ImmutableArray<TypeWithAttributeDeclarationContext> generateShapeDeclarations)
     {
-        type = semanticModel.Compilation.EraseCompilerMetadata(type);
+        List<TypeDeclarationModel> generateTypeDeclarations = [];
+
+        foreach (TypeWithAttributeDeclarationContext ctx in generateShapeDeclarations)
+        {
+            if (ctx.TypeSymbol.IsGenericTypeDefinition())
+            {
+                ReportDiagnostic(GenericTypeDefinitionsNotSupported, ctx.DeclarationSyntax.GetLocation(), ctx.TypeSymbol.ToDisplayString());
+                continue;
+            }
+
+            if (!IsAccessibleFromGeneratedType(ctx.TypeSymbol))
+            {
+                ReportDiagnostic(TypeNotAccessible, ctx.DeclarationSyntax.GetLocation(), ctx.TypeSymbol.ToDisplayString());
+                continue;
+            }
+
+            Debug.Assert(IsSupportedType(ctx.TypeSymbol));
+            TypeId typeId = EnqueueForGeneration(ctx.TypeSymbol);
+            TypeDeclarationModel typeDeclaration = CreateTypeDeclaration(ctx, typeId);
+            generateTypeDeclarations.Add(typeDeclaration);
+        }
+
+        return [..generateTypeDeclarations];
+    }
+
+    private TypeId EnqueueForGeneration(ITypeSymbol type, bool emitGenericTypeShapeProviderImplementation = false)
+    {
+        type = knownSymbols.Compilation.EraseCompilerMetadata(type);
 
         if (_visitedTypes.TryGetValue(type, out TypeId id))
         {
@@ -121,7 +185,7 @@ public sealed partial class ModelGenerator(
         }
 
         TypeId typeId = CreateTypeId(type);
-        _typesToGenerate.Enqueue((typeId, type));
+        _typesToGenerate.Enqueue((typeId, type, emitGenericTypeShapeProviderImplementation));
         _visitedTypes.Add(type, typeId);
         return typeId;
     }
@@ -137,27 +201,35 @@ public sealed partial class ModelGenerator(
         };
     }
 
-    private string ResolveDeclarationHeader(ClassDeclarationSyntax classSyntax, out ImmutableEquatableArray<string> parentHeaders)
+    private TypeDeclarationModel CreateTypeDeclaration(TypeWithAttributeDeclarationContext context, TypeId typeId)
     {
-        string typeDeclarationHeader = FormatTypeDeclarationHeader(classSyntax, semanticModel, cancellationToken, out bool isPartialHierarchy);
+        string typeDeclarationHeader = FormatTypeDeclarationHeader(context.DeclarationSyntax, context.TypeSymbol, cancellationToken, out bool isPartialHierarchy);
 
         Stack<string>? parentStack = null;
-        for (SyntaxNode? parentNode = classSyntax.Parent; parentNode is TypeDeclarationSyntax parentType; parentNode = parentNode.Parent)
+        for (SyntaxNode? parentNode = context.DeclarationSyntax.Parent; parentNode is BaseTypeDeclarationSyntax parentType; parentNode = parentNode.Parent)
         {
-            string parentHeader = FormatTypeDeclarationHeader(parentType, semanticModel, cancellationToken, out bool isPartialType);
+            ITypeSymbol parentSymbol = context.SemanticModel.GetDeclaredSymbol(parentType, cancellationToken)!;
+            string parentHeader = FormatTypeDeclarationHeader(parentType, parentSymbol, cancellationToken, out bool isPartialType);
             (parentStack ??= new()).Push(parentHeader);
             isPartialHierarchy &= isPartialType;
         }
 
         if (!isPartialHierarchy)
         {
-            ReportDiagnostic(ProviderTypeNotPartial, classSyntax.GetLocation(), classSyntax.Identifier);
+            ReportDiagnostic(GeneratedTypeNotPartial, context.DeclarationSyntax.GetLocation(), context.TypeSymbol.ToDisplayString());
         }
 
-        parentHeaders = parentStack?.ToImmutableEquatableArray() ?? [];
-        return typeDeclarationHeader;
+        return new TypeDeclarationModel
+        {
+            Id = typeId,
+            Name = context.TypeSymbol.Name,
+            TypeDeclarationHeader = typeDeclarationHeader,
+            ContainingTypes = parentStack?.ToImmutableEquatableArray() ?? [],
+            Namespace = FormatNamespace(context.TypeSymbol),
+            SourceFilenamePrefix = context.TypeSymbol.ToDisplayString(RoslynHelpers.QualifiedNameOnlyFormat),
+        };
 
-        static string FormatTypeDeclarationHeader(TypeDeclarationSyntax typeDeclaration, SemanticModel semanticModel, CancellationToken cancellationToken, out bool isPartialType)
+        static string FormatTypeDeclarationHeader(BaseTypeDeclarationSyntax typeDeclaration, ITypeSymbol typeSymbol, CancellationToken cancellationToken, out bool isPartialType)
         {
             StringBuilder stringBuilder = new();
             isPartialType = false;
@@ -172,7 +244,6 @@ public sealed partial class ModelGenerator(
             stringBuilder.Append(typeDeclaration.GetTypeKindKeyword());
             stringBuilder.Append(' ');
 
-            INamedTypeSymbol? typeSymbol = semanticModel.GetDeclaredSymbol(typeDeclaration, cancellationToken);
             Debug.Assert(typeSymbol != null);
 
             string typeName = typeSymbol!.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
@@ -193,16 +264,16 @@ public sealed partial class ModelGenerator(
     }
 
     private bool IsAccessibleFromGeneratedType(ISymbol symbol)
-        => semanticModel.Compilation.IsSymbolAccessibleWithin(symbol, _declaredTypeSymbol);
+        => knownSymbols.Compilation.IsSymbolAccessibleWithin(symbol, within: generationScope);
 
     private static bool IsSupportedType(ITypeSymbol type)
-        => type.TypeKind is not (TypeKind.Pointer or TypeKind.Error) &&
+        => type.TypeKind is not (TypeKind.Pointer or TypeKind.Error or TypeKind.Delegate) &&
           !type.IsRefLikeType && type.SpecialType is not SpecialType.System_Void &&
           !type.ContainsGenericParameters();
 
     private bool DisallowMemberResolution(ITypeSymbol type)
     {
-        return semanticModel.Compilation.IsAtomicValueType(knownSymbols.CoreLibAssembly, type) ||
+        return knownSymbols.Compilation.IsAtomicValueType(knownSymbols.CoreLibAssembly, type) ||
             type.TypeKind is TypeKind.Array or TypeKind.Enum ||
             type.SpecialType is SpecialType.System_Nullable_T ||
             knownSymbols.MemberInfoType.IsAssignableFrom(type) ||

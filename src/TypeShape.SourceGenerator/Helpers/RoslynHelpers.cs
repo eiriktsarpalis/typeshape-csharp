@@ -8,7 +8,7 @@ using System.Text;
 
 namespace TypeShape.SourceGenerator.Helpers;
 
-internal static class RoslynHelpers
+internal static partial class RoslynHelpers
 {
     public static bool IsNullable(this ITypeSymbol type)
         => !type.IsValueType || type.OriginalDefinition.SpecialType is SpecialType.System_Nullable_T;
@@ -494,7 +494,7 @@ internal static class RoslynHelpers
     /// <summary>
     /// Returns the kind keyword corresponding to the specified declaration syntax node.
     /// </summary>
-    public static string GetTypeKindKeyword(this TypeDeclarationSyntax typeDeclaration)
+    public static string GetTypeKindKeyword(this BaseTypeDeclarationSyntax typeDeclaration)
     {
         switch (typeDeclaration.Kind())
         {

@@ -19,7 +19,7 @@ public abstract class ValidationAttribute : Attribute
 
 public class RequiredAttribute : ValidationAttribute
 {
-    protected internal override string ErrorMessage => "value is null or the empty string.";
+    protected internal override string ErrorMessage => "value is null or empty.";
 
     public override Predicate<TMemberType>? CreateValidationPredicate<TMemberType>()
         => static value => value is not (null or "");
@@ -30,7 +30,7 @@ public class LengthAttribute : ValidationAttribute
     public required int Min { get; set; }
     public required int Max { get; set; }
 
-    protected internal override string ErrorMessage => $"collection has less than {Min} or more than {Max} elements.";
+    protected internal override string ErrorMessage => $"contains less than {Min} or more than {Max} elements.";
 
     public override Predicate<TMemberType>? CreateValidationPredicate<TMemberType>()
     {
@@ -60,7 +60,7 @@ public class RangeAttribute<T> : ValidationAttribute
     public required T Max { get; set; }
     public IComparer<T>? Comparer { get; set; }
 
-    protected internal override string ErrorMessage => $"value is either less than {Min} or larger than {Max}.";
+    protected internal override string ErrorMessage => $"value is either less than {Min} or greater than {Max}.";
 
     public override Predicate<TMemberType>? CreateValidationPredicate<TMemberType>()
     {

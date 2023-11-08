@@ -12,7 +12,7 @@ internal static partial class SourceFormatter
 {
     private static void FormatConstructorFactory(SourceWriter writer, string methodName, TypeModel type)
     {
-        Debug.Assert(type.Constructors.Count > 0);
+        Debug.Assert(type.Constructors.Length > 0);
 
         writer.WriteLine($"private IEnumerable<IConstructorShape> {methodName}() => new IConstructorShape[]");
         writer.WriteLine('{');
@@ -52,7 +52,7 @@ internal static partial class SourceFormatter
                     return "null";
                 }
 
-                string parameterTypes = constructor.Parameters.Count == 0
+                string parameterTypes = constructor.Parameters.Length == 0
                     ? "Array.Empty<Type>()"
                     : $$"""new[] { {{string.Join(", ", constructor.Parameters.Select(p => $"typeof({p.ParameterType.FullyQualifiedName})"))}} }""";
 
@@ -60,7 +60,7 @@ internal static partial class SourceFormatter
             }
 
             static string FormatArgumentStateCtorExpr(ConstructorModel constructor, string constructorArgumentStateFQN)
-                => (constructor.Parameters.Count, constructor.MemberInitializers.Count) switch
+                => (constructor.Parameters.Length, constructor.MemberInitializers.Length) switch
                 {
                     (0, 0) => "null!",
                     (1, 0) => FormatDefaultValueExpr(constructor.Parameters[0]),
@@ -83,17 +83,17 @@ internal static partial class SourceFormatter
 
                 if (type.IsClassTupleType)
                 {
-                    Debug.Assert(constructor.Parameters.Count > 0);
-                    Debug.Assert(constructor.MemberInitializers.Count == 0);
+                    Debug.Assert(constructor.Parameters.Length > 0);
+                    Debug.Assert(constructor.MemberInitializers.Length == 0);
 
-                    if (constructor.Parameters.Count == 1)
+                    if (constructor.Parameters.Length == 1)
                     {
                         return $"new ({stateVar})";
                     }
 
                     var sb = new StringBuilder();
                     int indentation = 0;
-                    for (int i = 0; i < constructor.Parameters.Count; i++)
+                    for (int i = 0; i < constructor.Parameters.Length; i++)
                     {
                         if (i % 7 == 0)
                         {
@@ -109,7 +109,7 @@ internal static partial class SourceFormatter
                     return sb.ToString();
                 }
 
-                return (constructor.Parameters.Count, constructor.MemberInitializers.Count) switch
+                return (constructor.Parameters.Length, constructor.MemberInitializers.Length) switch
                 {
                     (0, 0) => $$"""{{FormatConstructorName(constructor)}}()""",
                     (1, 0) => $$"""{{FormatConstructorName(constructor)}}({{stateVar}})""",
@@ -206,7 +206,7 @@ internal static partial class SourceFormatter
                     return $"static () => typeof({constructor.DeclaringType.FullyQualifiedName}).GetMember({FormatStringLiteral(parameter.Name)}, {InstanceBindingFlagsConstMember})[0]";
                 }
 
-                string parameterTypes = constructor.Parameters.Count == 0
+                string parameterTypes = constructor.Parameters.Length == 0
                     ? "Array.Empty<Type>()"
                     : $$"""new[] { {{string.Join(", ", constructor.Parameters.Select(p => $"typeof({p.ParameterType.FullyQualifiedName})"))}} }""";
 
@@ -270,7 +270,7 @@ internal static partial class SourceFormatter
             return constructorModel.DeclaringType.FullyQualifiedName;
         }
 
-        return (constructorModel.Parameters.Count, constructorModel.MemberInitializers.Count) switch
+        return (constructorModel.Parameters.Length, constructorModel.MemberInitializers.Length) switch
         {
             (0, 0) => "object?",
             (1, 0) => constructorModel.Parameters[0].ParameterType.FullyQualifiedName,

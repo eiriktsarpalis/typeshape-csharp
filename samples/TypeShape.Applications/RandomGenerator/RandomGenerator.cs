@@ -40,4 +40,22 @@ public static partial class RandomGenerator
             if (size < max) size++;
         }
     }
+
+    public static T GenerateValue<T>(int size, int? seed = null) where T : ITypeShapeProvider<T>
+        => RandomGeneratorCache<T, T>.Value.GenerateValue(size, seed);
+
+    public static IEnumerable<T> GenerateValues<T>(int? seed = null, int? minSize = null, int? maxSize = null) where T : ITypeShapeProvider<T>
+        => RandomGeneratorCache<T, T>.Value.GenerateValues(seed, minSize, maxSize);
+
+    public static T GenerateValue<T, TProvider>(int size, int? seed = null) where TProvider : ITypeShapeProvider<T>
+        => RandomGeneratorCache<T, TProvider>.Value.GenerateValue(size, seed);
+
+    public static IEnumerable<T> GenerateValues<T, TProvider>(int? seed = null, int? minSize = null, int? maxSize = null) where TProvider : ITypeShapeProvider<T>
+        => RandomGeneratorCache<T, TProvider>.Value.GenerateValues(seed, minSize, maxSize);
+
+    private static class RandomGeneratorCache<T, TProvider> where TProvider : ITypeShapeProvider<T>
+    {
+        public static RandomGenerator<T> Value => s_value ??= Create(TProvider.GetShape());
+        private static RandomGenerator<T>? s_value;
+    }
 }

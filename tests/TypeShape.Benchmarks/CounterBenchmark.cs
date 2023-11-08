@@ -13,7 +13,6 @@ public partial class CounterBenchmark
         Dict = new() { ["key1"] = 42, ["key2"] = -1 },
     };
 
-    private readonly Func<MyPoco, long> _sourceGenCounter = Counter.Create(SourceGenTypeShapeProvider.Default.CounterBenchmark_MyPoco);
     private readonly Func<MyPoco, long> _reflectionEmitCounter = Counter.Create(new ReflectionTypeShapeProvider(useReflectionEmit: true).GetShape<MyPoco>());
     private readonly Func<MyPoco, long> _reflectionCounter = Counter.Create(new ReflectionTypeShapeProvider(useReflectionEmit: false).GetShape<MyPoco>());
 
@@ -72,9 +71,10 @@ public partial class CounterBenchmark
     [Benchmark]
     public long Reflection() => _reflectionCounter(_value);
     [Benchmark]
-    public long SourceGen() => _sourceGenCounter(_value);
+    public long SourceGen() => Counter.GetCount(_value);
 
-    public class MyPoco
+    [GenerateShape]
+    public partial class MyPoco
     {
         public MyPoco(bool @bool = true, string @string = "str")
         {
@@ -87,7 +87,4 @@ public partial class CounterBenchmark
         public List<int>? List { get; set; }
         public Dictionary<string, int>? Dict { get; set; }
     }
-
-    [GenerateShape(typeof(MyPoco))]
-    public partial class SourceGenTypeShapeProvider { }
 }

@@ -9,7 +9,7 @@ internal static partial class SourceFormatter
 {
     private static void FormatPropertyFactory(SourceWriter writer, string methodName, TypeModel type)
     {
-        Debug.Assert(type.Properties.Count > 0);
+        Debug.Assert(type.Properties.Length > 0);
 
         writer.WriteLine($"private IEnumerable<IPropertyShape> {methodName}() => new IPropertyShape[]");
         writer.WriteLine('{');

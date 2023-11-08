@@ -9,8 +9,11 @@ public sealed class KnownSymbols(Compilation compilation)
     public INamedTypeSymbol ObjectType => _ObjectType ??= Compilation.GetSpecialType(SpecialType.System_Object);
     private INamedTypeSymbol? _ObjectType;
 
-    public INamedTypeSymbol? GenerateShapeAttributeType => GetOrResolveType("TypeShape.GenerateShapeAttribute", ref _GenerateShapeAttributeType);
-    private Option<INamedTypeSymbol?> _GenerateShapeAttributeType;
+    public INamedTypeSymbol? GenerateShapeAttribute => GetOrResolveType("TypeShape.GenerateShapeAttribute", ref _GenerateShapeAttribute);
+    private Option<INamedTypeSymbol?> _GenerateShapeAttribute;
+
+    public INamedTypeSymbol? GenerateShapeAttributeOfT => GetOrResolveType("TypeShape.GenerateShapeAttribute`1", ref _GenerateShapeAttributeOfT);
+    private Option<INamedTypeSymbol?> _GenerateShapeAttributeOfT;
 
     public IAssemblySymbol CoreLibAssembly => _CoreLibAssembly ??= Compilation.GetSpecialType(SpecialType.System_Int32).ContainingAssembly;
     private IAssemblySymbol? _CoreLibAssembly;

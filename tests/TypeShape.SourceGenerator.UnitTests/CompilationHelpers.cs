@@ -78,7 +78,7 @@ public static class CompilationHelpers
                 trackIncrementalGeneratorSteps: true));
     }
 
-    public static TypeShapeSourceGeneratorResult RunTypeShapeSourceGenerator(Compilation compilation)
+    public static TypeShapeSourceGeneratorResult RunTypeShapeSourceGenerator(Compilation compilation, bool disableDiagnosticValidation = false)
     {
         List<TypeShapeProviderModel> generatedModels = [];
         var generator = new TypeShapeIncrementalGenerator
@@ -88,6 +88,12 @@ public static class CompilationHelpers
 
         CSharpGeneratorDriver driver = CreateTypeShapeSourceGeneratorDriver(compilation, generator);
         driver.RunGeneratorsAndUpdateCompilation(compilation, out Compilation outCompilation, out ImmutableArray<Diagnostic> diagnostics);
+
+        if (!disableDiagnosticValidation)
+        {
+            outCompilation.GetDiagnostics().AssertMaxSeverity(DiagnosticSeverity.Info);
+            diagnostics.AssertMaxSeverity(DiagnosticSeverity.Info);
+        }
 
         return new()
         {
@@ -189,5 +195,22 @@ public static class CompilationHelpers
 
             void FailNotEqual() => Assert.Fail($"Value not equal in ${string.Join("", path.Reverse())}: expected {expected}, but was {actual}.");
         }
+    }
+
+    public static void AssertMaxSeverity(this IEnumerable<Diagnostic> diagnostics, DiagnosticSeverity maxSeverity)
+    {
+        Assert.Empty(diagnostics.Where(diagnostic => diagnostic.Severity > maxSeverity));
+    }
+
+    public static (int startLine, int startColumn) GetStartPosition(this Location location)
+    {
+        FileLinePositionSpan lineSpan = location.GetLineSpan();
+        return (lineSpan.StartLinePosition.Line, lineSpan.StartLinePosition.Character);
+    }
+
+    public static (int startLine, int startColumn) GetEndPosition(this Location location)
+    {
+        FileLinePositionSpan lineSpan = location.GetLineSpan();
+        return (lineSpan.EndLinePosition.Line, lineSpan.EndLinePosition.Character);
     }
 }
