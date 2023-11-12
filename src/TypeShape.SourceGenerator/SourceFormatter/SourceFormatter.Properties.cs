@@ -11,7 +11,7 @@ internal static partial class SourceFormatter
     {
         Debug.Assert(type.Properties.Count > 0);
 
-        writer.WriteLine($"private IEnumerable<IPropertyShape> {methodName}()");
+        writer.WriteLine($"private IEnumerable<IPropertyShape> {methodName}() => new IPropertyShape[]");
         writer.WriteLine('{');
         writer.Indentation++;
 
@@ -36,7 +36,7 @@ internal static partial class SourceFormatter
             };
 
             writer.WriteLine($$"""
-                yield return new SourceGenPropertyShape<{{type.Id.FullyQualifiedName}}, {{property.PropertyType.FullyQualifiedName}}>
+                new SourceGenPropertyShape<{{type.Id.FullyQualifiedName}}, {{property.PropertyType.FullyQualifiedName}}>
                 {
                     Name = "{{property.Name}}",
                     DeclaringType = {{type.Id.GeneratedPropertyName}},
@@ -47,7 +47,7 @@ internal static partial class SourceFormatter
                     IsField = {{FormatBool(property.IsField)}},
                     IsGetterNonNullable = {{FormatBool(property.IsGetterNonNullable)}},
                     IsSetterNonNullable = {{FormatBool(property.IsSetterNonNullable)}},
-                };
+                },
                 """);
 
             static string FormatAttributeProviderFunc(TypeModel type, PropertyModel property)
@@ -65,6 +65,6 @@ internal static partial class SourceFormatter
         }
 
         writer.Indentation--;
-        writer.WriteLine('}');
+        writer.WriteLine("};");
     }
 }

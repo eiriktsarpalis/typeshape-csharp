@@ -14,7 +14,7 @@ internal static partial class SourceFormatter
     {
         Debug.Assert(type.Constructors.Count > 0);
 
-        writer.WriteLine($"private IEnumerable<IConstructorShape> {methodName}()");
+        writer.WriteLine($"private IEnumerable<IConstructorShape> {methodName}() => new IConstructorShape[]");
         writer.WriteLine('{');
         writer.Indentation++;
 
@@ -31,7 +31,7 @@ internal static partial class SourceFormatter
             argumentStateFQNs.Add(constructorArgumentStateFQN);
 
             writer.WriteLine($$"""
-                yield return new SourceGenConstructorShape<{{type.Id.FullyQualifiedName}}, {{constructorArgumentStateFQN}}>
+                new SourceGenConstructorShape<{{type.Id.FullyQualifiedName}}, {{constructorArgumentStateFQN}}>
                 {
                     DeclaringType = {{type.Id.GeneratedPropertyName}},
                     ParameterCount = {{constructor.TotalArity}},
@@ -40,7 +40,7 @@ internal static partial class SourceFormatter
                     ArgumentStateConstructorFunc = static () => {{FormatArgumentStateCtorExpr(constructor, constructorArgumentStateFQN)}},
                     ParameterizedConstructorFunc = static state => {{FormatParameterizedCtorExpr(type, constructor, "state")}},
                     AttributeProviderFunc = {{FormatAttributeProviderFunc(type, constructor)}},
-                };
+                },
                 """);
 
             i++;
@@ -147,7 +147,7 @@ internal static partial class SourceFormatter
         }
 
         writer.Indentation--;
-        writer.WriteLine('}');
+        writer.WriteLine("};");
 
         i = 0;
         foreach (ConstructorModel constructor in type.Constructors)
@@ -167,7 +167,7 @@ internal static partial class SourceFormatter
 
     private static void FormatConstructorParameterFactory(SourceWriter writer, TypeModel type, string methodName, ConstructorModel constructor, string constructorArgumentStateFQN)
     {
-        writer.WriteLine($"private IEnumerable<IConstructorParameterShape> {methodName}()");
+        writer.WriteLine($"private IEnumerable<IConstructorParameterShape> {methodName}() => new IConstructorParameterShape[]");
         writer.WriteLine('{');
         writer.Indentation++;
 
@@ -178,7 +178,7 @@ internal static partial class SourceFormatter
                 writer.WriteLine();
 
             writer.WriteLine($$"""
-                yield return new SourceGenConstructorParameterShape<{{constructorArgumentStateFQN}}, {{parameter.ParameterType.FullyQualifiedName}}>
+                new SourceGenConstructorParameterShape<{{constructorArgumentStateFQN}}, {{parameter.ParameterType.FullyQualifiedName}}>
                 {
                     Position = {{parameter.Position}},
                     Name = "{{parameter.Name}}",
@@ -189,7 +189,7 @@ internal static partial class SourceFormatter
                     DefaultValue = {{FormatDefaultValueExpr(parameter)}},
                     Setter = static (ref {{constructorArgumentStateFQN}} state, {{parameter.ParameterType.FullyQualifiedName}} value) => {{FormatSetterBody(constructor, parameter)}},
                     AttributeProviderFunc = {{FormatAttributeProviderFunc(type, constructor, parameter)}},
-                };
+                },
                 """);
 
             i++;
@@ -222,7 +222,7 @@ internal static partial class SourceFormatter
         }
 
         writer.Indentation--;
-        writer.WriteLine('}');
+        writer.WriteLine("};");
     }
 
     private static string FormatDefaultValueExpr(ConstructorParameterModel constructorParameter)
