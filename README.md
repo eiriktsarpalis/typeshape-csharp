@@ -182,11 +182,11 @@ public partial class SourceGenProvider { }
 
 In essence, TypeShape uses the visitor to fold a strongly typed `Func<MyPoco, int>` counter delegate, but the delegate itself doesn't depend on the visitor once invoked: it only defines a chain of strongly typed delegate invocations that are fast to invoke once constructed.
 
-For more comprehensive examples, please see the [TypeShape.Applications](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Applications) folder which contains a number of detailed samples. You can use the console apps found in the `tests` folder for more experimentation and exploration.
+For more comprehensive examples, please see the [TypeShape.Applications](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/samples/TypeShape.Applications) folder which contains a number of detailed samples. You can use the console apps found in the `tests` folder for more experimentation and exploration.
 
 ## Case Study: Writing a JSON serializer
 
-The repo includes a [JSON serializer](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Applications/JsonSerializer) example that uses TypeShape to generate System.Text.Json `JsonConverter<T>` instances for arbitrary .NET data types. The implementation offers [functional parity](https://github.com/eiriktsarpalis/typeshape-csharp/blob/main/tests/TypeShape.Tests/JsonTests.cs) with STJ in supported types.
+The repo includes a [JSON serializer](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/samples/TypeShape.Applications/JsonSerializer) example that uses TypeShape to generate System.Text.Json `JsonConverter<T>` instances for arbitrary .NET data types. The implementation offers [functional parity](https://github.com/eiriktsarpalis/typeshape-csharp/blob/main/tests/TypeShape.Tests/JsonTests.cs) with STJ in supported types.
 
 ### Performance
 
@@ -223,14 +223,14 @@ The repo consists of the following projects:
   * The [model classes](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape/SourceGenModel) used by the source generator.
 * The [`TypeShape.SourceGenerator`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.SourceGenerator) implementation.
   * Defines an incremental source generator following a [triggering model](https://github.com/eiriktsarpalis/typeshape-csharp/blob/7f517209fd34cf80b5ba83b21306c6e8bf836ae9/tests/TypeShape.SourceGenApp/Program.cs#L38-L41) identical to `System.Text.Json`.
-* [`TypeShape.Applications`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Applications) containing generic program examples:
+* [`TypeShape.Applications`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/samples/TypeShape.Applications) containing generic program examples:
   * A serializer generator targeting System.Text.Json's `JsonConverter`,
   * A simple pretty-printer for .NET values,
   * A generic random value generator based on `System.Random`,
   * A structural `IEqualityComparer<T>` generator for POCOs and collections,
   * An object validator in the style of System.ComponentModel.DataAnnotations.
   * A serializer built on top of System.Formats.Cbor.
-* [`TypeShape.ReflectionApp`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/tests/TypeShape.ReflectionApp) and [`TypeShape.SourceGenApp`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/tests/TypeShape.SourceGenApp) define simple console apps for testing generic programs in CoreCLR and NativeAOT.
+* [`TypeShape.ReflectionApp`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/samples/TypeShape.ReflectionApp) and [`TypeShape.SourceGenApp`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/samples/TypeShape.SourceGenApp) define simple console apps for testing generic programs in CoreCLR and NativeAOT.
 
 ## Advantages & Disadvantages
 

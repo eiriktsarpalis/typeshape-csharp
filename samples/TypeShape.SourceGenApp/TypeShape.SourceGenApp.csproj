@@ -13,8 +13,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\TypeShape\TypeShape.csproj" />
-    <ProjectReference Include="..\..\src\TypeShape.Applications\TypeShape.Applications.csproj" />
 	<ProjectReference Include="..\..\src\TypeShape.SourceGenerator\TypeShape.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\TypeShape.Applications\TypeShape.Applications.csproj" />
   </ItemGroup>
 
 </Project>
