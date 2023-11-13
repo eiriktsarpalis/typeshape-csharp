@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 
 namespace TypeShape.Applications.StructuralEquality;
 
@@ -8,11 +7,10 @@ public static partial class StructuralEqualityComparer
     private sealed class NullableEqualityComparer<T> : EqualityComparer<T?>
         where T : struct
     {
-        public IEqualityComparer<T>? ElementComparer { get; set; }
+        public required IEqualityComparer<T> ElementComparer { get; init; }
+
         public override bool Equals(T? x, T? y)
         {
-            Debug.Assert(ElementComparer != null);
-
             if (x is null || y is null)
             {
                 return x is null && y is null;
@@ -23,7 +21,6 @@ public static partial class StructuralEqualityComparer
 
         public override int GetHashCode([DisallowNull] T? obj)
         {
-            Debug.Assert(ElementComparer != null);
             return obj.HasValue ? ElementComparer.GetHashCode(obj.Value) : 0;
         }
     }

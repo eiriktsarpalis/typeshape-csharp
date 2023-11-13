@@ -7,14 +7,11 @@ public static partial class StructuralEqualityComparer
 {
     private sealed class EnumerableEqualityComparer<TEnumerable, TElement> : EqualityComparer<TEnumerable>
     {
-        public IEqualityComparer<TElement>? ElementComparer { get; set; }
-        public Func<TEnumerable, IEnumerable<TElement>>? GetEnumerable { get; set; }
+        public required IEqualityComparer<TElement> ElementComparer { get; init; }
+        public required Func<TEnumerable, IEnumerable<TElement>> GetEnumerable { get; init; }
 
         public override bool Equals(TEnumerable? x, TEnumerable? y)
         {
-            Debug.Assert(ElementComparer != null);
-            Debug.Assert(GetEnumerable != null);
-
             if (x is null || y is null)
             {
                 return x is null && y is null;
@@ -25,9 +22,6 @@ public static partial class StructuralEqualityComparer
 
         public override int GetHashCode([DisallowNull] TEnumerable obj)
         {
-            Debug.Assert(ElementComparer != null);
-            Debug.Assert(GetEnumerable != null);
-
             var hc = new HashCode();
             foreach (var element in GetEnumerable(obj))
             {

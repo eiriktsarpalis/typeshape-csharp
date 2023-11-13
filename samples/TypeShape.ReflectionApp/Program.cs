@@ -2,6 +2,8 @@
 using TypeShape.Applications.CborSerializer;
 using TypeShape.Applications.JsonSerializer;
 using TypeShape.Applications.PrettyPrinter;
+using TypeShape.Applications.RandomGenerator;
+using TypeShape.Applications.StructuralEquality;
 using TypeShape.Applications.Validation;
 using TypeShape.ReflectionProvider;
 
@@ -11,6 +13,8 @@ ITypeShape<BindingModel> shape = ReflectionTypeShapeProvider.Default.GetShape<Bi
 TypeShapeJsonSerializer<BindingModel> jsonSerializer = TypeShapeJsonSerializer.Create(shape);
 PrettyPrinter<BindingModel> printer = PrettyPrinter.Create(shape);
 CborConverter<BindingModel> cborConverter = CborSerializer.CreateConverter(shape);
+RandomGenerator<BindingModel> randomGenerator = RandomGenerator.Create(shape);
+IEqualityComparer<BindingModel> structuralEqualityComparer = StructuralEqualityComparer.Create(shape);
 Validator<BindingModel> validator = Validator.Create(shape);
 
 string json = """
@@ -24,11 +28,14 @@ string json = """
 
 BindingModel? model = jsonSerializer.Deserialize(json);
 
-Console.WriteLine("Deserialized value:");
-Console.WriteLine(printer.Print(model));
-Console.WriteLine();
-
+Console.WriteLine($"Deserialized value: {printer.Print(model)}");
 Console.WriteLine($"CBOR encoding: {cborConverter.EncodeToHex(model)}");
+
+BindingModel randomValue = randomGenerator.GenerateValue(size: 32, seed: 42);
+
+Console.WriteLine($"Generated random value: {printer.Print(randomValue)}");
+Console.WriteLine($"Equals random value: {structuralEqualityComparer.Equals(model, randomValue)}");
+Console.WriteLine($"Equals itself: {structuralEqualityComparer.Equals(model, model)}");
 
 validator.Validate(model);
 

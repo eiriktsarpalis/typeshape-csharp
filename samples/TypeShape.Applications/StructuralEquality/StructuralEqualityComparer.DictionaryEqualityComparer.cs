@@ -5,19 +5,37 @@ namespace TypeShape.Applications.StructuralEquality;
 
 public static partial class StructuralEqualityComparer
 {
-    private class DictionaryEqualityComparer<TDictionary, TKey, TValue> : EqualityComparer<TDictionary>
+    private abstract class DictionaryEqualityComparerBase<TDictionary, TKey, TValue> : EqualityComparer<TDictionary>
         where TKey : notnull
     {
-        public Func<TDictionary, IReadOnlyDictionary<TKey, TValue>>? GetDictionary { get; set; }
-        public IEqualityComparer<TKey>? KeyComparer { get; set; }
-        public IEqualityComparer<TValue>? ValueComparer { get; set; }
+        public required IEqualityComparer<TKey> KeyComparer { get; init; }
+        public required IEqualityComparer<TValue> ValueComparer { get; init; }
+
+        private protected bool AreEqual(Dictionary<TKey, TValue> dict, IReadOnlyDictionary<TKey, TValue> entries)
+        {
+            Debug.Assert(KeyComparer == dict.Comparer);
+            Debug.Assert(dict.Count == entries.Count);
+
+            foreach (KeyValuePair<TKey, TValue> entry in entries)
+            {
+                if (!dict.TryGetValue(entry.Key, out TValue? value) ||
+                    !ValueComparer.Equals(entry.Value, value))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
+
+    private class DictionaryEqualityComparer<TDictionary, TKey, TValue> : DictionaryEqualityComparerBase<TDictionary, TKey, TValue>
+        where TKey : notnull
+    {
+        public required Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> GetDictionary { get; init; }
 
         public override bool Equals(TDictionary? x, TDictionary? y)
         {
-            Debug.Assert(GetDictionary != null);
-            Debug.Assert(KeyComparer != null);
-            Debug.Assert(ValueComparer != null);
-
             if (x is null || y is null)
             {
                 return x is null && y is null;
@@ -36,10 +54,6 @@ public static partial class StructuralEqualityComparer
 
         public override int GetHashCode([DisallowNull] TDictionary obj)
         {
-            Debug.Assert(GetDictionary != null);
-            Debug.Assert(KeyComparer != null);
-            Debug.Assert(ValueComparer != null);
-
             int hashCode = 0;
             foreach (KeyValuePair<TKey, TValue> kvp in GetDictionary(obj))
             {
@@ -50,34 +64,13 @@ public static partial class StructuralEqualityComparer
 
             return hashCode;
         }
-
-        protected bool AreEqual(Dictionary<TKey, TValue> dict, IReadOnlyDictionary<TKey, TValue> entries)
-        {
-            Debug.Assert(KeyComparer == dict.Comparer);
-            Debug.Assert(ValueComparer != null);
-            Debug.Assert(dict.Count == entries.Count);
-
-            foreach (KeyValuePair<TKey, TValue> entry in entries)
-            {
-                if (!dict.TryGetValue(entry.Key, out TValue? value) ||
-                    !ValueComparer.Equals(entry.Value, value))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
     }
 
-    private sealed class DictionaryOfKVEqualityComparer<TKey, TValue> : DictionaryEqualityComparer<Dictionary<TKey, TValue>, TKey, TValue>
+    private sealed class DictionaryOfKVEqualityComparer<TKey, TValue> : DictionaryEqualityComparerBase<Dictionary<TKey, TValue>, TKey, TValue>
         where TKey : notnull
     {
         public override bool Equals(Dictionary<TKey, TValue>? x, Dictionary<TKey, TValue>? y)
         {
-            Debug.Assert(KeyComparer != null);
-            Debug.Assert(ValueComparer != null);
-
             if (x is null || y is null)
             {
                 return x is null && y is null;
@@ -102,9 +95,6 @@ public static partial class StructuralEqualityComparer
 
         public override int GetHashCode([DisallowNull] Dictionary<TKey, TValue> obj)
         {
-            Debug.Assert(KeyComparer != null);
-            Debug.Assert(ValueComparer != null);
-
             int hashCode = 0;
             foreach (KeyValuePair<TKey, TValue> kvp in obj)
             {

@@ -2,6 +2,8 @@
 using TypeShape.Applications.CborSerializer;
 using TypeShape.Applications.JsonSerializer;
 using TypeShape.Applications.PrettyPrinter;
+using TypeShape.Applications.RandomGenerator;
+using TypeShape.Applications.StructuralEquality;
 using TypeShape.Applications.Validation;
 
 string json = """
@@ -15,11 +17,14 @@ string json = """
 
 BindingModel? model = TypeShapeJsonSerializer.Deserialize<BindingModel>(json);
 
-Console.WriteLine("Deserialized value:");
-Console.WriteLine(PrettyPrinter.Print(model));
-Console.WriteLine();
-
+Console.WriteLine($"Deserialized value: {PrettyPrinter.Print(model)}");
 Console.WriteLine($"CBOR encoding: {CborSerializer.EncodeToHex(model)}");
+
+BindingModel randomValue = RandomGenerator.GenerateValue<BindingModel>(size: 32, seed: 42);
+
+Console.WriteLine($"Generated random value: {PrettyPrinter.Print(randomValue)}");
+Console.WriteLine($"Equals random value: {StructuralEqualityComparer.Equals(model, randomValue)}");
+Console.WriteLine($"Equals itself: {StructuralEqualityComparer.Equals(model, model)}");
 
 Validator.Validate(model);
 
