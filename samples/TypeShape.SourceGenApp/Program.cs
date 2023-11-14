@@ -5,6 +5,7 @@ using TypeShape.Applications.PrettyPrinter;
 using TypeShape.Applications.RandomGenerator;
 using TypeShape.Applications.StructuralEquality;
 using TypeShape.Applications.Validation;
+using TypeShape.Applications.XmlSerializer;
 
 string json = """
 {
@@ -18,7 +19,8 @@ string json = """
 BindingModel? model = TypeShapeJsonSerializer.Deserialize<BindingModel>(json);
 
 Console.WriteLine($"Deserialized value: {PrettyPrinter.Print(model)}");
-Console.WriteLine($"CBOR encoding: {CborSerializer.EncodeToHex(model)}");
+Console.WriteLine($"XML encoding:\r\n{XmlSerializer.Serialize(model)}");
+Console.WriteLine($"CBOR encoding:\r\n{CborSerializer.EncodeToHex(model)}");
 
 BindingModel randomValue = RandomGenerator.GenerateValue<BindingModel>(size: 32, seed: 42);
 

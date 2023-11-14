@@ -141,8 +141,7 @@ internal sealed class CharConverter : CborConverter<char>
 
     public override void Write(CborWriter writer, char value)
     {
-        Span<char> buffer = stackalloc char[1];
-        buffer[0] = value;
+        Span<char> buffer = [value];
         writer.WriteTextString(buffer);
     }
 }

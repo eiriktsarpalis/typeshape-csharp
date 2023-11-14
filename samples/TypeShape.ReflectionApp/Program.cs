@@ -5,6 +5,7 @@ using TypeShape.Applications.PrettyPrinter;
 using TypeShape.Applications.RandomGenerator;
 using TypeShape.Applications.StructuralEquality;
 using TypeShape.Applications.Validation;
+using TypeShape.Applications.XmlSerializer;
 using TypeShape.ReflectionProvider;
 
 // Use reflection to derive the shape for BindingModel and use it to derive
@@ -12,6 +13,7 @@ using TypeShape.ReflectionProvider;
 ITypeShape<BindingModel> shape = ReflectionTypeShapeProvider.Default.GetShape<BindingModel>();
 TypeShapeJsonSerializer<BindingModel> jsonSerializer = TypeShapeJsonSerializer.Create(shape);
 PrettyPrinter<BindingModel> printer = PrettyPrinter.Create(shape);
+XmlConverter<BindingModel> xmlConverter = XmlSerializer.CreateConverter(shape);
 CborConverter<BindingModel> cborConverter = CborSerializer.CreateConverter(shape);
 RandomGenerator<BindingModel> randomGenerator = RandomGenerator.Create(shape);
 IEqualityComparer<BindingModel> structuralEqualityComparer = StructuralEqualityComparer.Create(shape);
@@ -29,7 +31,8 @@ string json = """
 BindingModel? model = jsonSerializer.Deserialize(json);
 
 Console.WriteLine($"Deserialized value: {printer.Print(model)}");
-Console.WriteLine($"CBOR encoding: {cborConverter.EncodeToHex(model)}");
+Console.WriteLine($"XML encoding:\r\n{xmlConverter.Serialize(model)}");
+Console.WriteLine($"CBOR encoding:\r\n{cborConverter.EncodeToHex(model)}");
 
 BindingModel randomValue = randomGenerator.GenerateValue(size: 32, seed: 42);
 
