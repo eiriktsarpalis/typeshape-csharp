@@ -13,7 +13,7 @@ public sealed class SourceGenConstructorShape<TDeclaringType, TArgumentState> : 
 
     public Func<TDeclaringType>? DefaultConstructorFunc { get; init; }
     public required Func<TArgumentState> ArgumentStateConstructorFunc { get; init; }
-    public required Func<TArgumentState, TDeclaringType> ParameterizedConstructorFunc { get; init; }
+    public required Constructor<TArgumentState, TDeclaringType> ParameterizedConstructorFunc { get; init; }
 
     public object? Accept(ITypeShapeVisitor visitor, object? state)
         => visitor.VisitConstructor(this, state);
@@ -36,7 +36,7 @@ public sealed class SourceGenConstructorShape<TDeclaringType, TArgumentState> : 
         return ArgumentStateConstructorFunc;
     }
 
-    public Func<TArgumentState, TDeclaringType> GetParameterizedConstructor()
+    public Constructor<TArgumentState, TDeclaringType> GetParameterizedConstructor()
     {
         return ParameterizedConstructorFunc;
     }

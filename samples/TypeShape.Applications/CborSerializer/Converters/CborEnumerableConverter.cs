@@ -70,7 +70,7 @@ internal sealed class CborMutableEnumerableConverter<TEnumerable, TElement>(
 internal sealed class CborImmutableEnumerableConverter<TEnumerable, TElement>(
     CborConverter<TElement> elementConverter,
     Func<TEnumerable, IEnumerable<TElement>> getEnumerable,
-    Func<IEnumerable<TElement>, TEnumerable> constructor) : CborEnumerableConverter<TEnumerable, TElement>(elementConverter, getEnumerable)
+    Constructor<IEnumerable<TElement>, TEnumerable> constructor) : CborEnumerableConverter<TEnumerable, TElement>(elementConverter, getEnumerable)
 {
     public override TEnumerable? Read(CborReader reader)
     {

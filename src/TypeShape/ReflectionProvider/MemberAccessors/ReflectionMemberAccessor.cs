@@ -221,7 +221,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                 => state[parameterIndex] = value);
     }
 
-    public Func<TArgumentState, TDeclaringType> CreateParameterizedConstructor<TArgumentState, TDeclaringType>(IConstructorShapeInfo ctorInfo)
+    public Constructor<TArgumentState, TDeclaringType> CreateParameterizedConstructor<TArgumentState, TDeclaringType>(IConstructorShapeInfo ctorInfo)
     {
         if (ctorInfo is TupleConstructorShapeInfo tupleCtor)
         {
@@ -230,7 +230,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                 Debug.Assert(typeof(TArgumentState) == param.Type);
                 Debug.Assert(tupleCtor.NestedTupleConstructor is null);
                 ConstructorInfo ctor = tupleCtor.ConstructorInfo;
-                return state => (TDeclaringType)ctor.Invoke([state]);
+                return (in TArgumentState state) => (TDeclaringType)ctor.Invoke([state]);
             }
 
             Debug.Assert(typeof(TArgumentState) == typeof(object?[]));
@@ -241,7 +241,8 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                 ctorStack.Push((current.ConstructorInfo, current.ConstructorParameters.Length));
             }
 
-            return (Func<TArgumentState, TDeclaringType>)(object)(new Func<object?[], TDeclaringType>(state =>
+            return (Constructor<TArgumentState, TDeclaringType>)(object)
+                new Constructor<object?[], TDeclaringType>((in object?[] state) =>
             {
                 object? result = null;
                 int i = state.Length;
@@ -264,7 +265,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                 }
 
                 return (TDeclaringType)result!;
-            }));
+            });
         }
 
         if (ctorInfo is MethodConstructorShapeInfo methodCtor)
@@ -280,7 +281,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                     {
                         Debug.Assert(ctor.GetParameters().Length == 0);
 
-                        return state =>
+                        return (in TArgumentState state) =>
                         {
                             object obj = ctor.Invoke();
                             PopulateMember(member, obj, state);
@@ -289,7 +290,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                     }
                     else
                     {
-                        return state =>
+                        return (in TArgumentState state) =>
                         {
                             object obj = default(TDeclaringType)!;
                             PopulateMember(member, obj, state);
@@ -314,21 +315,23 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
 
                 if (methodCtor.ConstructorMethod is { } cI)
                 {
-                    return (Func<TArgumentState, TDeclaringType>)(object)new Func<(object?[] ctorArgs, object?[] memberArgs), TDeclaringType>(state =>
-                    {
-                        object obj = cI.Invoke(state.ctorArgs);
-                        PopulateMemberInitializers(obj, memberInitializers, state.memberArgs);
-                        return (TDeclaringType)obj!;
-                    });
+                    return (Constructor<TArgumentState, TDeclaringType>)(object)
+                        new Constructor<(object?[], object?[]), TDeclaringType>((in (object?[] ctorArgs, object?[] memberArgs) state) =>
+                        {
+                            object obj = cI.Invoke(state.ctorArgs);
+                            PopulateMemberInitializers(obj, memberInitializers, state.memberArgs);
+                            return (TDeclaringType)obj!;
+                        });
                 }
                 else
                 {
-                    return (Func<TArgumentState, TDeclaringType>)(object)new Func<(object?[] ctorArgs, object?[] memberArgs), TDeclaringType>(state =>
-                    {
-                        object obj = default(TDeclaringType)!;
-                        PopulateMemberInitializers(obj, memberInitializers, state.memberArgs);
-                        return (TDeclaringType)obj!;
-                    });
+                    return (Constructor<TArgumentState, TDeclaringType>)(object)
+                        new Constructor<(object?[], object?[]), TDeclaringType>((in (object?[] ctorArgs, object?[] memberArgs) state) =>
+                        {
+                            object obj = default(TDeclaringType)!;
+                            PopulateMemberInitializers(obj, memberInitializers, state.memberArgs);
+                            return (TDeclaringType)obj!;
+                        });
                 }
 
                 static void PopulateMemberInitializers(object obj, MemberInitializerShapeInfo[] memberInitializers, object?[] memberArgs)
@@ -355,13 +358,13 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                     Debug.Assert(typeof(TArgumentState) == pI.Type);
                     Debug.Assert(methodCtor.ConstructorMethod != null);
                     MethodBase ctor = methodCtor.ConstructorMethod;
-                    return state => (TDeclaringType)ctor.Invoke([state]);
+                    return (in TArgumentState state) => (TDeclaringType)ctor.Invoke([state]);
                 }
 
                 Debug.Assert(typeof(TArgumentState) == typeof(object?[]));
                 return methodCtor.ConstructorMethod is { } cI
-                    ? (Func<TArgumentState, TDeclaringType>)(object)new Func<object?[], TDeclaringType>(state => (TDeclaringType)cI.Invoke(state))
-                    : static _ => default!;
+                    ? (Constructor<TArgumentState, TDeclaringType>)(object)new Constructor<object?[], TDeclaringType>((in object?[] state) => (TDeclaringType)cI.Invoke(state))
+                    : static (in TArgumentState _) => default!;
             }
         }
 

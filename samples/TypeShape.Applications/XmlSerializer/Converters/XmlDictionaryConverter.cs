@@ -94,7 +94,7 @@ internal sealed class XmlImmutableDictionaryConverter<TDictionary, TKey, TValue>
     XmlConverter<TKey> keyConverter,
     XmlConverter<TValue> valueConverter,
     Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getEnumerable,
-    Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> constructor)
+    Constructor<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> constructor)
     : XmlDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, getEnumerable)
     where TKey : notnull
 {

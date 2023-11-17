@@ -17,7 +17,7 @@ internal sealed class ReflectionConstructorShape<TDeclaringType, TArgumentState>
     public Func<TArgumentState> GetArgumentStateConstructor()
         => provider.MemberAccessor.CreateConstructorArgumentStateCtor<TArgumentState>(ctorInfo);
 
-    public Func<TArgumentState, TDeclaringType> GetParameterizedConstructor()
+    public Constructor<TArgumentState, TDeclaringType> GetParameterizedConstructor()
         => provider.MemberAccessor.CreateParameterizedConstructor<TArgumentState, TDeclaringType>(ctorInfo);
 
     public Func<TDeclaringType> GetDefaultConstructor()

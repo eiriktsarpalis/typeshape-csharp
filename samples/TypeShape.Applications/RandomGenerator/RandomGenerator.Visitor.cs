@@ -74,7 +74,7 @@ public partial class RandomGenerator
             else
             {
                 Func<TArgumentState> argumentStateCtor = constructor.GetArgumentStateConstructor();
-                Func<TArgumentState, TDeclaringType> ctor = constructor.GetParameterizedConstructor();
+                Constructor<TArgumentState, TDeclaringType> ctor = constructor.GetParameterizedConstructor();
                 RandomPropertySetter<TArgumentState>[] parameterSetters = constructor.GetParameters()
                     .Select(param => (RandomPropertySetter<TArgumentState>)param.Accept(this, null)!)
                     .ToArray();
@@ -92,7 +92,7 @@ public partial class RandomGenerator
                     foreach (var parameterSetter in parameterSetters)
                         parameterSetter(ref argState, random, propertySize);
 
-                    TDeclaringType obj = ctor(argState);
+                    TDeclaringType obj = ctor(in argState);
 
                     foreach (var propertySetter in propertySetters)
                         propertySetter(ref obj, random, propertySize);
@@ -178,7 +178,7 @@ public partial class RandomGenerator
 
                 case IConstructorShape<TEnumerable, IEnumerable<TElement>> enumerableCtor:
                     Debug.Assert(constructor.ParameterCount == 1);
-                    Func<IEnumerable<TElement>, TEnumerable> parameterizedCtor = enumerableCtor.GetParameterizedConstructor();
+                    Constructor<IEnumerable<TElement>, TEnumerable> parameterizedCtor = enumerableCtor.GetParameterizedConstructor();
                     return CacheResult((Random random, int size) =>
                     {
                         if (size == 0)
@@ -239,7 +239,7 @@ public partial class RandomGenerator
 
                 case IConstructorShape<TDictionary, IEnumerable<KeyValuePair<TKey, TValue>>> enumerableCtor:
                     Debug.Assert(constructor.ParameterCount == 1);
-                    Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> enumerableCtorFunc = enumerableCtor.GetParameterizedConstructor();
+                    Constructor<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> enumerableCtorFunc = enumerableCtor.GetParameterizedConstructor();
                     return CacheResult((Random random, int size) =>
                     {
                         if (size == 0)

@@ -86,7 +86,7 @@ internal sealed class XmlObjectConverterWithDefaultCtor<T>(
 
 internal sealed class XmlObjectConverterWithParameterizedCtor<TDeclaringType, TArgumentState>(
     Func<TArgumentState> createArgumentState,
-    Func<TArgumentState, TDeclaringType> createObject,
+    Constructor<TArgumentState, TDeclaringType> createObject,
     XmlPropertyConverter<TArgumentState>[] constructorParameters,
     XmlPropertyConverter<TDeclaringType>[] properties) : XmlObjectConverterWithCtor<TDeclaringType>(properties)
 {

@@ -86,7 +86,8 @@ internal sealed class JsonImmutableDictionaryConverter<TDictionary, TKey, TValue
     JsonConverter<TKey> keyConverter,
     JsonConverter<TValue> valueConverter,
     IDictionaryShape<TDictionary, TKey, TValue> shape,
-    Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> constructor) : JsonDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, shape)
+    Constructor<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> constructor) 
+    : JsonDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, shape)
     where TKey : notnull
 {
     public override TDictionary? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

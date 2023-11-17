@@ -78,7 +78,7 @@ internal sealed class CborObjectConverterWithDefaultCtor<T>(
 
 internal sealed class CborObjectConverterWithParameterizedCtor<TDeclaringType, TArgumentState>(
     Func<TArgumentState> createArgumentState,
-    Func<TArgumentState, TDeclaringType> createObject,
+    Constructor<TArgumentState, TDeclaringType> createObject,
     CborPropertyConverter<TArgumentState>[] constructorParameters,
     CborPropertyConverter<TDeclaringType>[] properties) : CborObjectConverterWithCtor<TDeclaringType>(properties)
 {
@@ -103,6 +103,6 @@ internal sealed class CborObjectConverterWithParameterizedCtor<TDeclaringType, T
             propertyConverter.Read(reader, ref argumentState);
         }
 
-        return createObject(argumentState);
+        return createObject(in argumentState);
     }
 }

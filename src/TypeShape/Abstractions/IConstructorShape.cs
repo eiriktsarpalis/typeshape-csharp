@@ -66,7 +66,7 @@ public interface IConstructorShape<TDeclaringType, TArgumentState> : IConstructo
     /// Creates a constructor delegate parameterized on an argument state object.
     /// </summary>
     /// <returns>A parameterized delegate returning an instance of <see cref="TDeclaringType"/>.</returns>
-    Func<TArgumentState, TDeclaringType> GetParameterizedConstructor();
+    Constructor<TArgumentState, TDeclaringType> GetParameterizedConstructor();
 
     /// <summary>
     /// Creates a constructor delegate for creating a default argument state instance.

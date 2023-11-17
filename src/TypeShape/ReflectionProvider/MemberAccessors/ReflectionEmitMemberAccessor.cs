@@ -16,10 +16,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         ILGenerator generator = dynamicMethod.GetILGenerator();
 
         generator.Emit(OpCodes.Ldarg_0);
-        if (!typeof(TDeclaringType).IsValueType)
-        {
-            generator.Emit(OpCodes.Ldind_Ref);
-        }
+        LdRef(generator, typeof(TDeclaringType));
 
         if (parentMembers != null)
         {
@@ -80,10 +77,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         ILGenerator generator = dynamicMethod.GetILGenerator();
 
         generator.Emit(OpCodes.Ldarg_0);
-        if (!typeof(TDeclaringType).IsValueType)
-        {
-            generator.Emit(OpCodes.Ldind_Ref);
-        }
+        LdRef(generator, typeof(TDeclaringType));
 
         if (parentMembers != null)
         {
@@ -132,10 +126,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         ILGenerator generator = dynamicMethod.GetILGenerator();
 
         generator.Emit(OpCodes.Ldarg_0);
-        if (!typeof(TEnumerable).IsValueType)
-        {
-            generator.Emit(OpCodes.Ldind_Ref);
-        }
+        LdRef(generator, typeof(TEnumerable));
 
         generator.Emit(OpCodes.Ldarg_1);
 
@@ -159,10 +150,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         ILGenerator generator = dynamicMethod.GetILGenerator();
 
         generator.Emit(OpCodes.Ldarg_0);
-        if (!typeof(TDictionary).IsValueType)
-        {
-            generator.Emit(OpCodes.Ldind_Ref);
-        }
+        LdRef(generator, typeof(TDictionary));
 
         generator.Emit(OpCodes.Ldarga_S, 1);
         generator.Emit(OpCodes.Call, keyValuePairTy.GetMethod("get_Key", BindingFlags.Public | BindingFlags.Instance)!);
@@ -304,6 +292,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
             Type tupleType = typeof(TArgumentState);
 
             generator.Emit(OpCodes.Ldarg_0);
+            LdRef(generator, typeof(TArgumentState));
 
             while (parameterIndex > 6) // The element we want to access is in a nested tuple
             {
@@ -322,25 +311,25 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         }
     }
 
-    public Func<TArgumentState, TDeclaringType> CreateParameterizedConstructor<TArgumentState, TDeclaringType>(IConstructorShapeInfo ctorInfo)
+    public Constructor<TArgumentState, TDeclaringType> CreateParameterizedConstructor<TArgumentState, TDeclaringType>(IConstructorShapeInfo ctorInfo)
     {
         if (ctorInfo is MethodConstructorShapeInfo { ConstructorMethod: null, Parameters.Count: 0 })
         {
             Debug.Assert(typeof(TDeclaringType).IsValueType);
-            return static _ => default!;
+            return static (in TArgumentState _) => default!;
         }
         else if (ctorInfo is TupleConstructorShapeInfo { IsValueTuple: true })
         {
             Debug.Assert(typeof(TDeclaringType) == typeof(TArgumentState));
-            return (Func<TArgumentState, TDeclaringType>)(object)(new Func<TArgumentState, TArgumentState>(static arg => arg));
+            return (Constructor<TArgumentState, TDeclaringType>)(object)(new Constructor<TArgumentState, TArgumentState>(static (in TArgumentState arg) => arg));
         }
 
-        return CreateDelegate<Func<TArgumentState, TDeclaringType>>(EmitParameterizedConstructorMethod(typeof(TDeclaringType), typeof(TArgumentState), ctorInfo));
+        return CreateDelegate<Constructor<TArgumentState, TDeclaringType>>(EmitParameterizedConstructorMethod(typeof(TDeclaringType), typeof(TArgumentState), ctorInfo));
     }
 
     private static DynamicMethod EmitParameterizedConstructorMethod(Type declaringType, Type argumentStateType, IConstructorShapeInfo ctorInfo)
     {
-        DynamicMethod dynamicMethod = CreateDynamicMethod("parameterizedCtor", declaringType, [argumentStateType]);
+        DynamicMethod dynamicMethod = CreateDynamicMethod("parameterizedCtor", declaringType, [argumentStateType.MakeByRefType()]);
         ILGenerator generator = dynamicMethod.GetILGenerator();
 
         if (ctorInfo is MethodConstructorShapeInfo methodCtor)
@@ -375,6 +364,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
 
                         generator.Emit(OpCodes.Ldloca, local);
                         generator.Emit(OpCodes.Ldarg_0);
+                        LdRef(generator, argumentStateType);
                         StMember(memberInitializer);
 
                         generator.Emit(OpCodes.Ldloc, local);
@@ -387,6 +377,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
 
                         generator.Emit(OpCodes.Dup);
                         generator.Emit(OpCodes.Ldarg_0);
+                        LdRef(generator, argumentStateType);
                         StMember(memberInitializer);
 
                         generator.Emit(OpCodes.Ret);
@@ -397,6 +388,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
                     Debug.Assert(methodCtor.ConstructorMethod != null);
 
                     generator.Emit(OpCodes.Ldarg_0);
+                    LdRef(generator, argumentStateType);
                     EmitCall(generator, methodCtor.ConstructorMethod);
                     generator.Emit(OpCodes.Ret);
                 }
@@ -718,4 +710,45 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
                 throw new NotImplementedException($"Default parameter support for {value.GetType()}");
         }
     }
+
+    private static void LdRef(ILGenerator generator, Type type)
+    {
+        if (GetLdIndOpCode(type) is { } opcode)
+        {
+            generator.Emit(opcode);
+        }
+        else if (type.IsNullableStruct())
+        {
+            generator.Emit(OpCodes.Ldobj, type);
+        }
+
+        static OpCode? GetLdIndOpCode(Type argumentType)
+        {
+            if (!argumentType.IsValueType)
+            {
+                return OpCodes.Ldind_Ref;
+            }
+
+            if (argumentType.IsEnum)
+            {
+                argumentType = Enum.GetUnderlyingType(argumentType);
+            }
+
+            return Type.GetTypeCode(argumentType) switch
+            {
+                TypeCode.Boolean or TypeCode.Byte => OpCodes.Ldind_U1,
+                TypeCode.SByte => OpCodes.Ldind_I1,
+                TypeCode.Char or TypeCode.UInt16 => OpCodes.Ldind_U2,
+                TypeCode.Int16 => OpCodes.Ldind_I2,
+                TypeCode.UInt32 => OpCodes.Ldind_U4,
+                TypeCode.Int32 => OpCodes.Ldind_I4,
+                TypeCode.UInt64 or TypeCode.Int64 => OpCodes.Ldind_I8,
+                TypeCode.Single => OpCodes.Ldind_R4,
+                TypeCode.Double => OpCodes.Ldind_R8,
+                _ => null,
+            };
+        }
+    }
+
+
 }

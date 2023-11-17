@@ -80,7 +80,8 @@ internal sealed class CborImmutableDictionaryConverter<TDictionary, TKey, TValue
     CborConverter<TKey> keyConverter,
     CborConverter<TValue> valueConverter,
     Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getDictionary,
-    Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> constructor) : CborDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, getDictionary)
+    Constructor<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> constructor) 
+    : CborDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, getDictionary)
 {
     public override TDictionary? Read(CborReader reader)
     {

@@ -82,7 +82,7 @@ internal sealed class XmlMutableEnumerableConverter<TEnumerable, TElement>(
 internal sealed class XmlImmutableEnumerableConverter<TEnumerable, TElement>(
     XmlConverter<TElement> elementConverter,
     Func<TEnumerable, IEnumerable<TElement>> getEnumerable,
-    Func<IEnumerable<TElement>, TEnumerable> constructor)
+    Constructor<IEnumerable<TElement>, TEnumerable> constructor)
     : XmlEnumerableConverter<TEnumerable, TElement>(elementConverter, getEnumerable)
 {
     public override TEnumerable? Read(XmlReader reader)

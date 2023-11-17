@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 
 internal class JsonObjectConverter<T>(JsonPropertyConverter<T>[] properties) : JsonConverter<T>
 {
-    private JsonPropertyConverter<T>[] _propertiesToWrite = properties.Where(prop => prop.HasGetter).ToArray();
+    private readonly JsonPropertyConverter<T>[] _propertiesToWrite = properties.Where(prop => prop.HasGetter).ToArray();
 
     public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         => throw new NotSupportedException($"Deserialization for type {typeof(T)} is not supported.");
@@ -82,7 +82,7 @@ internal sealed class JsonObjectConverterWithDefaultCtor<T>(Func<T> defaultConst
 
 internal sealed class JsonObjectConverterWithParameterizedCtor<TDeclaringType, TArgumentState>(
     Func<TArgumentState> createArgumentState,
-    Func<TArgumentState, TDeclaringType> createObject,
+    Constructor<TArgumentState, TDeclaringType> createObject,
     JsonPropertyConverter<TArgumentState>[] constructorParameters,
     JsonPropertyConverter<TDeclaringType>[] properties) : JsonObjectConverterWithCtor<TDeclaringType>(properties)
 {
@@ -109,6 +109,6 @@ internal sealed class JsonObjectConverterWithParameterizedCtor<TDeclaringType, T
             reader.EnsureRead();
         }
 
-        return createObject(argumentState);
+        return createObject(in argumentState);
     }
 }

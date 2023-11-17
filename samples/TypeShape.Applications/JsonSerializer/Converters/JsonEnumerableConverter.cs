@@ -75,7 +75,8 @@ internal sealed class JsonMutableEnumerableConverter<TEnumerable, TElement>(
 internal sealed class JsonImmutableEnumerableConverter<TEnumerable, TElement>(
     JsonConverter<TElement> elementConverter,
     IEnumerableShape<TEnumerable, TElement> shape,
-    Func<IEnumerable<TElement>, TEnumerable> constructor) : JsonEnumerableConverter<TEnumerable, TElement>(elementConverter, shape)
+    Constructor<IEnumerable<TElement>, TEnumerable> constructor) 
+    : JsonEnumerableConverter<TEnumerable, TElement>(elementConverter, shape)
 {
     public override TEnumerable? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {   

@@ -17,3 +17,12 @@ public delegate TPropertyType Getter<TDeclaringType, TPropertyType>(ref TDeclari
 /// <param name="obj">The instance on which to set the value.</param>
 /// <param name="value">The value to be set to the instance.</param>
 public delegate void Setter<TDeclaringType, TPropertyType>(ref TDeclaringType obj, TPropertyType value);
+
+/// <summary>
+/// Delegate representing a parameterized constructor.
+/// </summary>
+/// <typeparam name="TArgumentState">Type of the state object containing all constructor arguments.</typeparam>
+/// <typeparam name="TDeclaringType">Type of the object to be constructed.</typeparam>
+/// <param name="state">State object containing all constructor arguments.</param>
+/// <returns>The isntance created by the constructor.</returns>
+public delegate TDeclaringType Constructor<TArgumentState, TDeclaringType>(in TArgumentState state);
