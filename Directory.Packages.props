@@ -15,6 +15,7 @@
     <PackageVersion Include="xunit" Version="2.4.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.4.5" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.5.0" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.0" />
     <PackageVersion Include="BenchmarkDotNet" Version="0.13.8" />
     <PackageVersion Include="System.Formats.Cbor" Version="7.0.0" />
   </ItemGroup>
