@@ -116,6 +116,6 @@ internal sealed class XmlObjectConverterWithParameterizedCtor<TDeclaringType, TA
             }
         }
 
-        return createObject(argumentState);
+        return createObject(ref argumentState);
     }
 }

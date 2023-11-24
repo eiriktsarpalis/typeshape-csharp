@@ -57,7 +57,7 @@ public static partial class CborSerializer
                     converter = (CborConverter<T>)type.GetNullableShape().Accept(this, null)!;
                     break;
 
-                case TypeKind kind when (kind & TypeKind.Dictionary) != 0:
+                case TypeKind.Dictionary:
                     converter = (CborConverter<T>)type.GetDictionaryShape().Accept(this, null)!;
                     break;
 
@@ -127,38 +127,29 @@ public static partial class CborSerializer
             var elementConverter = (CborConverter<TElement>)enumerableShape.ElementType.Accept(this, null)!;
             Func<TEnumerable, IEnumerable<TElement>> getEnumerable = enumerableShape.GetGetEnumerable();
 
-            IConstructorShape<TEnumerable>? constructor = enumerableShape.Type.GetConstructors(nonPublic: false)
-                .Where(ctor =>
-                    (ctor.ParameterCount == 0 && enumerableShape.IsMutable) ||
-                    (ctor.ParameterCount == 1 && ctor.GetParameters().First().ParameterType.Type == typeof(IEnumerable<TElement>)))
-                .OrderBy(ctor => ctor.ParameterCount)
-                .OfType<IConstructorShape<TEnumerable>>()
-                .FirstOrDefault();
-
-            switch (constructor)
+            return enumerableShape.ConstructionStrategy switch
             {
-                case { ParameterCount: 0 }:
-                    Debug.Assert(enumerableShape.IsMutable);
-                    return new CborMutableEnumerableConverter<TEnumerable, TElement>(
+                CollectionConstructionStrategy.Mutable =>
+                    new CborMutableEnumerableConverter<TEnumerable, TElement>(
                         elementConverter,
                         getEnumerable,
-                        constructor.GetDefaultConstructor(),
-                        enumerableShape.GetAddElement()
-                    );
+                        enumerableShape.GetDefaultConstructor(),
+                        enumerableShape.GetAddElement()),
 
-                case IConstructorShape<TEnumerable, IEnumerable<TElement>> enumerableCtor:
-                    Debug.Assert(constructor.ParameterCount == 1);
-
-                    return new CborImmutableEnumerableConverter<TEnumerable, TElement>(
+                CollectionConstructionStrategy.Enumerable =>
+                    new CborEnumerableConstructorEnumerableConverter<TEnumerable, TElement>(
                         elementConverter,
                         getEnumerable,
-                        enumerableCtor.GetParameterizedConstructor()
-                    );
+                        enumerableShape.GetEnumerableConstructor()),
 
-                default:
-                    Debug.Assert(constructor is null);
-                    return new CborEnumerableConverter<TEnumerable, TElement>(elementConverter, getEnumerable);
-            }
+                CollectionConstructionStrategy.Span =>
+                    new CborSpanConstructorEnumerableConverter<TEnumerable, TElement>(
+                        elementConverter,
+                        getEnumerable,
+                        enumerableShape.GetSpanConstructor()),
+
+                _ => new CborEnumerableConverter<TEnumerable, TElement>(elementConverter, getEnumerable),
+            };
         }
 
         public object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state) where TKey : notnull
@@ -167,37 +158,32 @@ public static partial class CborSerializer
             var valueConverter = (CborConverter<TValue>)dictionaryShape.ValueType.Accept(this, null)!;
             Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getDictionary = dictionaryShape.GetGetDictionary();
 
-            IConstructorShape<TDictionary>? constructor = dictionaryShape.Type.GetConstructors(nonPublic: false)
-                .Where(ctor =>
-                    (ctor.ParameterCount == 0 && dictionaryShape.IsMutable) ||
-                    (ctor.ParameterCount == 1 && ctor.GetParameters().First().ParameterType.Type == typeof(IEnumerable<KeyValuePair<TKey, TValue>>)))
-                .OrderBy(ctor => ctor.ParameterCount)
-                .OfType<IConstructorShape<TDictionary>>()
-                .FirstOrDefault();
-
-            switch (constructor)
+            return dictionaryShape.ConstructionStrategy switch
             {
-                case { ParameterCount: 0 }:
-                    Debug.Assert(dictionaryShape.IsMutable);
-                    return new CborMutableDictionaryConverter<TDictionary, TKey, TValue>(
+                CollectionConstructionStrategy.Mutable => 
+                    new CborMutableDictionaryConverter<TDictionary, TKey, TValue>(
                         keyConverter,
                         valueConverter,
                         getDictionary,
-                        constructor.GetDefaultConstructor(),
-                        dictionaryShape.GetAddKeyValuePair());
+                        dictionaryShape.GetDefaultConstructor(),
+                        dictionaryShape.GetAddKeyValuePair()),
 
-                case IConstructorShape<TDictionary, IEnumerable<KeyValuePair<TKey, TValue>>> enumerableCtor:
-                    Debug.Assert(constructor.ParameterCount == 1);
-                    return new CborImmutableDictionaryConverter<TDictionary, TKey, TValue>(
+                CollectionConstructionStrategy.Enumerable => 
+                    new CborEnumerableConstructorDictionaryConverter<TDictionary, TKey, TValue>(
                         keyConverter,
                         valueConverter,
                         getDictionary,
-                        enumerableCtor.GetParameterizedConstructor());
+                        dictionaryShape.GetEnumerableConstructor()),
 
-                default:
-                    Debug.Assert(constructor is null);
-                    return new CborDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, getDictionary);
-            }
+                CollectionConstructionStrategy.Span =>
+                    new CborSpanConstructorDictionaryConverter<TDictionary, TKey, TValue>(
+                        keyConverter,
+                        valueConverter,
+                        getDictionary,
+                        dictionaryShape.GetSpanConstructor()),
+
+                _ => new CborDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, getDictionary),
+            };
         }
 
         public object? VisitNullable<T>(INullableShape<T> nullableShape, object? state) where T : struct

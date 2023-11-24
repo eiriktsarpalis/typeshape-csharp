@@ -24,9 +24,9 @@ public interface IEnumerableShape
     ITypeShape ElementType { get; }
 
     /// <summary>
-    /// Indicates whether instances of the enumerable type can be mutated.
+    /// Gets the construction strategy for the given collection.
     /// </summary>
-    bool IsMutable { get; }
+    CollectionConstructionStrategy ConstructionStrategy { get; }
 
     /// <summary>
     /// Gets the rank of the enumerable, if a multi-dimensional array.
@@ -65,9 +65,30 @@ public interface IEnumerableShape<TEnumerable, TElement> : IEnumerableShape
     Func<TEnumerable, IEnumerable<TElement>> GetGetEnumerable();
 
     /// <summary>
+    /// Creates a delegate wrapping a parameterless constructor of a mutable collection.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The collection is not <see cref="CollectionConstructionStrategy.Mutable"/>.</exception>
+    /// <returns>A delegate wrapping a default constructor.</returns>
+    Func<TEnumerable> GetDefaultConstructor();
+
+    /// <summary>
     /// Creates a setter delegate used for appending an <see cref="TElement"/> to a mutable collection.
     /// </summary>
-    /// <exception cref="InvalidOperationException">The collection does not support mutation.</exception>
+    /// <exception cref="InvalidOperationException">The collection is not <see cref="CollectionConstructionStrategy.Mutable"/>.</exception>
     /// <returns>A setter delegate used for appending elements to a mutable collection.</returns>
     Setter<TEnumerable, TElement> GetAddElement();
+
+    /// <summary>
+    /// Creates a constructor delegate for creating a collection from a span.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The collection is not <see cref="CollectionConstructionStrategy.Span"/>.</exception>
+    /// <returns></returns>
+    SpanConstructor<TElement, TEnumerable> GetSpanConstructor();
+
+    /// <summary>
+    /// Creates a constructor delegate for creating a collection from an enumerable.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The collection is not <see cref="CollectionConstructionStrategy.Enumerable"/>.</exception>
+    /// <returns></returns>
+    Func<IEnumerable<TElement>, TEnumerable> GetEnumerableConstructor();
 }

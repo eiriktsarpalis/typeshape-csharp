@@ -2,6 +2,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeShape.Applications.Common;
@@ -72,13 +73,13 @@ internal sealed class JsonMutableEnumerableConverter<TEnumerable, TElement>(
     }
 }
 
-internal sealed class JsonImmutableEnumerableConverter<TEnumerable, TElement>(
+internal abstract class JsonImmutableEnumerableConverter<TEnumerable, TElement>(
     JsonConverter<TElement> elementConverter,
-    IEnumerableShape<TEnumerable, TElement> shape,
-    Constructor<IEnumerable<TElement>, TEnumerable> constructor) 
+    IEnumerableShape<TEnumerable, TElement> shape)
     : JsonEnumerableConverter<TEnumerable, TElement>(elementConverter, shape)
 {
-    public override TEnumerable? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    private protected abstract TEnumerable Construct(List<TElement> buffer);
+    public sealed override TEnumerable? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {   
         if (default(TEnumerable) is null && reader.TokenType is JsonTokenType.Null)
         {
@@ -98,8 +99,28 @@ internal sealed class JsonImmutableEnumerableConverter<TEnumerable, TElement>(
             reader.EnsureRead();
         }
 
-        return constructor(buffer);
+        return Construct(buffer);
     }
+}
+
+internal sealed class JsonEnumerableConstructorEnumerableConverter<TEnumerable, TElement>(
+    JsonConverter<TElement> elementConverter,
+    IEnumerableShape<TEnumerable, TElement> shape,
+    Func<IEnumerable<TElement>, TEnumerable> enumerableConstructor) 
+    : JsonImmutableEnumerableConverter<TEnumerable, TElement>(elementConverter, shape)
+{
+    private protected override TEnumerable Construct(List<TElement> buffer)
+        => enumerableConstructor(buffer);
+}
+
+internal sealed class JsonSpanConstructorEnumerableConverter<TEnumerable, TElement>(
+    JsonConverter<TElement> elementConverter,
+    IEnumerableShape<TEnumerable, TElement> shape,
+    SpanConstructor<TElement, TEnumerable> spanConstructor) 
+    : JsonImmutableEnumerableConverter<TEnumerable, TElement>(elementConverter, shape)
+{
+    private protected override TEnumerable Construct(List<TElement> buffer)
+        => spanConstructor(CollectionsMarshal.AsSpan(buffer));
 }
 
 internal sealed class Json2DArrayConverter<TElement>(JsonConverter<TElement> elementConverter) : JsonConverter<TElement[,]>

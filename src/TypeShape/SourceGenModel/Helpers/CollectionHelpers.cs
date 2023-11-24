@@ -1,10 +1,41 @@
 ﻿using System.Collections;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace TypeShape.SourceGenModel;
 
 public static class CollectionHelpers
 {
+    public static List<T> CreateList<T>(ReadOnlySpan<T> span)
+    {
+        var list = new List<T>(span.Length);
+        CollectionsMarshal.SetCount(list, span.Length);
+        span.CopyTo(CollectionsMarshal.AsSpan(list));
+        return list;
+    }
+
+    public static HashSet<T> CreateHashSet<T>(ReadOnlySpan<T> span)
+    {
+        var set = new HashSet<T>(span.Length);
+        for (int i = 0; i < span.Length; i++)
+        {
+            set.Add(span[i]);
+        }
+        return set;
+    }
+
+    public static Dictionary<TKey, TValue> CreateDictionary<TKey, TValue>(ReadOnlySpan<KeyValuePair<TKey, TValue>> span)
+        where TKey : notnull
+    {
+        var dict = new Dictionary<TKey, TValue>(span.Length);
+        for (int i = 0; i < span.Length; i++)
+        {
+            KeyValuePair<TKey, TValue> kvp = span[i];
+            dict[kvp.Key] = kvp.Value;
+        }
+        return dict;
+    }
+
     public static IReadOnlyDictionary<TKey, TValue> AsReadOnlyDictionary<TDictionary, TKey, TValue>(TDictionary dictionary)
         where TDictionary : IDictionary<TKey, TValue>
         => new ReadOnlyDictionaryWrapper<TDictionary, TKey, TValue>(dictionary);

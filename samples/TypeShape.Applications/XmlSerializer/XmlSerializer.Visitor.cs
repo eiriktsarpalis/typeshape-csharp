@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Xml.Linq;
 using TypeShape.Applications.XmlSerializer.Converters;
 
 namespace TypeShape.Applications.XmlSerializer;
@@ -58,7 +57,7 @@ public static partial class XmlSerializer
                     converter = (XmlConverter<T>)type.GetNullableShape().Accept(this, null)!;
                     break;
 
-                case TypeKind kind when (kind & TypeKind.Dictionary) != 0:
+                case TypeKind.Dictionary:
                     converter = (XmlConverter<T>)type.GetDictionaryShape().Accept(this, null)!;
                     break;
 
@@ -128,38 +127,26 @@ public static partial class XmlSerializer
             var elementConverter = (XmlConverter<TElement>)enumerableShape.ElementType.Accept(this, null)!;
             Func<TEnumerable, IEnumerable<TElement>> getEnumerable = enumerableShape.GetGetEnumerable();
 
-            IConstructorShape<TEnumerable>? constructor = enumerableShape.Type.GetConstructors(nonPublic: false)
-                .Where(ctor =>
-                    (ctor.ParameterCount == 0 && enumerableShape.IsMutable) ||
-                    (ctor.ParameterCount == 1 && ctor.GetParameters().First().ParameterType.Type == typeof(IEnumerable<TElement>)))
-                .OrderBy(ctor => ctor.ParameterCount)
-                .OfType<IConstructorShape<TEnumerable>>()
-                .FirstOrDefault();
-
-            switch (constructor)
+            return enumerableShape.ConstructionStrategy switch
             {
-                case { ParameterCount: 0 }:
-                    Debug.Assert(enumerableShape.IsMutable);
-                    return new XmlMutableEnumerableConverter<TEnumerable, TElement>(
+                CollectionConstructionStrategy.Mutable => 
+                    new XmlMutableEnumerableConverter<TEnumerable, TElement>(
                         elementConverter,
                         getEnumerable,
-                        constructor.GetDefaultConstructor(),
-                        enumerableShape.GetAddElement()
-                    );
-
-                case IConstructorShape<TEnumerable, IEnumerable<TElement>> enumerableCtor:
-                    Debug.Assert(constructor.ParameterCount == 1);
-
-                    return new XmlImmutableEnumerableConverter<TEnumerable, TElement>(
+                        enumerableShape.GetDefaultConstructor(),
+                        enumerableShape.GetAddElement()),
+                CollectionConstructionStrategy.Enumerable => 
+                    new XmlEnumerableConstructorEnumerableConverter<TEnumerable, TElement>(
                         elementConverter,
                         getEnumerable,
-                        enumerableCtor.GetParameterizedConstructor()
-                    );
-
-                default:
-                    Debug.Assert(constructor is null);
-                    return new XmlEnumerableConverter<TEnumerable, TElement>(elementConverter, getEnumerable);
-            }
+                        enumerableShape.GetEnumerableConstructor()),
+                CollectionConstructionStrategy.Span => 
+                    new XmlSpanConstructorEnumerableConverter<TEnumerable, TElement>(
+                        elementConverter,
+                        getEnumerable,
+                        enumerableShape.GetSpanConstructor()),
+                _ => new XmlEnumerableConverter<TEnumerable, TElement>(elementConverter, getEnumerable),
+            };
         }
 
         public object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state) where TKey : notnull
@@ -168,37 +155,32 @@ public static partial class XmlSerializer
             var valueConverter = (XmlConverter<TValue>)dictionaryShape.ValueType.Accept(this, null)!;
             Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getEnumerable = dictionaryShape.GetGetDictionary();
 
-            IConstructorShape<TDictionary>? constructor = dictionaryShape.Type.GetConstructors(nonPublic: false)
-                .Where(ctor =>
-                    (ctor.ParameterCount == 0 && dictionaryShape.IsMutable) ||
-                    (ctor.ParameterCount == 1 && ctor.GetParameters().First().ParameterType.Type == typeof(IEnumerable<KeyValuePair<TKey, TValue>>)))
-                .OrderBy(ctor => ctor.ParameterCount)
-                .OfType<IConstructorShape<TDictionary>>()
-                .FirstOrDefault();
-
-            switch (constructor)
+            return dictionaryShape.ConstructionStrategy switch
             {
-                case { ParameterCount: 0 }:
-                    Debug.Assert(dictionaryShape.IsMutable);
-                    return new XmlMutableDictionaryConverter<TDictionary, TKey, TValue>(
+                CollectionConstructionStrategy.Mutable => 
+                    new XmlMutableDictionaryConverter<TDictionary, TKey, TValue>(
                         keyConverter,
                         valueConverter,
                         getEnumerable,
-                        constructor.GetDefaultConstructor(),
-                        dictionaryShape.GetAddKeyValuePair());
+                        dictionaryShape.GetDefaultConstructor(),
+                        dictionaryShape.GetAddKeyValuePair()),
 
-                case IConstructorShape<TDictionary, IEnumerable<KeyValuePair<TKey, TValue>>> enumerableCtor:
-                    Debug.Assert(constructor.ParameterCount == 1);
-                    return new XmlImmutableDictionaryConverter<TDictionary, TKey, TValue>(
+                CollectionConstructionStrategy.Enumerable => 
+                    new XmlEnumerableConstructorDictionaryConverter<TDictionary, TKey, TValue>(
                         keyConverter,
                         valueConverter,
                         getEnumerable,
-                        enumerableCtor.GetParameterizedConstructor());
+                        dictionaryShape.GetEnumerableConstructor()),
 
-                default:
-                    Debug.Assert(constructor is null);
-                    return new XmlDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, getEnumerable);
-            }
+                CollectionConstructionStrategy.Span => 
+                    new XmlSpanConstructorDictionaryConverter<TDictionary, TKey, TValue>(
+                        keyConverter,
+                        valueConverter,
+                        getEnumerable,
+                        dictionaryShape.GetSpanConstructor()),
+
+                _ => new XmlDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, getEnumerable),
+            };
         }
 
         public object? VisitNullable<T>(INullableShape<T> nullableShape, object? state) where T : struct

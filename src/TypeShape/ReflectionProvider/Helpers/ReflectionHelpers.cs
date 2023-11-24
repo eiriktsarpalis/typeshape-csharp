@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 
@@ -185,6 +186,52 @@ internal static class ReflectionHelpers
 
     public static bool IsAutoPropertyWithSetter(this MemberInfo memberInfo)
         => memberInfo is PropertyInfo { SetMethod: { } setter } && setter.IsCompilerGenerated();
+
+    public static bool TryGetCollectionBuilderAttribute(this Type type, Type elementType, [NotNullWhen(true)] out MethodInfo? builderMethod)
+    {
+        builderMethod = null;
+        CustomAttributeData? attributeData = type.CustomAttributes.FirstOrDefault(attr => attr.AttributeType.FullName == "System.Runtime.CompilerServices.CollectionBuilderAttribute");
+
+        if (attributeData is null)
+        {
+            return false;
+        }
+
+        Type builderType = (Type)attributeData.ConstructorArguments[0].Value!;
+        string methodName = (string)attributeData.ConstructorArguments[1].Value!;
+
+        if (builderType.IsGenericType)
+        {
+            return false;
+        }
+
+        foreach (MethodInfo method in builderType.GetMethods(BindingFlags.Public | BindingFlags.Static))
+        {
+            if (method.Name == methodName && method.GetParameters() is [{ ParameterType: Type parameterType }] &&
+                parameterType.IsGenericType && parameterType.GetGenericTypeDefinition() == typeof(ReadOnlySpan<>))
+            {
+                Type spanElementType = parameterType.GetGenericArguments()[0];
+                if (spanElementType == elementType && method.ReturnType == type)
+                {
+                    builderMethod = method;
+                    return true;
+                }
+                
+                if (method.IsGenericMethod && method.GetGenericArguments() is [Type typeParameter] &&
+                    spanElementType == typeParameter)
+                {
+                    MethodInfo specializedMethod = method.MakeGenericMethod(elementType);
+                    if (specializedMethod.ReturnType == type)
+                    {
+                        builderMethod = specializedMethod;
+                        // Continue searching since we prioritize non-generic methods.
+                    }
+                }
+            }
+        }
+
+        return builderMethod != null;
+    }
 
     public static bool IsInitOnly(this MemberInfo memberInfo)
     {

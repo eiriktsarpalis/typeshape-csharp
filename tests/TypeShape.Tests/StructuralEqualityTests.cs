@@ -64,7 +64,7 @@ public abstract class StructuralEqualityTests
             new DerivedClass { X = 1, Y = -1 });
 
         yield return NotEqual(
-            new LinkedList<int>
+            new MyLinkedList<int>
             {
                 Value = 1,
                 Next = new()
@@ -77,7 +77,7 @@ public abstract class StructuralEqualityTests
                     }
                 }
             },
-            new LinkedList<int>
+            new MyLinkedList<int>
             {
                 Value = 1,
                 Next = new()

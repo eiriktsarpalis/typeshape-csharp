@@ -36,7 +36,7 @@ public static partial class StructuralEqualityComparer
                 case TypeKind.Nullable:
                     return type.GetNullableShape().Accept(this, state);
 
-                case var kind when (kind.HasFlag(TypeKind.Dictionary)):
+                case TypeKind.Dictionary:
                     return type.GetDictionaryShape().Accept(this, state);
 
                 case TypeKind.Enumerable:

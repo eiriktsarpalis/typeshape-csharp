@@ -38,7 +38,7 @@ internal static partial class SourceFormatter
                     GetParametersFunc = {{(constructor.TotalArity == 0 ? "null" : FormatConstructorParameterFactoryName(type, i))}},
                     DefaultConstructorFunc = {{FormatDefaultCtor(type, constructor)}},
                     ArgumentStateConstructorFunc = static () => {{FormatArgumentStateCtorExpr(constructor, constructorArgumentStateFQN)}},
-                    ParameterizedConstructorFunc = static (in {{constructorArgumentStateFQN}} state) => {{FormatParameterizedCtorExpr(type, constructor, "state")}},
+                    ParameterizedConstructorFunc = static (ref {{constructorArgumentStateFQN}} state) => {{FormatParameterizedCtorExpr(type, constructor, "state")}},
                     AttributeProviderFunc = {{FormatAttributeProviderFunc(type, constructor)}},
                 },
                 """);

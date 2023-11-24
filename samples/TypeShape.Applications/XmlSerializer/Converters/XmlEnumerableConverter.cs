@@ -1,5 +1,5 @@
-﻿using System.Xml;
-using TypeShape.Applications.Common;
+﻿using System.Runtime.InteropServices;
+using System.Xml;
 
 namespace TypeShape.Applications.XmlSerializer.Converters;
 
@@ -79,13 +79,14 @@ internal sealed class XmlMutableEnumerableConverter<TEnumerable, TElement>(
     }
 }
 
-internal sealed class XmlImmutableEnumerableConverter<TEnumerable, TElement>(
+internal abstract class XmlImmutableEnumerableConverter<TEnumerable, TElement>(
     XmlConverter<TElement> elementConverter,
-    Func<TEnumerable, IEnumerable<TElement>> getEnumerable,
-    Constructor<IEnumerable<TElement>, TEnumerable> constructor)
+    Func<TEnumerable, IEnumerable<TElement>> getEnumerable)
     : XmlEnumerableConverter<TEnumerable, TElement>(elementConverter, getEnumerable)
 {
-    public override TEnumerable? Read(XmlReader reader)
+    private protected abstract TEnumerable Construct(List<TElement> buffer);
+
+    public sealed override TEnumerable? Read(XmlReader reader)
     {
         if (default(TEnumerable) is null && reader.TryReadNullElement())
         {
@@ -95,7 +96,7 @@ internal sealed class XmlImmutableEnumerableConverter<TEnumerable, TElement>(
         if (reader.IsEmptyElement)
         {
             reader.ReadStartElement();
-            return constructor([]);
+            return Construct([]);
         }
 
         XmlConverter<TElement> elementConverter = _elementConverter;
@@ -114,6 +115,26 @@ internal sealed class XmlImmutableEnumerableConverter<TEnumerable, TElement>(
         }
 
         reader.ReadEndElement();
-        return constructor(elements);
+        return Construct(elements);
     }
+}
+
+internal sealed class XmlEnumerableConstructorEnumerableConverter<TEnumerable, TElement>(
+    XmlConverter<TElement> elementConverter,
+    Func<TEnumerable, IEnumerable<TElement>> getEnumerable,
+    Func<IEnumerable<TElement>, TEnumerable> enumerableConstructor)
+    : XmlImmutableEnumerableConverter<TEnumerable, TElement>(elementConverter, getEnumerable)
+{
+    private protected override TEnumerable Construct(List<TElement> buffer)
+        => enumerableConstructor(buffer);
+}
+
+internal sealed class XmlSpanConstructorEnumerableConverter<TEnumerable, TElement>(
+    XmlConverter<TElement> elementConverter,
+    Func<TEnumerable, IEnumerable<TElement>> getEnumerable,
+    SpanConstructor<TElement, TEnumerable> spanConstructor)
+    : XmlImmutableEnumerableConverter<TEnumerable, TElement>(elementConverter, getEnumerable)
+{
+    private protected override TEnumerable Construct(List<TElement> buffer)
+        => spanConstructor(CollectionsMarshal.AsSpan(buffer));
 }

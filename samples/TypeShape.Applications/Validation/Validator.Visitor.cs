@@ -1,10 +1,6 @@
 ﻿namespace TypeShape.Applications.Validation;
 
-using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Reflection.Emit;
-using System.Runtime.InteropServices;
-using TypeShape.Applications.RandomGenerator;
 
 public static partial class Validator
 {
@@ -24,7 +20,7 @@ public static partial class Validator
                 case TypeKind.Nullable:
                     return type.GetNullableShape().Accept(this, null);
 
-                case TypeKind kind when (kind.HasFlag(TypeKind.Dictionary)):
+                case TypeKind.Dictionary:
                     return type.GetDictionaryShape().Accept(this, null);
 
                 case TypeKind.Enumerable:

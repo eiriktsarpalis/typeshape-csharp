@@ -38,7 +38,7 @@ public static class Counter
             {
                 case TypeKind.Nullable:
                     return type.GetNullableShape().Accept(this, null);
-                case var k when (k.HasFlag(TypeKind.Dictionary)):
+                case TypeKind.Dictionary:
                     return type.GetDictionaryShape().Accept(this, null);
                 case TypeKind.Enumerable:
                     return type.GetEnumerableShape().Accept(this, null);

@@ -42,35 +42,23 @@ public sealed class KnownSymbols(Compilation compilation)
     public INamedTypeSymbol IEnumerable => _IEnumerable ??= Compilation.GetSpecialType(SpecialType.System_Collections_IEnumerable);
     private INamedTypeSymbol? _IEnumerable;
 
+    public INamedTypeSymbol? ReadOnlySpanOfT => GetOrResolveType("System.ReadOnlySpan`1", ref _ReadOnlySpanOfT);
+    private Option<INamedTypeSymbol?> _ReadOnlySpanOfT;
+
     public INamedTypeSymbol? ListOfT => GetOrResolveType("System.Collections.Generic.List`1", ref _ListOfT);
     private Option<INamedTypeSymbol?> _ListOfT;
 
     public INamedTypeSymbol? HashSetOfT => GetOrResolveType("System.Collections.Generic.HashSet`1", ref _HashSetOfT);
     private Option<INamedTypeSymbol?> _HashSetOfT;
 
+    public INamedTypeSymbol? KeyValuePairOfKV => GetOrResolveType("System.Collections.Generic.KeyValuePair`2", ref _KeyValuePairOfKV);
+    private Option<INamedTypeSymbol?> _KeyValuePairOfKV;
+
     public INamedTypeSymbol? DictionaryOfTKeyTValue => GetOrResolveType("System.Collections.Generic.Dictionary`2", ref _DictionaryOfTKeyTValue);
     private Option<INamedTypeSymbol?> _DictionaryOfTKeyTValue;
 
     public INamedTypeSymbol? IList => GetOrResolveType("System.Collections.IList", ref _IList);
     private Option<INamedTypeSymbol?> _IList;
-
-    public INamedTypeSymbol? ImmutableArray => GetOrResolveType("System.Collections.Immutable.ImmutableArray`1", ref _ImmutableArray);
-    private Option<INamedTypeSymbol?> _ImmutableArray;
-
-    public INamedTypeSymbol? ImmutableList => GetOrResolveType("System.Collections.Immutable.ImmutableList`1", ref _ImmutableList);
-    private Option<INamedTypeSymbol?> _ImmutableList;
-
-    public INamedTypeSymbol? ImmutableQueue => GetOrResolveType("System.Collections.Immutable.ImmutableQueue`1", ref _ImmutableQueue);
-    private Option<INamedTypeSymbol?> _ImmutableQueue;
-
-    public INamedTypeSymbol? ImmutableStack => GetOrResolveType("System.Collections.Immutable.ImmutableStack`1", ref _ImmutableStack);
-    private Option<INamedTypeSymbol?> _ImmutableStack;
-
-    public INamedTypeSymbol? ImmutableHashSet => GetOrResolveType("System.Collections.Immutable.ImmutableHashSet`1", ref _ImmutableHashSet);
-    private Option<INamedTypeSymbol?> _ImmutableHashSet;
-
-    public INamedTypeSymbol? ImmutableSortedSet => GetOrResolveType("System.Collections.Immutable.ImmutableSortedSet`1", ref _ImmutableSortedSet);
-    private Option<INamedTypeSymbol?> _ImmutableSortedSet;
 
     public INamedTypeSymbol? ImmutableDictionary => GetOrResolveType("System.Collections.Immutable.ImmutableDictionary`2", ref _ImmutableDictionary);
     private Option<INamedTypeSymbol?> _ImmutableDictionary;

@@ -79,6 +79,7 @@ public static class TestTypes
         yield return Create<byte[], SourceGenProvider>([1, 2, 3], p);
         yield return Create<List<string>, SourceGenProvider>(["1", "2", "3"], p);
         yield return Create<List<byte>, SourceGenProvider>([], p);
+        yield return Create<LinkedList<byte>, SourceGenProvider>([], p);
         yield return Create(new Queue<int>([1, 2, 3]), p);
         yield return Create(new Stack<int>([1, 2, 3]), p, isStack: true);
         yield return Create(new Dictionary<string, int> { ["key1"] = 42, ["key2"] = -1 }, p);
@@ -116,6 +117,8 @@ public static class TestTypes
 
         yield return Create<StructList<int>, SourceGenProvider>([1, 2, 3], p);
         yield return Create(new StructDictionary<string, string> { ["key"] = "value" }, p);
+        yield return Create<CollectionWithBuilderAttribute, SourceGenProvider>([1, 2, 3], p);
+        yield return Create<GenericCollectionWithBuilderAttribute<int>, SourceGenProvider>([1, 2, 3], p);
 
         yield return Create<ImmutableArray<int>, SourceGenProvider>([1, 2, 3], p);
         yield return Create<ImmutableList<string>, SourceGenProvider>(["1", "2", "3"], p);
@@ -266,7 +269,7 @@ public static class TestTypes
         yield return Create(new GenericContainer<string>.Inner { Value = "str" }, p);
         yield return Create(new GenericContainer<string>.Inner<string> { Value1 = "str", Value2 = "str2" }, p);
 
-        yield return Create(new LinkedList<int>
+        yield return Create(new MyLinkedList<int>
         {
             Value = 1,
             Next = new()
@@ -416,10 +419,10 @@ public class PocoWithListAndDictionaryProps
     public Dictionary<string, int>? Dict { get; set; }
 }
 
-internal class LinkedList<T>
+internal class MyLinkedList<T>
 {
     public T? Value { get; set; }
-    public LinkedList<T>? Next { get; set; }
+    public MyLinkedList<T>? Next { get; set; }
 }
 
 public struct ComplexStruct
@@ -883,6 +886,44 @@ public partial record PersonRecord(string name, int age);
 [GenerateShape]
 public partial record struct PersonRecordStruct(string name, int age);
 
+[CollectionBuilder(typeof(CollectionWithBuilderAttribute), nameof(Create))]
+public partial class CollectionWithBuilderAttribute : List<int>
+{
+    private CollectionWithBuilderAttribute() { }
+
+    public static CollectionWithBuilderAttribute Create(ReadOnlySpan<int> values)
+    {
+        var result = new CollectionWithBuilderAttribute();
+        foreach (var value in values)
+        {
+            result.Add(value);
+        }
+        return result;
+    }
+}
+
+[CollectionBuilder(typeof(GenericCollectionWithBuilderAttribute), nameof(GenericCollectionWithBuilderAttribute.Create))]
+public partial class GenericCollectionWithBuilderAttribute<T> : List<T>
+{
+    private GenericCollectionWithBuilderAttribute() { }
+
+    public static GenericCollectionWithBuilderAttribute<T> CreateEmpty()
+        => new GenericCollectionWithBuilderAttribute<T>();
+}
+
+public static class GenericCollectionWithBuilderAttribute
+{
+    public static GenericCollectionWithBuilderAttribute<T> Create<T>(ReadOnlySpan<T> values)
+    {
+        var result = GenericCollectionWithBuilderAttribute<T>.CreateEmpty();
+        foreach (var value in values)
+        {
+            result.Add(value);
+        }
+        return result;
+    }
+}
+
 [GenerateShape<object>]
 [GenerateShape<bool>]
 [GenerateShape<string>]
@@ -916,6 +957,7 @@ public partial record struct PersonRecordStruct(string name, int age);
 [GenerateShape<int[,,]>]
 [GenerateShape<List<string>>]
 [GenerateShape<List<byte>>]
+[GenerateShape<LinkedList<byte>>]
 [GenerateShape<Stack<int>>]
 [GenerateShape<Queue<int>>]
 [GenerateShape<Dictionary<string, int>>]
@@ -1004,7 +1046,7 @@ public partial record struct PersonRecordStruct(string name, int age);
 [GenerateShape<NotNullClassGenericRecord<string>>]
 [GenerateShape<NullClassGenericRecord<string>>]
 [GenerateShape<NullObliviousGenericRecord<string>>]
-[GenerateShape<LinkedList<int>>]
+[GenerateShape<MyLinkedList<int>>]
 [GenerateShape<GenericContainer<string>.Inner>]
 [GenerateShape<GenericContainer<string>.Inner<string>>]
 [GenerateShape<ValueTuple>]
@@ -1027,7 +1069,7 @@ public partial record struct PersonRecordStruct(string name, int age);
 [GenerateShape<Tuple<int, int, int, int, int, int, int, int>>]
 [GenerateShape<Tuple<int, int, int, int, int, int, int, Tuple<int, int, int>>>]
 [GenerateShape<Tuple<int, int, int, int, int, int, int, Tuple<int, int, int, int, int, int, int, Tuple<int>>>>]
-[GenerateShape<LinkedList<SimpleRecord>>]
+[GenerateShape<MyLinkedList<SimpleRecord>>]
 [GenerateShape<RecordWith21ConstructorParameters>]
 [GenerateShape<RecordWith42ConstructorParameters>]
 [GenerateShape<RecordWith42ConstructorParametersAndRequiredProperties>]
@@ -1046,6 +1088,8 @@ public partial record struct PersonRecordStruct(string name, int age);
 [GenerateShape<IPersonInterface>]
 [GenerateShape<PersonRecord>]
 [GenerateShape<PersonRecordStruct>]
+[GenerateShape<CollectionWithBuilderAttribute>]
+[GenerateShape<GenericCollectionWithBuilderAttribute<int>>]
 internal partial class SourceGenProvider
 { }
 

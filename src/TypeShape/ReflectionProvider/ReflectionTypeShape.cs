@@ -19,13 +19,6 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
 
     public IEnumerable<IConstructorShape> GetConstructors(bool nonPublic)
     {
-        if (TryGetFactoryMethod(typeof(T)) is { } factory)
-        {
-            var ctorInfo = new MethodConstructorShapeInfo(typeof(T), factory);
-            yield return provider.CreateConstructor(ctorInfo);
-            yield break;
-        }
-
         if (typeof(T).IsAbstract || s_disallowMemberResolution)
         {
             yield break;
@@ -158,146 +151,6 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
         }
     }
 
-    private static MethodBase? TryGetFactoryMethod(Type type)
-    {
-        const BindingFlags factoryFlags = BindingFlags.Public | BindingFlags.Static;
-
-        if (type.IsArray)
-        {
-            if (type.GetArrayRank() == 1)
-            {
-                MethodInfo? gm = typeof(Enumerable).GetMethod(nameof(Enumerable.ToArray), factoryFlags);
-                return gm?.MakeGenericMethod(type.GetElementType()!);
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        if (!type.IsGenericType)
-        {
-            if (type.IsAssignableFrom(typeof(IList)))
-            {
-                // Handle IList, ICollection and IEnumerable interfaces using object[]
-                MethodInfo? gm = typeof(Enumerable).GetMethod(nameof(Enumerable.ToArray), factoryFlags);
-                return gm?.MakeGenericMethod(typeof(object));
-            }
-
-            if (type == typeof(IDictionary))
-            {
-                // Handle IDictionary using Dictionary<object, object>
-                return typeof(Dictionary<object, object>).GetConstructor([typeof(IEnumerable<KeyValuePair<object, object>>)]);
-            }
-
-            return null;
-        }
-
-        Type genericTypeDef = type.GetGenericTypeDefinition();
-        Type[] genericArgs = type.GetGenericArguments();
-
-        if (genericTypeDef.IsInterface)
-        {
-            if (genericArgs.Length == 1 && typeof(List<>).ImplementsInterface(genericTypeDef))
-            {
-                // Handle IEnumerable<T>, ICollection<T>, IList<T>, IReadOnlyCollection<T> and IReadOnlyList<T> types using List<T>
-                MethodInfo? gm = typeof(Enumerable).GetMethod(nameof(Enumerable.ToList), factoryFlags);
-                return gm?.MakeGenericMethod(genericArgs);
-            }
-
-            if (genericArgs.Length == 1 && typeof(HashSet<>).ImplementsInterface(genericTypeDef))
-            {
-                // Handle ISet<T> and IReadOnlySet<T> types using HashSet<T>
-                return typeof(HashSet<>).MakeGenericType(genericArgs).GetConstructors()
-                    .FirstOrDefault(ctor => ctor.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable());
-            }
-
-            if (genericArgs.Length == 2 && typeof(Dictionary<,>).ImplementsInterface(genericTypeDef))
-            {
-                // Handle IDictionary<TKey, TValue> and IReadOnlyDictionary<TKey, TValue> using Dictionary<TKey, TValue>
-                return typeof(Dictionary<,>).MakeGenericType(genericArgs).GetConstructors()
-                    .FirstOrDefault(ctor => ctor.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable());
-            }
-
-            return null;
-        }
-
-        if (genericTypeDef == typeof(ImmutableArray<>))
-        {
-            return typeof(ImmutableArray).GetMethods(factoryFlags)
-                .Where(m => m.Name is nameof(ImmutableArray.CreateRange))
-                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
-                .Select(m => m.MakeGenericMethod(genericArgs))
-                .FirstOrDefault();
-        }
-
-        if (genericTypeDef == typeof(ImmutableList<>))
-        {
-            return typeof(ImmutableList).GetMethods(factoryFlags)
-                .Where(m => m.Name is nameof(ImmutableList.CreateRange))
-                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
-                .Select(m => m.MakeGenericMethod(genericArgs))
-                .FirstOrDefault();
-        }
-
-
-        if (genericTypeDef == typeof(ImmutableQueue<>))
-        {
-            return typeof(ImmutableQueue).GetMethods(factoryFlags)
-                .Where(m => m.Name is nameof(ImmutableQueue.CreateRange))
-                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
-                .Select(m => m.MakeGenericMethod(genericArgs))
-                .FirstOrDefault();
-        }
-
-        if (genericTypeDef == typeof(ImmutableStack<>))
-        {
-            return typeof(ImmutableStack).GetMethods(factoryFlags)
-                .Where(m => m.Name is nameof(ImmutableStack.CreateRange))
-                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
-                .Select(m => m.MakeGenericMethod(genericArgs))
-                .FirstOrDefault();
-        }
-
-        if (genericTypeDef == typeof(ImmutableHashSet<>))
-        {
-            return typeof(ImmutableHashSet).GetMethods(factoryFlags)
-                .Where(m => m.Name is nameof(ImmutableHashSet.CreateRange))
-                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
-                .Select(m => m.MakeGenericMethod(genericArgs))
-                .FirstOrDefault();
-        }
-
-        if (genericTypeDef == typeof(ImmutableSortedSet<>))
-        {
-            return typeof(ImmutableSortedSet).GetMethods(factoryFlags)
-                .Where(m => m.Name is nameof(ImmutableSortedSet.CreateRange))
-                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
-                .Select(m => m.MakeGenericMethod(genericArgs))
-                .FirstOrDefault();
-        }
-
-        if (genericTypeDef == typeof(ImmutableDictionary<,>))
-        {
-            return typeof(ImmutableDictionary).GetMethods(factoryFlags)
-                .Where(m => m.Name is nameof(ImmutableDictionary.CreateRange))
-                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
-                .Select(m => m.MakeGenericMethod(genericArgs))
-                .FirstOrDefault();
-        }
-
-        if (genericTypeDef == typeof(ImmutableSortedDictionary<,>))
-        {
-            return typeof(ImmutableSortedDictionary).GetMethods(factoryFlags)
-                .Where(m => m.Name is nameof(ImmutableSortedDictionary.CreateRange))
-                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
-                .Select(m => m.MakeGenericMethod(genericArgs))
-                .FirstOrDefault();
-        }
-
-        return null;
-    }
-
     public IEnumShape GetEnumShape()
     {
         ValidateKind(TypeKind.Enum);
@@ -333,7 +186,6 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
     private static TypeKind GetTypeKind()
     {
         Type type = typeof(T);
-        TypeKind kind = TypeKind.None;
 
         if (default(T) is null && type.IsValueType)
         {
@@ -345,14 +197,9 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
             return TypeKind.Enum;
         }
 
-        if (typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string))
-        {
-            kind |= TypeKind.Enumerable;
-        }
-
         if (typeof(IDictionary).IsAssignableFrom(type))
         {
-            kind |= TypeKind.Dictionary;
+            return TypeKind.Dictionary;
         }
         else
         {
@@ -364,14 +211,18 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
                     if (genericInterfaceTy == typeof(IDictionary<,>) ||
                         genericInterfaceTy == typeof(IReadOnlyDictionary<,>))
                     {
-                        kind |= TypeKind.Dictionary;
-                        break;
+                        return TypeKind.Dictionary;
                     }
                 }
             }
         }
 
-        return kind;
+        if (typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string))
+        {
+            return TypeKind.Enumerable;
+        }
+
+        return TypeKind.None;
     }
 
     private static BindingFlags GetInstanceBindingFlags(bool nonPublic)

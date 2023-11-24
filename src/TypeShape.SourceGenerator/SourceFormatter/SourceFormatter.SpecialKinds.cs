@@ -43,6 +43,10 @@ internal static partial class SourceFormatter
                 {
                     Type = {{enumerableType.Type.GeneratedPropertyName}},
                     ElementType = {{enumerableType.ElementType.GeneratedPropertyName}},
+                    ConstructionStrategy = {{FormatCollectionConstructionStrategy(enumerableType.ConstructionStrategy)}},
+                    DefaultConstructorFunc = {{FormatDefaultConstructorFunc(enumerableType)}},
+                    EnumerableConstructorFunc = {{FormatEnumerableConstructorFunc(enumerableType)}},
+                    SpanConstructorFunc = {{FormatSpanConstructorFunc(enumerableType)}},
                     GetEnumerableFunc = {{FormatGetEnumerableFunc(enumerableType)}},
                     AddElementFunc = {{FormatAddElementFunc(enumerableType)}},
                     Rank = {{enumerableType.Rank}},
@@ -54,26 +58,43 @@ internal static partial class SourceFormatter
         {
             return enumerableType.Kind switch
             {
-                EnumerableKind.ArrayOfT or
                 EnumerableKind.IEnumerableOfT or
-                EnumerableKind.ICollectionOfT or
-                EnumerableKind.ImmutableOfT => "static obj => obj",
-                EnumerableKind.IEnumerable or
-                EnumerableKind.IList => "static obj => global::System.Linq.Enumerable.Cast<object>(obj)",
+                EnumerableKind.ArrayOfT => "static obj => obj",
+                EnumerableKind.IEnumerable => "static obj => global::System.Linq.Enumerable.Cast<object>(obj)",
                 EnumerableKind.MultiDimensionalArrayOfT => $"static obj => global::System.Linq.Enumerable.Cast<{enumerableType.ElementType.FullyQualifiedName}>(obj)",
                 _ => throw new ArgumentException(enumerableType.Kind.ToString()),
             };
         }
 
+        static string FormatDefaultConstructorFunc(EnumerableTypeModel enumerableType)
+        {
+            return enumerableType.ConstructionStrategy is CollectionConstructionStrategy.Mutable
+                ? $"static () => new {enumerableType.Type.FullyQualifiedName}()"
+                : "null";
+        }
+
         static string FormatAddElementFunc(EnumerableTypeModel enumerableType)
+        {
+            return enumerableType.AddElementMethod is { } addMethod
+                ? $"static (ref {enumerableType.Type.FullyQualifiedName} obj, {enumerableType.ElementType.FullyQualifiedName} value) => obj.{addMethod}(value)"
+                : "null";
+        }
+
+        static string FormatSpanConstructorFunc(EnumerableTypeModel enumerableType)
         {
             return enumerableType switch
             {
-                { AddElementMethod: string addMethod } => $"static (ref {enumerableType.Type.FullyQualifiedName} obj, {enumerableType.ElementType.FullyQualifiedName} value) => obj.{addMethod}(value)",
-                { Kind: EnumerableKind.ICollectionOfT } => $"static (ref {enumerableType.Type.FullyQualifiedName} obj, {enumerableType.ElementType.FullyQualifiedName} value) => ((ICollection<{enumerableType.ElementType.FullyQualifiedName}>)obj).Add(value)",
-                { Kind: EnumerableKind.IList } => $"static (ref {enumerableType.Type.FullyQualifiedName} obj, object value) => ((System.Collections.IList)obj).Add(value)",
+                { Kind: EnumerableKind.ArrayOfT } => $"static values => values.ToArray()",
+                { ConstructionStrategy: CollectionConstructionStrategy.Span } => $"static values => {enumerableType.SpanFactoryMethod}(values)",
                 _ => "null",
             };
+        }
+
+        static string FormatEnumerableConstructorFunc(EnumerableTypeModel enumerableType)
+        {
+            return enumerableType.ConstructionStrategy is CollectionConstructionStrategy.Enumerable
+                ? $"static values => new {enumerableType.Type.FullyQualifiedName}(values)"
+                : "null";
         }
     }
 
@@ -88,7 +109,11 @@ internal static partial class SourceFormatter
                     KeyType = {{dictionaryType.KeyType.GeneratedPropertyName}},
                     ValueType = {{dictionaryType.ValueType.GeneratedPropertyName}},
                     GetDictionaryFunc = {{FormatGetDictionaryFunc(dictionaryType)}},
-                    AddKeyValuePairFunc = {{FormatKeyValuePairFunc(dictionaryType)}},
+                    ConstructionStrategy = {{FormatCollectionConstructionStrategy(dictionaryType.ConstructionStrategy)}},
+                    DefaultConstructorFunc = {{FormatDefaultConstructorFunc(dictionaryType)}},
+                    AddKeyValuePairFunc = {{FormatAddKeyValuePairFunc(dictionaryType)}},
+                    EnumerableConstructorFunc = {{FormatEnumerableConstructorFunc(dictionaryType)}},
+                    SpanConstructorFunc = {{FormatSpanConstructorFunc(dictionaryType)}},
                 };
             }
             """);
@@ -104,15 +129,54 @@ internal static partial class SourceFormatter
             };
         }
 
-        static string FormatKeyValuePairFunc(DictionaryTypeModel enumerableType)
+        static string FormatDefaultConstructorFunc(DictionaryTypeModel enumerableType)
+        {
+            return enumerableType.ConstructionStrategy is CollectionConstructionStrategy.Mutable
+                ? $"static () => new {enumerableType.Type.FullyQualifiedName}()"
+                : "null";
+        }
+
+        static string FormatAddKeyValuePairFunc(DictionaryTypeModel enumerableType)
         {
             return enumerableType switch
             {
-                { HasSettableIndexer: true } or
-                { Kind: DictionaryKind.IDictionaryOfKV } => $"static (ref {enumerableType.Type.FullyQualifiedName} dict, KeyValuePair<{enumerableType.KeyType.FullyQualifiedName}, {enumerableType.ValueType.FullyQualifiedName}> kvp) => dict[kvp.Key] = kvp.Value",
-                { Kind: DictionaryKind.IDictionary } => $"static (ref {enumerableType.Type.FullyQualifiedName} dict, KeyValuePair<object, object> kvp) => dict[kvp.Key] = kvp.Value",
+                { HasSettableIndexer: true } => $"static (ref {enumerableType.Type.FullyQualifiedName} dict, KeyValuePair<{enumerableType.KeyType.FullyQualifiedName}, {enumerableType.ValueType.FullyQualifiedName}> kvp) => dict[kvp.Key] = kvp.Value",
+                { ConstructionStrategy: CollectionConstructionStrategy.Mutable } => $"static (ref {enumerableType.Type.FullyQualifiedName} dict, KeyValuePair<object, object> kvp) => dict.Add(kvp.Key, kvp.Value)",
                 _ => "null",
             };
         }
+
+        static string FormatEnumerableConstructorFunc(DictionaryTypeModel enumerableType)
+        {
+            return enumerableType switch
+            {
+                { EnumerableFactoryMethod: string factory } => $"static values => {factory}(values)",
+                { ConstructionStrategy: CollectionConstructionStrategy.Enumerable } => $"static values => new {enumerableType.Type.FullyQualifiedName}(values)",
+                _ => "null",
+            };
+        }
+
+        static string FormatSpanConstructorFunc(DictionaryTypeModel enumerableType)
+        {
+            return enumerableType switch
+            {
+                { SpanFactoryMethod: string factory } => $"static values => {factory}(values)",
+                _ => "null",
+            };
+        }
+    }
+
+    private static string FormatCollectionConstructionStrategy(CollectionConstructionStrategy strategy)
+    {
+        string identifier = strategy switch
+        {
+            CollectionConstructionStrategy.None => "None",
+            CollectionConstructionStrategy.Mutable => "Mutable",
+            CollectionConstructionStrategy.Enumerable => "Enumerable",
+            CollectionConstructionStrategy.Span => "Span",
+            _ => throw new ArgumentException(strategy.ToString()),
+        };
+
+        return $"CollectionConstructionStrategy." + identifier;
     }
 }

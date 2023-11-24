@@ -104,8 +104,7 @@ public sealed partial class ModelGenerator(
             out EnumTypeModel? enumType,
             out NullableTypeModel? nullableType, 
             out DictionaryTypeModel? dictionaryType, 
-            out EnumerableTypeModel? enumerableType, 
-            out ITypeSymbol? implementedCollectionType);
+            out EnumerableTypeModel? enumerableType);
 
         ITypeSymbol[]? classTupleElements = knownSymbols.Compilation.GetClassTupleElements(knownSymbols.CoreLibAssembly, type);
         bool disallowMemberResolution = DisallowMemberResolution(type);
@@ -114,7 +113,7 @@ public sealed partial class ModelGenerator(
         {
             Id = typeId,
             Properties = MapProperties(typeId, type, classTupleElements, disallowMemberResolution: disallowMemberResolution || isSpecialTypeKind),
-            Constructors = MapConstructors(typeId, type, classTupleElements, implementedCollectionType, disallowMemberResolution),
+            Constructors = MapConstructors(typeId, type, classTupleElements, disallowMemberResolution: disallowMemberResolution || isSpecialTypeKind),
             EnumType = enumType,
             NullableType = nullableType,
             EnumerableType = enumerableType,

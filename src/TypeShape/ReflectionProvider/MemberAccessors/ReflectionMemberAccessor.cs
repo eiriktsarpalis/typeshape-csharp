@@ -230,7 +230,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                 Debug.Assert(typeof(TArgumentState) == param.Type);
                 Debug.Assert(tupleCtor.NestedTupleConstructor is null);
                 ConstructorInfo ctor = tupleCtor.ConstructorInfo;
-                return (in TArgumentState state) => (TDeclaringType)ctor.Invoke([state]);
+                return (ref TArgumentState state) => (TDeclaringType)ctor.Invoke([state]);
             }
 
             Debug.Assert(typeof(TArgumentState) == typeof(object?[]));
@@ -242,7 +242,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
             }
 
             return (Constructor<TArgumentState, TDeclaringType>)(object)
-                new Constructor<object?[], TDeclaringType>((in object?[] state) =>
+                new Constructor<object?[], TDeclaringType>((ref object?[] state) =>
             {
                 object? result = null;
                 int i = state.Length;
@@ -281,7 +281,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                     {
                         Debug.Assert(ctor.GetParameters().Length == 0);
 
-                        return (in TArgumentState state) =>
+                        return (ref TArgumentState state) =>
                         {
                             object obj = ctor.Invoke();
                             PopulateMember(member, obj, state);
@@ -290,7 +290,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                     }
                     else
                     {
-                        return (in TArgumentState state) =>
+                        return (ref TArgumentState state) =>
                         {
                             object obj = default(TDeclaringType)!;
                             PopulateMember(member, obj, state);
@@ -316,7 +316,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                 if (methodCtor.ConstructorMethod is { } cI)
                 {
                     return (Constructor<TArgumentState, TDeclaringType>)(object)
-                        new Constructor<(object?[], object?[]), TDeclaringType>((in (object?[] ctorArgs, object?[] memberArgs) state) =>
+                        new Constructor<(object?[], object?[]), TDeclaringType>((ref (object?[] ctorArgs, object?[] memberArgs) state) =>
                         {
                             object obj = cI.Invoke(state.ctorArgs);
                             PopulateMemberInitializers(obj, memberInitializers, state.memberArgs);
@@ -326,7 +326,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                 else
                 {
                     return (Constructor<TArgumentState, TDeclaringType>)(object)
-                        new Constructor<(object?[], object?[]), TDeclaringType>((in (object?[] ctorArgs, object?[] memberArgs) state) =>
+                        new Constructor<(object?[], object?[]), TDeclaringType>((ref (object?[] ctorArgs, object?[] memberArgs) state) =>
                         {
                             object obj = default(TDeclaringType)!;
                             PopulateMemberInitializers(obj, memberInitializers, state.memberArgs);
@@ -358,19 +358,22 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                     Debug.Assert(typeof(TArgumentState) == pI.Type);
                     Debug.Assert(methodCtor.ConstructorMethod != null);
                     MethodBase ctor = methodCtor.ConstructorMethod;
-                    return (in TArgumentState state) => (TDeclaringType)ctor.Invoke([state]);
+                    return (ref TArgumentState state) => (TDeclaringType)ctor.Invoke([state]);
                 }
 
                 Debug.Assert(typeof(TArgumentState) == typeof(object?[]));
                 return methodCtor.ConstructorMethod is { } cI
-                    ? (Constructor<TArgumentState, TDeclaringType>)(object)new Constructor<object?[], TDeclaringType>((in object?[] state) => (TDeclaringType)cI.Invoke(state))
-                    : static (in TArgumentState _) => default!;
+                    ? (Constructor<TArgumentState, TDeclaringType>)(object)new Constructor<object?[], TDeclaringType>((ref object?[] state) => (TDeclaringType)cI.Invoke(state))
+                    : static (ref TArgumentState _) => default!;
             }
         }
 
         Debug.Fail($"Unrecognized constructor shape {ctorInfo}.");
         return null!;
     }
+
+    public Func<T, TResult> CreateDelegate<T, TResult>(ConstructorInfo ctorInfo)
+        => value => (TResult)ctorInfo.Invoke([value]);
 
     private static Func<object?[]> CreateConstructorArgumentArrayFunc(IConstructorShapeInfo ctorInfo)
     {

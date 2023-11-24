@@ -25,4 +25,13 @@ public delegate void Setter<TDeclaringType, TPropertyType>(ref TDeclaringType ob
 /// <typeparam name="TDeclaringType">Type of the object to be constructed.</typeparam>
 /// <param name="state">State object containing all constructor arguments.</param>
 /// <returns>The isntance created by the constructor.</returns>
-public delegate TDeclaringType Constructor<TArgumentState, TDeclaringType>(in TArgumentState state);
+public delegate TDeclaringType Constructor<TArgumentState, TDeclaringType>(ref TArgumentState state);
+
+/// <summary>
+/// Delegate representing a constructor that accepts a span of values.
+/// </summary>
+/// <typeparam name="T">The element type of the span parameters.</typeparam>
+/// <typeparam name="TDeclaringType">The type of the value produced by the constructor.</typeparam>
+/// <param name="values">The span of values used to create the instance.</param>
+/// <returns>A newly constructed instance using the specified values.</returns>
+public delegate TDeclaringType SpanConstructor<T, TDeclaringType>(ReadOnlySpan<T> values);

@@ -139,6 +139,11 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
             generator.Emit(OpCodes.Callvirt, methodInfo);
         }
 
+        if (methodInfo.ReturnType != typeof(void))
+        {
+            generator.Emit(OpCodes.Pop);
+        }
+
         generator.Emit(OpCodes.Ret);
         return CreateDelegate<Setter<TEnumerable, TElement>>(dynamicMethod);
     }
@@ -316,12 +321,12 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         if (ctorInfo is MethodConstructorShapeInfo { ConstructorMethod: null, Parameters.Count: 0 })
         {
             Debug.Assert(typeof(TDeclaringType).IsValueType);
-            return static (in TArgumentState _) => default!;
+            return static (ref TArgumentState _) => default!;
         }
         else if (ctorInfo is TupleConstructorShapeInfo { IsValueTuple: true })
         {
             Debug.Assert(typeof(TDeclaringType) == typeof(TArgumentState));
-            return (Constructor<TArgumentState, TDeclaringType>)(object)(new Constructor<TArgumentState, TArgumentState>(static (in TArgumentState arg) => arg));
+            return (Constructor<TArgumentState, TDeclaringType>)(object)(new Constructor<TArgumentState, TArgumentState>(static (ref TArgumentState arg) => arg));
         }
 
         return CreateDelegate<Constructor<TArgumentState, TDeclaringType>>(EmitParameterizedConstructorMethod(typeof(TDeclaringType), typeof(TArgumentState), ctorInfo));
@@ -590,6 +595,25 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         }
     }
 
+    public Func<T, TResult> CreateDelegate<T, TResult>(ConstructorInfo ctorInfo)
+        => CreateDelegate<Func<T, TResult>>(EmitConstructor(ctorInfo));
+
+    private static DynamicMethod EmitConstructor(ConstructorInfo ctorInfo)
+    {
+        ParameterInfo[] parameters = ctorInfo.GetParameters();
+        DynamicMethod dynamicMethod = CreateDynamicMethod("parameterizedCtor", ctorInfo.DeclaringType!, parameters.Select(p => p.ParameterType).ToArray());
+        ILGenerator generator = dynamicMethod.GetILGenerator();
+
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            generator.Emit(OpCodes.Ldarg, i);
+        }
+
+        generator.Emit(OpCodes.Newobj, ctorInfo);
+        generator.Emit(OpCodes.Ret);
+        return dynamicMethod;
+    }
+
     private static void EmitCall(ILGenerator generator, MethodBase methodBase)
     {
         Debug.Assert(methodBase is MethodInfo or ConstructorInfo);
@@ -749,6 +773,4 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
             };
         }
     }
-
-
 }

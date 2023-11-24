@@ -1,44 +1,33 @@
 ﻿using System.Collections;
 using System.Diagnostics;
 using System.Reflection;
+using TypeShape.SourceGenModel;
 
 namespace TypeShape.ReflectionProvider;
 
-internal class ReflectionEnumerableShape<TEnumerable, TElement>(ReflectionTypeShapeProvider provider) : IEnumerableShape<TEnumerable, TElement>
-    where TEnumerable : IEnumerable<TElement>
+internal abstract class ReflectionEnumerableShape<TEnumerable, TElement>(ReflectionTypeShapeProvider provider) 
+    : IEnumerableShape<TEnumerable, TElement>
 {
+    private CollectionConstructionStrategy? _constructionStrategy;
+    private ConstructorInfo? _defaultCtor;
+    private MethodInfo? _addMethod;
+    private ConstructorInfo? _enumerableCtor;
+    private MethodInfo? _spanFactory;
+
+    public virtual CollectionConstructionStrategy ConstructionStrategy => _constructionStrategy ??= DetermineConstructionStrategy();
+    public virtual int Rank => 1;
+
     public ITypeShape Type => provider.GetShape<TEnumerable>();
     public ITypeShape ElementType => provider.GetShape<TElement>();
-
-    public virtual bool IsMutable => _isMutable ??= DetermineIsMutable();
-    public int Rank => 1;
-
-    private MethodInfo? _addMethod;
-    private bool? _isMutable;
-
-    private bool DetermineIsMutable()
-    {
-        foreach (MethodInfo methodInfo in typeof(TEnumerable).GetMethods(BindingFlags.Public | BindingFlags.Instance))
-        {
-            if (methodInfo.Name is "Add" or "Enqueue" or "Push" &&
-                methodInfo.ReturnType == typeof(void) && 
-                methodInfo.GetParameters() is [ParameterInfo parameter] &&
-                parameter.ParameterType == typeof(TElement))
-            {
-                _addMethod = methodInfo;
-                return true;
-            }
-        }
-
-        return false;
-    }
 
     public object? Accept(ITypeShapeVisitor visitor, object? state)
         => visitor.VisitEnumerable(this, state);
 
+    public abstract Func<TEnumerable, IEnumerable<TElement>> GetGetEnumerable();
+
     public virtual Setter<TEnumerable, TElement> GetAddElement()
     {
-        if (!IsMutable)
+        if (ConstructionStrategy is not CollectionConstructionStrategy.Mutable)
         {
             throw new InvalidOperationException("The current enumerable shape does not support mutation.");
         }
@@ -47,89 +36,129 @@ internal class ReflectionEnumerableShape<TEnumerable, TElement>(ReflectionTypeSh
         return provider.MemberAccessor.CreateEnumerableAddDelegate<TEnumerable, TElement>(_addMethod);
     }
 
-    public Func<TEnumerable, IEnumerable<TElement>> GetGetEnumerable()
-        => static enumerable => enumerable;
-}
-
-internal sealed class ReflectionCollectionShape<TEnumerable, TElement>(ReflectionTypeShapeProvider provider) : ReflectionEnumerableShape<TEnumerable, TElement>(provider)
-    where TEnumerable : ICollection<TElement>
-{
-    public override bool IsMutable => true;
-    public override Setter<TEnumerable, TElement> GetAddElement()
-        => static (ref TEnumerable enumerable, TElement element) => enumerable.Add(element);
-}
-
-internal class ReflectionEnumerableShape<TEnumerable>(ReflectionTypeShapeProvider provider) : IEnumerableShape<TEnumerable, object?>
-    where TEnumerable : IEnumerable
-{
-    private readonly ReflectionTypeShapeProvider _provider = provider;
-
-    public ITypeShape Type => _provider.GetShape<TEnumerable>();
-    public ITypeShape ElementType => _provider.GetShape<object>();
-
-    public virtual bool IsMutable => _isMutable ??= DetermineIsMutable();
-    public int Rank => 1;
-
-    private MethodInfo? _addMethod;
-    private bool? _isMutable;
-
-    private bool DetermineIsMutable()
+    public virtual Func<TEnumerable> GetDefaultConstructor()
     {
-        foreach (MethodInfo methodInfo in typeof(TEnumerable).GetMethods(BindingFlags.Public | BindingFlags.Instance))
+        if (ConstructionStrategy is not CollectionConstructionStrategy.Mutable)
         {
-            if (methodInfo.Name is "Add" or "Enqueue" or "Push" &&
-                methodInfo.ReturnType == typeof(void) &&
-                methodInfo.GetParameters() is [ParameterInfo parameter] &&
-                parameter.ParameterType == typeof(object))
+            throw new InvalidOperationException("The current enumerable shape does not support default constructors.");
+        }
+
+        Debug.Assert(_defaultCtor != null);
+        return provider.MemberAccessor.CreateDefaultConstructor<TEnumerable>(new MethodConstructorShapeInfo(typeof(TEnumerable), _defaultCtor));
+    }
+
+    public virtual Func<IEnumerable<TElement>, TEnumerable> GetEnumerableConstructor()
+    {
+        if (ConstructionStrategy is not CollectionConstructionStrategy.Enumerable)
+        {
+            throw new InvalidOperationException("The current enumerable shape does not support enumerable constructors.");
+        }
+
+        Debug.Assert(_enumerableCtor != null);
+        return provider.MemberAccessor.CreateDelegate<IEnumerable<TElement>, TEnumerable>(_enumerableCtor);
+    }
+
+    public virtual SpanConstructor<TElement, TEnumerable> GetSpanConstructor()
+    {
+        if (ConstructionStrategy is not CollectionConstructionStrategy.Span)
+        {
+            throw new InvalidOperationException("The current enumerable shape does not support span constructors.");
+        }
+
+        Debug.Assert(_spanFactory != null);
+        return _spanFactory.CreateDelegate<SpanConstructor<TElement, TEnumerable>>();
+    }
+
+    private CollectionConstructionStrategy DetermineConstructionStrategy()
+    {
+        if (typeof(TEnumerable).TryGetCollectionBuilderAttribute(typeof(TElement), out MethodInfo? builderMethod))
+        {
+            _spanFactory = builderMethod;
+            return CollectionConstructionStrategy.Span;
+        }
+
+        if (typeof(TEnumerable).GetConstructor([]) is ConstructorInfo defaultCtor)
+        {
+            foreach (MethodInfo methodInfo in typeof(TEnumerable).GetMethods(BindingFlags.Public | BindingFlags.Instance))
             {
-                _addMethod = methodInfo;
-                return true;
+                if (methodInfo.Name is "Add" or "Enqueue" or "Push" &&
+                    methodInfo.GetParameters() is [ParameterInfo parameter] &&
+                    parameter.ParameterType == typeof(TElement))
+                {
+                    _defaultCtor = defaultCtor;
+                    _addMethod = methodInfo;
+                    return CollectionConstructionStrategy.Mutable;
+                }
             }
         }
 
-        return false;
-    }
-
-    public object? Accept(ITypeShapeVisitor visitor, object? state)
-        => visitor.VisitEnumerable(this, state);
-
-    public virtual Setter<TEnumerable, object?> GetAddElement()
-    {
-        if (!IsMutable)
+        if (typeof(TEnumerable).GetConstructor([typeof(IEnumerable<TElement>)]) is ConstructorInfo enumerableCtor)
         {
-            throw new InvalidOperationException("The current enumerable shape does not support mutation.");
+            _enumerableCtor = enumerableCtor;
+            return CollectionConstructionStrategy.Enumerable;
         }
 
-        Debug.Assert(_addMethod != null);
-        return _provider.MemberAccessor.CreateEnumerableAddDelegate<TEnumerable, object?>(_addMethod);
-    }
+        if (typeof(TEnumerable).IsInterface)
+        {
+            if (typeof(TEnumerable).IsAssignableFrom(typeof(List<TElement>)))
+            {
+                // Handle IEnumerable<T>, ICollection<T>, IList<T>, IReadOnlyCollection<T> and IReadOnlyList<T> types using List<T>
+                MethodInfo? gm = typeof(CollectionHelpers).GetMethod(nameof(CollectionHelpers.CreateList), BindingFlags.Public | BindingFlags.Static);
+                _spanFactory = gm?.MakeGenericMethod(typeof(TElement));
+                return _spanFactory != null ? CollectionConstructionStrategy.Span : CollectionConstructionStrategy.None;
+            }
 
-    public Func<TEnumerable, IEnumerable<object?>> GetGetEnumerable()
+            if (typeof(TEnumerable).IsAssignableFrom(typeof(HashSet<TElement>)))
+            {
+                // Handle ISet<T> and IReadOnlySet<T> types using HashSet<T>
+                MethodInfo? gm = typeof(CollectionHelpers).GetMethod(nameof(CollectionHelpers.CreateHashSet), BindingFlags.Public | BindingFlags.Static);
+                _spanFactory = gm?.MakeGenericMethod(typeof(TElement));
+                return _spanFactory != null ? CollectionConstructionStrategy.Span : CollectionConstructionStrategy.None;
+            }
+
+            if (typeof(TEnumerable).IsAssignableFrom(typeof(IList)))
+            {
+                // Handle IList, ICollection and IEnumerable interfaces using List<object?>
+                MethodInfo? gm = typeof(CollectionHelpers).GetMethod(nameof(CollectionHelpers.CreateList), BindingFlags.Public | BindingFlags.Static);
+                _spanFactory = gm?.MakeGenericMethod(typeof(object));
+                return _spanFactory != null ? CollectionConstructionStrategy.Span : CollectionConstructionStrategy.None;
+            }
+        }
+
+        return CollectionConstructionStrategy.None;
+    }
+}
+
+internal sealed class ReflectionEnumerableOfTShape<TEnumerable, TElement>(ReflectionTypeShapeProvider provider) 
+    : ReflectionEnumerableShape<TEnumerable, TElement>(provider)
+    where TEnumerable : IEnumerable<TElement>
+{
+    public override Func<TEnumerable, IEnumerable<TElement>> GetGetEnumerable()
+        => static enumerable => enumerable;
+}
+
+internal sealed class ReflectionNonGenericEnumerableShape<TEnumerable>(ReflectionTypeShapeProvider provider) 
+    : ReflectionEnumerableShape<TEnumerable, object?>(provider)
+    where TEnumerable : IEnumerable
+{
+    public override Func<TEnumerable, IEnumerable<object?>> GetGetEnumerable()
         => static enumerable => enumerable.Cast<object?>();
 }
 
-internal sealed class ReflectionListShape<TEnumerable>(ReflectionTypeShapeProvider provider) : ReflectionEnumerableShape<TEnumerable>(provider)
-    where TEnumerable : IList
+internal sealed class ReflectionArrayShape<TElement>(ReflectionTypeShapeProvider provider) 
+    : ReflectionEnumerableShape<TElement[], TElement>(provider)
 {
-    public override bool IsMutable => true;
-    public override Setter<TEnumerable, object?> GetAddElement()
-        => static (ref TEnumerable enumerable, object? value) => enumerable.Add(value);
+    public override CollectionConstructionStrategy ConstructionStrategy => CollectionConstructionStrategy.Span;
+    public override Func<TElement[], IEnumerable<TElement>> GetGetEnumerable() => static array => array;
+    public override SpanConstructor<TElement, TElement[]> GetSpanConstructor() => static span => span.ToArray();
 }
 
-internal sealed class MultiDimensionalArrayShape<TEnumerable, TElement>(ReflectionTypeShapeProvider provider, int rank) : IEnumerableShape<TEnumerable, TElement>
+internal sealed class MultiDimensionalArrayShape<TEnumerable, TElement>(ReflectionTypeShapeProvider provider, int rank) 
+    : ReflectionEnumerableShape<TEnumerable, TElement>(provider)
     where TEnumerable : IEnumerable
 {
-    public ITypeShape Type => provider.GetShape<TEnumerable>();
-    public ITypeShape ElementType => provider.GetShape<TElement>();
-    public bool IsMutable => false;
-    public int Rank => rank;
-
-    public object? Accept(ITypeShapeVisitor visitor, object? state)
-        => visitor.VisitEnumerable(this, state);
-
-    public Setter<TEnumerable, TElement> GetAddElement()
-        => throw new InvalidOperationException("The current enumerable shape does not support mutation.");
-
-    public Func<TEnumerable, IEnumerable<TElement>> GetGetEnumerable()
+    public override CollectionConstructionStrategy ConstructionStrategy => CollectionConstructionStrategy.None;
+    public override int Rank => rank;
+    public override Func<TEnumerable, IEnumerable<TElement>> GetGetEnumerable()
         => static enumerable => enumerable.Cast<TElement>();
 }

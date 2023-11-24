@@ -153,6 +153,12 @@ internal static partial class RoslynHelpers
     public static string GetFullyQualifiedName(this ITypeSymbol typeSymbol)
         => typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
+    public static string GetFullyQualifiedName(this IMethodSymbol methodSymbol)
+    {
+        Debug.Assert(methodSymbol.IsStatic && methodSymbol.MethodKind is not MethodKind.Constructor);
+        return $"{methodSymbol.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}.{methodSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}";
+    }
+
     public static bool IsGenericTypeDefinition(this ITypeSymbol typeSymbol)
         => typeSymbol is INamedTypeSymbol { IsGenericType: true } namedTy && 
            SymbolEqualityComparer.Default.Equals(namedTy.OriginalDefinition, typeSymbol);
@@ -311,6 +317,55 @@ internal static partial class RoslynHelpers
             constructor.GetAttributes().Any(attr => 
                 attr.AttributeClass is { Name: "SetsRequiredMembersAttribute", ContainingNamespace: INamespaceSymbol ns } && 
                 ns.ToDisplayString() == "System.Diagnostics.CodeAnalysis");
+    }
+
+    public static bool TryGetCollectionBuilderAttribute(this INamedTypeSymbol type, ITypeSymbol elementType, [NotNullWhen(true)] out IMethodSymbol? builderMethod)
+    {
+        builderMethod = null;
+        AttributeData? attributeData = type.GetAttributes().FirstOrDefault(attr => 
+            attr.AttributeClass?.Name == "CollectionBuilderAttribute" &&
+            attr.AttributeClass.ContainingNamespace.ToDisplayString() == "System.Runtime.CompilerServices");
+
+        if (attributeData is null)
+        {
+            return false;
+        }
+
+        INamedTypeSymbol builderType = (INamedTypeSymbol)attributeData.ConstructorArguments[0].Value!;
+        string methodName = (string)attributeData.ConstructorArguments[1].Value!;
+
+        if (builderType.IsGenericType)
+        {
+            return false;
+        }
+
+        var cmp = SymbolEqualityComparer.Default;
+        foreach (IMethodSymbol method in builderType.GetMembers().OfType<IMethodSymbol>())
+        {
+            if (method.IsStatic && method.Name == methodName && method.Parameters is [{ Type: INamedTypeSymbol parameterType }] &&
+                parameterType.IsGenericType && parameterType.ConstructedFrom.Name is "ReadOnlySpan")
+            {
+                ITypeSymbol spanElementType = parameterType.TypeArguments[0];
+                if (cmp.Equals(spanElementType, elementType) && cmp.Equals(method.ReturnType, type))
+                {
+                    builderMethod = method;
+                    return true;
+                }
+
+                if (method.IsGenericMethod && method.TypeArguments is [ITypeSymbol typeParameter] &&
+                    cmp.Equals(spanElementType, typeParameter))
+                {
+                    IMethodSymbol specializedMethod = method.Construct(elementType);
+                    if (cmp.Equals(specializedMethod.ReturnType, type))
+                    {
+                        builderMethod = specializedMethod;
+                        // Continue searching since we prefer non-generic methods.
+                    }
+                }
+            }
+        }
+
+        return builderMethod != null;
     }
 
     /// <summary>

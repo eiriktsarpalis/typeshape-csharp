@@ -118,7 +118,7 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
 
             if (rank == 1)
             {
-                Type enumerableTypeTy = typeof(ReflectionEnumerableShape<,>).MakeGenericType(type, elementType);
+                Type enumerableTypeTy = typeof(ReflectionArrayShape<>).MakeGenericType(elementType);
                 return (IEnumerableShape)Activator.CreateInstance(enumerableTypeTy, this)!;
             }
             else
@@ -133,26 +133,17 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
             if (interfaceTy.IsGenericType)
             {
                 Type genericInterfaceTypeDef = interfaceTy.GetGenericTypeDefinition();
-                Type[] genericArgs = interfaceTy.GetGenericArguments();
-
-                if (genericInterfaceTypeDef == typeof(ICollection<>))
-                {
-                    Type enumerableTypeTy = typeof(ReflectionCollectionShape<,>).MakeGenericType(type, genericArgs[0]);
-                    return (IEnumerableShape)Activator.CreateInstance(enumerableTypeTy, this)!;
-                }
 
                 if (genericInterfaceTypeDef == typeof(IEnumerable<>))
                 {
-                    Type enumerableTypeTy = typeof(ReflectionEnumerableShape<,>).MakeGenericType(type, genericArgs[0]);
+                    Type elementType = interfaceTy.GetGenericArguments()[0];
+                    Type enumerableTypeTy = typeof(ReflectionEnumerableOfTShape<,>).MakeGenericType(type, elementType);
                     return (IEnumerableShape)Activator.CreateInstance(enumerableTypeTy, this)!;
                 }
             }
         }
 
-        Type enumerableType = typeof(IList).IsAssignableFrom(type)
-            ? typeof(ReflectionListShape<>).MakeGenericType(type)
-            : typeof(ReflectionEnumerableShape<>).MakeGenericType(type);
-
+        Type enumerableType = typeof(ReflectionNonGenericEnumerableShape<>).MakeGenericType(type);
         return (IEnumerableShape)Activator.CreateInstance(enumerableType, this)!;
     }
 
@@ -169,7 +160,7 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
 
                 if (genericInterfaceTy == typeof(IDictionary<,>))
                 {
-                    dictionaryTypeTy = typeof(ReflectionGenericDictionaryShape<,,>)
+                    dictionaryTypeTy = typeof(ReflectionDictionaryOfTShape<,,>)
                         .MakeGenericType(type, genericArgs[0], genericArgs[1]);
                 }
                 else if (genericInterfaceTy == typeof(IReadOnlyDictionary<,>))
@@ -185,7 +176,7 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
         if (dictionaryTypeTy is null)
         {
             Debug.Assert(typeof(IDictionary).IsAssignableFrom(type));
-            dictionaryTypeTy = typeof(ReflectionDictionaryShape<>).MakeGenericType(type);
+            dictionaryTypeTy = typeof(ReflectionNonGenericDictionaryShape<>).MakeGenericType(type);
         }
 
         return (IDictionaryShape)Activator.CreateInstance(dictionaryTypeTy, this)!;

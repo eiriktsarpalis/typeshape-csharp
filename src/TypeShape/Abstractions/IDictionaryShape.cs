@@ -33,9 +33,9 @@ public interface IDictionaryShape
     ITypeShape ValueType { get; }
 
     /// <summary>
-    /// Indicates whether instances of the enumerable type can be mutated.
+    /// Gets the construction strategy for the given collection.
     /// </summary>
-    bool IsMutable { get; }
+    CollectionConstructionStrategy ConstructionStrategy { get; }
 
     /// <summary>
     /// Accepts an <see cref="ITypeShapeVisitor"/> for strongly-typed traversal.
@@ -70,10 +70,31 @@ public interface IDictionaryShape<TDictionary, TKey, TValue> : IDictionaryShape
     Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> GetGetDictionary();
 
     /// <summary>
+    /// Creates a delegate wrapping a parameterless constructor of a mutable collection.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The collection is not <see cref="CollectionConstructionStrategy.Mutable"/>.</exception>
+    /// <returns>A delegate wrapping a default constructor.</returns>
+    Func<TDictionary> GetDefaultConstructor();
+
+    /// <summary>
     /// Creates a setter delegate used for appending an 
     /// <see cref="KeyValuePair{TKey, TValue}"/> to a mutable dictionary.
     /// </summary>
-    /// <exception cref="InvalidOperationException">The dictionary does not support mutation.</exception>
+    /// <exception cref="InvalidOperationException">The collection is not <see cref="CollectionConstructionStrategy.Mutable"/>.</exception>
     /// <returns>A setter delegate used for appending entries to a mutable dictionary.</returns>
     Setter<TDictionary, KeyValuePair<TKey, TValue>> GetAddKeyValuePair();
+
+    /// <summary>
+    /// Creates a constructor delegate for creating a collection from a span.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The collection is not <see cref="CollectionConstructionStrategy.Span"/>.</exception>
+    /// <returns></returns>
+    SpanConstructor<KeyValuePair<TKey, TValue>, TDictionary> GetSpanConstructor();
+
+    /// <summary>
+    /// Creates a constructor delegate for creating a collection from an enumerable.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The collection is not <see cref="CollectionConstructionStrategy.Enumerable"/>.</exception>
+    /// <returns></returns>
+    Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> GetEnumerableConstructor();
 }

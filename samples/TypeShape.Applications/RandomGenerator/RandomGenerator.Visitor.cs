@@ -26,7 +26,7 @@ public partial class RandomGenerator
                     return type.GetEnumShape().Accept(this, null);
                 case TypeKind.Nullable:
                     return type.GetNullableShape().Accept(this, null);
-                case var k when ((k & TypeKind.Dictionary) != 0):
+                case TypeKind.Dictionary:
                     return type.GetDictionaryShape().Accept(this, null);
                 case TypeKind.Enumerable:
                     return type.GetEnumerableShape().Accept(this, null);
@@ -92,7 +92,7 @@ public partial class RandomGenerator
                     foreach (var parameterSetter in parameterSetters)
                         parameterSetter(ref argState, random, propertySize);
 
-                    TDeclaringType obj = ctor(in argState);
+                    TDeclaringType obj = ctor(ref argState);
 
                     foreach (var propertySetter in propertySetters)
                         propertySetter(ref obj, random, propertySize);
@@ -147,19 +147,10 @@ public partial class RandomGenerator
                 });
             }
 
-            IConstructorShape<TEnumerable>? constructor = enumerableShape.Type.GetConstructors(nonPublic: false)
-                .Where(ctor =>
-                    (ctor.ParameterCount == 0 && enumerableShape.IsMutable) ||
-                    (ctor.ParameterCount == 1 && ctor.GetParameters().First().ParameterType.Type == typeof(IEnumerable<TElement>)))
-                .OrderBy(ctor => ctor.ParameterCount)
-                .OfType<IConstructorShape<TEnumerable>>()
-                .FirstOrDefault();
-
-            switch (constructor)
+            switch (enumerableShape.ConstructionStrategy)
             {
-                case { ParameterCount: 0 }:
-                    Debug.Assert(enumerableShape.IsMutable);
-                    Func<TEnumerable> defaultCtor = constructor.GetDefaultConstructor();
+                case CollectionConstructionStrategy.Mutable:
+                    Func<TEnumerable> defaultCtor = enumerableShape.GetDefaultConstructor();
                     Setter<TEnumerable, TElement> addElementFunc = enumerableShape.GetAddElement();
                     return CacheResult((Random random, int size) =>
                     {
@@ -176,26 +167,41 @@ public partial class RandomGenerator
                         return obj;
                     });
 
-                case IConstructorShape<TEnumerable, IEnumerable<TElement>> enumerableCtor:
-                    Debug.Assert(constructor.ParameterCount == 1);
-                    Constructor<IEnumerable<TElement>, TEnumerable> parameterizedCtor = enumerableCtor.GetParameterizedConstructor();
+                case CollectionConstructionStrategy.Enumerable:
+                    Func<IEnumerable<TElement>, TEnumerable> enumerableCtor = enumerableShape.GetEnumerableConstructor();
                     return CacheResult((Random random, int size) =>
                     {
                         if (size == 0)
                             return default!;
 
-                        List<TElement> buffer = new(size);
                         int length = random.Next(0, size);
+                        TElement[] buffer = new TElement[length];
                         int elementSize = GetChildSize(size, length);
 
                         for (int i = 0; i < length; i++)
-                            buffer.Add(elementGenerator(random, elementSize));
+                            buffer[i] = elementGenerator(random, elementSize);
 
-                        return parameterizedCtor(buffer);
+                        return enumerableCtor(buffer);
+                    });
+
+                case CollectionConstructionStrategy.Span:
+                    SpanConstructor<TElement, TEnumerable> spanCtor = enumerableShape.GetSpanConstructor();
+                    return CacheResult((Random random, int size) =>
+                    {
+                        if (size == 0)
+                            return default!;
+
+                        int length = random.Next(0, size);
+                        TElement[] buffer = new TElement[length];
+                        int elementSize = GetChildSize(size, length);
+
+                        for (int i = 0; i < length; i++)
+                            buffer[i] = elementGenerator(random, elementSize);
+
+                        return spanCtor(buffer);
                     });
 
                 default:
-                    Debug.Assert(constructor is null);
                     throw new NotSupportedException($"Type '{typeof(TEnumerable)}' does not support random generation.");
             }
         }
@@ -206,19 +212,10 @@ public partial class RandomGenerator
             var keyGenerator = (RandomGenerator<TKey>)dictionaryShape.KeyType.Accept(this, null)!;
             var valueGenerator = (RandomGenerator<TValue>)dictionaryShape.ValueType.Accept(this, null)!;
 
-            IConstructorShape<TDictionary>? constructor = dictionaryShape.Type.GetConstructors(nonPublic: false)
-                .Where(ctor =>
-                    (ctor.ParameterCount == 0 && dictionaryShape.IsMutable) ||
-                    (ctor.ParameterCount == 1 && ctor.GetParameters().First().ParameterType.Type == typeof(IEnumerable<KeyValuePair<TKey, TValue>>)))
-                .OrderBy(ctor => ctor.ParameterCount)
-                .OfType<IConstructorShape<TDictionary>>()
-                .FirstOrDefault();
-
-            switch (constructor)
+            switch (dictionaryShape.ConstructionStrategy)
             {
-                case { ParameterCount: 0 }:
-                    Debug.Assert(dictionaryShape.IsMutable);
-                    Func<TDictionary> defaultCtorFunc = constructor.GetDefaultConstructor();
+                case CollectionConstructionStrategy.Mutable:
+                    Func<TDictionary> defaultCtorFunc = dictionaryShape.GetDefaultConstructor();
                     Setter<TDictionary, KeyValuePair<TKey, TValue>> addKeyValuePairFunc = dictionaryShape.GetAddKeyValuePair();
                     return CacheResult((Random random, int size) =>
                     {
@@ -237,9 +234,8 @@ public partial class RandomGenerator
                         return obj;
                     });
 
-                case IConstructorShape<TDictionary, IEnumerable<KeyValuePair<TKey, TValue>>> enumerableCtor:
-                    Debug.Assert(constructor.ParameterCount == 1);
-                    Constructor<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> enumerableCtorFunc = enumerableCtor.GetParameterizedConstructor();
+                case CollectionConstructionStrategy.Enumerable:
+                    Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> enumerableCtorFunc = dictionaryShape.GetEnumerableConstructor();
                     return CacheResult((Random random, int size) =>
                     {
                         if (size == 0)
@@ -257,8 +253,25 @@ public partial class RandomGenerator
                         return enumerableCtorFunc(buffer);
                     });
 
+                case CollectionConstructionStrategy.Span:
+                    SpanConstructor<KeyValuePair<TKey, TValue>, TDictionary> spanCtorFunc = dictionaryShape.GetSpanConstructor();
+                    return CacheResult((Random random, int size) =>
+                    {
+                        if (size == 0)
+                            return default!;
+
+                        KeyValuePair<TKey, TValue>[] buffer = new KeyValuePair<TKey, TValue>[size];
+                        int entrySize = GetChildSize(size, size);
+
+                        for (int i = 0; i < size; i++)
+                        {
+                            buffer[i] = new(keyGenerator(random, entrySize), valueGenerator(random, entrySize));
+                        }
+
+                        return spanCtorFunc(buffer);
+                    });
+
                 default:
-                    Debug.Assert(constructor is null);
                     throw new NotSupportedException($"Type '{typeof(TDictionary)}' does not support random generation.");
             }
         }

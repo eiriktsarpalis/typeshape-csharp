@@ -109,6 +109,6 @@ internal sealed class JsonObjectConverterWithParameterizedCtor<TDeclaringType, T
             reader.EnsureRead();
         }
 
-        return createObject(in argumentState);
+        return createObject(ref argumentState);
     }
 }
