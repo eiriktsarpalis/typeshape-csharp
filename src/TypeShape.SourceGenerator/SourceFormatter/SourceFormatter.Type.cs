@@ -62,7 +62,7 @@ internal static partial class SourceFormatter
                     CreateEnumerableShapeFunc = {{FormatNull(enumerableFactoryMethodName)}},
                 };
             }
-            """);
+            """, trimNullAssignmentLines: true);
 
         if (propertiesFactoryMethodName != null)
         {

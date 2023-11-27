@@ -52,7 +52,7 @@ internal static partial class SourceFormatter
                     Rank = {{enumerableType.Rank}},
                 };
             }
-            """);
+            """, trimNullAssignmentLines: true);
 
         static string FormatGetEnumerableFunc(EnumerableTypeModel enumerableType)
         {
@@ -116,7 +116,7 @@ internal static partial class SourceFormatter
                     SpanConstructorFunc = {{FormatSpanConstructorFunc(dictionaryType)}},
                 };
             }
-            """);
+            """, trimNullAssignmentLines: true);
 
         static string FormatGetDictionaryFunc(DictionaryTypeModel dictionaryType)
         {

@@ -48,7 +48,7 @@ internal static partial class SourceFormatter
                     IsGetterNonNullable = {{FormatBool(property.IsGetterNonNullable)}},
                     IsSetterNonNullable = {{FormatBool(property.IsSetterNonNullable)}},
                 },
-                """);
+                """, trimNullAssignmentLines: true);
 
             static string FormatAttributeProviderFunc(TypeModel type, PropertyModel property)
             {

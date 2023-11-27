@@ -41,7 +41,7 @@ internal static partial class SourceFormatter
                     ParameterizedConstructorFunc = static (ref {{constructorArgumentStateFQN}} state) => {{FormatParameterizedCtorExpr(type, constructor, "state")}},
                     AttributeProviderFunc = {{FormatAttributeProviderFunc(type, constructor)}},
                 },
-                """);
+                """, trimNullAssignmentLines: true);
 
             i++;
 
@@ -190,7 +190,7 @@ internal static partial class SourceFormatter
                     Setter = static (ref {{constructorArgumentStateFQN}} state, {{parameter.ParameterType.FullyQualifiedName}} value) => {{FormatSetterBody(constructor, parameter)}},
                     AttributeProviderFunc = {{FormatAttributeProviderFunc(type, constructor, parameter)}},
                 },
-                """);
+                """, trimNullAssignmentLines: true);
 
             i++;
 

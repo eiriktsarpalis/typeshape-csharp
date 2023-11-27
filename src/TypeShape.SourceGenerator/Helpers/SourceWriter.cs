@@ -2,6 +2,7 @@
 using Microsoft.CodeAnalysis.Text;
 using System.Diagnostics;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace TypeShape.SourceGenerator.Helpers;
 
@@ -77,6 +78,28 @@ internal sealed class SourceWriter
             _sb.AppendLine();
         }
         while (!isFinalLine);
+    }
+
+    // Horizontal whitespace regex: apply double negation on \s to exclude \r and \n
+    private const string HWSR = @"[^\S\r\n]*";
+    private readonly static Regex s_nullAssignmentLineRegex =
+        new(@$"{HWSR}\w+{HWSR}={HWSR}null{HWSR},?{HWSR}\r?\n", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Overload that trims any lines containing '[PropertyName] = null,' 
+    /// assignments from generated object expressions.
+    /// </summary>
+    public void WriteLine(string text, bool trimNullAssignmentLines)
+    {
+        if (trimNullAssignmentLines)
+        {
+            // Since the ns2.0 Regex class doesn't support spans,
+            // use Regex.Replace to preprocess the string instead
+            // of doing a line-by-line replacement.
+            text = s_nullAssignmentLineRegex.Replace(text, "");
+        }
+
+        WriteLine(text);
     }
 
     public void WriteLine() => _sb.AppendLine();
