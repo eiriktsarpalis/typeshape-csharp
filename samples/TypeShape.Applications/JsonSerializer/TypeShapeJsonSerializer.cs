@@ -4,10 +4,20 @@ using System.Text.Json.Serialization.Metadata;
 
 namespace TypeShape.Applications.JsonSerializer;
 
-public static class TypeShapeJsonSerializer
+public static partial class TypeShapeJsonSerializer
 {
+    private readonly static JsonSerializerOptions s_options = new()
+    {
+        TypeInfoResolver = JsonTypeInfoResolver.Combine(), // Use an empty resolver
+    };
+
     public static TypeShapeJsonSerializer<T> Create<T>(ITypeShape<T> shape)
-        => new(shape);
+    {
+        var visitor = new Visitor();
+        var converter = (JsonConverter<T>)shape.Accept(visitor, null)!;
+        JsonTypeInfo<T?> typeInfo = JsonMetadataServices.CreateValueInfo<T?>(s_options, converter);
+        return new TypeShapeJsonSerializer<T>(typeInfo);
+    }
 
     public static string Serialize<T>(T? value) where T : ITypeShapeProvider<T>
         => SerializerCache<T, T>.Value.Serialize(value);
@@ -23,24 +33,18 @@ public static class TypeShapeJsonSerializer
 
     private static class SerializerCache<T, TProvider> where TProvider : ITypeShapeProvider<T>
     {
-        public static TypeShapeJsonSerializer<T> Value => s_value ??= new(TProvider.GetShape());
+        public static TypeShapeJsonSerializer<T> Value => s_value ??= Create(TProvider.GetShape());
         private static TypeShapeJsonSerializer<T>? s_value;
     }
 }
 
 public sealed class TypeShapeJsonSerializer<T>
 {
-    private readonly static JsonSerializerOptions s_options = new()
-    {
-        TypeInfoResolver = new EmptyResolver(),
-    };
-
     private readonly JsonTypeInfo<T?> _jsonTypeInfo;
 
-    public TypeShapeJsonSerializer(ITypeShape<T> shape)
+    internal TypeShapeJsonSerializer(JsonTypeInfo<T?> jsonTypeInfo)
     {
-        JsonConverter<T> converter = ConverterBuilder.Create(shape);
-        _jsonTypeInfo = JsonMetadataServices.CreateValueInfo<T?>(s_options, converter);
+        _jsonTypeInfo = jsonTypeInfo;
     }
 
     public string Serialize(T? value)
@@ -48,9 +52,4 @@ public sealed class TypeShapeJsonSerializer<T>
 
     public T? Deserialize(string json)
         => System.Text.Json.JsonSerializer.Deserialize(json, _jsonTypeInfo);
-
-    private sealed class EmptyResolver : IJsonTypeInfoResolver
-    {
-        public JsonTypeInfo? GetTypeInfo(Type type, JsonSerializerOptions options) => null;
-    }
 }

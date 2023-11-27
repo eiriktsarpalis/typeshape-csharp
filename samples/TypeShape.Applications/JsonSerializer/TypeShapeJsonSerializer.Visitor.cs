@@ -5,14 +5,8 @@ using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using TypeShape.Applications.JsonSerializer.Converters;
 
-public static partial class ConverterBuilder
+public static partial class TypeShapeJsonSerializer
 {
-    public static JsonConverter<T> Create<T>(ITypeShape<T> shape)
-    {
-        var visitor = new Visitor();
-        return (JsonConverter<T>)shape.Accept(visitor, null)!;
-    }
-
     private sealed class Visitor : ITypeShapeVisitor
     {
         private static readonly Dictionary<Type, JsonConverter> s_defaultConverters = new JsonConverter[]

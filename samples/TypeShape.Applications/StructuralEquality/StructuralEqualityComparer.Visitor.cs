@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
+using TypeShape.Applications.StructuralEquality.Comparers;
 
 namespace TypeShape.Applications.StructuralEquality;
 
@@ -27,7 +28,7 @@ public static partial class StructuralEqualityComparer
 
             if (typeof(T) == typeof(object))
             {
-                var result = (EqualityComparer<T>)(object)new PolymorphicObjectEqualityComparer(this, type.Provider);
+                var result = (EqualityComparer<T>)(object)new PolymorphicObjectEqualityComparer(t => GetPolymorphicEqualityComparer(t, type.Provider));
                 return CacheResult(result);
             }
 
