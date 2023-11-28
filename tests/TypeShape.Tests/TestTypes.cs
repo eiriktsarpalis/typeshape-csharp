@@ -122,11 +122,13 @@ public static class TestTypes
 
         yield return Create<ImmutableArray<int>, SourceGenProvider>([1, 2, 3], p);
         yield return Create<ImmutableList<string>, SourceGenProvider>(["1", "2", "3"], p);
+        yield return Create<ImmutableList<string?>, SourceGenProvider>(["1", "2", null], p);
         yield return Create<ImmutableQueue<int>, SourceGenProvider>([1, 2, 3], p);
         yield return Create<ImmutableStack<int>, SourceGenProvider>([1, 2, 3], p, isStack: true);
         yield return Create<ImmutableHashSet<int>, SourceGenProvider>([1, 2, 3], p);
         yield return Create<ImmutableSortedSet<int>, SourceGenProvider>([1, 2, 3], p);
         yield return Create(ImmutableDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }), p);
+        yield return Create(ImmutableDictionary.CreateRange(new Dictionary<string, string?> { ["key"] = null }), p);
         yield return Create(ImmutableSortedDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }), p);
 
         yield return Create(new PocoWithListAndDictionaryProps(@string: "myString")

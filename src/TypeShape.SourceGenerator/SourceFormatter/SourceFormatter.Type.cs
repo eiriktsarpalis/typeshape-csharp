@@ -23,7 +23,11 @@ internal static partial class SourceFormatter
 
         if (type.EmitGenericTypeShapeProviderImplementation)
         {
-            writer.WriteLine($"{provider.Declaration.TypeDeclarationHeader} : ITypeShapeProvider<{type.Id.FullyQualifiedName}>");
+            writer.WriteLine($"""
+                #nullable disable annotations // Use nullable-oblivious interface implementation
+                {provider.Declaration.TypeDeclarationHeader} : ITypeShapeProvider<{type.Id.FullyQualifiedName}>
+                #nullable enable annotations
+                """);
         }
         else
         {
@@ -34,7 +38,10 @@ internal static partial class SourceFormatter
         writer.Indentation++;
 
         writer.WriteLine($"""
+            #nullable disable annotations // Use nullable-oblivious property type
             public {generatedPropertyType} {type.Id.GeneratedPropertyName} => {generatedFieldName} ??= {generatedFactoryMethodName}();
+            #nullable enable annotations // Use nullable-oblivious property type
+
             private {generatedPropertyType}? {generatedFieldName};
 
             """);
