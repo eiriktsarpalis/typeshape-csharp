@@ -7,7 +7,7 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.5.0" PrivateAssets="all" Pack="false" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
     <!-- Build Infra & Packaging -->
-    <PackageVersion Include="PolySharp" Version="1.13.1" />
+    <PackageVersion Include="PolySharp" Version="1.14.0" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
     <PackageVersion Include="MinVer" Version="4.3.0" />
     <PackageVersion Include="NuGetizer" Version="1.1.1" />
