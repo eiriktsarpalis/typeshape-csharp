@@ -491,7 +491,7 @@ public abstract class TypeShapeProviderTests
                 {
                     MemberInfo memberInfo = Assert.IsAssignableFrom<MemberInfo>(ctorParam.AttributeProvider);
 
-                    Assert.Equal(typeof(T), memberInfo.DeclaringType);
+                    Assert.True(memberInfo.DeclaringType!.IsAssignableFrom(typeof(T)));
                     Assert.Equal(memberInfo.Name, ctorParam.Name);
                     Assert.False(ctorParam.HasDefaultValue);
                     Assert.Equal(i, ctorParam.Position);

@@ -1092,8 +1092,7 @@ public static class GenericCollectionWithBuilderAttribute
 [GenerateShape<PersonRecordStruct>]
 [GenerateShape<CollectionWithBuilderAttribute>]
 [GenerateShape<GenericCollectionWithBuilderAttribute<int>>]
-internal partial class SourceGenProvider
-{ }
+internal partial class SourceGenProvider;
 
 internal partial class Outer1
 {

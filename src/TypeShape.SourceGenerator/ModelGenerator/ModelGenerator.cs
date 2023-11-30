@@ -106,14 +106,15 @@ public sealed partial class ModelGenerator(
             out DictionaryTypeModel? dictionaryType, 
             out EnumerableTypeModel? enumerableType);
 
+        bool disallowMemberResolution = isSpecialTypeKind || DisallowMemberResolution(type);
+        ISymbol[] propertiesOrFields = ResolvePropertyAndFieldSymbols(type, disallowMemberResolution).ToArray();
         ITypeSymbol[]? classTupleElements = knownSymbols.Compilation.GetClassTupleElements(knownSymbols.CoreLibAssembly, type);
-        bool disallowMemberResolution = DisallowMemberResolution(type);
 
         return new TypeModel
         {
             Id = typeId,
-            Properties = MapProperties(typeId, type, classTupleElements, disallowMemberResolution: disallowMemberResolution || isSpecialTypeKind),
-            Constructors = MapConstructors(typeId, type, classTupleElements, disallowMemberResolution: disallowMemberResolution || isSpecialTypeKind),
+            Properties = MapProperties(typeId, type, propertiesOrFields, classTupleElements, disallowMemberResolution),
+            Constructors = MapConstructors(typeId, type, propertiesOrFields, classTupleElements, disallowMemberResolution),
             EnumType = enumType,
             NullableType = nullableType,
             EnumerableType = enumerableType,

@@ -22,7 +22,6 @@ public sealed record ConstructorParameterModel
     public required bool IsRequired { get; init; }
     public required bool IsNonNullable { get; init; }
     public required bool IsMemberInitializer { get; init; }
-    public required bool IsAutoProperty { get; init; }
     public required bool HasDefaultValue { get; init; }
     public required object? DefaultValue { get; init; }
     public required bool DefaultValueRequiresCast { get; init; }

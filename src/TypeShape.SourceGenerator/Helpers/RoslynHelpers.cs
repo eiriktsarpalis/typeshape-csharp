@@ -94,6 +94,22 @@ internal static partial class RoslynHelpers
             attr.AttributeClass.ContainingNamespace.ToDisplayString() == "System.Diagnostics.CodeAnalysis");
     }
 
+    public static bool IsRequired(this ISymbol symbol)
+    {
+        Debug.Assert(symbol is IPropertySymbol or IFieldSymbol);
+        return symbol is IPropertySymbol ps
+            ? ps.IsRequired
+            : ((IFieldSymbol)symbol).IsRequired;
+    }
+
+    public static ITypeSymbol GetMemberType(this ISymbol symbol)
+    {
+        Debug.Assert(symbol is IPropertySymbol or IFieldSymbol);
+        return symbol is IPropertySymbol ps
+            ? ps.Type
+            : ((IFieldSymbol)symbol).Type;
+    }
+
     public static ITypeSymbol EraseCompilerMetadata(this Compilation compilation, ITypeSymbol type)
     {
         if (type.NullableAnnotation != NullableAnnotation.None)
@@ -304,7 +320,7 @@ internal static partial class RoslynHelpers
         }
     }
 
-    public static bool IsAutoProperty(this IPropertySymbol property)
+    public static bool IsAutoProperty(this ISymbol property)
     {
         return property.ContainingType.GetMembers()
             .OfType<IFieldSymbol>()

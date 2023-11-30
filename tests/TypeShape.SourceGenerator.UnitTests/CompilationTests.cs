@@ -36,6 +36,46 @@ public static class CompilationTests
     }
 
     [Fact]
+    public static void CompileSimpleRecord_NoErrors()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+            using TypeShape;
+            using System.Collections.Generic;
+
+            [GenerateShape]
+            public partial record MyRecord(string value);
+            """);
+
+        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Fact]
+    public static void ClassWithSetsRequiredMembersConstructor_NoErrors()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+            using TypeShape;
+            using System.Collections.Generic;
+            using System.Diagnostics.CodeAnalysis;
+
+            [GenerateShape]
+            public partial class MyClass
+            {
+                [SetsRequiredMembers]
+                public MyClass(int value)
+                {
+                    Value = value;
+                }
+
+                public required int Value { get; set; }
+            }
+            """);
+
+        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Fact]
     public static void UseTypesWithNullableAnnotations_NoWarnings()
     {
         Compilation compilation = CompilationHelpers.CreateCompilation("""

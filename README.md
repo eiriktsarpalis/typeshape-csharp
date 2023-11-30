@@ -106,7 +106,7 @@ ITypeShape<MyPoco[][]> shape = TypeShapeProvider.GetShape<MyPoco[][], Witness>()
 // Generates factories for both ITypeShape<MyPoco[]> and ITypeShape<MyPoco[][]>
 [GenerateShape<MyPoco[]>]
 [GenerateShape<MyPoco[][]>]
-public partial class Witness { }
+public partial class Witness;
 ```
 
 The library also provides a reflection-based provider:
