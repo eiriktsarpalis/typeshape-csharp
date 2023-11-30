@@ -39,7 +39,7 @@ internal static class JsonPropertyDictionary
             {
                 Span<byte> tmpBuffer = reader.ValueSpan.Length <= 128
                     ? stackalloc byte[128]
-                    : rentedBuffer = ArrayPool<byte>.Shared.Rent(128);
+                    : rentedBuffer = ArrayPool<byte>.Shared.Rent(reader.ValueSpan.Length);
 
                 bytesWritten = reader.CopyString(tmpBuffer);
                 source = tmpBuffer.Slice(0, bytesWritten);
