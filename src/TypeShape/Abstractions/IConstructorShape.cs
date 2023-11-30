@@ -22,6 +22,11 @@ public interface IConstructorShape
     int ParameterCount { get; }
 
     /// <summary>
+    /// Specifies whether the constructor is declared public.
+    /// </summary>
+    bool IsPublic { get; }
+
+    /// <summary>
     /// The provider used for method-level attribute resolution.
     /// </summary>
     ICustomAttributeProvider? AttributeProvider { get; }

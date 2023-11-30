@@ -10,10 +10,13 @@ public sealed record PropertyModel
     public required TypeId? DeclaringInterfaceType { get; init; }
     public required TypeId PropertyType { get; init; }
     
+    public required bool IsField { get; init; }
+
     public required bool EmitGetter { get; init; }
     public required bool EmitSetter { get; init; }
-    
-    public required bool IsField { get; init; }
+
+    public required bool IsGetterPublic { get; init; }
+    public required bool IsSetterPublic { get; init; }
 
     public required bool IsGetterNonNullable { get; init; }
     public required bool IsSetterNonNullable { get; init; }

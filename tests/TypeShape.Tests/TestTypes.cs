@@ -28,6 +28,7 @@ public abstract record TestCase<T>(T Value) : ITestCase
     public bool IsMultiDimensionalArray => typeof(T).IsArray && typeof(T).GetArrayRank() != 1;
     public bool IsAbstract => typeof(T).IsAbstract || typeof(T).IsInterface;
     public bool IsStack { get; init; }
+    public bool DoesNotRoundtrip { get; init; }
 }
 
 public interface ITestCase
@@ -346,6 +347,8 @@ public static class TestTypes
             r30 = 30, r31 = 31, r32 = 32, r33 = 33, r34 = 34, r35 = 35, r36 = 36, r37 = 37, r38 = 38, r39 = 39,
         }, p);
 
+        yield return Create(new ClassWithInternalMembers { X = 1, Y = 2, Z = 3, W = 4, internalField = 5 }, p, doesNotRoundtrip: true);
+
         yield return CreateSelfProvided(new PersonClass("John", 40));
         yield return CreateSelfProvided(new PersonStruct("John", 40));
         yield return CreateSelfProvided<IPersonInterface>(new IPersonInterface.Impl("John", 40));
@@ -353,9 +356,9 @@ public static class TestTypes
         yield return CreateSelfProvided(new PersonRecord("John", 40));
         yield return CreateSelfProvided(new PersonRecordStruct("John", 40));
 
-        static TestCase<T, TProvider> Create<T, TProvider>(T value, TProvider provider, bool isStack = false) 
+        static TestCase<T, TProvider> Create<T, TProvider>(T value, TProvider provider, bool isStack = false, bool doesNotRoundtrip = false) 
             where TProvider : ITypeShapeProvider<T> 
-            => new(value) { IsStack = isStack };
+            => new(value) { IsStack = isStack, DoesNotRoundtrip = doesNotRoundtrip };
 
         static TestCase<T, T> CreateSelfProvided<T>(T value) where T : ITypeShapeProvider<T>
             => new(value);
@@ -846,6 +849,16 @@ public struct StructWith40RequiredMembersAndDefaultCtor
     public required int r30; public required int r31; public required int r32; public required int r33; public required int r34; public required int r35; public required int r36; public required int r37; public required int r38; public required int r39;
 }
 
+public class ClassWithInternalMembers
+{
+    public int X { get; set; }
+    internal int Y { get; set; }
+    public int Z { internal get; set; }
+    public int W { get; internal set; }
+
+    internal int internalField;
+}
+
 [GenerateShape]
 public partial class PersonClass(string name, int age)
 {
@@ -1092,6 +1105,7 @@ public static class GenericCollectionWithBuilderAttribute
 [GenerateShape<PersonRecordStruct>]
 [GenerateShape<CollectionWithBuilderAttribute>]
 [GenerateShape<GenericCollectionWithBuilderAttribute<int>>]
+[GenerateShape<ClassWithInternalMembers>]
 internal partial class SourceGenProvider;
 
 internal partial class Outer1

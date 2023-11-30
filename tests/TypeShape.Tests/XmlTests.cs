@@ -105,6 +105,10 @@ public abstract class XmlTests
             {
                 Assert.Equal(testCase.Value, deserializedValue);
             }
+            else if (testCase.DoesNotRoundtrip)
+            {
+                return;
+            }
             else
             {
                 if (testCase.IsStack)
@@ -154,6 +158,10 @@ public sealed class XmlTests_SourceGen : XmlTests
             if (testCase.IsEquatable)
             {
                 Assert.Equal(testCase.Value, deserializedValue);
+            }
+            else if (testCase.DoesNotRoundtrip)
+            {
+                return;
             }
             else
             {

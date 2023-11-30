@@ -8,7 +8,7 @@ public sealed class SourceGenTypeShape<T> : ITypeShape<T>
 
     public required ITypeShapeProvider Provider { get; init; }
     public ICustomAttributeProvider? AttributeProvider { get; init; }
-    public Func<IEnumerable<IPropertyShape>>? CreatePropertiesFunc { get; init; }
+    public Func<bool /* nonPublic */, IEnumerable<IPropertyShape>>? CreatePropertiesFunc { get; init; }
     public Func<IEnumerable<IConstructorShape>>? CreateConstructorsFunc { get; init; }
     public Func<IDictionaryShape>? CreateDictionaryShapeFunc { get; init; }
     public Func<IEnumerableShape>? CreateEnumerableShapeFunc { get; init; }
@@ -42,23 +42,30 @@ public sealed class SourceGenTypeShape<T> : ITypeShape<T>
 
     public IEnumerable<IConstructorShape> GetConstructors(bool nonPublic)
     {
-        if (nonPublic)
+        IEnumerable<IConstructorShape> constructors = CreateConstructorsFunc?.Invoke() ?? [];
+
+        if (!nonPublic)
         {
-            throw new InvalidOperationException("Getting non-public members is not supported in source gen.");
+            constructors = constructors.Where(ctor => ctor.IsPublic);
         }
 
-        return CreateConstructorsFunc is null ? [] : CreateConstructorsFunc();
+        return constructors;
     }
 
     public IEnumerable<IPropertyShape> GetProperties(bool nonPublic, bool includeFields)
     {
-        if (nonPublic)
+        IEnumerable<IPropertyShape> properties = CreatePropertiesFunc?.Invoke(nonPublic) ?? [];
+
+        if (!nonPublic)
         {
-            throw new InvalidOperationException("Getting non-public members is not supported in source gen.");
+            properties = properties.Where(prop => prop.IsGetterPublic || prop.IsSetterPublic);
+        }
+        if (!includeFields)
+        {
+            properties = properties.Where(prop => !prop.IsField);
         }
 
-        var properties = CreatePropertiesFunc is null ? [] : CreatePropertiesFunc();
-        return includeFields ? properties : properties.Where(prop => !prop.IsField);
+        return properties;
     }
 
     public IEnumShape GetEnumShape()

@@ -93,6 +93,10 @@ public abstract class CborTests
             {
                 Assert.Equal(testCase.Value, deserializedValue);
             }
+            else if (testCase.DoesNotRoundtrip)
+            {
+                return;
+            }
             else
             {
                 if (testCase.IsStack)
@@ -142,6 +146,10 @@ public sealed class CborTests_SourceGen : CborTests
             if (testCase.IsEquatable)
             {
                 Assert.Equal(testCase.Value, deserializedValue);
+            }
+            else if (testCase.DoesNotRoundtrip)
+            {
+                return;
             }
             else
             {

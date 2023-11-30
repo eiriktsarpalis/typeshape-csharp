@@ -37,6 +37,10 @@ public abstract class JsonTests
         {
             Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
         }
+        else if (testCase.DoesNotRoundtrip)
+        {
+            return;
+        }
         else
         {
             T? deserializedValue = serializer.Deserialize(json);
@@ -80,6 +84,10 @@ public abstract class JsonTests
         if (!testCase.HasConstructors)
         {
             Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
+        }
+        else if (testCase.DoesNotRoundtrip)
+        {
+            return;
         }
         else
         {
@@ -125,6 +133,10 @@ public abstract class JsonTests
         {
             Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
         }
+        else if (testCase.DoesNotRoundtrip)
+        {
+            return;
+        }
         else
         {
             List<T>? deserializedValue = serializer.Deserialize(json);
@@ -168,6 +180,10 @@ public abstract class JsonTests
         if (!testCase.HasConstructors)
         {
             Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
+        }
+        else if (testCase.DoesNotRoundtrip)
+        {
+            return;
         }
         else
         {
@@ -379,6 +395,10 @@ public sealed class JsonTests_SourceGen : JsonTests
             if (testCase.IsStack)
             {
                 Assert.Equal(TypeShapeJsonSerializer.Serialize<T, TProvider>(deserializedValue), ToJsonBaseline(deserializedValue));
+            }
+            else if (testCase.DoesNotRoundtrip)
+            {
+                return;
             }
             else
             {

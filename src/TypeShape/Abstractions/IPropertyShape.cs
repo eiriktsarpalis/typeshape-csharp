@@ -44,6 +44,16 @@ public interface IPropertyShape
     bool IsField { get; }
 
     /// <summary>
+    /// Specifies whether the property getter is declared public.
+    /// </summary>
+    bool IsGetterPublic { get; }
+
+    /// <summary>
+    /// Specifies whether the property setter is declared public.
+    /// </summary>
+    bool IsSetterPublic { get; }
+
+    /// <summary>
     /// Specifies whether the getter returns non-null values.
     /// </summary>
     /// <remarks>

@@ -1,9 +1,6 @@
-﻿using Newtonsoft.Json.Linq;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using System.Diagnostics;
 using System.Globalization;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using TypeShape.Applications.RandomGenerator;
@@ -15,7 +12,6 @@ namespace TypeShape.Tests;
 public abstract class TypeShapeProviderTests
 {
     protected abstract ITypeShapeProvider Provider { get; }
-    protected abstract bool SupportsNonPublicMembers { get; }
 
     [Theory]
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
@@ -63,7 +59,7 @@ public abstract class TypeShapeProviderTests
         Assert.NotNull(shape);
 
         var visitor = new PropertyTestVisitor();
-        foreach (IPropertyShape property in shape.GetProperties(nonPublic: SupportsNonPublicMembers, includeFields: true))
+        foreach (IPropertyShape property in shape.GetProperties(nonPublic: true, includeFields: true))
         {
             Assert.Equal(typeof(T), property.DeclaringType.Type);
             property.Accept(visitor, testCase.Value);
@@ -110,7 +106,7 @@ public abstract class TypeShapeProviderTests
         Assert.NotNull(shape);
 
         var visitor = new ConstructorTestVisitor();
-        foreach (IConstructorShape ctor in shape.GetConstructors(nonPublic: SupportsNonPublicMembers))
+        foreach (IConstructorShape ctor in shape.GetConstructors(nonPublic: true))
         {
             Assert.Equal(typeof(T), ctor.DeclaringType.Type);
             ctor.Accept(visitor, typeof(T));
@@ -428,7 +424,7 @@ public abstract class TypeShapeProviderTests
 
         ITypeShape<T> shape = Provider.GetShape<T>()!;
 
-        foreach (IPropertyShape property in shape.GetProperties(nonPublic: SupportsNonPublicMembers, includeFields: true))
+        foreach (IPropertyShape property in shape.GetProperties(nonPublic: true, includeFields: true))
         {
             ICustomAttributeProvider? attributeProvider = property.AttributeProvider;
             Assert.NotNull(attributeProvider);
@@ -440,6 +436,8 @@ public abstract class TypeShapeProviderTests
                 Assert.Equal(property.Name, fieldInfo.Name);
                 Assert.Equal(property.PropertyType.Type, fieldInfo.FieldType);
                 Assert.True(property.IsField);
+                Assert.Equal(fieldInfo.IsPublic, property.IsGetterPublic);
+                Assert.Equal(fieldInfo.IsPublic, property.IsSetterPublic);
             }
             else
             {
@@ -450,10 +448,12 @@ public abstract class TypeShapeProviderTests
                 Assert.True(!property.HasGetter || propertyInfo.CanRead);
                 Assert.True(!property.HasSetter || propertyInfo.CanWrite);
                 Assert.False(property.IsField);
+                Assert.Equal(property.HasGetter && propertyInfo.GetMethod!.IsPublic, property.IsGetterPublic);
+                Assert.Equal(property.HasSetter && propertyInfo.SetMethod!.IsPublic, property.IsSetterPublic);
             }
         }
 
-        foreach (IConstructorShape constructor in shape.GetConstructors(nonPublic: SupportsNonPublicMembers))
+        foreach (IConstructorShape constructor in shape.GetConstructors(nonPublic: true))
         {
             ICustomAttributeProvider? attributeProvider = constructor.AttributeProvider;
             if (attributeProvider is null)
@@ -466,6 +466,7 @@ public abstract class TypeShapeProviderTests
             Assert.True(typeof(T).IsAssignableFrom(ctorInfo is MethodInfo m ? m.ReturnType : ctorInfo.DeclaringType));
             ParameterInfo[] parameters = ctorInfo.GetParameters();
             Assert.True(parameters.Length <= constructor.ParameterCount);
+            Assert.Equal(ctorInfo.IsPublic, constructor.IsPublic);
 
             int i = 0;
             foreach (IConstructorParameterShape ctorParam in constructor.GetParameters())
@@ -530,7 +531,7 @@ public abstract class TypeShapeProviderTests
         ITypeShape<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
 
-        foreach (IPropertyShape property in shape.GetProperties(nonPublic: SupportsNonPublicMembers, includeFields: true))
+        foreach (IPropertyShape property in shape.GetProperties(nonPublic: true, includeFields: true))
         {
             MemberInfo memberInfo = Assert.IsAssignableFrom<MemberInfo>(property.AttributeProvider);
 
@@ -539,7 +540,7 @@ public abstract class TypeShapeProviderTests
             Assert.Equal(property.HasSetter && isSetterNonNullable, property.IsSetterNonNullable);
         }
 
-        foreach (IConstructorShape constructor in shape.GetConstructors(nonPublic: SupportsNonPublicMembers))
+        foreach (IConstructorShape constructor in shape.GetConstructors(nonPublic: true))
         {
             ICustomAttributeProvider? attributeProvider = constructor.AttributeProvider;
             if (attributeProvider is null)
@@ -797,17 +798,14 @@ public static class ReflectionHelpers
 public sealed class TypeShapeProviderTests_Reflection : TypeShapeProviderTests
 {
     protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: false);
-    protected override bool SupportsNonPublicMembers => true;
 }
 
 public sealed class TypeShapeProviderTests_ReflectionEmit : TypeShapeProviderTests
 {
     protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: true);
-    protected override bool SupportsNonPublicMembers => true;
 }
 
 public sealed class TypeShapeProviderTests_SourceGen : TypeShapeProviderTests
 {
     protected override ITypeShapeProvider Provider { get; } = SourceGenProvider.Default;
-    protected override bool SupportsNonPublicMembers => false;
 }

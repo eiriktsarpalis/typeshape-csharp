@@ -26,11 +26,14 @@ internal sealed class ReflectionPropertyShape<TDeclaringType, TPropertyType> : I
             HasGetter = true;
             HasSetter = !f.IsInitOnly;
             IsField = true;
+            IsGetterPublic = IsSetterPublic = f.IsPublic;
         }
         else if (memberInfo is PropertyInfo p)
         {
             HasGetter = p.CanRead && (nonPublic || p.GetMethod!.IsPublic);
             HasSetter = p.CanWrite && (nonPublic || p.SetMethod!.IsPublic) && !p.IsInitOnly();
+            IsGetterPublic = HasGetter && p.GetMethod!.IsPublic;
+            IsSetterPublic = HasSetter && p.SetMethod!.IsPublic;
         }
 
         memberInfo.ResolveNullableAnnotation(out bool isGetterNonNullable, out bool isSetterNonNullable);
@@ -44,6 +47,8 @@ internal sealed class ReflectionPropertyShape<TDeclaringType, TPropertyType> : I
     public ITypeShape PropertyType => _provider.GetShape<TPropertyType>();
 
     public bool IsField { get; }
+    public bool IsGetterPublic { get; }
+    public bool IsSetterPublic { get; }
     public bool IsGetterNonNullable { get; }
     public bool IsSetterNonNullable { get; }
 

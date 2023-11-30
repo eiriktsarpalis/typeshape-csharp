@@ -10,6 +10,7 @@ internal sealed class ReflectionConstructorShape<TDeclaringType, TArgumentState>
     public ITypeShape DeclaringType => provider.GetShape<TDeclaringType>();
     public int ParameterCount => ctorInfo.Parameters.Count;
     public ICustomAttributeProvider? AttributeProvider => ctorInfo.AttributeProvider;
+    public bool IsPublic => ctorInfo.IsPublic;
 
     public object? Accept(ITypeShapeVisitor visitor, object? state)
         => visitor.VisitConstructor(this, state);
@@ -42,6 +43,7 @@ internal sealed class ReflectionConstructorShape<TDeclaringType, TArgumentState>
 internal interface IConstructorShapeInfo
 {
     Type ConstructedType { get; }
+    bool IsPublic { get; }
     ICustomAttributeProvider? AttributeProvider { get; }
     IReadOnlyList<IParameterShapeInfo> Parameters { get; }
 }
@@ -74,6 +76,7 @@ internal sealed class MethodConstructorShapeInfo : IConstructorShapeInfo
 
     public Type ConstructedType { get; }
     public MethodBase? ConstructorMethod { get; }
+    public bool IsPublic => ConstructorMethod is null or { IsPublic: true };
     public MethodParameterShapeInfo[] ConstructorParameters { get; }
     public MemberInitializerShapeInfo[] MemberInitializers { get; }
 
@@ -97,6 +100,7 @@ internal sealed class TupleConstructorShapeInfo(
 
     public ICustomAttributeProvider? AttributeProvider => ConstructorInfo;
     public IReadOnlyList<IParameterShapeInfo> Parameters => _allParameters ??= GetAllParameters().ToArray();
+    public bool IsPublic => true;
 
     private IEnumerable<IParameterShapeInfo> GetAllParameters()
     {

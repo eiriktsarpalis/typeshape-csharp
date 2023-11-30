@@ -6,6 +6,7 @@ namespace TypeShape.SourceGenerator.Model;
 public sealed record ConstructorModel
 {
     public required TypeId DeclaringType { get; init; }
+    public required bool IsPublic { get; init; }
     public required ImmutableEquatableArray<ConstructorParameterModel> Parameters { get; init; }
     public required ImmutableEquatableArray<ConstructorParameterModel> MemberInitializers { get; init; }
     public required string? StaticFactoryName { get; init; }

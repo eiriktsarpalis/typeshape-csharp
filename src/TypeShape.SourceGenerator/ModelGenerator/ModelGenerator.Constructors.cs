@@ -124,6 +124,7 @@ public sealed partial class ModelGenerator
             Parameters = parameters.ToImmutableEquatableArray(),
             MemberInitializers = memberInitializers.ToImmutableEquatableArray(),
             StaticFactoryName = constructor.IsStatic ? constructor.GetFullyQualifiedName() : null,
+            IsPublic = constructor.DeclaredAccessibility is Accessibility.Public,
         };
     }
 
@@ -192,6 +193,7 @@ public sealed partial class ModelGenerator
                 Parameters = [],
                 MemberInitializers = [],
                 StaticFactoryName = null,
+                IsPublic = true,
             };
         }
 
@@ -201,6 +203,7 @@ public sealed partial class ModelGenerator
             Parameters = tupleElements.Select(MapTupleConstructorParameter).ToImmutableEquatableArray(),
             MemberInitializers = [],
             StaticFactoryName = null,
+            IsPublic = true,
         };
 
         ConstructorParameterModel MapTupleConstructorParameter(ITypeSymbol tupleElement, int position)

@@ -84,6 +84,8 @@ public sealed partial class ModelGenerator
             IsSetterNonNullable = emitSetter && isSetterNonNullable,
             EmitGetter = emitGetter,
             EmitSetter = emitSetter,
+            IsGetterPublic = emitGetter && property.GetMethod?.DeclaredAccessibility is Accessibility.Public,
+            IsSetterPublic = emitSetter && property.SetMethod?.DeclaredAccessibility is Accessibility.Public,
             IsField = false,
         };
     }
@@ -103,6 +105,8 @@ public sealed partial class ModelGenerator
             IsSetterNonNullable = !field.IsReadOnly && isSetterNonNullable,
             EmitGetter = true,
             EmitSetter = !field.IsReadOnly,
+            IsGetterPublic = field.DeclaredAccessibility is Accessibility.Public,
+            IsSetterPublic = field.DeclaredAccessibility is Accessibility.Public,
             IsField = true,
         };
     }
@@ -118,6 +122,8 @@ public sealed partial class ModelGenerator
             PropertyType = EnqueueForGeneration(element),
             EmitGetter = true,
             EmitSetter = false,
+            IsGetterPublic = true,
+            IsSetterPublic = true,
             IsGetterNonNullable = element.IsNonNullableAnnotation(),
             IsSetterNonNullable = false, // No setter is emitted
             IsField = false

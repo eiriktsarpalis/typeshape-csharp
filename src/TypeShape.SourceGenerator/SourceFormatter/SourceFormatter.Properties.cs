@@ -11,7 +11,7 @@ internal static partial class SourceFormatter
     {
         Debug.Assert(type.Properties.Length > 0);
 
-        writer.WriteLine($"private IEnumerable<IPropertyShape> {methodName}() => new IPropertyShape[]");
+        writer.WriteLine($"private IEnumerable<IPropertyShape> {methodName}(bool nonPublic) => new IPropertyShape[]");
         writer.WriteLine('{');
         writer.Indentation++;
 
@@ -36,7 +36,7 @@ internal static partial class SourceFormatter
             };
 
             writer.WriteLine($$"""
-                new SourceGenPropertyShape<{{type.Id.FullyQualifiedName}}, {{property.PropertyType.FullyQualifiedName}}>
+                new SourceGenPropertyShape<{{type.Id.FullyQualifiedName}}, {{property.PropertyType.FullyQualifiedName}}>(nonPublic)
                 {
                     Name = "{{property.Name}}",
                     DeclaringType = {{type.Id.GeneratedPropertyName}},
@@ -45,6 +45,8 @@ internal static partial class SourceFormatter
                     Setter = {{(property.EmitSetter ? $"static (ref {type.Id.FullyQualifiedName} obj, {property.PropertyType.FullyQualifiedName} value) => obj.{property.UnderlyingMemberName} = value{(suppressSetter ? "!" : "")}" : "null")}},
                     AttributeProviderFunc = {{FormatAttributeProviderFunc(type, property)}},
                     IsField = {{FormatBool(property.IsField)}},
+                    IsGetterPublic = {{FormatBool(property.IsGetterPublic)}},
+                    IsSetterPublic = {{FormatBool(property.IsSetterPublic)}},
                     IsGetterNonNullable = {{FormatBool(property.IsGetterNonNullable)}},
                     IsSetterNonNullable = {{FormatBool(property.IsSetterNonNullable)}},
                 },

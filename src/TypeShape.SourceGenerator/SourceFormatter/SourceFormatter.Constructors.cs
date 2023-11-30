@@ -40,6 +40,7 @@ internal static partial class SourceFormatter
                     ArgumentStateConstructorFunc = static () => {{FormatArgumentStateCtorExpr(constructor, constructorArgumentStateFQN)}},
                     ParameterizedConstructorFunc = static (ref {{constructorArgumentStateFQN}} state) => {{FormatParameterizedCtorExpr(type, constructor, "state")}},
                     AttributeProviderFunc = {{FormatAttributeProviderFunc(type, constructor)}},
+                    IsPublic = {{FormatBool(constructor.IsPublic)}},
                 },
                 """, trimNullAssignmentLines: true);
 
