@@ -51,6 +51,34 @@ public static class CompilationTests
     }
 
     [Fact]
+    public static void CompileClassWithMultipleSetters_NoErrors()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+            using TypeShape;
+
+            [GenerateShape]
+            public partial class ClassWithParameterizedConstructorAndMultiplePropertySetters(int x00)
+            {
+                public int X00 { get; set; } = x00;
+
+                public int X01 { get; set; }
+                public int X02 { get; set; }
+                public int X03 { get; set; }
+                public int X04 { get; set; }
+                public int X05 { get; set; }
+                public int X06 { get; set; }
+                public int X07 { get; set; }
+                public int X08 { get; set; }
+                public int X09 { get; set; }
+                public int X10 { get; set; }
+            }
+            """);
+
+        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Fact]
     public static void ClassWithSetsRequiredMembersConstructor_NoErrors()
     {
         Compilation compilation = CompilationHelpers.CreateCompilation("""

@@ -29,7 +29,7 @@ public static class CompilationHelpers
     {
         return new CSharpParseOptions(
             kind: SourceCodeKind.Regular,
-            languageVersion: version ?? LanguageVersion.CSharp11, // C# 11 is the minimum supported lang version by the source generator.
+            languageVersion: version ?? LanguageVersion.CSharp12,
             documentationMode: documentationMode ?? DocumentationMode.Parse);
     }
 

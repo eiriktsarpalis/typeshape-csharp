@@ -252,6 +252,10 @@ public static class TestTypes
             requiredField = true,
         }, p);
 
+        yield return Create(new ClassWithParameterizedConstructorAnd2OptionalSetters(42), p);
+        yield return Create(new ClassWithParameterizedConstructorAnd10OptionalSetters(42), p);
+        yield return Create(new ClassWithParameterizedConstructorAnd70OptionalSetters(42), p);
+
         yield return Create(new ClassRecord(0, 1, 2, 3), p);
         yield return Create(new StructRecord(0, 1, 2, 3), p);
         yield return Create(new LargeClassRecord(), p);
@@ -626,6 +630,100 @@ public record struct StructRecordWithRequiredAndInitOnlyProperties(int x, int y,
     public int InitOnlyInt { get; init; }
 
     public required bool requiredField;
+}
+
+public class ClassWithParameterizedConstructorAnd2OptionalSetters(int x1)
+{
+    public int X1 { get; set; } = x1;
+    public int X2 { get; set; }
+}
+
+public class ClassWithParameterizedConstructorAnd10OptionalSetters(int x01)
+{
+    public int X01 { get; set; } = x01;
+    public int X02 { get; set; } = x01;
+    public int X03 { get; set; } = x01;
+    public int X04 { get; set; } = x01;
+    public int X05 { get; set; } = x01;
+    public int X06 { get; set; } = x01;
+    public int X07 { get; set; } = x01;
+    public int X08 { get; set; } = x01;
+    public int X09 { get; set; } = x01;
+    public int X10 { get; set; } = x01;
+}
+
+public class ClassWithParameterizedConstructorAnd70OptionalSetters(int x01)
+{
+    public int X01 { get; set; } = x01;
+    public int X02 { get; set; } = x01;
+    public int X03 { get; set; } = x01;
+    public int X04 { get; set; } = x01;
+    public int X05 { get; set; } = x01;
+    public int X06 { get; set; } = x01;
+    public int X07 { get; set; } = x01;
+    public int X08 { get; set; } = x01;
+    public int X09 { get; set; } = x01;
+    public int X10 { get; set; } = x01;
+    public int X11 { get; set; } = x01;
+    public int X12 { get; set; } = x01;
+    public int X13 { get; set; } = x01;
+    public int X14 { get; set; } = x01;
+    public int X15 { get; set; } = x01;
+    public int X16 { get; set; } = x01;
+    public int X17 { get; set; } = x01;
+    public int X18 { get; set; } = x01;
+    public int X19 { get; set; } = x01;
+    public int X20 { get; set; } = x01;
+    public int X21 { get; set; } = x01;
+    public int X22 { get; set; } = x01;
+    public int X23 { get; set; } = x01;
+    public int X24 { get; set; } = x01;
+    public int X25 { get; set; } = x01;
+    public int X26 { get; set; } = x01;
+    public int X27 { get; set; } = x01;
+    public int X28 { get; set; } = x01;
+    public int X29 { get; set; } = x01;
+    public int X30 { get; set; } = x01;
+    public int X31 { get; set; } = x01;
+    public int X32 { get; set; } = x01;
+    public int X33 { get; set; } = x01;
+    public int X34 { get; set; } = x01;
+    public int X35 { get; set; } = x01;
+    public int X36 { get; set; } = x01;
+    public int X37 { get; set; } = x01;
+    public int X38 { get; set; } = x01;
+    public int X39 { get; set; } = x01;
+    public int X40 { get; set; } = x01;
+    public int X41 { get; set; } = x01;
+    public int X42 { get; set; } = x01;
+    public int X43 { get; set; } = x01;
+    public int X44 { get; set; } = x01;
+    public int X45 { get; set; } = x01;
+    public int X46 { get; set; } = x01;
+    public int X47 { get; set; } = x01;
+    public int X48 { get; set; } = x01;
+    public int X49 { get; set; } = x01;
+    public int X50 { get; set; } = x01;
+    public int X51 { get; set; } = x01;
+    public int X52 { get; set; } = x01;
+    public int X53 { get; set; } = x01;
+    public int X54 { get; set; } = x01;
+    public int X55 { get; set; } = x01;
+    public int X56 { get; set; } = x01;
+    public int X57 { get; set; } = x01;
+    public int X58 { get; set; } = x01;
+    public int X59 { get; set; } = x01;
+    public int X60 { get; set; } = x01;
+    public int X61 { get; set; } = x01;
+    public int X62 { get; set; } = x01;
+    public int X63 { get; set; } = x01;
+    public int X64 { get; set; } = x01;
+    public int X65 { get; set; } = x01;
+    public int X66 { get; set; } = x01;
+    public int X67 { get; set; } = x01;
+    public int X68 { get; set; } = x01;
+    public int X69 { get; set; } = x01;
+    public int X70 { get; set; } = x01;
 }
 
 public class GenericContainer<T>
@@ -1042,6 +1140,9 @@ public static class GenericCollectionWithBuilderAttribute
 [GenerateShape<StructWithRequiredAndInitOnlyProperties>]
 [GenerateShape<ClassRecordWithRequiredAndInitOnlyProperties>]
 [GenerateShape<StructRecordWithRequiredAndInitOnlyProperties>]
+[GenerateShape<ClassWithParameterizedConstructorAnd2OptionalSetters>]
+[GenerateShape<ClassWithParameterizedConstructorAnd10OptionalSetters>]
+[GenerateShape<ClassWithParameterizedConstructorAnd70OptionalSetters>]
 [GenerateShape<StructWithRequiredPropertyAndDefaultCtor>]
 [GenerateShape<StructWithRequiredFieldAndDefaultCtor>]
 [GenerateShape<ClassWithSetsRequiredMembersCtor>]
