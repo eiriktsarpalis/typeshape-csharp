@@ -5,7 +5,7 @@ namespace TypeShape.SourceGenModel;
 public sealed class SourceGenConstructorParameterShape<TArgumentState, TParameter> : IConstructorParameterShape<TArgumentState, TParameter>
 {
     public required int Position { get; init; }
-    public required string? Name { get; init; }
+    public required string Name { get; init; }
     public required bool IsRequired { get; init; }
     public required bool IsNonNullable { get; init; }
     public required ITypeShape<TParameter> ParameterType { get; init; }

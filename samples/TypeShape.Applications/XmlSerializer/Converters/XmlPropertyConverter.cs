@@ -36,7 +36,7 @@ internal sealed class XmlPropertyConverter<TDeclaringType, TPropertyType> : XmlP
     }
 
     public XmlPropertyConverter(IConstructorParameterShape<TDeclaringType, TPropertyType> parameter, XmlConverter<TPropertyType> propertyConverter)
-    : base(parameter.Name!)
+    : base(parameter.Name)
     {
         _propertyConverter = propertyConverter;
         _setter = parameter.GetSetter();

@@ -17,6 +17,11 @@ internal sealed class ReflectionConstructorParameterShape<TArgumentState, TParam
         int position)
     {
         Debug.Assert(position < ctorInfo.Parameters.Count);
+        if (parameterInfo.Name is null)
+        {
+            throw new NotSupportedException($"The constructor for type '{ctorInfo.ConstructedType}' has had its parameter names trimmed.");
+        }
+
         _ctorInfo = ctorInfo;
         _parameterInfo = parameterInfo;
         _position = position;
@@ -26,7 +31,7 @@ internal sealed class ReflectionConstructorParameterShape<TArgumentState, TParam
     public ITypeShape ParameterType => _provider.GetShape<TParameter>();
 
     public int Position => _position;
-    public string? Name => _parameterInfo.Name;
+    public string Name => _parameterInfo.Name!;
     public bool HasDefaultValue => _parameterInfo.HasDefaultValue;
     public bool IsRequired => _parameterInfo.IsRequired;
     public bool IsNonNullable => _parameterInfo.IsNonNullable;

@@ -22,7 +22,7 @@ public interface IConstructorParameterShape
     /// <summary>
     /// The name of the constructor parameter.
     /// </summary>
-    string? Name { get; }
+    string Name { get; }
 
     /// <summary>
     /// Indicates whether the parameter specifies a default value.

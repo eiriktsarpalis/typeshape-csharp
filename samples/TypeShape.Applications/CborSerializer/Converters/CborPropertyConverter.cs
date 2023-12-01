@@ -36,7 +36,7 @@ internal sealed class CborPropertyConverter<TDeclaringType, TPropertyType> : Cbo
     }
 
     public CborPropertyConverter(IConstructorParameterShape<TDeclaringType, TPropertyType> parameter, CborConverter<TPropertyType> propertyConverter)
-    : base(parameter.Name!)
+    : base(parameter.Name)
     {
         _propertyConverter = propertyConverter;
         _setter = parameter.GetSetter();

@@ -43,7 +43,7 @@ internal sealed class JsonPropertyConverter<TDeclaringType, TPropertyType> : Jso
     }
 
     public JsonPropertyConverter(IConstructorParameterShape<TDeclaringType, TPropertyType> parameter, JsonConverter<TPropertyType> propertyConverter)
-        : base(parameter.Name!)
+        : base(parameter.Name)
     {
         _propertyTypeConverter = propertyConverter;
         _setterDisallowsNull = parameter.IsNonNullable;
