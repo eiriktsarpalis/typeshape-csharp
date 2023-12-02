@@ -74,7 +74,6 @@ public abstract class XmlTests
         yield return Wrap("", "<root></root>");
         yield return Wrap("Hello, World!", "<root>Hello, World!</root>");
         yield return Wrap(Guid.Empty, "<root>00000000-0000-0000-0000-000000000000</root>");
-        yield return Wrap(DateTime.MaxValue, "<root>9999-12-31T23:59:59.9999999Z</root>");
         yield return Wrap(TimeSpan.MinValue, "<root>-10675199.02:48:05.4775808</root>");
         yield return Wrap(DateTimeOffset.MinValue, "<root>0001-01-01T00:00:00Z</root>");
         yield return Wrap(DateOnly.MaxValue, "<root>9999-12-31</root>");

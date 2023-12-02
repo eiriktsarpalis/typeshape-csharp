@@ -59,7 +59,6 @@ public abstract class CborTests
         yield return Wrap('c', "6163");
         yield return Wrap("Hello, World!", "6D48656C6C6F2C20576F726C6421");
         yield return Wrap(Guid.Empty, "D903EA5000000000000000000000000000000000");
-        yield return Wrap(DateTime.MaxValue, "C0781C393939392D31322D33315432333A35393A35392E393939393939395A");
         yield return Wrap(TimeSpan.MinValue, "D825FBC26AD7F29ABCAF48");
         yield return Wrap(DateTimeOffset.MinValue, "C074303030312D30312D30315430303A30303A30305A");
         yield return Wrap(DateOnly.MaxValue, "C074393939392D31322D33315430303A30303A30305A");

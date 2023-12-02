@@ -257,7 +257,7 @@ internal sealed class GuidConverter : CborConverter<Guid>
 internal sealed class DateTimeConverter : CborConverter<DateTime>
 {
     public override DateTime Read(CborReader reader)
-        => reader.ReadDateTimeOffset().ToUniversalTime().DateTime;
+        => reader.ReadDateTimeOffset().DateTime;
 
     public override void Write(CborWriter writer, DateTime value)
         => writer.WriteDateTimeOffset(new DateTimeOffset(value));
@@ -301,10 +301,10 @@ internal sealed class TimeSpanConverter : CborConverter<TimeSpan>
 internal sealed class DateOnlyConverter : CborConverter<DateOnly>
 {
     public override DateOnly Read(CborReader reader)
-        => DateOnly.FromDateTime(reader.ReadDateTimeOffset().ToUniversalTime().DateTime);
+        => DateOnly.FromDateTime(reader.ReadDateTimeOffset().DateTime);
 
     public override void Write(CborWriter writer, DateOnly value)
-        => writer.WriteDateTimeOffset(value.ToDateTime(TimeOnly.MinValue));
+        => writer.WriteDateTimeOffset(new(value.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero));
 }
 
 internal sealed class TimeOnlyConverter : CborConverter<TimeOnly>
