@@ -382,7 +382,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
 
                         generator.Emit(OpCodes.Dup);
                         generator.Emit(OpCodes.Ldarg_0);
-                        LdRef(generator, argumentStateType);
+                        LdRef(generator, argumentStateType, copyValueTypes: true);
                         StMember(memberInitializer);
 
                         generator.Emit(OpCodes.Ret);
@@ -735,13 +735,13 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         }
     }
 
-    private static void LdRef(ILGenerator generator, Type type)
+    private static void LdRef(ILGenerator generator, Type type, bool copyValueTypes = false)
     {
         if (GetLdIndOpCode(type) is { } opcode)
         {
             generator.Emit(opcode);
         }
-        else if (type.IsNullableStruct())
+        else if (copyValueTypes || type.IsNullableStruct())
         {
             generator.Emit(OpCodes.Ldobj, type);
         }

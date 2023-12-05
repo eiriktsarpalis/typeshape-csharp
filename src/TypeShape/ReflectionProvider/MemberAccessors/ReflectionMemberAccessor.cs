@@ -273,7 +273,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
             MemberInitializerShapeInfo[] memberInitializers = methodCtor.MemberInitializers;
             if (memberInitializers.Length > 0)
             {
-                if (memberInitializers is [MemberInitializerShapeInfo mI])
+                if (methodCtor.Parameters is [MemberInitializerShapeInfo mI])
                 {
                     Debug.Assert(typeof(TArgumentState) == mI.Type);
                     MemberInfo member = mI.MemberInfo;
@@ -405,7 +405,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
         }
         if (ctorInfo.ConstructorParameters.Any(param => param.HasDefaultValue))
         {
-            object?[] sourceParamArray = GetDefaultParameterArray(ctorInfo.Parameters);
+            object?[] sourceParamArray = GetDefaultParameterArray(ctorInfo.ConstructorParameters);
             return () => ((object?[])sourceParamArray.Clone(), new object?[memberInitializerLength]);
         }
         else
