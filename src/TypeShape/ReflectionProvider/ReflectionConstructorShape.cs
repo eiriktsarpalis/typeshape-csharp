@@ -8,7 +8,7 @@ internal sealed class ReflectionConstructorShape<TDeclaringType, TArgumentState>
     IConstructorShapeInfo ctorInfo) : IConstructorShape<TDeclaringType, TArgumentState>
 {
     public ITypeShape DeclaringType => provider.GetShape<TDeclaringType>();
-    public int ParameterCount => ctorInfo.Parameters.Count;
+    public int ParameterCount => ctorInfo.Parameters.Length;
     public ICustomAttributeProvider? AttributeProvider => ctorInfo.AttributeProvider;
     public bool IsPublic => ctorInfo.IsPublic;
 
@@ -33,7 +33,7 @@ internal sealed class ReflectionConstructorShape<TDeclaringType, TArgumentState>
 
     public IEnumerable<IConstructorParameterShape> GetParameters()
     {
-        for (int i = 0; i < ctorInfo.Parameters.Count; i++)
+        for (int i = 0; i < ctorInfo.Parameters.Length; i++)
         {
             yield return provider.CreateConstructorParameter(typeof(TArgumentState), ctorInfo, i);
         }
@@ -45,7 +45,7 @@ internal interface IConstructorShapeInfo
     Type ConstructedType { get; }
     bool IsPublic { get; }
     ICustomAttributeProvider? AttributeProvider { get; }
-    IReadOnlyList<IParameterShapeInfo> Parameters { get; }
+    IParameterShapeInfo[] Parameters { get; }
 }
 
 internal sealed class MethodConstructorShapeInfo : IConstructorShapeInfo
@@ -67,11 +67,7 @@ internal sealed class MethodConstructorShapeInfo : IConstructorShapeInfo
                 .ToArray();
 
         MemberInitializers = memberInitializers ?? [];
-
-        var parameters = new IParameterShapeInfo[ConstructorParameters.Length + MemberInitializers.Length];
-        ConstructorParameters.CopyTo(parameters, 0);
-        MemberInitializers.CopyTo(parameters, ConstructorParameters.Length);
-        Parameters = parameters;
+        Parameters = [ ..ConstructorParameters, ..MemberInitializers ];
     }
 
     public Type ConstructedType { get; }
@@ -81,7 +77,7 @@ internal sealed class MethodConstructorShapeInfo : IConstructorShapeInfo
     public MemberInitializerShapeInfo[] MemberInitializers { get; }
 
     public ICustomAttributeProvider? AttributeProvider => ConstructorMethod;
-    public IReadOnlyList<IParameterShapeInfo> Parameters { get; }
+    public IParameterShapeInfo[] Parameters { get; }
 }
 
 internal sealed class TupleConstructorShapeInfo(
@@ -99,7 +95,7 @@ internal sealed class TupleConstructorShapeInfo(
     public bool IsValueTuple => ConstructedType.IsValueType;
 
     public ICustomAttributeProvider? AttributeProvider => ConstructorInfo;
-    public IReadOnlyList<IParameterShapeInfo> Parameters => _allParameters ??= GetAllParameters().ToArray();
+    public IParameterShapeInfo[] Parameters => _allParameters ??= GetAllParameters().ToArray();
     public bool IsPublic => true;
 
     private IEnumerable<IParameterShapeInfo> GetAllParameters()

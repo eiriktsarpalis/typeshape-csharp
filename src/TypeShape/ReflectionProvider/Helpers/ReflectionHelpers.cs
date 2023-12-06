@@ -400,7 +400,7 @@ internal static class ReflectionHelpers
             5 => typeof(ValueTuple<,,,,>).MakeGenericType(elementTypes),
             6 => typeof(ValueTuple<,,,,,>).MakeGenericType(elementTypes),
             7 => typeof(ValueTuple<,,,,,,>).MakeGenericType(elementTypes),
-            _ => typeof(ValueTuple<,,,,,,,>).MakeGenericType(elementTypes[..7].Append(CreateValueTupleType(elementTypes[7..])).ToArray()),
+            _ => typeof(ValueTuple<,,,,,,,>).MakeGenericType([.. elementTypes[..7], CreateValueTupleType(elementTypes[7..])]),
         };
     }
 
@@ -408,7 +408,7 @@ internal static class ReflectionHelpers
     {
         // Walks the nested tuple representation, returning every element field and the parent "Rest" fields needed to access the value.
         Debug.Assert(tupleType.IsTupleType());
-        List<MemberInfo> nestedMembers = new();
+        List<MemberInfo> nestedMembers = [];
         bool hasNestedTuple;
         int i = 0;
 
@@ -449,11 +449,20 @@ internal static class ReflectionHelpers
         } while (hasNestedTuple);
     }
 
-    public static TupleConstructorShapeInfo CreateNestedTupleConstructorShapeInfo(Type tupleType)
+    public static IConstructorShapeInfo CreateTupleConstructorShapeInfo(Type tupleType)
     {
-        Debug.Assert(tupleType.IsNestedTupleRepresentation());
-        return CreateCore(tupleType, offset: 0);
-        static TupleConstructorShapeInfo CreateCore(Type tupleType, int offset)
+        Debug.Assert(tupleType.IsTupleType());
+
+        if (!tupleType.IsNestedTupleRepresentation())
+        {
+            // Treat non-nested tuples as regular types.
+            ConstructorInfo ctorInfo = tupleType.GetConstructors()[0];
+            return new MethodConstructorShapeInfo(tupleType, ctorInfo);
+        }
+
+        return CreateNestedTupleCtorInfo(tupleType, offset: 0);
+
+        static TupleConstructorShapeInfo CreateNestedTupleCtorInfo(Type tupleType, int offset)
         {
             Debug.Assert(tupleType.IsTupleType());
             ConstructorInfo ctorInfo = tupleType.GetConstructors()[0];
@@ -464,7 +473,7 @@ internal static class ReflectionHelpers
             if (parameters.Length == 8 && parameters[7].ParameterType.IsTupleType())
             {
                 ctorParameterInfo = MapParameterInfo(parameters.Take(7));
-                nestedCtor = CreateCore(parameters[7].ParameterType, offset);
+                nestedCtor = CreateNestedTupleCtorInfo(parameters[7].ParameterType, offset);
             }
             else
             {

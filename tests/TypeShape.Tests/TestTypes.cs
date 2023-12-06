@@ -252,6 +252,7 @@ public static class TestTypes
             requiredField = true,
         }, p);
 
+        yield return Create(new ClassWithDefaultConstructorAndSingleRequiredProperty { Value = 42 }, p);
         yield return Create(new ClassWithParameterizedConstructorAnd2OptionalSetters(42), p);
         yield return Create(new ClassWithParameterizedConstructorAnd10OptionalSetters(42), p);
         yield return Create(new ClassWithParameterizedConstructorAnd70OptionalSetters(42), p);
@@ -630,6 +631,11 @@ public record struct StructRecordWithRequiredAndInitOnlyProperties(int x, int y,
     public int InitOnlyInt { get; init; }
 
     public required bool requiredField;
+}
+
+public class  ClassWithDefaultConstructorAndSingleRequiredProperty
+{
+    public required int Value { get; set; }
 }
 
 public class ClassWithParameterizedConstructorAnd2OptionalSetters(int x1)
@@ -1140,6 +1146,7 @@ public static class GenericCollectionWithBuilderAttribute
 [GenerateShape<StructWithRequiredAndInitOnlyProperties>]
 [GenerateShape<ClassRecordWithRequiredAndInitOnlyProperties>]
 [GenerateShape<StructRecordWithRequiredAndInitOnlyProperties>]
+[GenerateShape<ClassWithDefaultConstructorAndSingleRequiredProperty>]
 [GenerateShape<ClassWithParameterizedConstructorAnd2OptionalSetters>]
 [GenerateShape<ClassWithParameterizedConstructorAnd10OptionalSetters>]
 [GenerateShape<ClassWithParameterizedConstructorAnd70OptionalSetters>]

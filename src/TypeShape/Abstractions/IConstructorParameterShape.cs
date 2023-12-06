@@ -5,7 +5,7 @@ namespace TypeShape;
 
 /// <summary>
 /// Provides a strongly-typed shape model for a given .NET constructor parameter,
-/// representing either an actual constructor parameter or a required or init-only property.
+/// representing either an actual constructor parameter or a member initializer.
 /// </summary>
 public interface IConstructorParameterShape
 {
@@ -23,6 +23,11 @@ public interface IConstructorParameterShape
     /// The name of the constructor parameter.
     /// </summary>
     string Name { get; }
+
+    /// <summary>
+    /// Specifies the kind of the current parameter.
+    /// </summary>
+    ConstructorParameterKind Kind { get; }
 
     /// <summary>
     /// Indicates whether the parameter specifies a default value.
@@ -54,6 +59,11 @@ public interface IConstructorParameterShape
     /// has been annotated with <see cref="AllowNullAttribute"/>.
     /// </remarks>
     bool IsNonNullable { get; }
+
+    /// <summary>
+    /// Returns true if a public property or field initializer.
+    /// </summary>
+    bool IsPublic { get; }
 
     /// <summary>
     /// The provider used for parameter-level attribute resolution.

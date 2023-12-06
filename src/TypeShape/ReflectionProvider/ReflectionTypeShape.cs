@@ -17,16 +17,16 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
     public object? Accept(ITypeShapeVisitor visitor, object? state)
         => visitor.VisitType(this, state);
 
-    public IEnumerable<IConstructorShape> GetConstructors(bool nonPublic)
+    public IEnumerable<IConstructorShape> GetConstructors(bool nonPublic, bool includeProperties, bool includeFields)
     {
         if (typeof(T).IsAbstract || s_disallowMemberResolution)
         {
             yield break;
         }
 
-        if (typeof(T).IsNestedTupleRepresentation())
+        if (typeof(T).IsTupleType())
         {
-            IConstructorShapeInfo ctorInfo = ReflectionHelpers.CreateNestedTupleConstructorShapeInfo(typeof(T));
+            IConstructorShapeInfo ctorInfo = ReflectionHelpers.CreateTupleConstructorShapeInfo(typeof(T));
             yield return provider.CreateConstructor(ctorInfo);
 
             if (typeof(T).IsValueType)
@@ -40,19 +40,22 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
 
         BindingFlags flags = GetInstanceBindingFlags(nonPublic);
 
-        MemberInitializerShapeInfo[] requiredOrInitOnlyMembers = GetMembers(nonPublic, includeFields: true)
-            .Select(m => (member: m, isRequired: m.IsRequired(), isInitOnly: m.IsInitOnly()))
-            .Where(m => m.isRequired || m.isInitOnly)
-            .Select(m => new MemberInitializerShapeInfo(m.member, m.isRequired, m.isInitOnly))
+        MemberInitializerShapeInfo[] settableMembers = GetMembers(nonPublic, includeFields: true)
+            .Where(m => m is PropertyInfo { CanWrite: true } or FieldInfo { IsInitOnly: false })
+            .Select(m => new MemberInitializerShapeInfo(m))
+            .Where(m => m.IsRequired || (includeFields && m.MemberInfo is FieldInfo) || (includeProperties && m.MemberInfo is PropertyInfo))
+            .OrderByDescending(m => m.IsRequired || m.IsInitOnly) // Shift required or init members first
             .ToArray();
 
         bool isRecord = typeof(T).IsRecord();
-        bool isDefaultConstructorFound = false;
+
+        bool isConstructorFound = false;
         foreach (ConstructorInfo constructorInfo in typeof(T).GetConstructors(flags))
         {
             ParameterInfo[] parameters = constructorInfo.GetParameters();
             if (parameters.Any(param => !param.ParameterType.CanBeGenericArgument()))
             {
+                // Skip constructors with unsupported parameter types
                 continue;
             }
 
@@ -63,35 +66,47 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
                 continue;
             }
 
-            var memberInitializers = new List<MemberInitializerShapeInfo>();
-            HashSet<(Type ParameterType, string? Name)>? parameterSet = isRecord ? parameters.Select(p => (p.ParameterType, p.Name)).ToHashSet() : null;
             bool setsRequiredMembers = constructorInfo.SetsRequiredMembers();
+            bool isDefaultCtorWithoutRequiredOrInitMembers = 
+                parameters.Length == 0 && !settableMembers.Any(m => m.IsRequired || m.IsInitOnly);
 
-            foreach (MemberInitializerShapeInfo memberInitializer in requiredOrInitOnlyMembers)
+            var memberInitializers = new List<MemberInitializerShapeInfo>();
+            Dictionary<string, Type>? parameterIndex = null;
+
+            foreach (MemberInitializerShapeInfo memberInitializer in isDefaultCtorWithoutRequiredOrInitMembers ? [] : settableMembers)
             {
                 if (setsRequiredMembers && memberInitializer.IsRequired)
                 {
+                    // Skip required members if set by the constructor.
                     continue;
                 }
 
-                // In records, deduplicate any init auto-properties whose signature matches the constructor parameters.
                 if (!memberInitializer.IsRequired && memberInitializer.MemberInfo.IsAutoPropertyWithSetter() &&
-                    parameterSet?.Contains((memberInitializer.Type, memberInitializer.Name)) == true)
+                    MatchesConstructorParameter(memberInitializer))
                 {
+                    // Deduplicate any auto-properties whose signature matches a constructor parameter.
                     continue;
                 }
 
                 memberInitializers.Add(memberInitializer);
+
+                bool MatchesConstructorParameter(MemberInitializerShapeInfo memberInitializer)
+                {
+                    parameterIndex ??= parameters.ToDictionary(p => p.Name ?? "", p => p.ParameterType, StringComparer.Ordinal);
+                    return parameterIndex.TryGetValue(memberInitializer.Name, out Type? matchingParameterType) &&
+                        matchingParameterType == memberInitializer.Type;
+                }
             }
 
             var ctorShapeInfo = new MethodConstructorShapeInfo(typeof(T), constructorInfo, memberInitializers.ToArray());
             yield return provider.CreateConstructor(ctorShapeInfo);
-            isDefaultConstructorFound |= parameters.Length == 0;
+            isConstructorFound = true;
         }
 
-        if (typeof(T).IsValueType && !isDefaultConstructorFound)
+        if (typeof(T).IsValueType && !isConstructorFound)
         {
-            MethodConstructorShapeInfo ctorShapeInfo = CreateDefaultConstructor(requiredOrInitOnlyMembers);
+            // Only emit a default constructor for value types if no explicitly declared constructors were found.
+            MethodConstructorShapeInfo ctorShapeInfo = CreateDefaultConstructor(settableMembers);
             yield return provider.CreateConstructor(ctorShapeInfo);
         }
         

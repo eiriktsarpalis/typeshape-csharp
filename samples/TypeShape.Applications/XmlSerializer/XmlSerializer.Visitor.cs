@@ -69,14 +69,14 @@ public static partial class XmlSerializer
                     Debug.Assert(type.Kind == TypeKind.None);
 
                     XmlPropertyConverter<T>[] properties = type
-                        .GetProperties(nonPublic: false, includeFields: true)
+                        .GetProperties(includeFields: true)
                         .Select(prop => (XmlPropertyConverter<T>)prop.Accept(this, state)!)
                         .ToArray();
 
+                    // Prefer the default constructor if available.
                     IConstructorShape? ctor = type
-                        .GetConstructors(nonPublic: false)
-                        .OrderByDescending(ctor => ctor.ParameterCount)
-                        .FirstOrDefault();
+                        .GetConstructors(includeProperties: true, includeFields: true)
+                        .MinBy(ctor => ctor.ParameterCount);
 
                     converter = ctor != null
                          ? (XmlObjectConverter<T>)ctor.Accept(this, properties)!

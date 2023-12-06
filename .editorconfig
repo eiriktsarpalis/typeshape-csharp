@@ -8,3 +8,6 @@ dotnet_diagnostic.CA1710.severity = none
 
 # CA1711: Identifiers should not have incorrect suffix
 dotnet_diagnostic.CA1711.severity = none
+
+# CA1720: Identifier contains type name
+dotnet_diagnostic.CA1720.severity = none

@@ -45,7 +45,11 @@ public abstract class JsonTests
         {
             T? deserializedValue = serializer.Deserialize(json);
 
-            if (testCase.IsStack)
+            if (testCase.IsEquatable)
+            {
+                Assert.Equal(testCase.Value, deserializedValue);
+            }
+            else if (testCase.IsStack)
             {
                 Assert.Equal(serializer.Serialize(deserializedValue), ToJsonBaseline(deserializedValue));
             }
@@ -92,8 +96,13 @@ public abstract class JsonTests
         else
         {
             PocoWithGenericProperty<T>? deserializedValue = serializer.Deserialize(json);
+            Assert.NotNull(deserializedValue);
 
-            if (testCase.IsStack)
+            if (testCase.IsEquatable)
+            {
+                Assert.Equal(testCase.Value, deserializedValue.Value);
+            }
+            else if (testCase.IsStack)
             {
                 Assert.Equal(serializer.Serialize(deserializedValue), ToJsonBaseline(deserializedValue));
             }
@@ -139,9 +148,14 @@ public abstract class JsonTests
         }
         else
         {
-            List<T>? deserializedValue = serializer.Deserialize(json);
+            List<T> deserializedValue = serializer.Deserialize(json)!;
+            Assert.NotEmpty(deserializedValue);
 
-            if (testCase.IsStack)
+            if (testCase.IsEquatable)
+            {
+                Assert.Equal(testCase.Value, deserializedValue.First());
+            }
+            else if (testCase.IsStack)
             {
                 Assert.Equal(serializer.Serialize(deserializedValue), ToJsonBaseline(deserializedValue));
             }
@@ -187,9 +201,14 @@ public abstract class JsonTests
         }
         else
         {
-            Dictionary<string, T>? deserializedValue = serializer.Deserialize(json);
+            Dictionary<string, T> deserializedValue = serializer.Deserialize(json)!;
+            Assert.NotEmpty(deserializedValue);
 
-            if (testCase.IsStack)
+            if (testCase.IsEquatable)
+            {
+                Assert.Equal(testCase.Value, deserializedValue.First().Value);
+            }
+            else if (testCase.IsStack)
             {
                 Assert.Equal(serializer.Serialize(deserializedValue), ToJsonBaseline(deserializedValue));
             }
@@ -343,11 +362,8 @@ public abstract class JsonTests
         IncludeFields = true,
         Converters = 
         { 
-            new JsonStringEnumConverter(), 
-            new Int128Converter(), 
-            new UInt128Converter(),
+            new JsonStringEnumConverter(),
             new BigIntegerConverter(),
-            new HalfConverter(),
             new RuneConverter(),
         },
     };
@@ -392,7 +408,11 @@ public sealed class JsonTests_SourceGen : JsonTests
         {
             T? deserializedValue = TypeShapeJsonSerializer.Deserialize<T, TProvider>(json);
 
-            if (testCase.IsStack)
+            if (testCase.IsEquatable)
+            {
+                Assert.Equal(testCase.Value, deserializedValue);
+            }
+            else if (testCase.IsStack)
             {
                 Assert.Equal(TypeShapeJsonSerializer.Serialize<T, TProvider>(deserializedValue), ToJsonBaseline(deserializedValue));
             }

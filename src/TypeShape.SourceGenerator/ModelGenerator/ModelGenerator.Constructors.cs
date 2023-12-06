@@ -5,7 +5,7 @@ using TypeShape.SourceGenerator.Model;
 
 namespace TypeShape.SourceGenerator;
 
-using RequiredOrInitMember = (ISymbol Member, ITypeSymbol MemberType, bool IsNonNullable, bool IsRequired);
+using SettableMember = (ISymbol Member, ITypeSymbol MemberType, bool IsNonNullable, bool IsRequired, bool IsInitOnly);
 
 public sealed partial class ModelGenerator
 {
@@ -31,41 +31,45 @@ public sealed partial class ModelGenerator
             return MapTupleConstructors(typeId, namedType, namedType.TupleElements.Select(e => e.Type)).ToImmutableEquatableArray();
         }
 
-        RequiredOrInitMember[] requiredOrInitMembers = propertiesOrFields
+        SettableMember[] settableMembers = propertiesOrFields
             .Select(member =>
             {
+                member.ResolveNullableAnnotation(out _, out bool isSetterNonNullable);
                 if (member is IPropertySymbol { SetMethod: IMethodSymbol setter } prop &&
-                    (prop.IsRequired || setter.IsInitOnly) && IsAccessibleFromGeneratedType(setter))
+                    IsAccessibleFromGeneratedType(setter))
                 {
-                    prop.ResolveNullableAnnotation(out _, out bool isSetterNonNullable);
-                    return new RequiredOrInitMember(prop, prop.Type, isSetterNonNullable, prop.IsRequired);
+                    return new SettableMember(prop, prop.Type, isSetterNonNullable, prop.IsRequired, setter.IsInitOnly);
                 }
 
-                if (member is IFieldSymbol { IsRequired: true } field)
+                if (member is IFieldSymbol { IsReadOnly: false } field)
                 {
-                    field.ResolveNullableAnnotation(out _, out bool isSetterNonNullable);
-                    return new RequiredOrInitMember(field, field.Type, isSetterNonNullable, field.IsRequired);
+                    return new SettableMember(field, field.Type, isSetterNonNullable, field.IsRequired, false);
                 }
 
                 return default;
             })
             .Where(member => member != default)
+            .OrderByDescending(member => member.IsRequired || member.IsInitOnly) // Shift required or init members first
             .ToArray();
 
-        return type.GetMembers()
+        IMethodSymbol[] foundConstructors = type.GetMembers()
             .OfType<IMethodSymbol>()
             .Where(ctor =>
                 ctor is { MethodKind: MethodKind.Constructor } &&
                 ctor.Parameters.All(p => IsSupportedType(p.Type)) &&
                 IsAccessibleFromGeneratedType(ctor))
-            .Where(ctor => 
-                // Skip the copy constructor for record types
-                !(type.IsRecord && ctor.Parameters.Length == 1 && SymbolEqualityComparer.Default.Equals(ctor.Parameters[0].Type, type)))
-            .Select(ctor => MapConstructor(type, typeId, ctor, requiredOrInitMembers))
+            // Skip the copy constructor for record types
+            .Where(ctor => !(type.IsRecord && ctor.Parameters.Length == 1 && SymbolEqualityComparer.Default.Equals(ctor.Parameters[0].Type, type)))
+            .ToArray();
+
+        return foundConstructors
+            // Only include the implicit constructor in structs if there are no other constructors
+            .Where(ctor => !ctor.IsImplicitlyDeclared || foundConstructors.Length == 1)
+            .Select(ctor => MapConstructor(type, typeId, ctor, settableMembers))
             .ToImmutableEquatableArray();
     }
 
-    private ConstructorModel MapConstructor(ITypeSymbol type, TypeId typeId, IMethodSymbol constructor, RequiredOrInitMember[] requiredOrInitMembers)
+    private ConstructorModel MapConstructor(ITypeSymbol type, TypeId typeId, IMethodSymbol constructor, SettableMember[] settableMembers)
     {
         Debug.Assert(constructor.MethodKind is MethodKind.Constructor || constructor.IsStatic);
         Debug.Assert(IsAccessibleFromGeneratedType(constructor));
@@ -74,44 +78,64 @@ public sealed partial class ModelGenerator
             .Select(MapConstructorParameter)
             .ToImmutableEquatableArray();
 
-        var memberInitializers = new List<ConstructorParameterModel>();
         bool setsRequiredMembers = constructor.HasSetsRequiredMembersAttribute();
+        bool isDefaultConstructorWithoutRequiredOrInitMembers = 
+            parameters.Length == 0 && !settableMembers.Any(m => m.IsRequired || m.IsInitOnly);
+
+        Dictionary<string, IParameterSymbol>? parameterIndex = null;
+        List<ConstructorParameterModel>? memberInitializers = null;
+        List<ConstructorParameterModel>? optionalProperties = null;
         int position = parameters.Length;
 
-        foreach (RequiredOrInitMember memberInitializer in requiredOrInitMembers)
+        foreach (SettableMember settableMember in isDefaultConstructorWithoutRequiredOrInitMembers ? [] : settableMembers)
         {
-            if (setsRequiredMembers && memberInitializer.IsRequired)
+            if (setsRequiredMembers && settableMember.IsRequired)
             {
+                // Skip required members if set by the constructor.
                 continue;
             }
 
-            if (!memberInitializer.IsRequired && memberInitializer.Member.IsAutoProperty() && MatchesConstructorParameter(memberInitializer))
+            if (!settableMember.IsRequired && settableMember.Member.IsAutoProperty() && MatchesConstructorParameter(settableMember))
             {
                 // Deduplicate any auto properties whose signature matches a constructor parameter.
                 continue;
             }
 
-            if (memberInitializer.Member is IPropertySymbol property)
+            TypeId memberTypeId = EnqueueForGeneration(settableMember.MemberType);
+            var memberModel = new ConstructorParameterModel
             {
-                memberInitializers.Add(MapPropertyInitializer(property,memberInitializer.IsNonNullable, position++));
+                ParameterType = memberTypeId,
+                Name = settableMember.Member.Name,
+                Position = position++,
+                IsRequired = settableMember.IsRequired,
+                Kind = settableMember.IsRequired || settableMember.IsInitOnly
+                    ? ParameterKind.RequiredOrInitOnlyMember
+                    : ParameterKind.OptionalMember,
+
+                IsNonNullable = settableMember.IsNonNullable,
+                IsPublic = settableMember.Member.DeclaredAccessibility is Accessibility.Public,
+                IsField = settableMember.Member is IFieldSymbol,
+                HasDefaultValue = false,
+                DefaultValue = null,
+                DefaultValueRequiresCast = false,
+            };
+
+            if (memberModel.Kind is ParameterKind.RequiredOrInitOnlyMember)
+            {
+                // Member must only be set as an object initializer expression
+                (memberInitializers ??= []).Add(memberModel);
             }
-            else if (memberInitializer.Member is IFieldSymbol field)
+            else
             {
-                memberInitializers.Add(MapFieldInitializer(field, memberInitializer.IsNonNullable, position++));
+                // Member can be set optionally post construction
+                (optionalProperties ??= []).Add(memberModel);
             }
 
-            bool MatchesConstructorParameter(in RequiredOrInitMember parameter)
+            bool MatchesConstructorParameter(in SettableMember member)
             {
-                foreach (IParameterSymbol ctorParameter in constructor.Parameters)
-                {
-                    if (parameter.Member.Name.Equals(ctorParameter.Name, StringComparison.Ordinal) && 
-                        SymbolEqualityComparer.Default.Equals(parameter.MemberType, ctorParameter.Type))
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
+                parameterIndex ??= constructor.Parameters.ToDictionary(p => p.Name, p => p, StringComparer.Ordinal);
+                return parameterIndex.TryGetValue(member.Member.Name, out IParameterSymbol? matchingParameter) &&
+                    SymbolEqualityComparer.Default.Equals(member.MemberType, matchingParameter.Type);
             }
         }
 
@@ -122,7 +146,18 @@ public sealed partial class ModelGenerator
                 : CreateTypeId(constructor.ContainingType),
 
             Parameters = parameters.ToImmutableEquatableArray(),
-            MemberInitializers = memberInitializers.ToImmutableEquatableArray(),
+            RequiredOrInitMembers = memberInitializers?.ToImmutableEquatableArray() ?? [],
+            OptionalMembers = optionalProperties?.ToImmutableEquatableArray() ?? [],
+            OptionalMemberFlagsType = (optionalProperties?.Count ?? 0) switch
+            {
+                    0 => OptionalMemberFlagsType.None,
+                <=  8 => OptionalMemberFlagsType.Byte,
+                <= 16 => OptionalMemberFlagsType.UShort,
+                <= 32 => OptionalMemberFlagsType.UInt32,
+                <= 64 => OptionalMemberFlagsType.ULong,
+                    _ => OptionalMemberFlagsType.BitArray,
+            },
+
             StaticFactoryName = constructor.IsStatic ? constructor.GetFullyQualifiedName() : null,
             IsPublic = constructor.DeclaredAccessibility is Accessibility.Public,
         };
@@ -136,49 +171,16 @@ public sealed partial class ModelGenerator
             Name = parameter.Name,
             Position = parameter.Ordinal,
             ParameterType = typeId,
-            IsMemberInitializer = false,
+            Kind = ParameterKind.ConstructorParameter,
             IsRequired = !parameter.HasExplicitDefaultValue,
             IsNonNullable = parameter.IsNonNullableAnnotation(),
+            IsPublic = true,
+            IsField = false,
             HasDefaultValue = parameter.HasExplicitDefaultValue,
             DefaultValue = parameter.HasExplicitDefaultValue ? parameter.ExplicitDefaultValue : null,
             DefaultValueRequiresCast = parameter.Type 
                 is { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } 
                 or { TypeKind: TypeKind.Enum },
-        };
-    }
-
-    private ConstructorParameterModel MapPropertyInitializer(IPropertySymbol propertySymbol, bool isNonNullable, int position)
-    {
-        Debug.Assert(propertySymbol.SetMethod != null);
-        TypeId typeId = EnqueueForGeneration(propertySymbol.Type);
-        return new ConstructorParameterModel
-        {
-            ParameterType = typeId,
-            Name = propertySymbol.Name,
-            Position = position,
-            IsRequired = propertySymbol.IsRequired,
-            IsMemberInitializer = true,
-            IsNonNullable = isNonNullable,
-            HasDefaultValue = false,
-            DefaultValue = null,
-            DefaultValueRequiresCast = false,
-        };
-    }
-
-    private ConstructorParameterModel MapFieldInitializer(IFieldSymbol fieldSymbol, bool isNonNullable, int position)
-    {
-        TypeId typeId = EnqueueForGeneration(fieldSymbol.Type);
-        return new ConstructorParameterModel
-        {
-            ParameterType = typeId,
-            Name = fieldSymbol.Name,
-            Position = position,
-            IsMemberInitializer = true,
-            IsRequired = fieldSymbol.IsRequired,
-            IsNonNullable = isNonNullable,
-            HasDefaultValue = false,
-            DefaultValue = null,
-            DefaultValueRequiresCast = false,
         };
     }
 
@@ -191,7 +193,9 @@ public sealed partial class ModelGenerator
             {
                 DeclaringType = typeId,
                 Parameters = [],
-                MemberInitializers = [],
+                RequiredOrInitMembers = [],
+                OptionalMembers = [],
+                OptionalMemberFlagsType = OptionalMemberFlagsType.None,
                 StaticFactoryName = null,
                 IsPublic = true,
             };
@@ -201,7 +205,9 @@ public sealed partial class ModelGenerator
         {
             DeclaringType = typeId,
             Parameters = tupleElements.Select(MapTupleConstructorParameter).ToImmutableEquatableArray(),
-            MemberInitializers = [],
+            RequiredOrInitMembers = [],
+            OptionalMembers = [],
+            OptionalMemberFlagsType = OptionalMemberFlagsType.None,
             StaticFactoryName = null,
             IsPublic = true,
         };
@@ -215,8 +221,10 @@ public sealed partial class ModelGenerator
                 Position = position,
                 ParameterType = typeId,
                 HasDefaultValue = false,
-                IsMemberInitializer = false,
+                Kind = ParameterKind.ConstructorParameter,
                 IsRequired = true,
+                IsPublic = true,
+                IsField = true,
                 IsNonNullable = tupleElement.IsNonNullableAnnotation(),
                 DefaultValue = null,
                 DefaultValueRequiresCast = false,

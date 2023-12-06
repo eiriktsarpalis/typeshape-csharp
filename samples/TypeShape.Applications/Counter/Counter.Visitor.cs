@@ -23,7 +23,7 @@ public static partial class Counter
                     return type.GetEnumerableShape().Accept(this, null);
             }
 
-            Func<T, long>[] propertyCounters = type.GetProperties(nonPublic: false, includeFields: true)
+            Func<T, long>[] propertyCounters = type.GetProperties(includeFields: true)
                 .Where(prop => prop.HasGetter)
                 .Select(prop => (Func<T, long>)prop.Accept(this, null)!)
                 .ToArray();

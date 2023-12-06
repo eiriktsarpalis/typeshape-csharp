@@ -32,15 +32,13 @@ public partial class RandomGenerator
                     return type.GetEnumerableShape().Accept(this, null);
             }
 
-            RandomPropertySetter<T>[] propertySetters = type.GetProperties(nonPublic: false, includeFields: true)
-                .Where(prop => prop.HasSetter)
-                .Select(prop => (RandomPropertySetter<T>)prop.Accept(this, null)!)
-                .ToArray();
+            // Prefer the default constructor, if available.
+            IConstructorShape? constructor = type.GetConstructors(includeProperties: true, includeFields: true)
+                .MinBy(ctor => ctor.ParameterCount);
 
-            return type.GetConstructors(nonPublic: false)
-                .OrderByDescending(ctor => ctor.ParameterCount)
-                .Select(ctor => ctor.Accept(this, propertySetters))
-                .First();
+            return constructor is null
+                ? throw new NotSupportedException($"Type '{typeof(T)}' does not support random generation.")
+                : constructor.Accept(this, null);
         }
 
         public object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
@@ -52,19 +50,22 @@ public partial class RandomGenerator
 
         public object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructorShape<TDeclaringType, TArgumentState> constructor, object? state)
         {
-            var propertySetters = (RandomPropertySetter<TDeclaringType>[])state!;
-
             if (constructor.ParameterCount == 0)
             {
-                Func<TDeclaringType> func = constructor.GetDefaultConstructor();
+                Func<TDeclaringType> defaultCtor = constructor.GetDefaultConstructor();
+                RandomPropertySetter<TDeclaringType>[] propertySetters = constructor.DeclaringType.GetProperties(includeFields: true)
+                    .Where(prop => prop.HasSetter)
+                    .Select(prop => (RandomPropertySetter<TDeclaringType>)prop.Accept(this, null)!)
+                    .ToArray();
+
                 return CacheResult((Random random, int size) =>
                 {
                     if (size == 0) 
                         return default!;
 
-                    TDeclaringType obj = func();
-
+                    TDeclaringType obj = defaultCtor();
                     int propertySize = GetChildSize(size, propertySetters.Length);
+
                     foreach (var propertySetter in propertySetters)
                         propertySetter(ref obj, random, propertySize);
 
@@ -79,25 +80,18 @@ public partial class RandomGenerator
                     .Select(param => (RandomPropertySetter<TArgumentState>)param.Accept(this, null)!)
                     .ToArray();
 
-                int totalChildren = parameterSetters.Length + propertySetters.Length;
-
                 return CacheResult((Random random, int size) =>
                 {
                     if (size == 0)
                         return default!;
 
-                    int propertySize = GetChildSize(size, totalChildren);
                     TArgumentState argState = argumentStateCtor();
+                    int propertySize = GetChildSize(size, parameterSetters.Length);
 
                     foreach (var parameterSetter in parameterSetters)
                         parameterSetter(ref argState, random, propertySize);
 
-                    TDeclaringType obj = ctor(ref argState);
-
-                    foreach (var propertySetter in propertySetters)
-                        propertySetter(ref obj, random, propertySize);
-
-                    return obj;
+                    return ctor(ref argState);
                 });
             }
         }

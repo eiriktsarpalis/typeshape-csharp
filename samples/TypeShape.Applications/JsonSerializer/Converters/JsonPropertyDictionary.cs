@@ -7,12 +7,12 @@ using System.Text.Json;
 
 internal abstract class JsonPropertyDictionary<TDeclaringType>
 {
-    public abstract JsonPropertyConverter<TDeclaringType>? LookupProperty(scoped ref Utf8JsonReader reader);
+    public abstract JsonPropertyConverter<TDeclaringType>? LookupProperty(ref Utf8JsonReader reader);
 }
 
 internal static class JsonPropertyDictionary
 {
-    public static JsonPropertyDictionary<TDeclaringType> Create<TDeclaringType>(IEnumerable<JsonPropertyConverter<TDeclaringType>> propertiesToRead, bool isCaseSensitive)
+    public static JsonPropertyDictionary<TDeclaringType> ToJsonPropertyDictionary<TDeclaringType>(this IEnumerable<JsonPropertyConverter<TDeclaringType>> propertiesToRead, bool isCaseSensitive)
         => isCaseSensitive
         ? new CaseSensitivePropertyDictionary<TDeclaringType>(propertiesToRead)
         : new CaseInsensitivePropertyDictionary<TDeclaringType>(propertiesToRead);
@@ -22,10 +22,15 @@ internal static class JsonPropertyDictionary
     {
         private readonly SpanDictionary<byte, JsonPropertyConverter<TDeclaringType>> _dict = propertiesToRead.ToSpanDictionary(p => Encoding.UTF8.GetBytes(p.Name), ByteSpanEqualityComparer.Ordinal);
 
-        public override JsonPropertyConverter<TDeclaringType>? LookupProperty(scoped ref Utf8JsonReader reader)
+        public override JsonPropertyConverter<TDeclaringType>? LookupProperty(ref Utf8JsonReader reader)
         {
             Debug.Assert(reader.TokenType is JsonTokenType.PropertyName);
             Debug.Assert(!reader.HasValueSequence);
+
+            if (_dict.Count == 0)
+            {
+                return null;
+            }
 
             scoped ReadOnlySpan<byte> source;
             byte[]? rentedBuffer = null;
@@ -62,16 +67,21 @@ internal static class JsonPropertyDictionary
         // Currently, the easiest way to calculate case-insensitive hashcode and equality is to transcode to UTF-16 so do that.
         private readonly SpanDictionary<char, JsonPropertyConverter<TDeclaringType>> _dict = propertiesToRead.ToSpanDictionary(p => p.Name.ToCharArray(), CharSpanEqualityComparer.OrdinalIgnoreCase);
 
-        public override JsonPropertyConverter<TDeclaringType>? LookupProperty(scoped ref Utf8JsonReader reader)
+        public override JsonPropertyConverter<TDeclaringType>? LookupProperty(ref Utf8JsonReader reader)
         {
             Debug.Assert(reader.TokenType is JsonTokenType.PropertyName);
             Debug.Assert(!reader.HasValueSequence);
+
+            if (_dict.Count == 0)
+            {
+                return null;
+            }
 
             char[]? rentedBuffer = null;
 
             Span<char> tmpBuffer = reader.ValueSpan.Length <= 128
                 ? stackalloc char[128]
-                : rentedBuffer = ArrayPool<char>.Shared.Rent(128);
+                : rentedBuffer = ArrayPool<char>.Shared.Rent(reader.ValueSpan.Length);
 
             int charsWritten = reader.CopyString(tmpBuffer);
             ReadOnlySpan<char> source = tmpBuffer.Slice(0, charsWritten);

@@ -16,11 +16,7 @@ internal sealed class ReflectionConstructorParameterShape<TArgumentState, TParam
         IParameterShapeInfo parameterInfo,
         int position)
     {
-        Debug.Assert(position < ctorInfo.Parameters.Count);
-        if (parameterInfo.Name is null)
-        {
-            throw new NotSupportedException($"The constructor for type '{ctorInfo.ConstructedType}' has had its parameter names trimmed.");
-        }
+        Debug.Assert(position < ctorInfo.Parameters.Length);
 
         _ctorInfo = ctorInfo;
         _parameterInfo = parameterInfo;
@@ -31,10 +27,12 @@ internal sealed class ReflectionConstructorParameterShape<TArgumentState, TParam
     public ITypeShape ParameterType => _provider.GetShape<TParameter>();
 
     public int Position => _position;
-    public string Name => _parameterInfo.Name!;
+    public string Name => _parameterInfo.Name;
+    public ConstructorParameterKind Kind => _parameterInfo.Kind;
     public bool HasDefaultValue => _parameterInfo.HasDefaultValue;
     public bool IsRequired => _parameterInfo.IsRequired;
     public bool IsNonNullable => _parameterInfo.IsNonNullable;
+    public bool IsPublic => _parameterInfo.IsPublic;
     public TParameter? DefaultValue => (TParameter?)_parameterInfo.DefaultValue;
     object? IConstructorParameterShape.DefaultValue => _parameterInfo.DefaultValue;
     public ICustomAttributeProvider? AttributeProvider => _parameterInfo.AttributeProvider;
@@ -49,10 +47,12 @@ internal sealed class ReflectionConstructorParameterShape<TArgumentState, TParam
 internal interface IParameterShapeInfo
 {
     Type Type { get; }
-    string? Name { get; }
+    string Name { get; }
+    ConstructorParameterKind Kind { get; }
     ICustomAttributeProvider? AttributeProvider { get; }
     bool IsRequired { get; }
     bool IsNonNullable { get; }
+    bool IsPublic { get; }
     bool HasDefaultValue { get; }
     object? DefaultValue { get; }
 }
@@ -61,7 +61,10 @@ internal sealed class MethodParameterShapeInfo : IParameterShapeInfo
 {
     public MethodParameterShapeInfo(ParameterInfo parameterInfo, string? logicalName = null)
     {
-        Name = logicalName ?? parameterInfo.Name;
+        Name = logicalName
+            ?? parameterInfo.Name
+            ?? throw new NotSupportedException($"The constructor for type '{parameterInfo.Member.DeclaringType}' has had its parameter names trimmed.");
+
         ParameterInfo = parameterInfo;
         IsNonNullable = parameterInfo.IsNonNullableAnnotation();
 
@@ -75,24 +78,27 @@ internal sealed class MethodParameterShapeInfo : IParameterShapeInfo
     public ParameterInfo ParameterInfo { get; }
 
     public Type Type => ParameterInfo.ParameterType;
-    public string? Name { get; }
+    public string Name { get; }
+    public ConstructorParameterKind Kind => ConstructorParameterKind.ConstructorParameter;
     public ICustomAttributeProvider? AttributeProvider => ParameterInfo;
     public bool IsRequired => !ParameterInfo.HasDefaultValue;
     public bool IsNonNullable { get; }
+    public bool IsPublic => true;
     public bool HasDefaultValue { get; }
     public object? DefaultValue { get; }
 }
 
 internal sealed class MemberInitializerShapeInfo : IParameterShapeInfo
 {
-    public MemberInitializerShapeInfo(MemberInfo memberInfo, bool isRequired, bool isInitOnly)
+    public MemberInitializerShapeInfo(MemberInfo memberInfo)
     {
-        Debug.Assert(isRequired || isInitOnly);
+        Debug.Assert(memberInfo is PropertyInfo or FieldInfo);
 
         Type = memberInfo.MemberType();
         MemberInfo = memberInfo;
-        IsRequired = isRequired;
-        IsInitOnly = isInitOnly;
+        IsRequired = memberInfo.IsRequired();
+        IsInitOnly = memberInfo.IsInitOnly();
+        IsPublic = memberInfo is FieldInfo { IsPublic: true } or PropertyInfo { GetMethod.IsPublic: true };
 
         memberInfo.ResolveNullableAnnotation(out _, out bool isSetterNonNullable);
         IsNonNullable = isSetterNonNullable;
@@ -103,9 +109,14 @@ internal sealed class MemberInitializerShapeInfo : IParameterShapeInfo
     public bool IsRequired { get; }
     public bool IsInitOnly { get; }
     public bool IsNonNullable { get; }
+    public bool IsPublic { get; }
 
     public string Name => MemberInfo.Name;
     public ICustomAttributeProvider? AttributeProvider => MemberInfo;
     public bool HasDefaultValue => false;
     public object? DefaultValue => null;
+    public ConstructorParameterKind Kind => 
+        MemberInfo.MemberType is MemberTypes.Field 
+        ? ConstructorParameterKind.FieldInitializer 
+        : ConstructorParameterKind.PropertyInitializer;
 }

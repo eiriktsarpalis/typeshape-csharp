@@ -29,7 +29,7 @@ public static partial class Validator
                 default:
 
                     (string, Validator<T>)[] propertyValidators = type
-                        .GetProperties(nonPublic: false, includeFields: true)
+                        .GetProperties(includeFields: true)
                         .Where(prop => prop.HasGetter)
                         .Select(prop => (prop.Name, (Validator<T>)prop.Accept(this, state)!))
                         .ToArray();

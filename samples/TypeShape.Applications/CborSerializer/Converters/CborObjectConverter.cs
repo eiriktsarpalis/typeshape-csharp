@@ -28,11 +28,9 @@ internal class CborObjectConverter<T>(CborPropertyConverter<T>[] properties) : C
     }
 }
 
-internal abstract class CborObjectConverterWithCtor<T>(CborPropertyConverter<T>[] properties) : CborObjectConverter<T>(properties)
+internal sealed class CborObjectConverterWithDefaultCtor<T>(Func<T> defaultConstructor, CborPropertyConverter<T>[] properties) : CborObjectConverter<T>(properties)
 {
     private readonly Dictionary<string, CborPropertyConverter<T>> _propertiesToRead = properties.Where(prop => prop.HasSetter).ToDictionary(prop => prop.Name);
-
-    protected abstract T ReadConstructorParametersAndCreateObject(CborReader reader, out string? pendingPropertyName);
 
     public sealed override T? Read(CborReader reader)
     {
@@ -43,13 +41,12 @@ internal abstract class CborObjectConverterWithCtor<T>(CborPropertyConverter<T>[
         }
 
         reader.ReadStartMap();
-        T result = ReadConstructorParametersAndCreateObject(reader, out string? pendingPropertyName);
+        T result = defaultConstructor();
         Dictionary<string, CborPropertyConverter<T>> propertiesToRead = _propertiesToRead;
 
         while (reader.PeekState() != CborReaderState.EndMap)
         {
-            string key = pendingPropertyName ?? reader.ReadTextString();
-            pendingPropertyName = null;
+            string key = reader.ReadTextString();
 
             if (!propertiesToRead.TryGetValue(key, out CborPropertyConverter<T>? propConverter))
             {
@@ -65,39 +62,42 @@ internal abstract class CborObjectConverterWithCtor<T>(CborPropertyConverter<T>[
     }
 }
 
-internal sealed class CborObjectConverterWithDefaultCtor<T>(
-    Func<T> defaultConstructor, 
-    CborPropertyConverter<T>[] properties) : CborObjectConverterWithCtor<T>(properties)
-{
-    protected override T ReadConstructorParametersAndCreateObject(CborReader reader, out string? pendingPropertyName)
-    {
-        pendingPropertyName = null;
-        return defaultConstructor();
-    }
-}
-
 internal sealed class CborObjectConverterWithParameterizedCtor<TDeclaringType, TArgumentState>(
     Func<TArgumentState> createArgumentState,
     Constructor<TArgumentState, TDeclaringType> createObject,
     CborPropertyConverter<TArgumentState>[] constructorParameters,
-    CborPropertyConverter<TDeclaringType>[] properties) : CborObjectConverterWithCtor<TDeclaringType>(properties)
+    CborPropertyConverter<TDeclaringType>[] properties) : CborObjectConverter<TDeclaringType>(properties)
 {
-    private readonly Dictionary<string, CborPropertyConverter<TArgumentState>> _constructorParameters = constructorParameters.ToDictionary(param => param.Name, StringComparer.OrdinalIgnoreCase);
+    // Use case-insensitive matching for constructor parameters but case-sensitive matching for property setters.
+    private readonly Dictionary<string, CborPropertyConverter<TArgumentState>> _constructorParameters = constructorParameters
+        .Where(prop => prop.IsConstructorParameter)
+        .ToDictionary(prop => prop.Name, StringComparer.OrdinalIgnoreCase);
 
-    protected override TDeclaringType ReadConstructorParametersAndCreateObject(CborReader reader, out string? pendingPropertyName)
+    private readonly Dictionary<string, CborPropertyConverter<TArgumentState>> _propertySetters = constructorParameters
+        .Where(prop => !prop.IsConstructorParameter)
+        .ToDictionary(prop => prop.Name, StringComparer.Ordinal);
+
+    public override TDeclaringType? Read(CborReader reader)
     {
-        Dictionary<string, CborPropertyConverter<TArgumentState>> ctorParams = _constructorParameters;
+        if (default(TDeclaringType) is null && reader.PeekState() is CborReaderState.Null)
+        {
+            reader.ReadNull();
+            return default;
+        }
+
+        reader.ReadStartMap();
         TArgumentState argumentState = createArgumentState();
-        pendingPropertyName = null;
+        Dictionary<string, CborPropertyConverter<TArgumentState>> ctorParams = _constructorParameters;
+        Dictionary<string, CborPropertyConverter<TArgumentState>> propertySetters = _propertySetters;
 
         while (reader.PeekState() != CborReaderState.EndMap)
         {
-            string propertyName = reader.ReadTextString();
-            if (!ctorParams.TryGetValue(propertyName, out CborPropertyConverter<TArgumentState>? propertyConverter))
+            string key = reader.ReadTextString();
+            if (!ctorParams.TryGetValue(key, out CborPropertyConverter<TArgumentState>? propertyConverter) &&
+                !propertySetters.TryGetValue(key, out propertyConverter))
             {
-                // stop reading constructor arguments on the first unrecognized parameter
-                pendingPropertyName = propertyName;
-                break; 
+                reader.SkipValue();
+                continue;
             }
 
             propertyConverter.Read(reader, ref argumentState);

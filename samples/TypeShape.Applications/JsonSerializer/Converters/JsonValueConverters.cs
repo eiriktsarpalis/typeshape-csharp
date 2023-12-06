@@ -5,50 +5,8 @@ using System.Numerics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
 
 namespace TypeShape.Applications.JsonSerializer.Converters;
-
-public sealed class HalfConverter : JsonConverter<Half>
-{
-    public override Half Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        => (Half)reader.GetDouble();
-
-    public override void Write(Utf8JsonWriter writer, Half value, JsonSerializerOptions options)
-        => writer.WriteNumberValue((float)value);
-}
-
-public sealed class Int128Converter : LargeNumberValueConverter<Int128>
-{
-    public override Int128 Parse(ReadOnlySpan<char> value)
-        => Int128.Parse(value, CultureInfo.InvariantCulture);
-
-    public override int GetMaxCharLength(Int128 value)
-        => 40; // System.Int128.MinValue.ToString().Length
-
-    public override int Format(Int128 value, Span<char> destination)
-    {
-        bool success = value.TryFormat(destination, out int charsWritten, provider: CultureInfo.InvariantCulture);
-        Debug.Assert(success);
-        return charsWritten;
-    }
-}
-
-public sealed class UInt128Converter : LargeNumberValueConverter<UInt128>
-{
-    public override UInt128 Parse(ReadOnlySpan<char> value)
-        => UInt128.Parse(value, CultureInfo.InvariantCulture);
-
-    public override int GetMaxCharLength(UInt128 value)
-        => 39; // System.UInt128.MaxValue.ToString().Length
-
-    public override int Format(UInt128 value, Span<char> destination)
-    {
-        bool success = value.TryFormat(destination, out int charsWritten, provider: CultureInfo.InvariantCulture);
-        Debug.Assert(success);
-        return charsWritten;
-    }
-}
 
 public sealed class BigIntegerConverter : LargeNumberValueConverter<BigInteger>
 {
@@ -139,7 +97,9 @@ public sealed class RuneConverter : JsonConverter<Rune>
 public sealed class JsonObjectConverter : JsonConverter<object?>
 {
     public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        => JsonMetadataServices.ObjectConverter.Read(ref reader, typeToConvert, options);
+    {
+        return reader.TokenType is JsonTokenType.Null ? null : JsonDocument.ParseValue(ref reader).RootElement;
+    }
 
     public override void Write(Utf8JsonWriter writer, object? value, JsonSerializerOptions options)
     {

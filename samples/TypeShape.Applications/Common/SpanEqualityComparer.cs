@@ -29,17 +29,12 @@ public static class CharSpanEqualityComparer
     public static ISpanEqualityComparer<char> Ordinal { get; } = new StringComparisonEqualityComparer(StringComparison.Ordinal);
     public static ISpanEqualityComparer<char> OrdinalIgnoreCase { get; } = new StringComparisonEqualityComparer(StringComparison.OrdinalIgnoreCase);
 
-    private sealed class StringComparisonEqualityComparer : ISpanEqualityComparer<char>
+    private sealed class StringComparisonEqualityComparer(StringComparison comparison) : ISpanEqualityComparer<char>
     {
-        private readonly StringComparison _comparison;
-
-        public StringComparisonEqualityComparer(StringComparison comparison)
-            => _comparison = comparison;
-
         public int GetHashCode(ReadOnlySpan<char> buffer)
-            => string.GetHashCode(buffer, _comparison);
+            => string.GetHashCode(buffer, comparison);
 
         public bool Equals(ReadOnlySpan<char> x, ReadOnlySpan<char> y)
-            => x.Equals(y, _comparison);
+            => x.Equals(y, comparison);
     }
 }

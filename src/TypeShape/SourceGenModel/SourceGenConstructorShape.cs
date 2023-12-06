@@ -2,7 +2,7 @@
 
 namespace TypeShape.SourceGenModel;
 
-public sealed class SourceGenConstructorShape<TDeclaringType, TArgumentState> : IConstructorShape<TDeclaringType, TArgumentState>
+public sealed class SourceGenConstructorShape<TDeclaringType, TArgumentState>(bool nonPublic, bool includeProperties, bool includeFields) : IConstructorShape<TDeclaringType, TArgumentState>
 {
     public required bool IsPublic { get; init; }
     public required ITypeShape DeclaringType { get; init; }
@@ -20,7 +20,28 @@ public sealed class SourceGenConstructorShape<TDeclaringType, TArgumentState> : 
         => visitor.VisitConstructor(this, state);
 
     public IEnumerable<IConstructorParameterShape> GetParameters()
-        => GetParametersFunc is null ? [] : GetParametersFunc();
+    {
+        IEnumerable<IConstructorParameterShape> parameters = GetParametersFunc?.Invoke() ?? [];
+
+        if (!nonPublic)
+        {
+            parameters = parameters.Where(p => p.IsPublic || p.IsRequired);
+        }
+
+        if (!includeProperties)
+        {
+            parameters = parameters.Where(p => p.Kind != ConstructorParameterKind.PropertyInitializer || p.IsRequired);
+        }
+
+        if (!includeFields)
+        {
+            parameters = parameters.Where(p => p.Kind != ConstructorParameterKind.FieldInitializer || p.IsRequired);
+        }
+
+        return parameters;
+    }
+
+    int IConstructorShape.ParameterCount => nonPublic && includeProperties && includeFields ? ParameterCount : GetParameters().Count();
 
     public Func<TDeclaringType> GetDefaultConstructor()
         => DefaultConstructorFunc ?? throw new InvalidOperationException("Constructor shape does not specify a default constructor.");

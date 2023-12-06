@@ -106,7 +106,7 @@ public abstract class TypeShapeProviderTests
         Assert.NotNull(shape);
 
         var visitor = new ConstructorTestVisitor();
-        foreach (IConstructorShape ctor in shape.GetConstructors(nonPublic: true))
+        foreach (IConstructorShape ctor in shape.GetConstructors(nonPublic: true, includeProperties: true, includeFields: true))
         {
             Assert.Equal(typeof(T), ctor.DeclaringType.Type);
             ctor.Accept(visitor, typeof(T));
@@ -453,7 +453,7 @@ public abstract class TypeShapeProviderTests
             }
         }
 
-        foreach (IConstructorShape constructor in shape.GetConstructors(nonPublic: true))
+        foreach (IConstructorShape constructor in shape.GetConstructors(nonPublic: true, includeProperties: true, includeFields: true))
         {
             ICustomAttributeProvider? attributeProvider = constructor.AttributeProvider;
             if (attributeProvider is null)
@@ -482,6 +482,7 @@ public abstract class TypeShapeProviderTests
                     Assert.Equal(hasDefaultValue, ctorParam.HasDefaultValue);
                     Assert.Equal(defaultValue, ctorParam.DefaultValue);
                     Assert.Equal(!hasDefaultValue, ctorParam.IsRequired);
+                    Assert.Equal(ConstructorParameterKind.ConstructorParameter, ctorParam.Kind);
 
                     ParameterInfo paramInfo = Assert.IsAssignableFrom<ParameterInfo>(ctorParam.AttributeProvider);
                     Assert.Equal(actualParameter.Position, paramInfo.Position);
@@ -499,6 +500,7 @@ public abstract class TypeShapeProviderTests
                     Assert.False(ctorParam.HasDefaultValue);
                     Assert.Null(ctorParam.DefaultValue);
                     Assert.Equal(memberInfo.GetCustomAttribute<RequiredMemberAttribute>() != null, ctorParam.IsRequired);
+                    Assert.Equal(memberInfo is FieldInfo ? ConstructorParameterKind.FieldInitializer : ConstructorParameterKind.PropertyInitializer, ctorParam.Kind);
 
                     Assert.True(memberInfo is PropertyInfo or FieldInfo);
 
@@ -540,7 +542,7 @@ public abstract class TypeShapeProviderTests
             Assert.Equal(property.HasSetter && isSetterNonNullable, property.IsSetterNonNullable);
         }
 
-        foreach (IConstructorShape constructor in shape.GetConstructors(nonPublic: true))
+        foreach (IConstructorShape constructor in shape.GetConstructors(nonPublic: true, includeProperties: true, includeFields: true))
         {
             ICustomAttributeProvider? attributeProvider = constructor.AttributeProvider;
             if (attributeProvider is null)

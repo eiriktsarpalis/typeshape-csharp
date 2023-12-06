@@ -16,8 +16,8 @@ public interface IConstructorShape
     /// The total number of parameters required by the constructor.
     /// </summary>
     /// <remarks>
-    /// This number can include both actual constructor parameters and 
-    /// logical constructor parameters such as required or init-only properties.
+    /// This number includes both constructor parameters and 
+    /// any available property or field initializers.
     /// </remarks>
     int ParameterCount { get; }
 
@@ -61,14 +61,14 @@ public interface IConstructorShape<TDeclaringType, TArgumentState> : IConstructo
     Func<TDeclaringType> GetDefaultConstructor();
 
     /// <summary>
-    /// Creates a constructor delegate parameterized on an argument state object.
-    /// </summary>
-    /// <returns>A parameterized delegate returning an instance of <see cref="TDeclaringType"/>.</returns>
-    Constructor<TArgumentState, TDeclaringType> GetParameterizedConstructor();
-
-    /// <summary>
     /// Creates a constructor delegate for creating a default argument state instance.
     /// </summary>
     /// <returns>An uninitialized <see cref="TArgumentState"/> value for building constructor parameters.</returns>
     Func<TArgumentState> GetArgumentStateConstructor();
+
+    /// <summary>
+    /// Creates a constructor delegate parameterized on an argument state object.
+    /// </summary>
+    /// <returns>A parameterized delegate returning an instance of <see cref="TDeclaringType"/>.</returns>
+    Constructor<TArgumentState, TDeclaringType> GetParameterizedConstructor();
 }

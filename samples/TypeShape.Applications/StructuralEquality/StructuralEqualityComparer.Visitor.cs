@@ -46,7 +46,7 @@ public static partial class StructuralEqualityComparer
 
             return CacheResult(new ObjectEqualityComparer<T>()
             {
-                PropertyComparers = type.GetProperties(nonPublic: false, includeFields: true)
+                PropertyComparers = type.GetProperties(includeFields: true)
                     .Where(prop => prop.HasGetter)
                     .Select(prop => (EqualityComparer<T>)prop.Accept(this, null)!)
                     .ToArray(),

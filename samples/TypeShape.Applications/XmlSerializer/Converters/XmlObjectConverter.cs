@@ -29,11 +29,9 @@ internal class XmlObjectConverter<T>(XmlPropertyConverter<T>[] properties) : Xml
     }
 }
 
-internal abstract class XmlObjectConverterWithCtor<T>(XmlPropertyConverter<T>[] properties) : XmlObjectConverter<T>(properties)
+internal sealed class XmlObjectConverterWithDefaultCtor<T>(Func<T> defaultConstructor, XmlPropertyConverter<T>[] properties) : XmlObjectConverter<T>(properties)
 {
     private readonly Dictionary<string, XmlPropertyConverter<T>> _propertiesToRead = properties.Where(prop => prop.HasSetter).ToDictionary(prop => prop.Name);
-
-    protected abstract T ReadConstructorParametersAndCreateObject(XmlReader reader, bool isEmptyElement);
 
     public sealed override T? Read(XmlReader reader)
     {
@@ -44,7 +42,7 @@ internal abstract class XmlObjectConverterWithCtor<T>(XmlPropertyConverter<T>[] 
 
         bool isEmptyElement = reader.IsEmptyElement;
         reader.ReadStartElement();
-        T result = ReadConstructorParametersAndCreateObject(reader, isEmptyElement);
+        T result = defaultConstructor();
 
         if (isEmptyElement)
         {
@@ -76,29 +74,37 @@ internal abstract class XmlObjectConverterWithCtor<T>(XmlPropertyConverter<T>[] 
     }
 }
 
-internal sealed class XmlObjectConverterWithDefaultCtor<T>(
-    Func<T> defaultConstructor,
-    XmlPropertyConverter<T>[] properties) : XmlObjectConverterWithCtor<T>(properties)
-{
-    protected override T ReadConstructorParametersAndCreateObject(XmlReader reader, bool _)
-        => defaultConstructor();
-}
-
 internal sealed class XmlObjectConverterWithParameterizedCtor<TDeclaringType, TArgumentState>(
     Func<TArgumentState> createArgumentState,
     Constructor<TArgumentState, TDeclaringType> createObject,
     XmlPropertyConverter<TArgumentState>[] constructorParameters,
-    XmlPropertyConverter<TDeclaringType>[] properties) : XmlObjectConverterWithCtor<TDeclaringType>(properties)
+    XmlPropertyConverter<TDeclaringType>[] properties) : XmlObjectConverter<TDeclaringType>(properties)
 {
-    private readonly Dictionary<string, XmlPropertyConverter<TArgumentState>> _constructorParameters = constructorParameters.ToDictionary(param => param.Name, StringComparer.OrdinalIgnoreCase);
+    // Use case-insensitive matching for constructor parameters but case-sensitive matching for property setters.
+    private readonly Dictionary<string, XmlPropertyConverter<TArgumentState>> _constructorParameters = constructorParameters
+        .Where(p => p.IsConstructorParameter)
+        .ToDictionary(param => param.Name, StringComparer.OrdinalIgnoreCase);
 
-    protected override TDeclaringType ReadConstructorParametersAndCreateObject(XmlReader reader, bool isEmptyElement)
+    private readonly Dictionary<string, XmlPropertyConverter<TArgumentState>> _propertiesToRead = constructorParameters
+        .Where(p => !p.IsConstructorParameter)
+        .ToDictionary(param => param.Name, StringComparer.Ordinal);
+
+    public override TDeclaringType? Read(XmlReader reader)
     {
-        Dictionary<string, XmlPropertyConverter<TArgumentState>> ctorParams = _constructorParameters;
+        if (default(TDeclaringType) is null && reader.TryReadNullElement())
+        {
+            return default;
+        }
+
+        bool isEmptyElement = reader.IsEmptyElement;
+        reader.ReadStartElement();
         TArgumentState argumentState = createArgumentState();
 
         if (!isEmptyElement)
         {
+            Dictionary<string, XmlPropertyConverter<TArgumentState>> ctorParams = _constructorParameters;
+            Dictionary<string, XmlPropertyConverter<TArgumentState>> propertiesToRead = _propertiesToRead;
+
             while (reader.NodeType != XmlNodeType.EndElement)
             {
                 if (reader.NodeType != XmlNodeType.Element)
@@ -106,16 +112,19 @@ internal sealed class XmlObjectConverterWithParameterizedCtor<TDeclaringType, TA
                     continue;
                 }
 
-                if (!ctorParams.TryGetValue(reader.Name, out XmlPropertyConverter<TArgumentState>? propertyConverter))
+                string key = reader.Name;
+                if (!ctorParams.TryGetValue(key, out XmlPropertyConverter<TArgumentState>? propertyConverter) &&
+                    !propertiesToRead.TryGetValue(key, out propertyConverter))
                 {
-                    // stop reading constructor arguments on the first unrecognized parameter
-                    break;
+                    reader.Skip();
+                    continue;
                 }
 
                 propertyConverter.Read(reader, ref argumentState);
             }
         }
 
+        reader.ReadEndElement();
         return createObject(ref argumentState);
     }
 }

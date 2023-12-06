@@ -8,6 +8,7 @@ internal abstract class CborPropertyConverter<TDeclaringType>(string name)
     public string Name { get; } = name;
     public abstract bool HasGetter { get; }
     public abstract bool HasSetter { get; }
+    public bool IsConstructorParameter { get; private protected init; }
 
     public abstract void Write(CborWriter writer, ref TDeclaringType value);
     public abstract void Read(CborReader reader, ref TDeclaringType value);
@@ -40,6 +41,7 @@ internal sealed class CborPropertyConverter<TDeclaringType, TPropertyType> : Cbo
     {
         _propertyConverter = propertyConverter;
         _setter = parameter.GetSetter();
+        IsConstructorParameter = parameter.Kind is ConstructorParameterKind.ConstructorParameter;
     }
 
     public override bool HasGetter => _getter != null;

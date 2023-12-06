@@ -9,7 +9,7 @@ public sealed class SourceGenTypeShape<T> : ITypeShape<T>
     public required ITypeShapeProvider Provider { get; init; }
     public ICustomAttributeProvider? AttributeProvider { get; init; }
     public Func<bool /* nonPublic */, IEnumerable<IPropertyShape>>? CreatePropertiesFunc { get; init; }
-    public Func<IEnumerable<IConstructorShape>>? CreateConstructorsFunc { get; init; }
+    public Func<bool /* nonPublic */, bool /* includeProperties */, bool /* includeFields */, IEnumerable<IConstructorShape>>? CreateConstructorsFunc { get; init; }
     public Func<IDictionaryShape>? CreateDictionaryShapeFunc { get; init; }
     public Func<IEnumerableShape>? CreateEnumerableShapeFunc { get; init; }
     public Func<IEnumShape>? CreateEnumShapeFunc { get; init; }
@@ -40,9 +40,9 @@ public sealed class SourceGenTypeShape<T> : ITypeShape<T>
     public object? Accept(ITypeShapeVisitor visitor, object? state)
         => visitor.VisitType(this, state);
 
-    public IEnumerable<IConstructorShape> GetConstructors(bool nonPublic)
+    public IEnumerable<IConstructorShape> GetConstructors(bool nonPublic, bool includeProperties, bool includeFields)
     {
-        IEnumerable<IConstructorShape> constructors = CreateConstructorsFunc?.Invoke() ?? [];
+        IEnumerable<IConstructorShape> constructors = CreateConstructorsFunc?.Invoke(nonPublic, includeProperties, includeFields) ?? [];
 
         if (!nonPublic)
         {

@@ -34,7 +34,7 @@ public static partial class PrettyPrinter
                 default:
 
                     PrettyPrinter<T>[] propertyPrinters = type
-                        .GetProperties(nonPublic: false, includeFields: true)
+                        .GetProperties(includeFields: true)
                         .Where(prop => prop.HasGetter)
                         .Select(prop => (PrettyPrinter<T>?)prop.Accept(this, null)!)
                         .Where(prop => prop != null)

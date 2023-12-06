@@ -16,16 +16,16 @@ public static partial class TypeShapeJsonSerializer
             JsonMetadataServices.Int16Converter,
             JsonMetadataServices.Int32Converter,
             JsonMetadataServices.Int64Converter,
-            new Int128Converter(),
+            JsonMetadataServices.Int128Converter,
             JsonMetadataServices.ByteConverter,
             JsonMetadataServices.ByteArrayConverter,
             JsonMetadataServices.UInt16Converter,
             JsonMetadataServices.UInt32Converter,
             JsonMetadataServices.UInt64Converter,
-            new UInt128Converter(),
+            JsonMetadataServices.UInt128Converter,
             JsonMetadataServices.CharConverter,
             JsonMetadataServices.StringConverter,
-            new HalfConverter(),
+            JsonMetadataServices.HalfConverter,
             JsonMetadataServices.SingleConverter,
             JsonMetadataServices.DoubleConverter,
             JsonMetadataServices.DecimalConverter,
@@ -70,14 +70,14 @@ public static partial class TypeShapeJsonSerializer
                     Debug.Assert(type.Kind == TypeKind.None);
 
                     JsonPropertyConverter<T>[] properties = type
-                        .GetProperties(nonPublic: false, includeFields: true)
+                        .GetProperties(includeFields: true)
                         .Select(prop => (JsonPropertyConverter<T>)prop.Accept(this, state)!)
                         .ToArray();
 
+                    // Prefer the default constructor if available.
                     IConstructorShape? ctor = type
-                        .GetConstructors(nonPublic: false)
-                        .OrderByDescending(ctor => ctor.ParameterCount)
-                        .FirstOrDefault();
+                        .GetConstructors(includeProperties: true, includeFields: true)
+                        .MinBy(ctor => ctor.ParameterCount);
 
                    converter = ctor != null
                         ? (JsonObjectConverter<T>)ctor.Accept(this, properties)!
