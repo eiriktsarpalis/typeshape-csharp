@@ -84,7 +84,7 @@ public abstract class PrettyPrinterTests
             }
             """);
 
-        static object?[] GetPair<T>(T? value, string expected) => [value, expected];
+        static object?[] GetPair<T>(T? value, string expected) => [value, expected.ReplaceLineEndings()];
     }
 
     private PrettyPrinter<T> GetPrettyPrinterUnderTest<T>()
