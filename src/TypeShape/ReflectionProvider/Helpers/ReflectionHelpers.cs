@@ -178,6 +178,30 @@ internal static class ReflectionHelpers
         return result;
     }
 
+    public static bool IsMemoryType(this Type type, [NotNullWhen(true)] out Type? elementType, out bool isReadOnlyMemory)
+    {
+        if (type.IsGenericType && type.IsValueType)
+        {
+            Type genericTypeDefinition = type.GetGenericTypeDefinition();
+            if (genericTypeDefinition == typeof(ReadOnlyMemory<>))
+            {
+                elementType = type.GetGenericArguments()[0];
+                isReadOnlyMemory = true;
+                return true;
+            }
+            if (genericTypeDefinition == typeof(Memory<>))
+            {
+                elementType = type.GetGenericArguments()[0];
+                isReadOnlyMemory = false;
+                return true;
+            }
+        }
+
+        elementType = null;
+        isReadOnlyMemory = false;
+        return false;
+    }
+
     public static bool IsRecord(this Type type)
         => type.GetMethod("<Clone>$", BindingFlags.Public | BindingFlags.Instance) is not null;
 

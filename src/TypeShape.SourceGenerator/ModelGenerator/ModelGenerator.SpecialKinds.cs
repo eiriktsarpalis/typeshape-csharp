@@ -73,12 +73,6 @@ public sealed partial class ModelGenerator
             return null;
         }
 
-        if (!knownSymbols.IEnumerable.IsAssignableFrom(type))
-        {
-            // Type is not IEnumerable
-            return null;
-        }
-
         CollectionConstructionStrategy constructionStrategy = CollectionConstructionStrategy.None;
         IMethodSymbol? addMethod = null;
         ITypeSymbol? elementType = null;
@@ -106,6 +100,18 @@ public sealed partial class ModelGenerator
         else if (type is not INamedTypeSymbol namedType)
         {
             return null;
+        }
+        else if (SymbolEqualityComparer.Default.Equals(namedType.ConstructedFrom, knownSymbols.MemoryOfT))
+        {
+            kind = EnumerableKind.MemoryOfT;
+            elementType = namedType.TypeArguments[0];
+            constructionStrategy = CollectionConstructionStrategy.Span;
+        }
+        else if (SymbolEqualityComparer.Default.Equals(namedType.ConstructedFrom, knownSymbols.ReadOnlyMemoryOfT))
+        {
+            kind = EnumerableKind.ReadOnlyMemoryOfT;
+            elementType = namedType.TypeArguments[0];
+            constructionStrategy = CollectionConstructionStrategy.Span;
         }
         else if (type.GetCompatibleGenericBaseType(knownSymbols.IEnumerableOfT) is { } enumerableOfT)
         {
@@ -164,7 +170,7 @@ public sealed partial class ModelGenerator
                 }
             }
         }
-        else
+        else if (knownSymbols.IEnumerable.IsAssignableFrom(type))
         {
             elementType = knownSymbols.Compilation.ObjectType;
             kind = EnumerableKind.IEnumerable;
@@ -187,6 +193,11 @@ public sealed partial class ModelGenerator
                 constructionStrategy = CollectionConstructionStrategy.Span;
                 spanFactoryMethod = factory.GetFullyQualifiedName();
             }
+        }
+        else
+        {
+            // Type is not IEnumerable
+            return null;
         }
 
         return new EnumerableTypeModel

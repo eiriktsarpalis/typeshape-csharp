@@ -20,7 +20,7 @@ public static partial class StructuralEqualityComparer
             }
 
             if (!RuntimeHelpers.IsReferenceOrContainsReferences<T>() ||
-                (typeof(IEquatable<T>).IsAssignableFrom(typeof(T)) && !IsImmutableArray(typeof(T))) ||
+                (typeof(IEquatable<T>).IsAssignableFrom(typeof(T)) && !IsImmutableArrayOrMemory(typeof(T))) ||
                 typeof(T) == typeof(string))
             {
                 return CacheResult(EqualityComparer<T>.Default);
@@ -112,8 +112,18 @@ public static partial class StructuralEqualityComparer
                 : throw new NotSupportedException(runtimeType.GetType().ToString());
         }
 
-        private static bool IsImmutableArray(Type type) 
-            => type.IsGenericType && type.IsValueType && type.GetGenericTypeDefinition() == typeof(ImmutableArray<>);
+        private static bool IsImmutableArrayOrMemory(Type type)
+        {
+            if (!type.IsGenericType || !type.IsValueType)
+            {
+                return false;
+            }
+
+            Type genericTypeDefinition = type.GetGenericTypeDefinition();
+            return genericTypeDefinition == typeof(ImmutableArray<>) ||
+                genericTypeDefinition == typeof(Memory<>) ||
+                genericTypeDefinition == typeof(ReadOnlyMemory<>);
+        }
 
         private EqualityComparer<T>? TryGetCachedResult<T>()
         {

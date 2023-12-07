@@ -22,13 +22,26 @@ public abstract record TestCase<T>(T Value) : ITestCase
         !IsMultiDimensionalArray;
 
     public bool IsNullable => default(T) is null;
-    public bool IsEquatable => Value is IEquatable<T> && !(Value.GetType().IsGenericType && Value.GetType().GetGenericTypeDefinition() == typeof(ImmutableArray<>));
+    public bool IsEquatable => Value is IEquatable<T> && !IsImmutableArrayOrMemory(typeof(T));
     public bool IsTuple => Value is ITuple;
     public bool IsLongTuple => Value is ITuple { Length: > 7 };
     public bool IsMultiDimensionalArray => typeof(T).IsArray && typeof(T).GetArrayRank() != 1;
     public bool IsAbstract => typeof(T).IsAbstract || typeof(T).IsInterface;
     public bool IsStack { get; init; }
     public bool DoesNotRoundtrip { get; init; }
+
+    private static bool IsImmutableArrayOrMemory(Type type)
+    {
+        if (!type.IsGenericType || !type.IsValueType)
+        {
+            return false;
+        }
+
+        Type genericType = type.GetGenericTypeDefinition();
+        return genericType == typeof(ImmutableArray<>) ||
+            genericType == typeof(Memory<>) ||
+            genericType == typeof(ReadOnlyMemory<>);
+    }
 }
 
 public interface ITestCase
@@ -78,6 +91,8 @@ public static class TestTypes
         yield return Create<int[], SourceGenProvider>([1, 2, 3], p);
         yield return Create<int[][], SourceGenProvider>([[1, 0, 0], [0, 1, 0], [0, 0, 1]], p);
         yield return Create<byte[], SourceGenProvider>([1, 2, 3], p);
+        yield return Create<Memory<int>, SourceGenProvider>(new int[] { 1, 2, 3 }, p);
+        yield return Create<ReadOnlyMemory<int>, SourceGenProvider>(new[] { 1, 2, 3 }, p);
         yield return Create<List<string>, SourceGenProvider>(["1", "2", "3"], p);
         yield return Create<List<byte>, SourceGenProvider>([], p);
         yield return Create<LinkedList<byte>, SourceGenProvider>([], p);
@@ -1074,6 +1089,8 @@ public static class GenericCollectionWithBuilderAttribute
 [GenerateShape<int[][]>]
 [GenerateShape<int[,]>]
 [GenerateShape<int[,,]>]
+[GenerateShape<Memory<int>>]
+[GenerateShape<ReadOnlyMemory<int>>]
 [GenerateShape<List<string>>]
 [GenerateShape<List<byte>>]
 [GenerateShape<LinkedList<byte>>]

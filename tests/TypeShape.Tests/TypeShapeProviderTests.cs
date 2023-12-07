@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -44,6 +45,11 @@ public abstract class TypeShapeProviderTests
                 return typeof(T).GetDictionaryKeyValueTypes() != null
                     ? TypeKind.Dictionary
                     : TypeKind.Enumerable;
+            }
+
+            if (typeof(T).IsMemoryType(out _, out _))
+            {
+                return TypeKind.Enumerable;
             }
 
             return TypeKind.None;
@@ -342,10 +348,19 @@ public abstract class TypeShapeProviderTests
                 Assert.Equal(typeof(T).GetElementType(), enumerableType.ElementType.Type);
                 Assert.Equal(typeof(T).GetArrayRank(), enumerableType.Rank);
             }
-            else
+            else if (typeof(IEnumerable).IsAssignableFrom(typeof(T)))
             {
                 Assert.Equal(typeof(object), enumerableType.ElementType.Type);
                 Assert.Equal(1, enumerableType.Rank);
+            }
+            else if (typeof(T).IsMemoryType(out Type? elementType, out _))
+            {
+                Assert.Equal(elementType, enumerableType.ElementType.Type);
+                Assert.Equal(1, enumerableType.Rank);
+            }
+            else
+            {
+                Assert.Fail($"Unexpected enumerable type: {typeof(T)}");
             }
 
             var visitor = new EnumerableTestVisitor();
@@ -794,6 +809,30 @@ public static class ReflectionHelpers
 
         result = defaultValue;
         return true;
+    }
+
+    public static bool IsMemoryType(this Type type, [NotNullWhen(true)] out Type? elementType, out bool isReadOnlyMemory)
+    {
+        if (type.IsGenericType)
+        {
+            Type genericTypeDefinition = type.GetGenericTypeDefinition();
+            if (genericTypeDefinition == typeof(ReadOnlyMemory<>))
+            {
+                elementType = type.GetGenericArguments()[0];
+                isReadOnlyMemory = true;
+                return true;
+            }
+            if (genericTypeDefinition == typeof(Memory<>))
+            {
+                elementType = type.GetGenericArguments()[0];
+                isReadOnlyMemory = false;
+                return true;
+            }
+        }
+
+        elementType = null;
+        isReadOnlyMemory = false;
+        return false;
     }
 }
 

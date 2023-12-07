@@ -60,6 +60,8 @@ internal static partial class SourceFormatter
             {
                 EnumerableKind.IEnumerableOfT or
                 EnumerableKind.ArrayOfT => "static obj => obj",
+                EnumerableKind.MemoryOfT => $"static obj => global::System.Runtime.InteropServices.MemoryMarshal.ToEnumerable((ReadOnlyMemory<{enumerableType.ElementType.FullyQualifiedName}>)obj)",
+                EnumerableKind.ReadOnlyMemoryOfT => $"static obj => global::System.Runtime.InteropServices.MemoryMarshal.ToEnumerable(obj)",
                 EnumerableKind.IEnumerable => "static obj => global::System.Linq.Enumerable.Cast<object>(obj)",
                 EnumerableKind.MultiDimensionalArrayOfT => $"static obj => global::System.Linq.Enumerable.Cast<{enumerableType.ElementType.FullyQualifiedName}>(obj)",
                 _ => throw new ArgumentException(enumerableType.Kind.ToString()),
@@ -84,7 +86,7 @@ internal static partial class SourceFormatter
         {
             return enumerableType switch
             {
-                { Kind: EnumerableKind.ArrayOfT } => $"static values => values.ToArray()",
+                { Kind: EnumerableKind.ArrayOfT or EnumerableKind.ReadOnlyMemoryOfT or EnumerableKind.MemoryOfT } => $"static values => values.ToArray()",
                 { ConstructionStrategy: CollectionConstructionStrategy.Span } => $"static values => {enumerableType.SpanFactoryMethod}(values)",
                 _ => "null",
             };

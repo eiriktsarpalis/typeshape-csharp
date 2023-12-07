@@ -109,7 +109,7 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
 
     internal IEnumerableShape CreateEnumerableShape(Type type)
     {
-        Debug.Assert(typeof(IEnumerable).IsAssignableFrom(type));
+        Debug.Assert(typeof(IEnumerable).IsAssignableFrom(type) || type.IsMemoryType(out _, out _));
 
         if (type.IsArray)
         {
@@ -141,6 +141,13 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
                     return (IEnumerableShape)Activator.CreateInstance(enumerableTypeTy, this)!;
                 }
             }
+        }
+
+        if (type.IsMemoryType(out Type? memoryElementType, out bool isReadOnlyMemory))
+        {
+            Type shapeType = isReadOnlyMemory ? typeof(ReadOnlyMemoryShape<>) : typeof(MemoryShape<>);
+            Type enumerableTypeTy = shapeType.MakeGenericType(memoryElementType);
+            return (IEnumerableShape)Activator.CreateInstance(enumerableTypeTy, this)!;
         }
 
         Type enumerableType = typeof(ReflectionNonGenericEnumerableShape<>).MakeGenericType(type);

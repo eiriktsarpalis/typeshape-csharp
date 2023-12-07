@@ -46,6 +46,16 @@ public static class Iterator
             return (IIterator<TEnumerable, TElement>)(object)new ImmutableArrayIterator<TElement>();
         }
 
+        if (typeof(TEnumerable) == typeof(Memory<TElement>))
+        {
+            return (IIterator<TEnumerable, TElement>)(object)new MemoryOfTIterator<TElement>();
+        }
+
+        if (typeof(TEnumerable) == typeof(ReadOnlyMemory<TElement>))
+        {
+            return (IIterator<TEnumerable, TElement>)(object)new ReadOnlyMemoryOfTIterator<TElement>();
+        }
+
         if (typeof(List<TElement>).IsAssignableFrom(typeof(TEnumerable)))
         {
             return (IIterator<TEnumerable, TElement>)(object)new ListIterator<TElement>();
@@ -180,6 +190,30 @@ public static class Iterator
             foreach (TElement element in iterable)
             {
                 iteration(element, ref state);
+            }
+        }
+    }
+
+    private sealed class MemoryOfTIterator<TElement> : IIterator<Memory<TElement>, TElement>
+    {
+        public void Iterate<TState>(Memory<TElement> iterable, Consumer<TElement, TState> iteration, ref TState state)
+        {
+            Span<TElement> span = iterable.Span;
+            for (int i = 0; i < span.Length; i++)
+            {
+                iteration(span[i], ref state);
+            }
+        }
+    }
+
+    private sealed class ReadOnlyMemoryOfTIterator<TElement> : IIterator<ReadOnlyMemory<TElement>, TElement>
+    {
+        public void Iterate<TState>(ReadOnlyMemory<TElement> iterable, Consumer<TElement, TState> iteration, ref TState state)
+        {
+            ReadOnlySpan<TElement> span = iterable.Span;
+            for (int i = 0; i < span.Length; i++)
+            {
+                iteration(span[i], ref state);
             }
         }
     }

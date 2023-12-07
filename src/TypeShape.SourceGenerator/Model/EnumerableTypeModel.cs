@@ -5,6 +5,8 @@ public enum EnumerableKind
     IEnumerableOfT,
     IEnumerable,
     ArrayOfT,
+    MemoryOfT,
+    ReadOnlyMemoryOfT,
     MultiDimensionalArrayOfT,
 }
 

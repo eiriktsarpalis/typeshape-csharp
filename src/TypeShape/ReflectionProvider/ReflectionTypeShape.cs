@@ -237,6 +237,12 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
             return TypeKind.Enumerable;
         }
 
+        if (type.IsMemoryType(out _, out _))
+        {
+            // Memory<T> or ReadOnlyMemory<T>
+            return TypeKind.Enumerable;
+        }
+
         return TypeKind.None;
     }
 

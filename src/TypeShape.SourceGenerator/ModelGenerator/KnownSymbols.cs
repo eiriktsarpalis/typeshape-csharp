@@ -45,6 +45,12 @@ public sealed class KnownSymbols(Compilation compilation)
     public INamedTypeSymbol? ReadOnlySpanOfT => GetOrResolveType("System.ReadOnlySpan`1", ref _ReadOnlySpanOfT);
     private Option<INamedTypeSymbol?> _ReadOnlySpanOfT;
 
+    public INamedTypeSymbol? MemoryOfT => GetOrResolveType("System.Memory`1", ref _MemoryOfT);
+    private Option<INamedTypeSymbol?> _MemoryOfT;
+
+    public INamedTypeSymbol? ReadOnlyMemoryOfT => GetOrResolveType("System.ReadOnlyMemory`1", ref _ReadOnlyMemoryOfT);
+    private Option<INamedTypeSymbol?> _ReadOnlyMemoryOfT;
+
     public INamedTypeSymbol? ListOfT => GetOrResolveType("System.Collections.Generic.List`1", ref _ListOfT);
     private Option<INamedTypeSymbol?> _ListOfT;
 

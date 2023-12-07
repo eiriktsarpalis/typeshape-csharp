@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using TypeShape.SourceGenModel;
 
 namespace TypeShape.ReflectionProvider;
@@ -161,4 +162,20 @@ internal sealed class MultiDimensionalArrayShape<TEnumerable, TElement>(Reflecti
     public override int Rank => rank;
     public override Func<TEnumerable, IEnumerable<TElement>> GetGetEnumerable()
         => static enumerable => enumerable.Cast<TElement>();
+}
+
+internal sealed class ReadOnlyMemoryShape<TElement>(ReflectionTypeShapeProvider provider) 
+    : ReflectionEnumerableShape<ReadOnlyMemory<TElement>, TElement>(provider)
+{
+    public override CollectionConstructionStrategy ConstructionStrategy => CollectionConstructionStrategy.Span;
+    public override Func<ReadOnlyMemory<TElement>, IEnumerable<TElement>> GetGetEnumerable() => static memory => MemoryMarshal.ToEnumerable(memory);
+    public override SpanConstructor<TElement, ReadOnlyMemory<TElement>> GetSpanConstructor() => static span => span.ToArray();
+}
+
+internal sealed class MemoryShape<TElement>(ReflectionTypeShapeProvider provider) 
+    : ReflectionEnumerableShape<Memory<TElement>, TElement>(provider)
+{
+    public override CollectionConstructionStrategy ConstructionStrategy => CollectionConstructionStrategy.Span;
+    public override Func<Memory<TElement>, IEnumerable<TElement>> GetGetEnumerable() => static memory => MemoryMarshal.ToEnumerable((ReadOnlyMemory<TElement>)memory);
+    public override SpanConstructor<TElement, Memory<TElement>> GetSpanConstructor() => static span => span.ToArray();
 }
