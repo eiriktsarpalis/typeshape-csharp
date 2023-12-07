@@ -138,7 +138,7 @@ public sealed partial class CounterVisitor : TypeShapeVisitor
             .ToArray();
 
         // Compose into a counter for the current type.
-        return new Func<T, int>(value =>
+        return new Func<T?, int>(value =>
         {
             if (value is null)
                 return 0;
@@ -167,10 +167,10 @@ public static class Counter
 {
     private readonly static CounterVisitor s_visitor = new();
 
-    public static Func<T, int> CreateCounter<T>() where T : ITypeShapeProvider<T>
+    public static Func<T?, int> CreateCounter<T>() where T : ITypeShapeProvider<T>
     {
         ITypeShape<T> typeShape = T.GetShape();
-        return (Func<T, int>)typeShape.Accept(s_visitor, null)!;
+        return (Func<T?, int>)typeShape.Accept(s_visitor, null)!;
     }
 }
 ```
@@ -178,12 +178,12 @@ public static class Counter
 That we can then apply to the shape of our POCO like so:
 
 ```C#
-Func<MyPoco, int> pocoCounter = Counter.CreateCounter<MyPoco>();
+Func<MyPoco?, int> pocoCounter = Counter.CreateCounter<MyPoco>();
 
 pocoCounter(new MyPoco("x", "y")); // 3
 pocoCounter(new MyPoco("x", null)); // 2
 pocoCounter(new MyPoco(null, null)); // 1
-pocoCounter(null!); // 0
+pocoCounter(null); // 0
 
 [GenerateShape]
 public partial record MyPoco(string? x, string? y);

@@ -61,7 +61,7 @@ public sealed partial class CounterVisitor : TypeShapeVisitor
             .ToArray();
 
         // Compose into a counter for the current type.
-        return new Func<T, int>(value =>
+        return new Func<T?, int>(value =>
         {
             if (value is null)
                 return 0;
@@ -90,10 +90,10 @@ public static class Counter
 {
     private readonly static CounterVisitor s_visitor = new();
 
-    public static Func<T, int> CreateCounter<T>() where T : ITypeShapeProvider<T>
+    public static Func<T?, int> CreateCounter<T>() where T : ITypeShapeProvider<T>
     {
         ITypeShape<T> typeShape = T.GetShape();
-        return (Func<T, int>)typeShape.Accept(s_visitor, null)!;
+        return (Func<T?, int>)typeShape.Accept(s_visitor, null)!;
     }
 }
 ```
@@ -101,18 +101,13 @@ public static class Counter
 That we can then apply to the shape of our POCO like so:
 
 ```C#
-Func<MyPoco, int> pocoCounter = Counter.CreateCounter<T>();
-
-pocoCounter(new MyPoco("x", "y")); // 3
-pocoCounter(new MyPoco("x", null)); // 2
-pocoCounter(new MyPoco(null, null)); // 1
-pocoCounter(null!); // 0
+Func<MyPoco?, int> pocoCounter = Counter.CreateCounter<MyPoco>();
 
 [GenerateShape]
 public partial record MyPoco(string? x, string? y);
 ```
 
-In essence, TypeShape uses the visitor to fold a strongly typed `Func<MyPoco, int>` counter delegate,
+In essence, TypeShape uses the visitor to fold a strongly typed `Func<MyPoco?, int>` counter delegate,
 but the delegate itself doesn't depend on the visitor once invoked: it only defines a chain of strongly typed
 delegate invocations that are cheap to invoke once constructed:
 
@@ -120,7 +115,7 @@ delegate invocations that are cheap to invoke once constructed:
 pocoCounter(new MyPoco("x", "y")); // 3
 pocoCounter(new MyPoco("x", null)); // 2
 pocoCounter(new MyPoco(null, null)); // 1
-pocoCounter(null!); // 0
+pocoCounter(null); // 0
 ```
 
 For more details, please consult the [README file](https://github.com/eiriktsarpalis/typeshape-csharp#readme) at the project page.
