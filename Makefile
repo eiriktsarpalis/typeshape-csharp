@@ -20,7 +20,7 @@ test: build
 pack: test
 	dotnet pack -c $(CONFIGURATION) $(ADDITIONAL_ARGS) src/TypeShape.Packaging
 
-push: pack
+push:
 	for nupkg in `ls $(ARTIFACT_PATH)/*.nupkg`; do \
 		dotnet nuget push $$nupkg -s $(NUGET_SOURCE) -k $(NUGET_API_KEY); \
 	done
