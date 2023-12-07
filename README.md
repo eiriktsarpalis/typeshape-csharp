@@ -88,7 +88,7 @@ public interface ITypeShapeVisitor
 }
 ```
 
-Users can extract the typeshape model for a given type either using the built-in source generator:
+Users can extract the shape model for a given type either using the built-in source generator:
 
 ```C#
 ITypeShape<MyPoco> shape = TypeShapeProvider.GetShape<MyPoco>();
@@ -132,7 +132,7 @@ public sealed partial class CounterVisitor : TypeShapeVisitor
         // For the sake of simplicity, ignore collections and just focus on properties/fields.
 
         // Recursively generate counters for each individual property/field:
-        Func<T, int>[] propertyCounters = typeShape.GetProperties(nonPublic: false, includeFields: true)
+        Func<T, int>[] propertyCounters = typeShape.GetProperties(includeFields: true)
             .Where(prop => prop.HasGetter)
             .Select(prop => (Func<T, int>)prop.Accept(this, null)!)
             .ToArray();

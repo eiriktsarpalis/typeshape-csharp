@@ -4,12 +4,12 @@ Contains a proof-of-concept port of the [TypeShape](https://github.com/eiriktsar
 The library provides a .NET datatype model that facilitates developing high-performance datatype-generic components such as serializers, loggers, transformers and validators.
 At its core, the programming model employs a [variation on the visitor pattern](https://www.microsoft.com/en-us/research/publication/generalized-algebraic-data-types-and-object-oriented-programming/) that enables strongly-typed traversal of arbitrary type graphs: it can be used to generate object traversal algorithms that incur zero allocation cost.
 
-The project includes two typeshape model providers: one [reflection-derived](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape/ReflectionProvider) and one [source generated](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.SourceGenerator).
-It follows that any datatype-generic application built on top of the typeshape model gets trim safety/NativeAOT support for free once it targets source generated models.
+The project includes two shape model providers: one [reflection-derived](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape/ReflectionProvider) and one [source generated](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.SourceGenerator).
+It follows that any datatype-generic application built on top of the shape model gets trim safety/NativeAOT support for free once it targets source generated models.
 
 ## Using the library
 
-Users can extract the typeshape model for a given type either using the built-in source generator:
+Users can extract the shape model for a given type either using the built-in source generator:
 
 ```C#
 ITypeShape<MyPoco> shape = TypeShapeProvider.GetShape<MyPoco>();
@@ -54,8 +54,8 @@ public sealed partial class CounterVisitor : TypeShapeVisitor
     {
         // For the sake of simplicity, ignore collection types and just focus on properties/fields.
 
-        // Recursive generate counters for each individual property/field:
-        Func<T, int>[] propertyCounters = typeShape.GetProperties(nonPublic: false, includeFields: true)
+        // Recursively generate counters for each individual property/field:
+        Func<T, int>[] propertyCounters = typeShape.GetProperties(includeFields: true)
             .Where(prop => prop.HasGetter)
             .Select(prop => (Func<T, int>)prop.Accept(this, null)!)
             .ToArray();
