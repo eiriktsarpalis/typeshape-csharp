@@ -18,7 +18,7 @@ test: build
 	dotnet test -c $(CONFIGURATION) $(ADDITIONAL_ARGS) $(CODECOV_ARGS)
 
 pack: test
-	dotnet pack -c Release $(ADDITIONAL_ARGS)
+	dotnet pack -c Release $(ADDITIONAL_ARGS) src/TypeShape.Packaging
 
 push: pack
 	for nupkg in `ls $(ARTIFACT_PATH)/*.nupkg`; do \
