@@ -169,7 +169,7 @@ public static class Counter
 
     public static Func<T, int> CreateCounter<T>() where T : ITypeShapeProvider<T>
     {
-        ITypeShape<T> typeShape = T.GetShape<T>();
+        ITypeShape<T> typeShape = T.GetShape();
         return (Func<T, int>)typeShape.Accept(s_visitor, null)!;
     }
 }
