@@ -26,7 +26,7 @@ internal static partial class SourceFormatter
             writer.WriteLine($"""
                 #nullable disable annotations // Use nullable-oblivious interface implementation
                 {provider.Declaration.TypeDeclarationHeader} : ITypeShapeProvider<{type.Id.FullyQualifiedName}>
-                #nullable enable annotations
+                #nullable enable annotations // Use nullable-oblivious interface implementation
                 """);
         }
         else
