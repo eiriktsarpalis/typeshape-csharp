@@ -1,9 +1,11 @@
 ﻿using System.Collections;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text;
 using TypeShape.Applications.RandomGenerator;
 using TypeShape.ReflectionProvider;
 using Xunit;
@@ -25,6 +27,7 @@ public abstract class TypeShapeProviderTests
         Assert.Same(Provider, shape.Provider);
         Assert.Equal(typeof(T), shape.Type);
         Assert.Equal(typeof(T), shape.AttributeProvider);
+        Assert.Equal(typeof(T).IsRecord(), shape.IsRecord);
 
         TypeKind expectedKind = GetExpectedTypeKind(testCase.Value);
         Assert.Equal(expectedKind, shape.Kind);
@@ -637,6 +640,15 @@ public static class ReflectionHelpers
         return !type.IsValueType || (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>));
     }
 
+    public static bool IsRecord(this Type type)
+    {
+        return !type.IsValueType
+            ? type.GetMethod("<Clone>$", BindingFlags.Public | BindingFlags.Instance) is not null
+            : type.GetMethod("PrintMembers", BindingFlags.NonPublic | BindingFlags.Instance, [typeof(StringBuilder)]) is { } method
+                && method.ReturnType == typeof(bool)
+                && method.GetCustomAttributes().Any(attr => attr.GetType().Name == "CompilerGeneratedAttribute");
+    }
+
     public static void ResolveNullableAnnotation(this MemberInfo memberInfo, out bool isGetterNonNullable, out bool isSetterNonNullable)
     {
         if (GetNullabilityInfo(memberInfo) is NullabilityInfo info)
@@ -810,6 +822,9 @@ public static class ReflectionHelpers
         result = defaultValue;
         return true;
     }
+
+    public static bool IsImmutableArray(this Type type)
+        => type.IsValueType && type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ImmutableArray<>);
 
     public static bool IsMemoryType(this Type type, [NotNullWhen(true)] out Type? elementType, out bool isReadOnlyMemory)
     {

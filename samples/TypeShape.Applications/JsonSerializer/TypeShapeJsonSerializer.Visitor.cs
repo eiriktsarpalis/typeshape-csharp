@@ -30,6 +30,7 @@ public static partial class TypeShapeJsonSerializer
             JsonMetadataServices.DoubleConverter,
             JsonMetadataServices.DecimalConverter,
             JsonMetadataServices.DateTimeConverter,
+            JsonMetadataServices.DateTimeOffsetConverter,
             JsonMetadataServices.TimeSpanConverter,
             JsonMetadataServices.DateOnlyConverter,
             JsonMetadataServices.TimeOnlyConverter,
@@ -203,7 +204,8 @@ public static partial class TypeShapeJsonSerializer
 
         public object? VisitEnum<TEnum, TUnderlying>(IEnumShape<TEnum, TUnderlying> enumShape, object? state) where TEnum : struct, Enum
         {
-            return new JsonEnumConverter<TEnum>();
+            var converter = new JsonStringEnumConverter<TEnum>();
+            return converter.CreateConverter(typeof(TEnum), s_options);
         }
 
         private JsonConverter<T>? TryGetCachedResult<T>()

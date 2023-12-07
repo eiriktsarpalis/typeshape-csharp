@@ -75,6 +75,11 @@ public interface ITypeShape
     /// <param name="state">The state parameter to pass to the underlying visitor.</param>
     /// <returns>The <see cref="object?"/> result returned by the visitor.</returns>
     object? Accept(ITypeShapeVisitor visitor, object? state);
+
+    /// <summary>
+    /// Determines whether the current shape is a C# record type.
+    /// </summary>
+    bool IsRecord { get; }
 }
 
 /// <summary>

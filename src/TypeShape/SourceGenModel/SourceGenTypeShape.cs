@@ -7,6 +7,7 @@ public sealed class SourceGenTypeShape<T> : ITypeShape<T>
     public Type Type => typeof(T);
 
     public required ITypeShapeProvider Provider { get; init; }
+    public required bool IsRecord { get; init; }
     public ICustomAttributeProvider? AttributeProvider { get; init; }
     public Func<bool /* nonPublic */, IEnumerable<IPropertyShape>>? CreatePropertiesFunc { get; init; }
     public Func<bool /* nonPublic */, bool /* includeProperties */, bool /* includeFields */, IEnumerable<IConstructorShape>>? CreateConstructorsFunc { get; init; }

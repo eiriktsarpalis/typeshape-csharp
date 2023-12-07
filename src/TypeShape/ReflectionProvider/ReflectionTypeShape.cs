@@ -14,6 +14,9 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
     public TypeKind Kind => _kind ??= GetTypeKind();
     private TypeKind? _kind;
 
+    public bool IsRecord => _isRecord ??= typeof(T).IsRecord();
+    private bool? _isRecord;
+
     public object? Accept(ITypeShapeVisitor visitor, object? state)
         => visitor.VisitType(this, state);
 
@@ -47,8 +50,6 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
             .OrderByDescending(m => m.IsRequired || m.IsInitOnly) // Shift required or init members first
             .ToArray();
 
-        bool isRecord = typeof(T).IsRecord();
-
         bool isConstructorFound = false;
         foreach (ConstructorInfo constructorInfo in typeof(T).GetConstructors(flags))
         {
@@ -59,7 +60,7 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
                 continue;
             }
 
-            if (isRecord && parameters is [ParameterInfo parameter] &&
+            if (IsRecord && parameters is [ParameterInfo parameter] &&
                 parameter.ParameterType == typeof(T))
             {
                 // Skip the copy constructor in record types

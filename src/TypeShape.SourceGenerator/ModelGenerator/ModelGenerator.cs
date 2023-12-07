@@ -121,6 +121,7 @@ public sealed partial class ModelGenerator(
             DictionaryType = dictionaryType,
             IsValueTupleType = type.IsNonTrivialValueTupleType(),
             IsClassTupleType = classTupleElements is not null,
+            IsRecord = type.IsRecord,
             EmitGenericTypeShapeProviderImplementation = emitGenericTypeShapeProviderImplementation,
         };
     }

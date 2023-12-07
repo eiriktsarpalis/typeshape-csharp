@@ -103,6 +103,7 @@ internal sealed class CborObjectConverterWithParameterizedCtor<TDeclaringType, T
             propertyConverter.Read(reader, ref argumentState);
         }
 
+        reader.ReadEndMap();
         return createObject(ref argumentState);
     }
 }

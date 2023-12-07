@@ -22,26 +22,17 @@ public abstract record TestCase<T>(T Value) : ITestCase
         !IsMultiDimensionalArray;
 
     public bool IsNullable => default(T) is null;
-    public bool IsEquatable => Value is IEquatable<T> && !IsImmutableArrayOrMemory(typeof(T));
+    public bool IsEquatable => Value is IEquatable<T> &&
+        !typeof(T).IsImmutableArray() &&
+        !typeof(T).IsMemoryType(out _, out _) &&
+        !typeof(T).IsRecord();
+
     public bool IsTuple => Value is ITuple;
     public bool IsLongTuple => Value is ITuple { Length: > 7 };
     public bool IsMultiDimensionalArray => typeof(T).IsArray && typeof(T).GetArrayRank() != 1;
     public bool IsAbstract => typeof(T).IsAbstract || typeof(T).IsInterface;
     public bool IsStack { get; init; }
     public bool DoesNotRoundtrip { get; init; }
-
-    private static bool IsImmutableArrayOrMemory(Type type)
-    {
-        if (!type.IsGenericType || !type.IsValueType)
-        {
-            return false;
-        }
-
-        Type genericType = type.GetGenericTypeDefinition();
-        return genericType == typeof(ImmutableArray<>) ||
-            genericType == typeof(Memory<>) ||
-            genericType == typeof(ReadOnlyMemory<>);
-    }
 }
 
 public interface ITestCase
@@ -82,6 +73,7 @@ public static class TestTypes
         yield return Create((Half)3.14, p);
         yield return Create(Guid.Empty, p);
         yield return Create(DateTime.MaxValue, p);
+        yield return Create(DateTimeOffset.MaxValue, p);
         yield return Create(TimeSpan.MaxValue, p);
         yield return Create(DateOnly.MaxValue, p);
         yield return Create(TimeOnly.MaxValue, p);
@@ -305,6 +297,14 @@ public static class TestTypes
                 }
             }
         }, p);
+
+        DateOnly today = DateOnly.Parse("2023-12-07");
+        yield return Create(new Todos(
+            [ new (Id: 0, "Wash the dishes.", today, Status.Done),
+              new (Id: 1, "Dry the dishes.", today, Status.Done),
+              new (Id: 2, "Turn the dishes over.", today, Status.InProgress),
+              new (Id: 3, "Walk the kangaroo.", today.AddDays(1), Status.NotStarted),
+              new (Id: 4, "Call Grandma.", today.AddDays(1), Status.NotStarted)]), p);
 
         yield return Create(new RecordWith21ConstructorParameters(
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
@@ -1058,6 +1058,12 @@ public static class GenericCollectionWithBuilderAttribute
     }
 }
 
+public record Todos(Todo[] Items);
+
+public record Todo(int Id, string? Title, DateOnly? DueBy, Status Status);
+
+public enum Status { NotStarted, InProgress, Done }
+
 [GenerateShape<object>]
 [GenerateShape<bool>]
 [GenerateShape<string>]
@@ -1231,6 +1237,7 @@ public static class GenericCollectionWithBuilderAttribute
 [GenerateShape<CollectionWithBuilderAttribute>]
 [GenerateShape<GenericCollectionWithBuilderAttribute<int>>]
 [GenerateShape<ClassWithInternalMembers>]
+[GenerateShape<Todos>]
 internal partial class SourceGenProvider;
 
 internal partial class Outer1

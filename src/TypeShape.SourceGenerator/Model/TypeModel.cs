@@ -14,5 +14,6 @@ public sealed record TypeModel
     public required DictionaryTypeModel? DictionaryType { get; init; }
     public required bool IsValueTupleType { get; init; }
     public required bool IsClassTupleType { get; init; }
+    public required bool IsRecord { get; init; }
     public required bool EmitGenericTypeShapeProviderImplementation { get; init; }
 }

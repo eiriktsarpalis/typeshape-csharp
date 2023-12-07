@@ -119,7 +119,7 @@ public static partial class PrettyPrinter
                     foreach (TElement element in enumerableGetter(value))
                     {
                         WriteLine(sb, indentation + 1);
-                        elementPrinter(sb, indentation + 2, element);
+                        elementPrinter(sb, indentation + 1, element);
                         sb.Append(',');
                         containsElements = true;
                     }
@@ -165,9 +165,9 @@ public static partial class PrettyPrinter
                 {
                     WriteLine(sb, indentation + 1);
                     sb.Append('[');
-                    keyPrinter(sb, indentation + 2, kvp.Key); // TODO non-primitive key indentation
+                    keyPrinter(sb, indentation + 1, kvp.Key); // TODO non-primitive key indentation
                     sb.Append("] = ");
-                    valuePrinter(sb, indentation + 2, kvp.Value);
+                    valuePrinter(sb, indentation + 1, kvp.Value);
                     sb.Append(',');
                 }
 
@@ -235,7 +235,10 @@ public static partial class PrettyPrinter
             });
 
             yield return Create<DateTime>((builder, _, d) => WriteStringLiteral(builder, d));
+            yield return Create<DateTimeOffset>((builder, _, d) => WriteStringLiteral(builder, d));
             yield return Create<TimeSpan>((builder, _, t) => WriteStringLiteral(builder, t));
+            yield return Create<DateOnly>((builder, _, d) => WriteStringLiteral(builder, d));
+            yield return Create<TimeOnly>((builder, _, d) => WriteStringLiteral(builder, d));
             yield return Create<Guid>((builder, _, g) => WriteStringLiteral(builder, g));
 
             static KeyValuePair<Type, object> Create<T>(PrettyPrinter<T> printer)

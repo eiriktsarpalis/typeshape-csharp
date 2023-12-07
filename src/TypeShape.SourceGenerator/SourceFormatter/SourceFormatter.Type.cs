@@ -67,6 +67,7 @@ internal static partial class SourceFormatter
                     CreateNullableShapeFunc = {{FormatNull(nullableFactoryMethodName)}},
                     CreateDictionaryShapeFunc = {{FormatNull(dictionaryFactoryMethodName)}},
                     CreateEnumerableShapeFunc = {{FormatNull(enumerableFactoryMethodName)}},
+                    IsRecord = {{FormatBool(type.IsRecord)}},
                 };
             }
             """, trimNullAssignmentLines: true);

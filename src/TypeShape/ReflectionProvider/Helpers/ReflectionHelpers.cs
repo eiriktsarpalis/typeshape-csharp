@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
+using System.Text;
 
 namespace TypeShape.ReflectionProvider;
 
@@ -203,7 +204,13 @@ internal static class ReflectionHelpers
     }
 
     public static bool IsRecord(this Type type)
-        => type.GetMethod("<Clone>$", BindingFlags.Public | BindingFlags.Instance) is not null;
+    {
+        return !type.IsValueType
+            ? type.GetMethod("<Clone>$", BindingFlags.Public | BindingFlags.Instance) is not null
+            : type.GetMethod("PrintMembers", BindingFlags.NonPublic | BindingFlags.Instance, [typeof(StringBuilder)]) is { } method
+                && method.ReturnType == typeof(bool)
+                && method.GetCustomAttributes().Any(attr => attr.GetType().Name == "CompilerGeneratedAttribute");
+    }
 
     public static bool IsCompilerGenerated(this MemberInfo memberInfo)
         => memberInfo.CustomAttributes.Any(static attr => attr.AttributeType.FullName == "System.Runtime.CompilerServices.CompilerGeneratedAttribute");

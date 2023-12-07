@@ -20,7 +20,7 @@ public static partial class StructuralEqualityComparer
             }
 
             if (!RuntimeHelpers.IsReferenceOrContainsReferences<T>() ||
-                (typeof(IEquatable<T>).IsAssignableFrom(typeof(T)) && !IsImmutableArrayOrMemory(typeof(T))) ||
+                (typeof(IEquatable<T>).IsAssignableFrom(typeof(T)) && !IsImmutableArrayOrMemory(typeof(T)) && !type.IsRecord) ||
                 typeof(T) == typeof(string))
             {
                 return CacheResult(EqualityComparer<T>.Default);

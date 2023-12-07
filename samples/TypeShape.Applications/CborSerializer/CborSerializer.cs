@@ -1,4 +1,5 @@
-﻿using System.Formats.Cbor;
+﻿using System.Diagnostics;
+using System.Formats.Cbor;
 
 namespace TypeShape.Applications.CborSerializer;
 
@@ -20,7 +21,9 @@ public static partial class CborSerializer
     public static T? Decode<T>(this CborConverter<T> converter, byte[] encoding)
     {
         var reader = new CborReader(encoding, CborConformanceMode.Lax, allowMultipleRootLevelValues: false);
-        return converter.Read(reader);
+        T? result = converter.Read(reader);
+        Debug.Assert(reader.CurrentDepth == 0);
+        return result;
     }
 
     public static string EncodeToHex<T>(this CborConverter<T> converter, T? value)

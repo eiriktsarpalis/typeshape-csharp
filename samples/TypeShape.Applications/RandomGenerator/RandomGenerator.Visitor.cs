@@ -297,7 +297,13 @@ public partial class RandomGenerator
             yield return Create((random, _) => new DateTime(NextLong(random, DateTime.MinValue.Ticks, DateTime.MaxValue.Ticks)));
             yield return Create((random, _) => new TimeOnly(NextLong(random, 0, TimeOnly.MaxValue.Ticks)));
             yield return Create((random, _) => DateOnly.FromDateTime(new(NextLong(random, DateTime.MinValue.Ticks, DateTime.MaxValue.Ticks))));
-            yield return Create((random, _) => new DateTimeOffset(NextLong(random, DateTime.MinValue.Ticks, DateTime.MaxValue.Ticks), TimeSpan.FromHours(random.Next(-14, 14))));
+            yield return Create((random, _) =>
+            {
+                const long MaxOffsetTicks = 14 * TimeSpan.TicksPerHour;
+                long dateTicks = NextLong(random, DateTime.MinValue.Ticks + MaxOffsetTicks, DateTime.MaxValue.Ticks - MaxOffsetTicks);
+                long offsetTicks = NextLong(random, -MaxOffsetTicks, MaxOffsetTicks);
+                return new DateTimeOffset(dateTicks, new TimeSpan(offsetTicks));
+            });
             yield return Create((random, _) =>
             {
                 Span<byte> buffer = stackalloc byte[16];
