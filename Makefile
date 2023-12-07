@@ -1,6 +1,6 @@
 SOURCE_DIRECTORY := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 ARTIFACT_PATH := $(SOURCE_DIRECTORY)artifacts
-CONFIGURATION ?= Debug
+CONFIGURATION ?= Release
 NUGET_SOURCE ?= "https://api.nuget.org/v3/index.json"
 NUGET_API_KEY ?= ""
 ADDITIONAL_ARGS ?= -p:ContinuousIntegrationBuild=true
@@ -18,7 +18,7 @@ test: build
 	dotnet test -c $(CONFIGURATION) $(ADDITIONAL_ARGS) $(CODECOV_ARGS)
 
 pack: test
-	dotnet pack -c Release $(ADDITIONAL_ARGS) src/TypeShape.Packaging
+	dotnet pack -c $(CONFIGURATION) $(ADDITIONAL_ARGS) src/TypeShape.Packaging
 
 push: pack
 	for nupkg in `ls $(ARTIFACT_PATH)/*.nupkg`; do \
@@ -28,9 +28,9 @@ push: pack
 docker-build: clean
 	docker build -t $(DOCKER_IMAGE_NAME) . && \
 	docker run --rm -t \
-				-v $(ARTIFACT_PATH):/repo/artifacts \
-				$(DOCKER_IMAGE_NAME) \
-				$(DOCKER_CMD)
+		-v $(ARTIFACT_PATH):/repo/artifacts \
+		$(DOCKER_IMAGE_NAME) \
+		$(DOCKER_CMD)
 
 	docker rmi -f $(DOCKER_IMAGE_NAME)
 
