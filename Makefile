@@ -1,6 +1,6 @@
 SOURCE_DIRECTORY := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 ARTIFACT_PATH := $(SOURCE_DIRECTORY)artifacts
-CONFIGURATION ?= Release
+CONFIGURATION ?= Debug
 NUGET_SOURCE ?= "https://api.nuget.org/v3/index.json"
 NUGET_API_KEY ?= ""
 ADDITIONAL_ARGS ?= -p:ContinuousIntegrationBuild=true
