@@ -282,11 +282,11 @@ public abstract class JsonTests
 
     [Theory]
     [MemberData(nameof(GetLongTuplesAndExpectedJson))]
-    public void LongTuples_SerializedAsFlatJson<Tuple>(Tuple tuple, string expectedJson)
+    public void LongTuples_SerializedAsFlatJson<TTuple>(TTuple tuple, string expectedJson)
     {
         // Tuples should be serialized as flat JSON, without exposing "Rest" fields.
 
-        var serializer = GetSerializerUnderTest<Tuple>();
+        var serializer = GetSerializerUnderTest<TTuple>();
 
         string json = serializer.Serialize(tuple);
         Assert.Equal(expectedJson, json);
@@ -313,7 +313,7 @@ public abstract class JsonTests
             new(1, 2, 3, 4, 5, 6, 7, new(8, 9, 10, 11, 12, 13, 14, new(15))),
             """{"Item1":1,"Item2":2,"Item3":3,"Item4":4,"Item5":5,"Item6":6,"Item7":7,"Item8":8,"Item9":9,"Item10":10,"Item11":11,"Item12":12,"Item13":13,"Item14":14,"Item15":15}""");
 
-        static object?[] Wrap<Tuple>(Tuple tuple, string expectedJson)
+        static object?[] Wrap<TTuple>(TTuple tuple, string expectedJson)
             => [tuple, expectedJson];
     }
 
