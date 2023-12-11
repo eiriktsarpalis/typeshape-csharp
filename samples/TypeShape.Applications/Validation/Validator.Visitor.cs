@@ -77,7 +77,7 @@ public static partial class Validator
                         if (!predicate(propertyValue))
                         {
                             string msg = $"$.{string.Join(".", path)}: {errorMessage}";
-                            (errors ??= new()).Add(msg);
+                            (errors ??= []).Add(msg);
                         }
                     }
                 }
@@ -119,7 +119,7 @@ public static partial class Validator
                 }
 
                 int i = 0;
-                foreach (var e in getEnumerable(enumerable))
+                foreach (TElement? e in getEnumerable(enumerable))
                 {
                     path.Add($"[{i}]");
                     elementValidator(e, path, ref errors);
