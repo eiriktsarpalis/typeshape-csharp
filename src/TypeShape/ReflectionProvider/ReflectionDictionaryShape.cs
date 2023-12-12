@@ -1,11 +1,14 @@
 ﻿using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using TypeShape.SourceGenModel;
 
 namespace TypeShape.ReflectionProvider;
 
+[RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
+[RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
 internal abstract class ReflectionDictionaryShape<TDictionary, TKey, TValue>(ReflectionTypeShapeProvider provider) : IDictionaryShape<TDictionary, TKey, TValue>
     where TKey : notnull
 {
@@ -147,6 +150,8 @@ internal abstract class ReflectionDictionaryShape<TDictionary, TKey, TValue>(Ref
     }
 }
 
+[RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
+[RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
 internal sealed class ReflectionDictionaryOfTShape<TDictionary, TKey, TValue>(ReflectionTypeShapeProvider provider) : ReflectionDictionaryShape<TDictionary, TKey, TValue>(provider)
     where TDictionary : IDictionary<TKey, TValue>
     where TKey : notnull
@@ -157,6 +162,8 @@ internal sealed class ReflectionDictionaryOfTShape<TDictionary, TKey, TValue>(Re
     }
 }
 
+[RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
+[RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
 internal sealed class ReflectionReadOnlyDictionaryShape<TDictionary, TKey, TValue>(ReflectionTypeShapeProvider provider) : ReflectionDictionaryShape<TDictionary, TKey, TValue>(provider)
     where TDictionary : IReadOnlyDictionary<TKey, TValue>
     where TKey : notnull
@@ -167,6 +174,8 @@ internal sealed class ReflectionReadOnlyDictionaryShape<TDictionary, TKey, TValu
     }
 }
 
+[RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
+[RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
 internal sealed class ReflectionNonGenericDictionaryShape<TDictionary>(ReflectionTypeShapeProvider provider) : ReflectionDictionaryShape<TDictionary, object, object?>(provider)
     where TDictionary : IDictionary
 {

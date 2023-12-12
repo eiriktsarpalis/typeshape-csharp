@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace TypeShape.ReflectionProvider;
@@ -45,6 +46,8 @@ internal interface IConstructorShapeInfo
     IParameterShapeInfo[] Parameters { get; }
 }
 
+[RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
+[RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
 internal sealed class MethodConstructorShapeInfo : IConstructorShapeInfo
 {
     public MethodConstructorShapeInfo(

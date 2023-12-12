@@ -6,6 +6,8 @@ using System.Text;
 
 namespace TypeShape.ReflectionProvider;
 
+[RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
+[RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
 internal static class ReflectionHelpers
 {
     public static bool IsNullableStruct(this Type type)

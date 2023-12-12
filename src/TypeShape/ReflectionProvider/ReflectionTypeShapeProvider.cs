@@ -11,9 +11,13 @@ namespace TypeShape.ReflectionProvider;
 /// <summary>
 /// Provides a <see cref="ITypeShapeProvider"/> implementation that uses reflection.
 /// </summary>
-[RequiresUnreferencedCode("Reflection provider requires unreferenced code.")]
+[RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
+[RequiresDynamicCode(RequiresDynamicCodeMessage)]
 public class ReflectionTypeShapeProvider : ITypeShapeProvider
 {
+    internal const string RequiresUnreferencedCodeMessage = "TypeShape Reflection provider requires unreferenced code.";
+    internal const string RequiresDynamicCodeMessage = "TypeShape Reflection provider requires dynamic code.";
+
     /// <summary>
     /// Gets the default provider instance using configuration supported by the current platform.
     /// </summary>
@@ -25,14 +29,8 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
     /// Creates a new <see cref="ReflectionTypeShapeProvider"/> instance with provided configuration.
     /// </summary>
     /// <param name="useReflectionEmit">Specifies whether System.Reflection.Emit should be used when generating member accessors.</param>
-    /// <exception cref="NotSupportedException">System.Reflection.Emit is not supported in this platform.</exception>
     public ReflectionTypeShapeProvider(bool useReflectionEmit)
     {
-        if (useReflectionEmit && !RuntimeFeature.IsDynamicCodeSupported)
-        {
-            throw new NotSupportedException("System.Reflection.Emit is not supported in this platform.");
-        }
-
         MemberAccessor = useReflectionEmit 
             ? new ReflectionEmitMemberAccessor() 
             : new ReflectionMemberAccessor();
