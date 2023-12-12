@@ -371,6 +371,22 @@ public static class TestTypes
 
         yield return Create(new ClassWithInternalMembers { X = 1, Y = 2, Z = 3, W = 4, internalField = 5 }, p, doesNotRoundtrip: true);
 
+        yield return Create(new WeatherForecastDTO
+        {
+            Id = "id",
+            Date = DateTime.Parse("1975-01-01"),
+            DatesAvailable = [DateTime.Parse("1975-01-01"), DateTime.Parse("1976-01-01")],
+            Summary = "Summary",
+            SummaryField = "SummaryField",
+            TemperatureCelsius = 42,
+            SummaryWords = ["Summary", "Words"],
+            TemperatureRanges = new()
+            {
+                ["Range1"] = new() { Low = 1, High = 2 },
+                ["Range2"] = new() { Low = 3, High = 4 },
+            }
+        }, p);
+
         yield return CreateSelfProvided(new PersonClass("John", 40));
         yield return CreateSelfProvided(new PersonStruct("John", 40));
         yield return CreateSelfProvided<IPersonInterface>(new IPersonInterface.Impl("John", 40));
@@ -1066,6 +1082,39 @@ public record Todo(int Id, string? Title, DateOnly? DueBy, Status Status);
 
 public enum Status { NotStarted, InProgress, Done }
 
+public class WeatherForecastDTO
+{
+    public required string Id { get; set; }
+    public DateTimeOffset Date { get; set; }
+    public int TemperatureCelsius { get; set; }
+    public string? Summary { get; set; }
+    public string? SummaryField;
+    public List<DateTimeOffset>? DatesAvailable { get; set; }
+    public Dictionary<string, HighLowTempsDTO>? TemperatureRanges { get; set; }
+    public string[]? SummaryWords { get; set; }
+}
+
+public class HighLowTempsDTO
+{
+    public int High { get; set; }
+    public int Low { get; set; }
+}
+
+public class WeatherForecast
+{
+    public DateTimeOffset Date { get; init; }
+    public int TemperatureCelsius { get; init; }
+    public IReadOnlyList<DateTimeOffset>? DatesAvailable { get; init; }
+    public IReadOnlyDictionary<string, HighLowTemps>? TemperatureRanges { get; init; }
+    public IReadOnlyList<string>? SummaryWords { get; init; }
+    public string? UnmatchedProperty { get; init; }
+}
+
+public record HighLowTemps
+{
+    public int High { get; init; }
+}
+
 [GenerateShape<object>]
 [GenerateShape<bool>]
 [GenerateShape<string>]
@@ -1242,6 +1291,8 @@ public enum Status { NotStarted, InProgress, Done }
 [GenerateShape<GenericCollectionWithBuilderAttribute<int>>]
 [GenerateShape<ClassWithInternalMembers>]
 [GenerateShape<Todos>]
+[GenerateShape<WeatherForecast>]
+[GenerateShape<WeatherForecastDTO>]
 internal partial class SourceGenProvider;
 
 internal partial class Outer1

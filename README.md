@@ -238,6 +238,7 @@ The repo consists of the following projects:
   * A generic random value generator based on `System.Random`,
   * A structural `IEqualityComparer<T>` generator for POCOs and collections,
   * An object validator in the style of System.ComponentModel.DataAnnotations.
+  * A simple .NET object mapper in the style of AutoMapper.
   * A serializer built on top of System.Xml.
   * A serializer built on top of System.Formats.Cbor.
 * [`TypeShape.ReflectionApp`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/samples/TypeShape.ReflectionApp) and [`TypeShape.SourceGenApp`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/samples/TypeShape.SourceGenApp) define simple console apps for testing generic programs in CoreCLR and NativeAOT.
