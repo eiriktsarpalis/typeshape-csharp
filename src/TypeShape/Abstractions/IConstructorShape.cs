@@ -54,6 +54,11 @@ public interface IConstructorShape
 public interface IConstructorShape<TDeclaringType, TArgumentState> : IConstructorShape
 {
     /// <summary>
+    /// The shape of the declaring type for the constructor.
+    /// </summary>
+    new ITypeShape<TDeclaringType> DeclaringType { get; }
+
+    /// <summary>
     /// Creates a delegate wrapping a parameterless constructor, if applicable.
     /// </summary>
     /// <exception cref="InvalidOperationException">The <see cref="ParameterCount"/> of the constructor is not zero.</exception>
@@ -71,4 +76,7 @@ public interface IConstructorShape<TDeclaringType, TArgumentState> : IConstructo
     /// </summary>
     /// <returns>A parameterized delegate returning an instance of <see cref="TDeclaringType"/>.</returns>
     Constructor<TArgumentState, TDeclaringType> GetParameterizedConstructor();
+
+    ITypeShape IConstructorShape.DeclaringType => DeclaringType;
+    object? IConstructorShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitConstructor(this, state);
 }

@@ -32,4 +32,17 @@ public interface IEnumShape
 public interface IEnumShape<TEnum, TUnderlying> : IEnumShape
     where TEnum : struct, Enum
 {
+    /// <summary>
+    /// The shape of the current enum type.
+    /// </summary>
+    new ITypeShape<TEnum> Type { get; }
+
+    /// <summary>
+    /// The shape of the underlying type used to represent the enum.
+    /// </summary>
+    new ITypeShape<TUnderlying> UnderlyingType { get; }
+
+    ITypeShape IEnumShape.Type => Type;
+    ITypeShape IEnumShape.UnderlyingType => UnderlyingType;
+    object? IEnumShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitEnum(this, state);
 }

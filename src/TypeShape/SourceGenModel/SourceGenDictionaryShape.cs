@@ -3,9 +3,9 @@
 public sealed class SourceGenDictionaryShape<TDictionary, TKey, TValue> : IDictionaryShape<TDictionary, TKey, TValue>
     where TKey : notnull
 {
-    public required ITypeShape Type { get; init; }
-    public required ITypeShape KeyType { get; init; }
-    public required ITypeShape ValueType { get; init; }
+    public required ITypeShape<TDictionary> Type { get; init; }
+    public required ITypeShape<TKey> KeyType { get; init; }
+    public required ITypeShape<TValue> ValueType { get; init; }
 
     public required Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> GetDictionaryFunc { get; init; }
 
@@ -14,9 +14,6 @@ public sealed class SourceGenDictionaryShape<TDictionary, TKey, TValue> : IDicti
     public Setter<TDictionary, KeyValuePair<TKey, TValue>>? AddKeyValuePairFunc { get; init; }
     public Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary>? EnumerableConstructorFunc { get; init; }
     public SpanConstructor<KeyValuePair<TKey, TValue>, TDictionary>? SpanConstructorFunc { get; init; }
-
-    public object? Accept(ITypeShapeVisitor visitor, object? state)
-        => visitor.VisitDictionary(this, state);
 
     public Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> GetGetDictionary()
         => GetDictionaryFunc;

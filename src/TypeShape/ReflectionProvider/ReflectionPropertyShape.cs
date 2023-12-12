@@ -43,8 +43,8 @@ internal sealed class ReflectionPropertyShape<TDeclaringType, TPropertyType> : I
 
     public string Name { get; }
     public ICustomAttributeProvider? AttributeProvider => _memberInfo;
-    public ITypeShape DeclaringType => _provider.GetShape<TDeclaringType>();
-    public ITypeShape PropertyType => _provider.GetShape<TPropertyType>();
+    public ITypeShape<TDeclaringType> DeclaringType => _provider.GetShape<TDeclaringType>();
+    public ITypeShape<TPropertyType> PropertyType => _provider.GetShape<TPropertyType>();
 
     public bool IsField { get; }
     public bool IsGetterPublic { get; }
@@ -54,9 +54,6 @@ internal sealed class ReflectionPropertyShape<TDeclaringType, TPropertyType> : I
 
     public bool HasGetter { get; }
     public bool HasSetter { get; }
-
-    public object? Accept(ITypeShapeVisitor visitor, object? state)
-        => visitor.VisitProperty(this, state);
 
     public Getter<TDeclaringType, TPropertyType> GetGetter()
     {

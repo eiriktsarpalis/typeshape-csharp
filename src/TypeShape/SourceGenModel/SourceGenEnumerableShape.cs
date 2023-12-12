@@ -2,8 +2,8 @@
 
 public sealed class SourceGenEnumerableShape<TEnumerable, TElement> : IEnumerableShape<TEnumerable, TElement>
 {
-    public required ITypeShape Type { get; init; }
-    public required ITypeShape ElementType { get; init; }
+    public required ITypeShape<TEnumerable> Type { get; init; }
+    public required ITypeShape<TElement> ElementType { get; init; }
     public required int Rank { get; init; }
 
     public required Func<TEnumerable, IEnumerable<TElement>> GetEnumerableFunc { get; init; }
@@ -13,9 +13,6 @@ public sealed class SourceGenEnumerableShape<TEnumerable, TElement> : IEnumerabl
     public Setter<TEnumerable, TElement>? AddElementFunc { get; init; }
     public Func<IEnumerable<TElement>, TEnumerable>? EnumerableConstructorFunc { get; init; }
     public SpanConstructor<TElement, TEnumerable>? SpanConstructorFunc { get; init; }
-
-    public object? Accept(ITypeShapeVisitor visitor, object? state)
-        => visitor.VisitEnumerable(this, state);
 
     public Func<TEnumerable, IEnumerable<TElement>> GetGetEnumerable()
         => GetEnumerableFunc;

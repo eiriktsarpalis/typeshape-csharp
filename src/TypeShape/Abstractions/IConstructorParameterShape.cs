@@ -88,6 +88,11 @@ public interface IConstructorParameterShape
 public interface IConstructorParameterShape<TArgumentState, TParameterType> : IConstructorParameterShape
 {
     /// <summary>
+    /// The shape of the constructor parameter type.
+    /// </summary>
+    new ITypeShape<TParameterType> ParameterType { get; }
+
+    /// <summary>
     /// Creates a setter delegate for configuring a state object 
     /// with a value for the current argument.
     /// </summary>
@@ -98,4 +103,8 @@ public interface IConstructorParameterShape<TArgumentState, TParameterType> : IC
     /// The default value specified by the parameter, if applicable.
     /// </summary>
     new TParameterType? DefaultValue { get; }
+
+    ITypeShape IConstructorParameterShape.ParameterType => ParameterType;
+    object? IConstructorParameterShape.DefaultValue => DefaultValue;
+    object? IConstructorParameterShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitConstructorParameter(this, state);
 }

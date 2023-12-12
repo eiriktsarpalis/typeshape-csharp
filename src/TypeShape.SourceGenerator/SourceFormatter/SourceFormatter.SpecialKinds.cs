@@ -27,7 +27,6 @@ internal static partial class SourceFormatter
             {
                 return new SourceGenNullableShape<{{nullableType.ElementType.FullyQualifiedName}}>
                 {
-                    Type = {{nullableType.Type.GeneratedPropertyName}},
                     ElementType = {{nullableType.ElementType.GeneratedPropertyName}},
                 };
             }

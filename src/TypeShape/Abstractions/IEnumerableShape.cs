@@ -55,6 +55,19 @@ public interface IEnumerableShape
 public interface IEnumerableShape<TEnumerable, TElement> : IEnumerableShape
 {
     /// <summary>
+    /// The shape of the underlying enumerable type.
+    /// </summary>
+    new ITypeShape<TEnumerable> Type { get; }
+
+    /// <summary>
+    /// The shape of the underlying element type.
+    /// </summary>
+    /// <remarks>
+    /// For non-generic <see cref="IEnumerable"/> this returns <see cref="ITypeShape{object}"/>.
+    /// </remarks>
+    new ITypeShape<TElement> ElementType { get; }
+
+    /// <summary>
     /// Creates a delegate used for getting a <see cref="IEnumerable{TElement}"/> 
     /// view of the enumerable.
     /// </summary>
@@ -91,4 +104,8 @@ public interface IEnumerableShape<TEnumerable, TElement> : IEnumerableShape
     /// <exception cref="InvalidOperationException">The collection is not <see cref="CollectionConstructionStrategy.Enumerable"/>.</exception>
     /// <returns></returns>
     Func<IEnumerable<TElement>, TEnumerable> GetEnumerableConstructor();
+
+    ITypeShape IEnumerableShape.Type => Type;
+    ITypeShape IEnumerableShape.ElementType => ElementType;
+    object? IEnumerableShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitEnumerable(this, state);
 }

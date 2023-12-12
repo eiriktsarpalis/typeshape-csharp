@@ -60,6 +60,27 @@ public interface IDictionaryShape<TDictionary, TKey, TValue> : IDictionaryShape
     where TKey : notnull
 {
     /// <summary>
+    /// The shape of the underlying dictionary type.
+    /// </summary>
+    new ITypeShape<TDictionary> Type { get; }
+
+    /// <summary>
+    /// The shape of the underlying key type.
+    /// </summary>
+    /// <remarks>
+    /// For non-generic dictionaries this returns <see cref="ITypeShape{object}"/>.
+    /// </remarks>
+    new ITypeShape<TKey> KeyType { get; }
+
+    /// <summary>
+    /// The shape of the underlying value type.
+    /// </summary>
+    /// <remarks>
+    /// For non-generic dictionaries this returns <see cref="ITypeShape{object}"/>.
+    /// </remarks>
+    new ITypeShape<TValue> ValueType { get; }
+
+    /// <summary>
     /// Creates a delegate used for getting a <see cref="IReadOnlyDictionary{TKey, TValue}"/>
     /// view of the enumerable.
     /// </summary>
@@ -97,4 +118,9 @@ public interface IDictionaryShape<TDictionary, TKey, TValue> : IDictionaryShape
     /// <exception cref="InvalidOperationException">The collection is not <see cref="CollectionConstructionStrategy.Enumerable"/>.</exception>
     /// <returns></returns>
     Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> GetEnumerableConstructor();
+
+    ITypeShape IDictionaryShape.Type => Type;
+    ITypeShape IDictionaryShape.KeyType => KeyType;
+    ITypeShape IDictionaryShape.ValueType => ValueType;
+    object? IDictionaryShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitDictionary(this, state);
 }

@@ -18,11 +18,8 @@ internal abstract class ReflectionEnumerableShape<TEnumerable, TElement>(Reflect
     public virtual CollectionConstructionStrategy ConstructionStrategy => _constructionStrategy ??= DetermineConstructionStrategy();
     public virtual int Rank => 1;
 
-    public ITypeShape Type => provider.GetShape<TEnumerable>();
-    public ITypeShape ElementType => provider.GetShape<TElement>();
-
-    public object? Accept(ITypeShapeVisitor visitor, object? state)
-        => visitor.VisitEnumerable(this, state);
+    public ITypeShape<TEnumerable> Type => provider.GetShape<TEnumerable>();
+    public ITypeShape<TElement> ElementType => provider.GetShape<TElement>();
 
     public abstract Func<TEnumerable, IEnumerable<TElement>> GetGetEnumerable();
 

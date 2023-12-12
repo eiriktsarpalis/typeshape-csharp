@@ -94,6 +94,16 @@ public interface IPropertyShape
 public interface IPropertyShape<TDeclaringType, TPropertyType> : IPropertyShape
 {
     /// <summary>
+    /// The shape of the declaring type.
+    /// </summary>
+    new ITypeShape<TDeclaringType> DeclaringType { get; }
+
+    /// <summary>
+    /// The shape of the property type.
+    /// </summary>
+    new ITypeShape<TPropertyType> PropertyType { get; }
+
+    /// <summary>
     /// Creates a getter delegate for the property, if applicable.
     /// </summary>
     /// <exception cref="InvalidOperationException">The property has no accessible getter.</exception>
@@ -106,4 +116,8 @@ public interface IPropertyShape<TDeclaringType, TPropertyType> : IPropertyShape
     /// <exception cref="InvalidOperationException">The property has no accessible setter.</exception>
     /// <returns>A setter delegate for the property.</returns>
     Setter<TDeclaringType, TPropertyType> GetSetter();
+
+    ITypeShape IPropertyShape.DeclaringType => DeclaringType;
+    ITypeShape IPropertyShape.PropertyType => PropertyType;
+    object? IPropertyShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitProperty(this, state);
 }

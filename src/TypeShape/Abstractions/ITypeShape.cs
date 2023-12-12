@@ -85,4 +85,8 @@ public interface ITypeShape
 /// <summary>
 /// Provides a strongly-typed shape model for a given .NET type.
 /// </summary>
-public interface ITypeShape<T> : ITypeShape;
+public interface ITypeShape<T> : ITypeShape
+{
+    Type ITypeShape.Type => typeof(T);
+    object? ITypeShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitType(this, state);
+}

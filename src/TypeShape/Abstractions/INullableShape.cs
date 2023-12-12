@@ -6,11 +6,6 @@
 public interface INullableShape
 {
     /// <summary>
-    /// The shape of the nullable type.
-    /// </summary>
-    ITypeShape Type { get; }
-
-    /// <summary>
     /// The shape of the element type of the nullable.
     /// </summary>
     ITypeShape ElementType { get; }
@@ -31,4 +26,11 @@ public interface INullableShape
 public interface INullableShape<T> : INullableShape
     where T : struct
 {
+    /// <summary>
+    /// The shape of the element type of the nullable.
+    /// </summary>
+    new ITypeShape<T> ElementType { get; }
+
+    ITypeShape INullableShape.ElementType => ElementType;
+    object? INullableShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitNullable(this, state);
 }

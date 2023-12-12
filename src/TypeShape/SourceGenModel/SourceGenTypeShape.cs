@@ -4,8 +4,6 @@ namespace TypeShape.SourceGenModel;
 
 public sealed class SourceGenTypeShape<T> : ITypeShape<T>
 {
-    public Type Type => typeof(T);
-
     public required ITypeShapeProvider Provider { get; init; }
     public required bool IsRecord { get; init; }
     public ICustomAttributeProvider? AttributeProvider { get; init; }
@@ -40,9 +38,6 @@ public sealed class SourceGenTypeShape<T> : ITypeShape<T>
 
         return kind;
     }
-
-    public object? Accept(ITypeShapeVisitor visitor, object? state)
-        => visitor.VisitType(this, state);
 
     public IEnumerable<IConstructorShape> GetConstructors(bool nonPublic, bool includeProperties, bool includeFields)
     {

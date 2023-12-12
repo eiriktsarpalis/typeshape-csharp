@@ -6,7 +6,6 @@ namespace TypeShape.ReflectionProvider;
 
 internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provider) : ITypeShape<T>
 {
-    public Type Type => typeof(T);
     public ICustomAttributeProvider AttributeProvider => typeof(T);
 
     public ITypeShapeProvider Provider => provider;
@@ -16,9 +15,6 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
 
     public bool IsRecord => _isRecord ??= typeof(T).IsRecord();
     private bool? _isRecord;
-
-    public object? Accept(ITypeShapeVisitor visitor, object? state)
-        => visitor.VisitType(this, state);
 
     public IEnumerable<IConstructorShape> GetConstructors(bool nonPublic, bool includeProperties, bool includeFields)
     {

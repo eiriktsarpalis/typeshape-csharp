@@ -60,7 +60,6 @@ public sealed partial class ModelGenerator
 
         return new NullableTypeModel
         {
-            Type = typeId,
             ElementType = EnqueueForGeneration(((INamedTypeSymbol)type).TypeArguments[0]),
         };
     }

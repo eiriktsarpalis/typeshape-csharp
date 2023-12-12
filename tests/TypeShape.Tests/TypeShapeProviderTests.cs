@@ -245,7 +245,6 @@ public abstract class TypeShapeProviderTests
         if (shape.Kind.HasFlag(TypeKind.Nullable))
         {
             INullableShape nullableType = shape.GetNullableShape();
-            Assert.Equal(typeof(T), nullableType.Type.Type);
             Assert.Equal(typeof(T).GetGenericArguments()[0], nullableType.ElementType.Type);
             var visitor = new NullableTestVisitor();
             nullableType.Accept(visitor, typeof(T));

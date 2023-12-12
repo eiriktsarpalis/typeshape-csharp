@@ -24,7 +24,7 @@ internal sealed class ReflectionConstructorParameterShape<TArgumentState, TParam
         _provider = provider;
     }
 
-    public ITypeShape ParameterType => _provider.GetShape<TParameter>();
+    public ITypeShape<TParameter> ParameterType => _provider.GetShape<TParameter>();
 
     public int Position => _position;
     public string Name => _parameterInfo.Name;
@@ -39,9 +39,6 @@ internal sealed class ReflectionConstructorParameterShape<TArgumentState, TParam
 
     public Setter<TArgumentState, TParameter> GetSetter()
         => _provider.MemberAccessor.CreateConstructorArgumentStateSetter<TArgumentState, TParameter>(_ctorInfo, _position);
-
-    public object? Accept(ITypeShapeVisitor visitor, object? state)
-        => visitor.VisitConstructorParameter(this, state);
 }
 
 internal interface IParameterShapeInfo
