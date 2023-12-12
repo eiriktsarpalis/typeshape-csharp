@@ -509,10 +509,10 @@ internal static partial class RoslynHelpers
     }
 
     /// <summary>
-    /// An "atomic value" in this context defines a type that is either 
+    /// A "simple type" in this context defines a type that is either 
     /// a primitive, string or a self-contained value like decimal, DateTime or Uri.
     /// </summary>
-    public static bool IsAtomicValueType(this Compilation compilation, IAssemblySymbol coreLibAssembly, ITypeSymbol type)
+    public static bool IsSimpleType(this Compilation compilation, IAssemblySymbol coreLibAssembly, ITypeSymbol type)
     {
         switch (type.SpecialType)
         {
@@ -533,8 +533,6 @@ internal static partial class RoslynHelpers
             case SpecialType.System_String:
             case SpecialType.System_Decimal:
             case SpecialType.System_DateTime:
-            // Include System.Object since it doesn't contain any data statically.
-            case SpecialType.System_Object:
                 return true;
         }
 
@@ -547,7 +545,7 @@ internal static partial class RoslynHelpers
         {
             case "System.Half":
             case "System.Int128":
-            case "System.IntU128":
+            case "System.UInt128":
             case "System.Guid":
             case "System.DateTimeOffset":
             case "System.DateOnly":

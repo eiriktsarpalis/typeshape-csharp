@@ -77,6 +77,8 @@ public static class TestTypes
         yield return Create(TimeSpan.MaxValue, p);
         yield return Create(DateOnly.MaxValue, p);
         yield return Create(TimeOnly.MaxValue, p);
+        yield return Create(new Uri("https://github.com"), p);
+        yield return Create(new Version("1.0.0.0"), p);
         yield return Create(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, p);
 
         yield return Create(new int[0], p);
@@ -1090,6 +1092,8 @@ public enum Status { NotStarted, InProgress, Done }
 [GenerateShape<TimeOnly>]
 [GenerateShape<BigInteger>]
 [GenerateShape<BindingFlags>]
+[GenerateShape<Uri>]
+[GenerateShape<Version>]
 [GenerateShape<byte[]>]
 [GenerateShape<int[]>]
 [GenerateShape<int[][]>]

@@ -14,7 +14,7 @@ internal static partial class SourceFormatter
 
     private static void FormatConstructorFactory(SourceWriter writer, string methodName, TypeModel type)
     {
-        Debug.Assert(type.Constructors.Length > 0);
+        Debug.Assert(type.Constructors != null);
 
         writer.WriteLine($"private IEnumerable<IConstructorShape> {methodName}(bool nonPublic, bool includeProperties, bool includeFields) => new IConstructorShape[]");
         writer.WriteLine('{');
@@ -22,7 +22,7 @@ internal static partial class SourceFormatter
 
         int i = 0;
         var argumentStateFQNs = new List<string>();
-        foreach (ConstructorModel constructor in type.Constructors)
+        foreach (ConstructorModel constructor in type.Constructors!)
         {
             if (i > 0)
             {

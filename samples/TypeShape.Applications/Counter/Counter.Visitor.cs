@@ -1,4 +1,6 @@
-﻿namespace TypeShape.Applications.Counter;
+﻿using System.Diagnostics;
+
+namespace TypeShape.Applications.Counter;
 
 public static partial class Counter
 {
@@ -15,30 +17,33 @@ public static partial class Counter
 
             switch (type.Kind)
             {
+                case TypeKind.None or TypeKind.Enum:
+                    return CacheResult<T>(value => value is null ? 0 : 1);
                 case TypeKind.Nullable:
                     return type.GetNullableShape().Accept(this, null);
                 case TypeKind.Dictionary:
                     return type.GetDictionaryShape().Accept(this, null);
                 case TypeKind.Enumerable:
                     return type.GetEnumerableShape().Accept(this, null);
+                default:
+                    Debug.Assert(type.Kind is TypeKind.Object);
+                    Func<T, long>[] propertyCounters = type.GetProperties(includeFields: true)
+                        .Where(prop => prop.HasGetter)
+                        .Select(prop => (Func<T, long>)prop.Accept(this, null)!)
+                        .ToArray();
+
+                    return CacheResult<T>(value =>
+                    {
+                        if (value is null)
+                            return 0;
+
+                        long count = 1;
+                        foreach (Func<T, long> propCounter in propertyCounters)
+                            count += propCounter(value);
+
+                        return count;
+                    });
             }
-
-            Func<T, long>[] propertyCounters = type.GetProperties(includeFields: true)
-                .Where(prop => prop.HasGetter)
-                .Select(prop => (Func<T, long>)prop.Accept(this, null)!)
-                .ToArray();
-
-            return CacheResult<T>(value =>
-            {
-                if (value is null)
-                    return 0;
-
-                long count = 1;
-                foreach (Func<T, long> propCounter in propertyCounters)
-                    count += propCounter(value);
-
-                return count;
-            });
         }
 
         public override object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)

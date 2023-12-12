@@ -9,16 +9,16 @@ using SettableMember = (ISymbol Member, ITypeSymbol MemberType, bool IsNonNullab
 
 public sealed partial class ModelGenerator
 {
-    private ImmutableEquatableArray<ConstructorModel> MapConstructors(
+    private ImmutableEquatableArray<ConstructorModel>? MapConstructors(
         TypeId typeId, 
         ITypeSymbol type, 
         ISymbol[] propertiesOrFields,
         ITypeSymbol[]? classTupleElements,
         bool disallowMemberResolution)
     {
-        if (disallowMemberResolution || type.TypeKind is not (TypeKind.Struct or TypeKind.Class) || type.SpecialType is not SpecialType.None)
+        if (disallowMemberResolution || type.TypeKind is not (TypeKind.Struct or TypeKind.Class))
         {
-            return [];
+            return null;
         }
         
         if (classTupleElements is not null)

@@ -9,14 +9,14 @@ internal static partial class SourceFormatter
 {
     private static void FormatPropertyFactory(SourceWriter writer, string methodName, TypeModel type)
     {
-        Debug.Assert(type.Properties.Length > 0);
+        Debug.Assert(type.Properties != null);
 
         writer.WriteLine($"private IEnumerable<IPropertyShape> {methodName}(bool nonPublic) => new IPropertyShape[]");
         writer.WriteLine('{');
         writer.Indentation++;
 
         int i = 0;
-        foreach (PropertyModel property in type.Properties)
+        foreach (PropertyModel property in type.Properties!)
         {
             if (i++ > 0)
                 writer.WriteLine();

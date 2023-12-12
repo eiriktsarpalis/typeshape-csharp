@@ -6,12 +6,10 @@ namespace TypeShape.Applications.StructuralEquality.Comparers;
 
 internal sealed class ObjectEqualityComparer<T> : EqualityComparer<T>
 {
-    public IEqualityComparer<T>[]? PropertyComparers { get; set; }
+    public required IEqualityComparer<T>[] PropertyComparers { get; init; }
 
     public override bool Equals(T? x, T? y)
     {
-        Debug.Assert(PropertyComparers != null);
-
         if (x is null || y is null)
         {
             return x is null && y is null;
@@ -30,8 +28,6 @@ internal sealed class ObjectEqualityComparer<T> : EqualityComparer<T>
 
     public override int GetHashCode([DisallowNull] T obj)
     {
-        Debug.Assert(PropertyComparers != null);
-
         var hashCode = new HashCode();
         foreach (IEqualityComparer<T> prop in PropertyComparers)
         {

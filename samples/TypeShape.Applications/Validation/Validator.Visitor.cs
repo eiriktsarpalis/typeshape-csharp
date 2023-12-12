@@ -17,6 +17,9 @@ public static partial class Validator
 
             switch (type.Kind)
             {
+                case TypeKind.None or TypeKind.Enum:
+                    // No properties in this type, so no validation to do
+                    return CacheResult((T? value, List<string> path, ref List<string>? errors) => { });
                 case TypeKind.Nullable:
                     return type.GetNullableShape().Accept(this, null);
 
@@ -27,6 +30,7 @@ public static partial class Validator
                     return type.GetEnumerableShape().Accept(this, null);
 
                 default:
+                    Debug.Assert(type.Kind is TypeKind.Object);
 
                     (string, Validator<T>)[] propertyValidators = type
                         .GetProperties(includeFields: true)

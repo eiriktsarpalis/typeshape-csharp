@@ -7,11 +7,11 @@ namespace TypeShape.SourceGenerator;
 
 public sealed partial class ModelGenerator
 {
-    private ImmutableEquatableArray<PropertyModel> MapProperties(TypeId typeId, ITypeSymbol type, ISymbol[] propertiesOrFields, ITypeSymbol[]? classTupleElements, bool disallowMemberResolution)
+    private ImmutableEquatableArray<PropertyModel>? MapProperties(TypeId typeId, ITypeSymbol type, ISymbol[] propertiesOrFields, ITypeSymbol[]? classTupleElements, bool disallowMemberResolution)
     {
-        if (disallowMemberResolution || type.TypeKind is not (TypeKind.Struct or TypeKind.Class or TypeKind.Interface) || type.SpecialType is not SpecialType.None)
+        if (disallowMemberResolution || type.TypeKind is not (TypeKind.Struct or TypeKind.Class or TypeKind.Interface))
         {
-            return [];
+            return null;
         }
 
         if (classTupleElements is not null)

@@ -132,6 +132,48 @@ internal sealed class StringConverter : CborConverter<string>
     }
 }
 
+internal sealed class UriConverter : CborConverter<Uri>
+{
+    public override Uri Read(CborReader reader)
+    {
+        reader.EnsureTag(CborTag.Uri);
+        return new Uri(reader.ReadTextString(), UriKind.RelativeOrAbsolute);
+    }
+
+    public override void Write(CborWriter writer, Uri? value)
+    {
+        writer.WriteTag(CborTag.Uri);
+        if (value is null)
+        {
+            writer.WriteNull();
+        }
+        else
+        {
+            writer.WriteTextString(value.ToString());
+        }
+    }
+}
+
+internal sealed class VersionConverter : CborConverter<Version>
+{
+    public override Version Read(CborReader reader)
+    {
+        return new Version(reader.ReadTextString());
+    }
+
+    public override void Write(CborWriter writer, Version? value)
+    {
+        if (value is null)
+        {
+            writer.WriteNull();
+        }
+        else
+        {
+            writer.WriteTextString(value.ToString());
+        }
+    }
+}
+
 internal sealed class CharConverter : CborConverter<char>
 {
     public override char Read(CborReader reader)

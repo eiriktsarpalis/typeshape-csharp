@@ -8,14 +8,6 @@ namespace TypeShape.ReflectionProvider;
 
 internal static class ReflectionHelpers
 {
-    public readonly static Type? Int128Type = typeof(int).Assembly.GetType("System.Int128");
-    public readonly static Type? UInt128Type = typeof(int).Assembly.GetType("System.UInt128");
-
-    public static bool IsNullableStruct<T>()
-    {
-        return default(T) is null && typeof(T).IsValueType;
-    }
-
     public static bool IsNullableStruct(this Type type)
     {
         return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);

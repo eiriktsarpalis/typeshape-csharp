@@ -1,5 +1,6 @@
 ﻿using System.Buffers.Binary;
 using System.Diagnostics;
+using System.Net;
 using System.Numerics;
 using System.Text;
 
@@ -11,7 +12,7 @@ public partial class RandomGenerator
 
     private sealed class Visitor : ITypeShapeVisitor
     {
-        private TypeCache _cache = new(CreateDefaultGenerators());
+        private readonly TypeCache _cache = new(CreateDefaultGenerators());
 
         public object? VisitType<T>(ITypeShape<T> type, object? state)
         {
@@ -30,15 +31,15 @@ public partial class RandomGenerator
                     return type.GetDictionaryShape().Accept(this, null);
                 case TypeKind.Enumerable:
                     return type.GetEnumerableShape().Accept(this, null);
+                default:
+                    // Prefer the default constructor, if available.
+                    IConstructorShape? constructor = type.GetConstructors(includeProperties: true, includeFields: true)
+                        .MinBy(ctor => ctor.ParameterCount);
+
+                    return constructor is null
+                        ? throw new NotSupportedException($"Type '{typeof(T)}' does not support random generation.")
+                        : constructor.Accept(this, null);
             }
-
-            // Prefer the default constructor, if available.
-            IConstructorShape? constructor = type.GetConstructors(includeProperties: true, includeFields: true)
-                .MinBy(ctor => ctor.ParameterCount);
-
-            return constructor is null
-                ? throw new NotSupportedException($"Type '{typeof(T)}' does not support random generation.")
-                : constructor.Accept(this, null);
         }
 
         public object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
@@ -304,6 +305,8 @@ public partial class RandomGenerator
                 long offsetTicks = NextLong(random, -MaxOffsetTicks, MaxOffsetTicks);
                 return new DateTimeOffset(dateTicks, new TimeSpan(offsetTicks));
             });
+            yield return Create((random, size) => new Uri($"https://github.com/{WebUtility.UrlEncode(NextString(random, size))}"));
+            yield return Create((random, _) => new Version(random.Next(), random.Next(), random.Next(), random.Next()));
             yield return Create((random, _) =>
             {
                 Span<byte> buffer = stackalloc byte[16];

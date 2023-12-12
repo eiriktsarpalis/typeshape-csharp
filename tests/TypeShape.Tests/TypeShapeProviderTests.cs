@@ -55,7 +55,34 @@ public abstract class TypeShapeProviderTests
                 return TypeKind.Enumerable;
             }
 
-            return TypeKind.None;
+            if (IsSimpleValue())
+            {
+                return TypeKind.None;
+            }
+
+            return TypeKind.Object;
+        }
+
+        static bool IsSimpleValue()
+        {
+            Type type = typeof(T);
+            return type.IsPrimitive ||
+                type == typeof(string) ||
+                type == typeof(decimal) ||
+                type == typeof(Int128) ||
+                type == typeof(UInt128) ||
+                type == typeof(Half) ||
+                type == typeof(DateTime) ||
+                type == typeof(DateTimeOffset) ||
+                type == typeof(DateOnly) ||
+                type == typeof(TimeSpan) ||
+                type == typeof(TimeOnly) ||
+                type == typeof(Guid) ||
+                type == typeof(Version) ||
+                type == typeof(Uri) ||
+                type == typeof(Rune) ||
+                typeof(MemberInfo).IsAssignableFrom(type) ||
+                typeof(Delegate).IsAssignableFrom(type);
         }
     }
 
@@ -441,6 +468,7 @@ public abstract class TypeShapeProviderTests
         }
 
         ITypeShape<T> shape = Provider.GetShape<T>()!;
+        Assert.Equal(typeof(T), shape.AttributeProvider);
 
         foreach (IPropertyShape property in shape.GetProperties(nonPublic: true, includeFields: true))
         {

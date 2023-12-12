@@ -35,6 +35,9 @@ public sealed class SourceGenTypeShape<T> : ITypeShape<T>
         if (CreateEnumShapeFunc != null)
             kind |= TypeKind.Enum;
 
+        if (CreatePropertiesFunc != null || CreateConstructorsFunc != null)
+            kind |= TypeKind.Object;
+
         return kind;
     }
 

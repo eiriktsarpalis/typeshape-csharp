@@ -333,6 +333,44 @@ internal sealed class DateOnlyConverter : XmlConverter<DateOnly>
     }
 }
 
+internal sealed class UriConverter : XmlConverter<Uri>
+{
+    public override Uri Read(XmlReader reader)
+        => new Uri(reader.ReadElementContentAsString(), UriKind.RelativeOrAbsolute);
+
+    public override void Write(XmlWriter writer, string localName, Uri? value)
+    {
+        if (value is null)
+        {
+            writer.WriteNullElement(localName);
+            return;
+        }
+
+        writer.WriteStartElement(localName);
+        writer.WriteValue(value);
+        writer.WriteEndElement();
+    }
+}
+
+internal sealed class VersionConverter : XmlConverter<Version>
+{
+    public override Version Read(XmlReader reader)
+        => Version.Parse(reader.ReadElementContentAsString());
+
+    public override void Write(XmlWriter writer, string localName, Version? value)
+    {
+        if (value is null)
+        {
+            writer.WriteNullElement(localName);
+            return;
+        }
+
+        writer.WriteStartElement(localName);
+        writer.WriteValue(value.ToString());
+        writer.WriteEndElement();
+    }
+}
+
 internal sealed class TimeOnlyConverter : XmlConverter<TimeOnly>
 {
     public override TimeOnly Read(XmlReader reader)

@@ -26,4 +26,8 @@ public enum TypeKind
     /// Type provides a <see cref="IDictionaryShape"/> shape implementation.
     /// </summary>
     Dictionary = 8,
+    /// <summary>
+    /// Type provides <see cref="IPropertyShape"/> or <see cref="IConstructorShape"/> implementations.
+    /// </summary>
+    Object = 16,
 }

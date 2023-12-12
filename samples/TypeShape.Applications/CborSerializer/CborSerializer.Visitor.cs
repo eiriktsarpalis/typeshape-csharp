@@ -33,6 +33,8 @@ public static partial class CborSerializer
             new DateOnlyConverter(),
             new TimeOnlyConverter(),
             new GuidConverter(),
+            new UriConverter(),
+            new VersionConverter(),
             new BigIntegerConverter(),
             new RuneConverter(),
             new ObjectConverter(),
@@ -66,7 +68,7 @@ public static partial class CborSerializer
                     break;
 
                 default:
-                    Debug.Assert(type.Kind == TypeKind.None);
+                    Debug.Assert(type.Kind is TypeKind.None or TypeKind.Object);
 
                     CborPropertyConverter<T>[] properties = type
                         .GetProperties(includeFields: true)

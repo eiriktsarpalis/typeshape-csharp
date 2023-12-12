@@ -35,6 +35,8 @@ public static partial class TypeShapeJsonSerializer
             JsonMetadataServices.DateOnlyConverter,
             JsonMetadataServices.TimeOnlyConverter,
             JsonMetadataServices.GuidConverter,
+            JsonMetadataServices.UriConverter,
+            JsonMetadataServices.VersionConverter,
             new BigIntegerConverter(),
             new RuneConverter(),
             new JsonObjectConverter(),
@@ -68,7 +70,7 @@ public static partial class TypeShapeJsonSerializer
                     break;
 
                 default:
-                    Debug.Assert(type.Kind == TypeKind.None);
+                    Debug.Assert(type.Kind is TypeKind.None or TypeKind.Object);
 
                     JsonPropertyConverter<T>[] properties = type
                         .GetProperties(includeFields: true)

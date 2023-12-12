@@ -23,6 +23,8 @@ public static partial class StructuralEqualityComparer
                 (typeof(IEquatable<T>).IsAssignableFrom(typeof(T)) && !IsImmutableArrayOrMemory(typeof(T)) && !type.IsRecord) ||
                 typeof(T) == typeof(string))
             {
+                // Use default comparison for structs that don't contain references
+                // and types implementing IEquatable<T> (except for records, immutable arrays and memory types)
                 return CacheResult(EqualityComparer<T>.Default);
             }
 
@@ -42,15 +44,15 @@ public static partial class StructuralEqualityComparer
 
                 case TypeKind.Enumerable:
                     return type.GetEnumerableShape().Accept(this, state);
+                default:
+                    return CacheResult(new ObjectEqualityComparer<T>()
+                    {
+                        PropertyComparers = type.GetProperties(includeFields: true)
+                            .Where(prop => prop.HasGetter)
+                            .Select(prop => (EqualityComparer<T>)prop.Accept(this, null)!)
+                            .ToArray(),
+                    });
             }
-
-            return CacheResult(new ObjectEqualityComparer<T>()
-            {
-                PropertyComparers = type.GetProperties(includeFields: true)
-                    .Where(prop => prop.HasGetter)
-                    .Select(prop => (EqualityComparer<T>)prop.Accept(this, null)!)
-                    .ToArray(),
-            });
         }
 
         public override object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)

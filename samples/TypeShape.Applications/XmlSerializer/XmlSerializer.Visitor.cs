@@ -35,6 +35,8 @@ public static partial class XmlSerializer
             new GuidConverter(),
             new BigIntegerConverter(),
             new RuneConverter(),
+            new UriConverter(),
+            new VersionConverter(),
             new ObjectConverter(),
         }.ToDictionary(conv => conv.Type);
 
@@ -65,9 +67,7 @@ public static partial class XmlSerializer
                     converter = (XmlConverter<T>)type.GetEnumerableShape().Accept(this, null)!;
                     break;
 
-                default:
-                    Debug.Assert(type.Kind == TypeKind.None);
-
+                case TypeKind.Object:
                     XmlPropertyConverter<T>[] properties = type
                         .GetProperties(includeFields: true)
                         .Select(prop => (XmlPropertyConverter<T>)prop.Accept(this, state)!)
@@ -83,6 +83,10 @@ public static partial class XmlSerializer
                          : new XmlObjectConverter<T>(properties);
 
                     break;
+
+                default:
+                    Debug.Assert(type.Kind is TypeKind.None);
+                    throw new NotSupportedException($"{typeof(T)}");
             }
 
             _cache.Add(converter);

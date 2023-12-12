@@ -274,7 +274,7 @@ public sealed partial class ModelGenerator(
 
     private bool DisallowMemberResolution(ITypeSymbol type)
     {
-        return knownSymbols.Compilation.IsAtomicValueType(knownSymbols.CoreLibAssembly, type) ||
+        return knownSymbols.Compilation.IsSimpleType(knownSymbols.CoreLibAssembly, type) ||
             type.TypeKind is TypeKind.Array or TypeKind.Enum ||
             type.SpecialType is SpecialType.System_Nullable_T ||
             knownSymbols.MemberInfoType.IsAssignableFrom(type) ||

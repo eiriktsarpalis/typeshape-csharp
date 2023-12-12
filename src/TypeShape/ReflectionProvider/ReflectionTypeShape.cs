@@ -1,5 +1,5 @@
 ﻿using System.Collections;
-using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Reflection;
 
 namespace TypeShape.ReflectionProvider;
@@ -22,7 +22,7 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
 
     public IEnumerable<IConstructorShape> GetConstructors(bool nonPublic, bool includeProperties, bool includeFields)
     {
-        if (typeof(T).IsAbstract || s_disallowMemberResolution)
+        if (typeof(T).IsAbstract || Kind is not TypeKind.Object)
         {
             yield break;
         }
@@ -117,6 +117,11 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
 
     public IEnumerable<IPropertyShape> GetProperties(bool nonPublic, bool includeFields)
     {
+        if (Kind is not TypeKind.Object)
+        {
+            yield break;
+        }
+
         if (typeof(T).IsNestedTupleRepresentation())
         {
             foreach (var field in ReflectionHelpers.EnumerateTupleMemberPaths(typeof(T)))
@@ -133,13 +138,9 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
         }
     }
 
-    private static IEnumerable<MemberInfo> GetMembers(bool nonPublic, bool includeFields)
+    private IEnumerable<MemberInfo> GetMembers(bool nonPublic, bool includeFields)
     {
-        if (s_disallowMemberResolution)
-        {
-            yield break;
-        }
-
+        Debug.Assert(Kind is TypeKind.Object);
         BindingFlags flags = GetInstanceBindingFlags(nonPublic);
 
         foreach (Type current in typeof(T).GetSortedTypeHierarchy())
@@ -244,7 +245,12 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
             return TypeKind.Enumerable;
         }
 
-        return TypeKind.None;
+        if (IsSimpleValue())
+        {
+            return TypeKind.None;
+        }
+
+        return TypeKind.Object;
     }
 
     private static BindingFlags GetInstanceBindingFlags(bool nonPublic)
@@ -252,18 +258,17 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
         ? BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance
         : BindingFlags.Public | BindingFlags.Instance;
 
-    private readonly static bool s_disallowMemberResolution = DisallowMemberResolution();
-    private static bool DisallowMemberResolution()
+    private static bool IsSimpleValue()
     {
+        // A primitive or self-contained value type that
+        // shouldn't expose its properties or constructors.
         Type type = typeof(T);
         return type.IsPrimitive ||
-            type.IsEnum ||
-            type.IsArray ||
-            type == typeof(object) ||
             type == typeof(string) ||
             type == typeof(decimal) ||
-            type == ReflectionHelpers.Int128Type ||
-            type == ReflectionHelpers.UInt128Type ||
+            type == typeof(UInt128) ||
+            type == typeof(Int128) ||
+            type == typeof(Half) ||
             type == typeof(DateTime) ||
             type == typeof(DateTimeOffset) ||
             type == typeof(DateOnly) ||
@@ -273,7 +278,6 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
             type == typeof(Version) ||
             type == typeof(Uri) ||
             type == typeof(System.Text.Rune) ||
-            ReflectionHelpers.IsNullableStruct<T>() ||
             typeof(MemberInfo).IsAssignableFrom(type) ||
             typeof(Delegate).IsAssignableFrom(type);
     }
