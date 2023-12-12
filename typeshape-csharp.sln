@@ -4,7 +4,7 @@ VisualStudioVersion = 17.8.34004.107
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TypeShape", "src\TypeShape\TypeShape.csproj", "{7AAD0D4E-A97B-4330-80E9-4BB0C909F440}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TypeShape.Applications", "samples\TypeShape.Applications\TypeShape.Applications.csproj", "{D1566131-C3C9-4783-BD8B-A2F75AF4B32B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TypeShape.Applications", "src\TypeShape.Applications\TypeShape.Applications.csproj", "{D1566131-C3C9-4783-BD8B-A2F75AF4B32B}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TypeShape.SourceGenerator", "src\TypeShape.SourceGenerator\TypeShape.SourceGenerator.csproj", "{F897A3A4-B959-4F19-A5F4-074785BE4842}"
 EndProject

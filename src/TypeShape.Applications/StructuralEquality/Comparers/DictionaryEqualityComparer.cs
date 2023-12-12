@@ -27,7 +27,7 @@ internal abstract class DictionaryEqualityComparerBase<TDictionary, TKey, TValue
     }
 }
 
-internal class DictionaryEqualityComparer<TDictionary, TKey, TValue> : DictionaryEqualityComparerBase<TDictionary, TKey, TValue>
+internal sealed class DictionaryEqualityComparer<TDictionary, TKey, TValue> : DictionaryEqualityComparerBase<TDictionary, TKey, TValue>
     where TKey : notnull
 {
     public required Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> GetDictionary { get; init; }
