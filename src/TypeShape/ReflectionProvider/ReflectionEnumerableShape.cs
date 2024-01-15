@@ -15,8 +15,8 @@ internal abstract class ReflectionEnumerableShape<TEnumerable, TElement>(Reflect
     private CollectionConstructionStrategy? _constructionStrategy;
     private ConstructorInfo? _defaultCtor;
     private MethodInfo? _addMethod;
-    private ConstructorInfo? _enumerableCtor;
-    private MethodInfo? _spanFactory;
+    private MethodBase? _enumerableCtor;
+    private MethodBase? _spanCtor;
 
     public virtual CollectionConstructionStrategy ConstructionStrategy => _constructionStrategy ??= DetermineConstructionStrategy();
     public virtual int Rank => 1;
@@ -56,7 +56,11 @@ internal abstract class ReflectionEnumerableShape<TEnumerable, TElement>(Reflect
         }
 
         Debug.Assert(_enumerableCtor != null);
-        return provider.MemberAccessor.CreateDelegate<IEnumerable<TElement>, TEnumerable>(_enumerableCtor);
+        return _enumerableCtor switch
+        {
+            ConstructorInfo ctorInfo => provider.MemberAccessor.CreateFuncDelegate<IEnumerable<TElement>, TEnumerable>(ctorInfo),
+            _ => ((MethodInfo)_enumerableCtor).CreateDelegate<Func<IEnumerable<TElement>, TEnumerable>>(),
+        };
     }
 
     public virtual SpanConstructor<TElement, TEnumerable> GetSpanConstructor()
@@ -66,15 +70,19 @@ internal abstract class ReflectionEnumerableShape<TEnumerable, TElement>(Reflect
             throw new InvalidOperationException("The current enumerable shape does not support span constructors.");
         }
 
-        Debug.Assert(_spanFactory != null);
-        return _spanFactory.CreateDelegate<SpanConstructor<TElement, TEnumerable>>();
+        Debug.Assert(_spanCtor != null);
+        return _spanCtor switch
+        {
+            ConstructorInfo ctorInfo => provider.MemberAccessor.CreateSpanConstructorDelegate<TElement, TEnumerable>(ctorInfo),
+            _ => ((MethodInfo)_spanCtor).CreateDelegate<SpanConstructor<TElement, TEnumerable>>(),
+        };
     }
 
     private CollectionConstructionStrategy DetermineConstructionStrategy()
     {
         if (typeof(TEnumerable).TryGetCollectionBuilderAttribute(typeof(TElement), out MethodInfo? builderMethod))
         {
-            _spanFactory = builderMethod;
+            _spanCtor = builderMethod;
             return CollectionConstructionStrategy.Span;
         }
 
@@ -93,6 +101,13 @@ internal abstract class ReflectionEnumerableShape<TEnumerable, TElement>(Reflect
             }
         }
 
+        if (provider.UseReflectionEmit && typeof(TEnumerable).GetConstructor([typeof(ReadOnlySpan<TElement>)]) is ConstructorInfo spanCtor)
+        {
+            // Cannot invoke constructors with ROS parameters without Ref.Emit
+            _spanCtor = spanCtor;
+            return CollectionConstructionStrategy.Span;
+        }
+
         if (typeof(TEnumerable).GetConstructor([typeof(IEnumerable<TElement>)]) is ConstructorInfo enumerableCtor)
         {
             _enumerableCtor = enumerableCtor;
@@ -105,24 +120,24 @@ internal abstract class ReflectionEnumerableShape<TEnumerable, TElement>(Reflect
             {
                 // Handle IEnumerable<T>, ICollection<T>, IList<T>, IReadOnlyCollection<T> and IReadOnlyList<T> types using List<T>
                 MethodInfo? gm = typeof(CollectionHelpers).GetMethod(nameof(CollectionHelpers.CreateList), BindingFlags.Public | BindingFlags.Static);
-                _spanFactory = gm?.MakeGenericMethod(typeof(TElement));
-                return _spanFactory != null ? CollectionConstructionStrategy.Span : CollectionConstructionStrategy.None;
+                _spanCtor = gm?.MakeGenericMethod(typeof(TElement));
+                return _spanCtor != null ? CollectionConstructionStrategy.Span : CollectionConstructionStrategy.None;
             }
 
             if (typeof(TEnumerable).IsAssignableFrom(typeof(HashSet<TElement>)))
             {
                 // Handle ISet<T> and IReadOnlySet<T> types using HashSet<T>
                 MethodInfo? gm = typeof(CollectionHelpers).GetMethod(nameof(CollectionHelpers.CreateHashSet), BindingFlags.Public | BindingFlags.Static);
-                _spanFactory = gm?.MakeGenericMethod(typeof(TElement));
-                return _spanFactory != null ? CollectionConstructionStrategy.Span : CollectionConstructionStrategy.None;
+                _spanCtor = gm?.MakeGenericMethod(typeof(TElement));
+                return _spanCtor != null ? CollectionConstructionStrategy.Span : CollectionConstructionStrategy.None;
             }
 
             if (typeof(TEnumerable).IsAssignableFrom(typeof(IList)))
             {
                 // Handle IList, ICollection and IEnumerable interfaces using List<object?>
                 MethodInfo? gm = typeof(CollectionHelpers).GetMethod(nameof(CollectionHelpers.CreateList), BindingFlags.Public | BindingFlags.Static);
-                _spanFactory = gm?.MakeGenericMethod(typeof(object));
-                return _spanFactory != null ? CollectionConstructionStrategy.Span : CollectionConstructionStrategy.None;
+                _spanCtor = gm?.MakeGenericMethod(typeof(object));
+                return _spanCtor != null ? CollectionConstructionStrategy.Span : CollectionConstructionStrategy.None;
             }
         }
 

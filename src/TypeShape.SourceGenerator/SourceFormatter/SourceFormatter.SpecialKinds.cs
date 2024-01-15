@@ -1,12 +1,11 @@
-﻿using System;
-using TypeShape.SourceGenerator.Helpers;
+﻿using TypeShape.Roslyn;
 using TypeShape.SourceGenerator.Model;
 
 namespace TypeShape.SourceGenerator;
 
 internal static partial class SourceFormatter
 {
-    private static void FormatEnumTypeFactory(SourceWriter writer, string methodName, EnumTypeModel enumType)
+    private static void FormatEnumTypeFactory(SourceWriter writer, string methodName, EnumShapeModel enumType)
     {
         writer.WriteLine($$"""
             private IEnumShape {{methodName}}()
@@ -20,7 +19,7 @@ internal static partial class SourceFormatter
             """);
     }
 
-    private static void FormatNullableTypeFactory(SourceWriter writer, string methodName, NullableTypeModel nullableType)
+    private static void FormatNullableTypeFactory(SourceWriter writer, string methodName, NullableShapeModel nullableType)
     {
         writer.WriteLine($$"""
             private INullableShape {{methodName}}()
@@ -33,7 +32,7 @@ internal static partial class SourceFormatter
             """);
     }
 
-    private static void FormatEnumerableTypeFactory(SourceWriter writer, string methodName, EnumerableTypeModel enumerableType)
+    private static void FormatEnumerableTypeFactory(SourceWriter writer, string methodName, EnumerableShapeModel enumerableType)
     {
         writer.WriteLine($$"""
             private IEnumerableShape {{methodName}}()
@@ -53,7 +52,7 @@ internal static partial class SourceFormatter
             }
             """, trimNullAssignmentLines: true);
 
-        static string FormatGetEnumerableFunc(EnumerableTypeModel enumerableType)
+        static string FormatGetEnumerableFunc(EnumerableShapeModel enumerableType)
         {
             return enumerableType.Kind switch
             {
@@ -67,39 +66,48 @@ internal static partial class SourceFormatter
             };
         }
 
-        static string FormatDefaultConstructorFunc(EnumerableTypeModel enumerableType)
+        static string FormatDefaultConstructorFunc(EnumerableShapeModel enumerableType)
         {
             return enumerableType.ConstructionStrategy is CollectionConstructionStrategy.Mutable
-                ? $"static () => new {enumerableType.Type.FullyQualifiedName}()"
+                ? $"static () => new {enumerableType.ImplementationTypeFQN ?? enumerableType.Type.FullyQualifiedName}()"
                 : "null";
         }
 
-        static string FormatAddElementFunc(EnumerableTypeModel enumerableType)
-        {
-            return enumerableType.AddElementMethod is { } addMethod
-                ? $"static (ref {enumerableType.Type.FullyQualifiedName} obj, {enumerableType.ElementType.FullyQualifiedName} value) => obj.{addMethod}(value)"
-                : "null";
-        }
-
-        static string FormatSpanConstructorFunc(EnumerableTypeModel enumerableType)
+        static string FormatAddElementFunc(EnumerableShapeModel enumerableType)
         {
             return enumerableType switch
             {
-                { Kind: EnumerableKind.ArrayOfT or EnumerableKind.ReadOnlyMemoryOfT or EnumerableKind.MemoryOfT } => $"static values => values.ToArray()",
-                { ConstructionStrategy: CollectionConstructionStrategy.Span } => $"static values => {enumerableType.SpanFactoryMethod}(values)",
+                { AddElementMethod: { } addMethod, ImplementationTypeFQN: null } => 
+                    $"static (ref {enumerableType.Type.FullyQualifiedName} obj, {enumerableType.ElementType.FullyQualifiedName} value) => obj.{addMethod}(value)",
+                { AddElementMethod: { } addMethod, ImplementationTypeFQN: { } implTypeFQN } => 
+                    $"static (ref {enumerableType.Type.FullyQualifiedName} obj, {enumerableType.ElementType.FullyQualifiedName} value) => (({implTypeFQN})obj).{addMethod}(value)",
                 _ => "null",
             };
         }
 
-        static string FormatEnumerableConstructorFunc(EnumerableTypeModel enumerableType)
+        static string FormatSpanConstructorFunc(EnumerableShapeModel enumerableType)
         {
-            return enumerableType.ConstructionStrategy is CollectionConstructionStrategy.Enumerable
-                ? $"static values => new {enumerableType.Type.FullyQualifiedName}(values)"
-                : "null";
+            return enumerableType switch
+            {
+                { Kind: EnumerableKind.ArrayOfT or EnumerableKind.ReadOnlyMemoryOfT or EnumerableKind.MemoryOfT } => $"static values => values.ToArray()",
+                { SpanFactoryMethod: { } spanFactory } => $"static values => {spanFactory}(values)",
+                { ConstructionStrategy: CollectionConstructionStrategy.Span } => $"static values => new {enumerableType.Type.FullyQualifiedName}(values)",
+                _ => "null",
+            };
+        }
+
+        static string FormatEnumerableConstructorFunc(EnumerableShapeModel enumerableType)
+        {
+            return enumerableType switch
+            {
+                { EnumerableFactoryMethod: string factory } => $"static values => {factory}(values)",
+                { ConstructionStrategy: CollectionConstructionStrategy.Enumerable } => $"static values => new {enumerableType.Type.FullyQualifiedName}(values)",
+                _ => "null",
+            };
         }
     }
 
-    private static void FormatDictionaryTypeFactory(SourceWriter writer, string methodName, DictionaryTypeModel dictionaryType)
+    private static void FormatDictionaryTypeFactory(SourceWriter writer, string methodName, DictionaryShapeModel dictionaryType)
     {
         writer.WriteLine($$"""
             private IDictionaryShape {{methodName}}()
@@ -119,7 +127,7 @@ internal static partial class SourceFormatter
             }
             """, trimNullAssignmentLines: true);
 
-        static string FormatGetDictionaryFunc(DictionaryTypeModel dictionaryType)
+        static string FormatGetDictionaryFunc(DictionaryShapeModel dictionaryType)
         {
             return dictionaryType.Kind switch
             {
@@ -130,24 +138,26 @@ internal static partial class SourceFormatter
             };
         }
 
-        static string FormatDefaultConstructorFunc(DictionaryTypeModel enumerableType)
+        static string FormatDefaultConstructorFunc(DictionaryShapeModel enumerableType)
         {
             return enumerableType.ConstructionStrategy is CollectionConstructionStrategy.Mutable
-                ? $"static () => new {enumerableType.Type.FullyQualifiedName}()"
+                ? $"static () => new {enumerableType.ImplementationTypeFQN ?? enumerableType.Type.FullyQualifiedName}()"
                 : "null";
         }
 
-        static string FormatAddKeyValuePairFunc(DictionaryTypeModel enumerableType)
+        static string FormatAddKeyValuePairFunc(DictionaryShapeModel enumerableType)
         {
             return enumerableType switch
             {
-                { HasSettableIndexer: true } => $"static (ref {enumerableType.Type.FullyQualifiedName} dict, KeyValuePair<{enumerableType.KeyType.FullyQualifiedName}, {enumerableType.ValueType.FullyQualifiedName}> kvp) => dict[kvp.Key] = kvp.Value",
-                { ConstructionStrategy: CollectionConstructionStrategy.Mutable } => $"static (ref {enumerableType.Type.FullyQualifiedName} dict, KeyValuePair<object, object> kvp) => dict.Add(kvp.Key, kvp.Value)",
+                { ConstructionStrategy: CollectionConstructionStrategy.Mutable, ImplementationTypeFQN: null }
+                    => $"static (ref {enumerableType.Type.FullyQualifiedName} dict, KeyValuePair<{enumerableType.KeyType.FullyQualifiedName}, {enumerableType.ValueType.FullyQualifiedName}> kvp) => dict[kvp.Key] = kvp.Value",
+                { ConstructionStrategy: CollectionConstructionStrategy.Mutable, ImplementationTypeFQN: { } implementationTypeFQN }
+                    => $"static (ref {enumerableType.Type.FullyQualifiedName} dict, KeyValuePair<{enumerableType.KeyType.FullyQualifiedName}, {enumerableType.ValueType.FullyQualifiedName}> kvp) => (({implementationTypeFQN})dict)[kvp.Key] = kvp.Value",
                 _ => "null",
             };
         }
 
-        static string FormatEnumerableConstructorFunc(DictionaryTypeModel enumerableType)
+        static string FormatEnumerableConstructorFunc(DictionaryShapeModel enumerableType)
         {
             return enumerableType switch
             {
@@ -157,11 +167,12 @@ internal static partial class SourceFormatter
             };
         }
 
-        static string FormatSpanConstructorFunc(DictionaryTypeModel enumerableType)
+        static string FormatSpanConstructorFunc(DictionaryShapeModel enumerableType)
         {
             return enumerableType switch
             {
                 { SpanFactoryMethod: string factory } => $"static values => {factory}(values)",
+                { ConstructionStrategy: CollectionConstructionStrategy.Span } => $"static values => new {enumerableType.Type.FullyQualifiedName}(values)",
                 _ => "null",
             };
         }

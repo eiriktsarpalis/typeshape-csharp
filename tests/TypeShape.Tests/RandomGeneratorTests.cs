@@ -13,7 +13,7 @@ public abstract class RandomGeneratorTests
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void ProducesDeterministicRandomValues<T>(TestCase<T> testCase)
     {
-        if (!testCase.HasConstructors)
+        if (!testCase.HasConstructors(Provider))
         {
             return; // Random value generation not supported
         }
@@ -50,7 +50,7 @@ public sealed class RandomGeneratorTests_SourceGen : RandomGeneratorTests
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void TypeShapeProvider_ProducesDeterministicRandomValues<T, TProvider>(TestCase<T, TProvider> testCase) where TProvider : ITypeShapeProvider<T>
     {
-        if (!testCase.HasConstructors)
+        if (!testCase.HasConstructors(Provider))
         {
             return; // Random value generation not supported
         }

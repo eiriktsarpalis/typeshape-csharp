@@ -80,7 +80,7 @@ public abstract class CborTests
 
         string cborHex = converter.EncodeToHex(testCase.Value);
 
-        if (!testCase.HasConstructors)
+        if (!testCase.HasConstructors(Provider))
         {
             Assert.Throws<NotSupportedException>(() => converter.DecodeFromHex(cborHex));
         }
@@ -134,7 +134,7 @@ public sealed class CborTests_SourceGen : CborTests
     {
         string cborHex = CborSerializer.EncodeToHex<T, TProvider>(testCase.Value);
 
-        if (!testCase.HasConstructors)
+        if (!testCase.HasConstructors(Provider))
         {
             Assert.Throws<NotSupportedException>(() => CborSerializer.DecodeFromHex<T, TProvider>(cborHex));
         }

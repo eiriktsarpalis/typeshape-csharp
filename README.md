@@ -242,6 +242,7 @@ The repo consists of the following projects:
   * A serializer built on top of System.Xml.
   * A serializer built on top of System.Formats.Cbor.
 * The [`samples`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/samples) folder contains sample Native AOT console applications.
+* The [`TypeShape.Roslyn`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Roslyn) library contains helper types and reusable components used for extracting data models from types for source generator authors using the Roslyn symbols API. `TypeShape.SourceGenerator` is built on top of that library.
 
 ## Advantages & Disadvantages
 
@@ -258,8 +259,8 @@ At the same time the approach also has a number of drawbacks, namely:
 3. Whether using reflection or source gen, member access is driven using delegates is slower than direct access in inlined, "fast-path" serializers.
 4. At present there is no mechanism for filtering generated member accessors at compile time.
 
-## Next Steps
+## TypeShape.Roslyn
 
-This experiment is an exploration of potential reusable source generator abstractions when applied to datatype-generic programming. It proposes to do so by reducing the rich models found in `ITypeSymbol` (or `System.Type` in the case of runtime reflection) into a simplified, data-oriented model for types. This intermediate representation abstracts away runtime/language concerns such as classes vs. structs, fields vs. properties, implementation and interface inheritance, accessibility modifiers, required and init-only properties, etc.
-
-This prototype provides both [compile-time](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.SourceGenerator/Model) and [run-time](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape/Abstractions) representations of the model. Even though the examples here primarily focus on the latter approach, there is potential for reusing the compile-time model in authoring bespoke, "fast-path" source generators for datatype-generic programs. The models are lightweight and implement structural equality, meaning they are easy to apply in incremental source generators.
+The [`TypeShape.Roslyn`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Roslyn) library contains helper types and reusable components used for extracting data models from types for source generator authors using the Roslyn symbols API. 
+The library reduces the rich models found in `ITypeSymbol` into a simplified, data-oriented model for types. 
+This intermediate representation abstracts away runtime/language concerns such as classes vs. structs, fields vs. properties, implementation and interface inheritance, accessibility modifiers, required and init-only properties, etc.

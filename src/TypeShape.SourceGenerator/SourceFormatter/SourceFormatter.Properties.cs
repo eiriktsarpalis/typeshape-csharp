@@ -1,22 +1,20 @@
 ﻿using Microsoft.CodeAnalysis;
 using System.Diagnostics;
-using TypeShape.SourceGenerator.Helpers;
+using TypeShape.Roslyn;
 using TypeShape.SourceGenerator.Model;
 
 namespace TypeShape.SourceGenerator;
 
 internal static partial class SourceFormatter
 {
-    private static void FormatPropertyFactory(SourceWriter writer, string methodName, TypeModel type)
+    private static void FormatPropertyFactory(SourceWriter writer, string methodName, ObjectShapeModel type)
     {
-        Debug.Assert(type.Properties != null);
-
         writer.WriteLine($"private IEnumerable<IPropertyShape> {methodName}(bool nonPublic) => new IPropertyShape[]");
         writer.WriteLine('{');
         writer.Indentation++;
 
         int i = 0;
-        foreach (PropertyModel property in type.Properties!)
+        foreach (PropertyShapeModel property in type.Properties)
         {
             if (i++ > 0)
                 writer.WriteLine();
@@ -36,13 +34,13 @@ internal static partial class SourceFormatter
             };
 
             writer.WriteLine($$"""
-                new SourceGenPropertyShape<{{type.Id.FullyQualifiedName}}, {{property.PropertyType.FullyQualifiedName}}>(nonPublic)
+                new SourceGenPropertyShape<{{type.Type.FullyQualifiedName}}, {{property.PropertyType.FullyQualifiedName}}>(nonPublic)
                 {
                     Name = "{{property.Name}}",
-                    DeclaringType = {{type.Id.GeneratedPropertyName}},
+                    DeclaringType = {{type.Type.GeneratedPropertyName}},
                     PropertyType = {{property.PropertyType.GeneratedPropertyName}},
-                    Getter = {{(property.EmitGetter ? $"static (ref {type.Id.FullyQualifiedName} obj) => obj.{property.UnderlyingMemberName}{(suppressGetter ? "!" : "")}" : "null")}},
-                    Setter = {{(property.EmitSetter ? $"static (ref {type.Id.FullyQualifiedName} obj, {property.PropertyType.FullyQualifiedName} value) => obj.{property.UnderlyingMemberName} = value{(suppressSetter ? "!" : "")}" : "null")}},
+                    Getter = {{(property.EmitGetter ? $"static (ref {type.Type.FullyQualifiedName} obj) => obj.{property.UnderlyingMemberName}{(suppressGetter ? "!" : "")}" : "null")}},
+                    Setter = {{(property.EmitSetter ? $"static (ref {type.Type.FullyQualifiedName} obj, {property.PropertyType.FullyQualifiedName} value) => obj.{property.UnderlyingMemberName} = value{(suppressSetter ? "!" : "")}" : "null")}},
                     AttributeProviderFunc = {{FormatAttributeProviderFunc(type, property)}},
                     IsField = {{FormatBool(property.IsField)}},
                     IsGetterPublic = {{FormatBool(property.IsGetterPublic)}},
@@ -52,17 +50,16 @@ internal static partial class SourceFormatter
                 },
                 """, trimNullAssignmentLines: true);
 
-            static string FormatAttributeProviderFunc(TypeModel type, PropertyModel property)
+            static string FormatAttributeProviderFunc(ObjectShapeModel type, PropertyShapeModel property)
             {
                 if (type.IsValueTupleType || type.IsClassTupleType)
                 {
                     return "null";
                 }
 
-                TypeId declaringType = property.DeclaringInterfaceType ?? property.DeclaringType;
                 return property.IsField
-                    ? $"static () => typeof({declaringType.FullyQualifiedName}).GetField({FormatStringLiteral(property.Name)}, {InstanceBindingFlagsConstMember})"
-                    : $"static () => typeof({declaringType.FullyQualifiedName}).GetProperty({FormatStringLiteral(property.Name)}, {InstanceBindingFlagsConstMember})";
+                    ? $"static () => typeof({property.DeclaringType.FullyQualifiedName}).GetField({FormatStringLiteral(property.Name)}, {InstanceBindingFlagsConstMember})"
+                    : $"static () => typeof({property.DeclaringType.FullyQualifiedName}).GetProperty({FormatStringLiteral(property.Name)}, {InstanceBindingFlagsConstMember})";
             }
         }
 

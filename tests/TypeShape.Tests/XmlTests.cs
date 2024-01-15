@@ -92,7 +92,7 @@ public abstract class XmlTests
 
         string xmlEncoding = converter.Serialize(testCase.Value);
 
-        if (!testCase.HasConstructors)
+        if (!testCase.HasConstructors(Provider))
         {
             Assert.Throws<NotSupportedException>(() => converter.Deserialize(xmlEncoding));
         }
@@ -146,7 +146,7 @@ public sealed class XmlTests_SourceGen : XmlTests
     {
         string xmlEncoding = XmlSerializer.Serialize<T, TProvider>(testCase.Value);
 
-        if (!testCase.HasConstructors)
+        if (!testCase.HasConstructors(Provider))
         {
             Assert.Throws<NotSupportedException>(() => XmlSerializer.Deserialize<T, TProvider>(xmlEncoding));
         }

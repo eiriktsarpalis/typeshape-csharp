@@ -17,5 +17,6 @@ internal interface IReflectionMemberAccessor
     Setter<TArgumentState, TParameter> CreateConstructorArgumentStateSetter<TArgumentState, TParameter>(IConstructorShapeInfo ctorInfo, int parameterIndex);
     Constructor<TArgumentState, TDeclaringType> CreateParameterizedConstructor<TArgumentState, TDeclaringType>(IConstructorShapeInfo ctorInfo);
 
-    Func<T, TResult> CreateDelegate<T, TResult>(ConstructorInfo ctorInfo);
+    Func<T, TResult> CreateFuncDelegate<T, TResult>(ConstructorInfo ctorInfo);
+    SpanConstructor<T, TResult> CreateSpanConstructorDelegate<T, TResult>(ConstructorInfo ctorInfo);
 }

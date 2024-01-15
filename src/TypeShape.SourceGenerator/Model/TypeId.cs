@@ -2,6 +2,9 @@
 
 namespace TypeShape.SourceGenerator.Model;
 
+/// <summary>
+/// Represents a cacheable type identifier that uses FQN to derive equality.
+/// </summary>
 public readonly struct TypeId : IEquatable<TypeId>
 {
     public required string FullyQualifiedName { get; init; }

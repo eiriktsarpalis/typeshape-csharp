@@ -7,7 +7,13 @@
 	<WarningsAsErrors>Nullable</WarningsAsErrors>
 	<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
 	<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <DefineConstants>IS_TEST_PROJECT</DefineConstants>
   </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="..\..\src\TypeShape\ReflectionProvider\Helpers\CommonHelpers.cs" Link="Helpers\CommonHelpers.cs" />
+        <Compile Include="..\..\src\TypeShape\ReflectionProvider\Helpers\ReflectionHelpers.cs" Link="Helpers\ReflectionHelpers.cs" />
+    </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />

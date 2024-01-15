@@ -28,7 +28,7 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
 
         if (typeof(T).IsTupleType())
         {
-            IConstructorShapeInfo ctorInfo = ReflectionHelpers.CreateTupleConstructorShapeInfo(typeof(T));
+            IConstructorShapeInfo ctorInfo = ReflectionTypeShapeProvider.CreateTupleConstructorShapeInfo(typeof(T));
             yield return provider.CreateConstructor(ctorInfo);
 
             if (typeof(T).IsValueType)
@@ -150,7 +150,8 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
                     propertyInfo.PropertyType.CanBeGenericArgument() &&
                     !propertyInfo.IsExplicitInterfaceImplementation())
                 {
-                    yield return propertyInfo;
+                    // For overridden properties, only process the base definition.
+                    yield return propertyInfo.GetBaseProperty();
                 }
             }
 

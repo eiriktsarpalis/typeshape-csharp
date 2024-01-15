@@ -1,7 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
-using TypeShape.SourceGenerator.Helpers;
+using TypeShape.Roslyn;
 using TypeShape.SourceGenerator.Model;
 
 namespace TypeShape.SourceGenerator;
@@ -16,10 +16,10 @@ internal static partial class SourceFormatter
         context.AddSource($"{provider.Declaration.SourceFilenamePrefix}.g.cs", FormatMainFile(provider));
         context.AddSource($"{provider.Declaration.SourceFilenamePrefix}.ITypeShapeProvider.g.cs", FormatProviderInterfaceImplementation(provider));
 
-        foreach (TypeModel type in provider.ProvidedTypes.Values)
+        foreach (TypeShapeModel type in provider.ProvidedTypes.Values)
         {
             context.CancellationToken.ThrowIfCancellationRequested();
-            context.AddSource($"{provider.Declaration.SourceFilenamePrefix}.{type.Id.GeneratedPropertyName}.g.cs", FormatType(provider, type));
+            context.AddSource($"{provider.Declaration.SourceFilenamePrefix}.{type.Type.GeneratedPropertyName}.g.cs", FormatType(provider, type));
         }
 
         foreach (TypeDeclarationModel typeDeclaration in provider.GenerateShapeTypes)

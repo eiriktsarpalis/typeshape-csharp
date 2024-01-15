@@ -11,3 +11,6 @@ dotnet_diagnostic.CA1711.severity = none
 
 # CA1720: Identifier contains type name
 dotnet_diagnostic.CA1720.severity = none
+
+# CA1716: Identifiers should not match keywords
+dotnet_diagnostic.CA1716.severity = none

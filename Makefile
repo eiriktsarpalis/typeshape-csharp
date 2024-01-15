@@ -19,6 +19,7 @@ test: build
 
 pack: test
 	dotnet pack -c $(CONFIGURATION) $(ADDITIONAL_ARGS) src/TypeShape.Packaging
+	dotnet pack -c $(CONFIGURATION) $(ADDITIONAL_ARGS) src/TypeShape.Roslyn
 
 push:
 	for nupkg in `ls $(ARTIFACT_PATH)/*.nupkg`; do \

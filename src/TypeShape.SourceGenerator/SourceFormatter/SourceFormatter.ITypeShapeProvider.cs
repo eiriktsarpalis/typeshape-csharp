@@ -1,5 +1,5 @@
 ﻿using Microsoft.CodeAnalysis.Text;
-using TypeShape.SourceGenerator.Helpers;
+using TypeShape.Roslyn;
 using TypeShape.SourceGenerator.Model;
 
 namespace TypeShape.SourceGenerator;
@@ -25,11 +25,11 @@ internal static partial class SourceFormatter
         writer.WriteLine('{');
         writer.Indentation++;
 
-        foreach (TypeModel generatedType in provider.ProvidedTypes.Values)
+        foreach (TypeShapeModel generatedType in provider.ProvidedTypes.Values)
         {
             writer.WriteLine($"""
-                if (type == typeof({generatedType.Id.FullyQualifiedName}))
-                    return {generatedType.Id.GeneratedPropertyName};
+                if (type == typeof({generatedType.Type.FullyQualifiedName}))
+                    return {generatedType.Type.GeneratedPropertyName};
 
                 """);
         }

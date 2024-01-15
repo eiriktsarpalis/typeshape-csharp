@@ -16,7 +16,7 @@ internal abstract class ReflectionDictionaryShape<TDictionary, TKey, TValue>(Ref
     private ConstructorInfo? _defaultCtor;
     private MethodInfo? _addMethod;
     private MethodBase? _enumerableCtor;
-    private MethodInfo? _spanFactory;
+    private MethodBase? _spanCtor;
 
     public CollectionConstructionStrategy ConstructionStrategy => _constructionStrategy ??= DetermineConstructionStrategy();
 
@@ -58,7 +58,7 @@ internal abstract class ReflectionDictionaryShape<TDictionary, TKey, TValue>(Ref
         Debug.Assert(_enumerableCtor != null);
         return _enumerableCtor switch
         {
-            ConstructorInfo ctorInfo => provider.MemberAccessor.CreateDelegate<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary>(ctorInfo),
+            ConstructorInfo ctorInfo => provider.MemberAccessor.CreateFuncDelegate<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary>(ctorInfo),
             _ => ((MethodInfo)_enumerableCtor).CreateDelegate<Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary>>(),
         };
     }
@@ -70,8 +70,12 @@ internal abstract class ReflectionDictionaryShape<TDictionary, TKey, TValue>(Ref
             throw new InvalidOperationException("The current enumerable shape does not support span constructors.");
         }
 
-        Debug.Assert(_spanFactory != null);
-        return _spanFactory.CreateDelegate<SpanConstructor<KeyValuePair<TKey, TValue>, TDictionary>>();
+        Debug.Assert(_spanCtor != null);
+        return _spanCtor switch
+        {
+            ConstructorInfo ctorInfo => provider.MemberAccessor.CreateSpanConstructorDelegate<KeyValuePair<TKey, TValue>, TDictionary>(ctorInfo),
+            _ => ((MethodInfo)_spanCtor).CreateDelegate<SpanConstructor<KeyValuePair<TKey, TValue>, TDictionary>>(),
+        };
     }
 
     private CollectionConstructionStrategy DetermineConstructionStrategy()
@@ -96,6 +100,13 @@ internal abstract class ReflectionDictionaryShape<TDictionary, TKey, TValue>(Ref
             }
         }
 
+        if (provider.UseReflectionEmit && typeof(TDictionary).GetConstructor([typeof(ReadOnlySpan<KeyValuePair<TKey, TValue>>)]) is ConstructorInfo spanCtor)
+        {
+            // Cannot invoke constructors with ROS parameters without Ref.Emit
+            _spanCtor = spanCtor;
+            return CollectionConstructionStrategy.Span;
+        }
+
         if (typeof(TDictionary).GetConstructor([typeof(IEnumerable<KeyValuePair<TKey, TValue>>)]) is ConstructorInfo enumerableCtor)
         {
             _enumerableCtor = enumerableCtor;
@@ -108,8 +119,8 @@ internal abstract class ReflectionDictionaryShape<TDictionary, TKey, TValue>(Ref
             {
                 // Handle IDictionary, IDictionary<TKey, TValue> and IReadOnlyDictionary<TKey, TValue> using Dictionary<TKey, TValue>
                 MethodInfo? gm = typeof(CollectionHelpers).GetMethod(nameof(CollectionHelpers.CreateDictionary), BindingFlags.Public | BindingFlags.Static);
-                _spanFactory = gm?.MakeGenericMethod(typeof(TKey), typeof(TValue));
-                return _spanFactory != null ? CollectionConstructionStrategy.Span : CollectionConstructionStrategy.None;
+                _spanCtor = gm?.MakeGenericMethod(typeof(TKey), typeof(TValue));
+                return _spanCtor != null ? CollectionConstructionStrategy.Span : CollectionConstructionStrategy.None;
             }
 
             if (typeof(TDictionary) == typeof(IDictionary))
@@ -117,8 +128,8 @@ internal abstract class ReflectionDictionaryShape<TDictionary, TKey, TValue>(Ref
                 // Handle IDictionary using Dictionary<object, object>
                 Debug.Assert(typeof(TKey) == typeof(object) && typeof(TValue) == typeof(object));
                 MethodInfo? gm = typeof(CollectionHelpers).GetMethod(nameof(CollectionHelpers.CreateDictionary), BindingFlags.Public | BindingFlags.Static);
-                _spanFactory = gm?.MakeGenericMethod(typeof(object), typeof(object));
-                return _spanFactory != null ? CollectionConstructionStrategy.Span : CollectionConstructionStrategy.None;
+                _spanCtor = gm?.MakeGenericMethod(typeof(object), typeof(object));
+                return _spanCtor != null ? CollectionConstructionStrategy.Span : CollectionConstructionStrategy.None;
             }
 
             return CollectionConstructionStrategy.None;

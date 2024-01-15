@@ -480,19 +480,20 @@ public abstract class TypeShapeProviderTests
                 Assert.Equal(typeof(T), fieldInfo.ReflectedType);
                 Assert.Equal(property.Name, fieldInfo.Name);
                 Assert.Equal(property.PropertyType.Type, fieldInfo.FieldType);
-                Assert.True(property.IsField);
+                Assert.True(property.HasGetter);
+                Assert.Equal(!fieldInfo.IsInitOnly, property.HasSetter);
                 Assert.Equal(fieldInfo.IsPublic, property.IsGetterPublic);
-                Assert.Equal(fieldInfo.IsPublic, property.IsSetterPublic);
+                Assert.Equal(property.HasSetter && fieldInfo.IsPublic, property.IsSetterPublic);
             }
             else
             {
                 PropertyInfo propertyInfo = Assert.IsAssignableFrom<PropertyInfo>(attributeProvider);
+                propertyInfo = propertyInfo.GetBaseProperty();
                 Assert.True(propertyInfo.DeclaringType!.IsAssignableFrom(typeof(T)));
                 Assert.Equal(property.Name, propertyInfo.Name);
                 Assert.Equal(property.PropertyType.Type, propertyInfo.PropertyType);
                 Assert.True(!property.HasGetter || propertyInfo.CanRead);
                 Assert.True(!property.HasSetter || propertyInfo.CanWrite);
-                Assert.False(property.IsField);
                 Assert.Equal(property.HasGetter && propertyInfo.GetMethod!.IsPublic, property.IsGetterPublic);
                 Assert.Equal(property.HasSetter && propertyInfo.SetMethod!.IsPublic, property.IsSetterPublic);
             }
@@ -551,6 +552,7 @@ public abstract class TypeShapeProviderTests
 
                     if (memberInfo is PropertyInfo p)
                     {
+                        p = p.GetBaseProperty();
                         Assert.Equal(p.PropertyType, ctorParam.ParameterType.Type);
                         Assert.NotNull(p.SetMethod);
                     }
@@ -657,225 +659,8 @@ public static class ReflectionHelpers
         return null;
     }
 
-    public static bool IsNullableStruct(this Type type)
-    {
-        return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);
-    }
-
-    public static bool IsNullable(this Type type)
-    {
-        return !type.IsValueType || (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>));
-    }
-
-    public static bool IsRecord(this Type type)
-    {
-        return !type.IsValueType
-            ? type.GetMethod("<Clone>$", BindingFlags.Public | BindingFlags.Instance) is not null
-            : type.GetMethod("PrintMembers", BindingFlags.NonPublic | BindingFlags.Instance, [typeof(StringBuilder)]) is { } method
-                && method.ReturnType == typeof(bool)
-                && method.GetCustomAttributes().Any(attr => attr.GetType().Name == "CompilerGeneratedAttribute");
-    }
-
-    public static void ResolveNullableAnnotation(this MemberInfo memberInfo, out bool isGetterNonNullable, out bool isSetterNonNullable)
-    {
-        if (GetNullabilityInfo(memberInfo) is NullabilityInfo info)
-        {
-            isGetterNonNullable = info.ReadState is NullabilityState.NotNull;
-            isSetterNonNullable = info.WriteState is NullabilityState.NotNull;
-        }
-        else
-        {
-            // The member type is a non-nullable struct.
-            isGetterNonNullable = true;
-            isSetterNonNullable = true;
-        }
-    }
-
-    public static bool IsNonNullableAnnotation(this ParameterInfo parameterInfo)
-    {
-        if (GetNullabilityInfo(parameterInfo) is NullabilityInfo info)
-        {
-            // Workaround for https://github.com/dotnet/runtime/issues/92487
-            if (parameterInfo.GetGenericParameterDefinition() is { ParameterType: { IsGenericTypeParameter: true } typeParam })
-            {
-                // Step 1. Look for nullable annotations on the type parameter.
-                if (GetNullableFlags(typeParam) is byte[] flags)
-                {
-                    return flags[0] == 1;
-                }
-
-                // Step 2. Look for nullable annotations on the generic method declaration.
-                if (typeParam.DeclaringMethod != null && GetNullableContextFlag(typeParam.DeclaringMethod) is byte flag)
-                {
-                    return flag == 1;
-                }
-
-                // Step 3. Look for nullable annotations on the generic method declaration.
-                if (GetNullableContextFlag(typeParam.DeclaringType!) is byte flag2)
-                {
-                    return flag2 == 1;
-                }
-
-                // Default to nullable.
-                return false;
-
-                static byte[]? GetNullableFlags(MemberInfo member)
-                {
-                    Attribute? attr = member.GetCustomAttributes().FirstOrDefault(attr =>
-                    {
-                        Type attrType = attr.GetType();
-                        return attrType.Namespace == "System.Runtime.CompilerServices" && attrType.Name == "NullableAttribute";
-                    });
-
-                    return (byte[])attr?.GetType().GetField("NullableFlags")?.GetValue(attr)!;
-                }
-
-                static byte? GetNullableContextFlag(MemberInfo member)
-                {
-                    Attribute? attr = member.GetCustomAttributes().FirstOrDefault(attr =>
-                    {
-                        Type attrType = attr.GetType();
-                        return attrType.Namespace == "System.Runtime.CompilerServices" && attrType.Name == "NullableContextAttribute";
-                    });
-
-                    return (byte?)attr?.GetType().GetField("Flag")?.GetValue(attr)!;
-                }
-            }
-
-            return info.WriteState is NullabilityState.NotNull;
-        }
-        else
-        {
-            // The parameter type is a non-nullable struct.
-            return true;
-        }
-    }
-
-    private static NullabilityInfo? GetNullabilityInfo(ICustomAttributeProvider memberInfo)
-    {
-        Debug.Assert(memberInfo is PropertyInfo or FieldInfo or ParameterInfo);
-
-        switch (memberInfo)
-        {
-            case PropertyInfo prop when (prop.PropertyType.IsNullable()):
-                return new NullabilityInfoContext().Create(prop);
-
-            case FieldInfo field when (field.FieldType.IsNullable()):
-                return new NullabilityInfoContext().Create(field);
-
-            case ParameterInfo parameter when (parameter.ParameterType.IsNullable()):
-                return new NullabilityInfoContext().Create(parameter);
-        }
-
-        return null;
-    }
-
-    public static ParameterInfo GetGenericParameterDefinition(this ParameterInfo parameter)
-    {
-        if (parameter.Member is { DeclaringType.IsConstructedGenericType: true } 
-                             or MethodInfo { IsConstructedGenericMethod: true })
-        {
-            var genericMethod = (MethodBase)parameter.Member.GetGenericMemberDefinition()!;
-            return genericMethod.GetParameters()[parameter.Position];
-        }
-
-        return parameter;
-    }
-
-    public static MemberInfo GetGenericMemberDefinition(this MemberInfo member)
-    {
-        if (member is Type type)
-        {
-            return type.IsConstructedGenericType ? type.GetGenericTypeDefinition() : type;
-        }
-
-
-        if (member.DeclaringType!.IsConstructedGenericType)
-        {
-            const BindingFlags AllMemberFlags =
-                BindingFlags.Static | BindingFlags.Instance |
-                BindingFlags.Public | BindingFlags.NonPublic;
-
-            return member.DeclaringType.GetGenericTypeDefinition()
-                .GetMember(member.Name, AllMemberFlags)
-                .First(m => m.MetadataToken == member.MetadataToken);
-        }
-
-        if (member is MethodInfo { IsConstructedGenericMethod: true } method)
-        {
-            return method.GetGenericMethodDefinition();
-        }
-
-        return member;
-    }
-
-    public static bool TryGetDefaultValueNormalized(this ParameterInfo parameterInfo, out object? result)
-    {
-        if (!parameterInfo.HasDefaultValue)
-        {
-            result = null;
-            return false;
-        }
-
-        Type parameterType = parameterInfo.ParameterType;
-        object? defaultValue = parameterInfo.DefaultValue;
-
-        if (defaultValue is null)
-        {
-            // ParameterInfo can report null defaults for value types, ignore such cases.
-            result = null;
-            return !parameterType.IsValueType || parameterType.IsNullableStruct();
-        }
-
-        Debug.Assert(defaultValue is not DBNull, "should have been caught by the HasDefaultValue check.");
-
-        if (parameterType.IsEnum)
-        {
-            defaultValue = Enum.ToObject(parameterType, defaultValue);
-        }
-        else if (Nullable.GetUnderlyingType(parameterType) is Type underlyingType && underlyingType.IsEnum)
-        {
-            defaultValue = Enum.ToObject(underlyingType, defaultValue);
-        }
-        else if (parameterType == typeof(IntPtr))
-        {
-            defaultValue = checked((IntPtr)Convert.ToInt64(defaultValue, CultureInfo.InvariantCulture));
-        }
-        else if (parameterType == typeof(UIntPtr))
-        {
-            defaultValue = checked((UIntPtr)Convert.ToUInt64(defaultValue, CultureInfo.InvariantCulture));
-        }
-
-        result = defaultValue;
-        return true;
-    }
-
     public static bool IsImmutableArray(this Type type)
         => type.IsValueType && type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ImmutableArray<>);
-
-    public static bool IsMemoryType(this Type type, [NotNullWhen(true)] out Type? elementType, out bool isReadOnlyMemory)
-    {
-        if (type.IsGenericType)
-        {
-            Type genericTypeDefinition = type.GetGenericTypeDefinition();
-            if (genericTypeDefinition == typeof(ReadOnlyMemory<>))
-            {
-                elementType = type.GetGenericArguments()[0];
-                isReadOnlyMemory = true;
-                return true;
-            }
-            if (genericTypeDefinition == typeof(Memory<>))
-            {
-                elementType = type.GetGenericArguments()[0];
-                isReadOnlyMemory = false;
-                return true;
-            }
-        }
-
-        elementType = null;
-        isReadOnlyMemory = false;
-        return false;
-    }
 }
 
 public sealed class TypeShapeProviderTests_Reflection : TypeShapeProviderTests

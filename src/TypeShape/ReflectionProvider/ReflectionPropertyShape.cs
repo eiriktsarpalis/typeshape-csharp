@@ -29,7 +29,8 @@ internal sealed class ReflectionPropertyShape<TDeclaringType, TPropertyType> : I
             HasGetter = true;
             HasSetter = !f.IsInitOnly;
             IsField = true;
-            IsGetterPublic = IsSetterPublic = f.IsPublic;
+            IsGetterPublic = f.IsPublic;
+            IsSetterPublic = !f.IsInitOnly && f.IsPublic;
         }
         else if (memberInfo is PropertyInfo p)
         {

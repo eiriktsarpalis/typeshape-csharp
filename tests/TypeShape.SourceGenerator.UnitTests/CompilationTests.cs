@@ -51,6 +51,21 @@ public static class CompilationTests
     }
 
     [Fact]
+    public static void CompileSimpleCollection_NoErrors()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+            using TypeShape;
+            using System.Collections;
+
+            [GenerateShape<ICollection>]
+            public partial class MyWitness;
+            """);
+
+        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Fact]
     public static void CompileClassWithMultipleSetters_NoErrors()
     {
         Compilation compilation = CompilationHelpers.CreateCompilation("""

@@ -13,7 +13,7 @@ public abstract class ObjectMapperTests
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void MapToTheSameType_ProducesEqualCopy<T>(TestCase<T> testCase)
     {
-        if (testCase.IsMultiDimensionalArray || testCase.IsAbstract)
+        if (!testCase.HasConstructors(Provider))
         {
             return;
         }

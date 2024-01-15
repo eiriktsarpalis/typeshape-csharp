@@ -4,7 +4,7 @@ using System.Collections;
 using System.Collections.Immutable;
 using System.Reflection;
 using System.Text.Encodings.Web;
-using TypeShape.SourceGenerator.Helpers;
+using TypeShape.Roslyn;
 using TypeShape.SourceGenerator.Model;
 using Xunit;
 
@@ -15,7 +15,7 @@ public record TypeShapeSourceGeneratorResult
     public required Compilation NewCompilation { get; init; }
     public required ImmutableEquatableArray<TypeShapeProviderModel> GeneratedModels { get; init; }
     public required ImmutableEquatableArray<Diagnostic> Diagnostics { get; init; }
-    public IEnumerable<TypeModel> AllGeneratedTypes => GeneratedModels.SelectMany(ctx => ctx.ProvidedTypes.Values);
+    public IEnumerable<TypeShapeModel> AllGeneratedTypes => GeneratedModels.SelectMany(ctx => ctx.ProvidedTypes.Values);
 }
 
 public static class CompilationHelpers
@@ -46,6 +46,7 @@ public static class CompilationHelpers
         MetadataReference[] references = 
         [
             MetadataReference.CreateFromFile(typeof(int).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(System.Linq.Enumerable).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(JavaScriptEncoder).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(LinkedList<>).Assembly.Location),
             MetadataReference.CreateFromFile(systemRuntimeAssembly.Location),
@@ -151,6 +152,8 @@ public static class CompilationHelpers
                         CheckAreEqualCore(expectedEntry.Key, "<missing key>", path);
                     }
                 }
+
+                return;
             }
 
             if (expected is IEnumerable leftCollection)
@@ -173,6 +176,8 @@ public static class CompilationHelpers
                     CheckAreEqualCore(expectedElement, actualElement, path);
                     path.Pop();
                 }
+
+                return;
             }
 
             if (type.GetProperty("EqualityContract", BindingFlags.Instance | BindingFlags.NonPublic, null, returnType: typeof(Type), types: Array.Empty<Type>(), null) != null)

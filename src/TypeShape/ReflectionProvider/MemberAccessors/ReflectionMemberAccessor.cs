@@ -346,8 +346,14 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
         return null!;
     }
 
-    public Func<T, TResult> CreateDelegate<T, TResult>(ConstructorInfo ctorInfo)
+    public Func<T, TResult> CreateFuncDelegate<T, TResult>(ConstructorInfo ctorInfo)
         => value => (TResult)ctorInfo.Invoke([value]);
+
+    public SpanConstructor<T, TResult> CreateSpanConstructorDelegate<T, TResult>(ConstructorInfo ctorInfo)
+    {
+        Debug.Fail("Should not be called if not using Reflection.Emit");
+        throw new NotSupportedException();
+    }
 
     private static Func<object?[]> CreateConstructorArgumentArrayFunc(IConstructorShapeInfo ctorInfo)
     {

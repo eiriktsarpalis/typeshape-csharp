@@ -18,14 +18,9 @@ public abstract class JsonTests
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void Roundtrip_Value<T>(TestCase<T> testCase)
     {
-        if (testCase.IsLongTuple)
+        if (IsUnsupportedBySTJ(testCase))
         {
-            return; // The STJ baseline doesn't support long tuples -- run in dedicated test below.
-        }
-
-        if (testCase.IsMultiDimensionalArray)
-        {
-            return; // The STJ baseline doesn't support MD arrays -- run in dedicated test below.
+            return;
         }
 
         var serializer = GetSerializerUnderTest<T>();
@@ -33,7 +28,7 @@ public abstract class JsonTests
         string json = serializer.Serialize(testCase.Value);
         Assert.Equal(ToJsonBaseline(testCase.Value), json);
 
-        if (!testCase.HasConstructors)
+        if (!testCase.HasConstructors(Provider))
         {
             Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
         }
@@ -69,14 +64,9 @@ public abstract class JsonTests
             return;
         }
 
-        if (testCase.IsLongTuple)
+        if (IsUnsupportedBySTJ(testCase))
         {
-            return; // The STJ baseline doesn't support long tuples -- run in dedicated test below.
-        }
-
-        if (testCase.IsMultiDimensionalArray)
-        {
-            return; // The STJ baseline doesn't support MD arrays -- run in dedicated test below.
+            return;
         }
 
         var serializer = GetSerializerUnderTest<PocoWithGenericProperty<T>>();
@@ -85,7 +75,7 @@ public abstract class JsonTests
         string json = serializer.Serialize(poco);
         Assert.Equal(ToJsonBaseline(poco), json);
 
-        if (!testCase.HasConstructors)
+        if (!testCase.HasConstructors(Provider))
         {
             Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
         }
@@ -122,14 +112,9 @@ public abstract class JsonTests
             return;
         }
 
-        if (testCase.IsLongTuple)
+        if (IsUnsupportedBySTJ(testCase))
         {
-            return; // The STJ baseline doesn't support long tuples -- run in dedicated test below.
-        }
-
-        if (testCase.IsMultiDimensionalArray)
-        {
-            return; // The STJ baseline doesn't support MD arrays -- run in dedicated test below.
+            return;
         }
 
         var serializer = GetSerializerUnderTest<List<T>>();
@@ -138,7 +123,7 @@ public abstract class JsonTests
         string json = serializer.Serialize(list);
         Assert.Equal(ToJsonBaseline(list), json);
 
-        if (!testCase.HasConstructors)
+        if (!testCase.HasConstructors(Provider))
         {
             Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
         }
@@ -175,14 +160,9 @@ public abstract class JsonTests
             return;
         }
 
-        if (testCase.IsLongTuple)
+        if (IsUnsupportedBySTJ(testCase))
         {
-            return; // The STJ baseline doesn't support long tuples -- run in dedicated test below.
-        }
-
-        if (testCase.IsMultiDimensionalArray)
-        {
-            return; // The STJ baseline doesn't support MD arrays -- run in dedicated test below.
+            return;
         }
 
         var serializer = GetSerializerUnderTest<Dictionary<string, T>>();
@@ -191,7 +171,7 @@ public abstract class JsonTests
         string json = serializer.Serialize(dict);
         Assert.Equal(ToJsonBaseline(dict), json);
 
-        if (!testCase.HasConstructors)
+        if (!testCase.HasConstructors(Provider))
         {
             Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
         }
@@ -351,6 +331,17 @@ public abstract class JsonTests
             => [tuple, expectedJson];
     }
 
+    [Fact]
+    public void Roundtrip_DerivedClassWithVirtualProperties()
+    {
+        const string ExpectedJson = """{"X":42,"Y":"str","Z":42,"W":0}""";
+        var serializer = GetSerializerUnderTest<DerivedClassWithVirtualProperties>();
+
+        var value = new DerivedClassWithVirtualProperties();
+        string json = serializer.Serialize(value);
+        Assert.Equal(ExpectedJson, json);
+    }
+
     public class PocoWithGenericProperty<T>
     { 
         public T? Value { get; set; }
@@ -374,6 +365,11 @@ public abstract class JsonTests
         Assert.NotNull(shape);
         return TypeShapeJsonSerializer.Create(shape);
     }
+
+    private protected static bool IsUnsupportedBySTJ<T>(TestCase<T> value) => 
+        value.IsMultiDimensionalArray ||
+        value.IsLongTuple ||
+        value.Value is DerivedClassWithVirtualProperties; // https://github.com/dotnet/runtime/issues/96996
 }
 
 public sealed class JsonTests_Reflection : JsonTests
@@ -392,15 +388,15 @@ public sealed class JsonTests_SourceGen : JsonTests
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void Roundtrip_TypeShapeProvider_Value<T, TProvider>(TestCase<T, TProvider> testCase) where TProvider : ITypeShapeProvider<T>
     {
-        if (testCase.IsLongTuple || testCase.IsMultiDimensionalArray)
+        if (IsUnsupportedBySTJ(testCase))
         {
-            return; // The STJ baseline doesn't support long tuples or MD arrays.
+            return;
         }
 
         string json = TypeShapeJsonSerializer.Serialize<T, TProvider>(testCase.Value);
         Assert.Equal(ToJsonBaseline(testCase.Value), json);
 
-        if (!testCase.HasConstructors)
+        if (!testCase.HasConstructors(Provider))
         {
             Assert.Throws<NotSupportedException>(() => TypeShapeJsonSerializer.Deserialize<T, TProvider>(json));
         }

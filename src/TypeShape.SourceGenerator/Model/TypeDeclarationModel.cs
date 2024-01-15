@@ -1,4 +1,4 @@
-﻿using TypeShape.SourceGenerator.Helpers;
+﻿using TypeShape.Roslyn;
 
 namespace TypeShape.SourceGenerator.Model;
 

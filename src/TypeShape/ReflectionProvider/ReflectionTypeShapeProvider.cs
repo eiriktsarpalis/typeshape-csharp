@@ -18,6 +18,7 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
     internal const string RequiresUnreferencedCodeMessage = "TypeShape Reflection provider requires unreferenced code.";
     internal const string RequiresDynamicCodeMessage = "TypeShape Reflection provider requires dynamic code.";
 
+
     /// <summary>
     /// Gets the default provider instance using configuration supported by the current platform.
     /// </summary>
@@ -34,7 +35,14 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
         MemberAccessor = useReflectionEmit 
             ? new ReflectionEmitMemberAccessor() 
             : new ReflectionMemberAccessor();
+
+        UseReflectionEmit = useReflectionEmit;
     }
+
+    /// <summary>
+    /// Whether System.Reflection.Emit is used when generating member accessors.
+    /// </summary>
+    public bool UseReflectionEmit { get; }
 
     /// <summary>
     /// Gets a <see cref="ITypeShape{T}"/> instance corresponding to the supplied type.
@@ -199,5 +207,44 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
         Debug.Assert(nullableType.IsNullableStruct());
         Type nullableTypeTy = typeof(ReflectionNullableShape<>).MakeGenericType(nullableType.GetGenericArguments());
         return (INullableShape)Activator.CreateInstance(nullableTypeTy, this)!;
+    }
+
+    internal static IConstructorShapeInfo CreateTupleConstructorShapeInfo(Type tupleType)
+    {
+        Debug.Assert(tupleType.IsTupleType());
+
+        if (!tupleType.IsNestedTupleRepresentation())
+        {
+            // Treat non-nested tuples as regular types.
+            ConstructorInfo ctorInfo = tupleType.GetConstructors()[0];
+            return new MethodConstructorShapeInfo(tupleType, ctorInfo);
+        }
+
+        return CreateNestedTupleCtorInfo(tupleType, offset: 0);
+
+        static TupleConstructorShapeInfo CreateNestedTupleCtorInfo(Type tupleType, int offset)
+        {
+            Debug.Assert(tupleType.IsTupleType());
+            ConstructorInfo ctorInfo = tupleType.GetConstructors()[0];
+            ParameterInfo[] parameters = ctorInfo.GetParameters();
+            MethodParameterShapeInfo[] ctorParameterInfo;
+            TupleConstructorShapeInfo? nestedCtor;
+
+            if (parameters.Length == 8 && parameters[7].ParameterType.IsTupleType())
+            {
+                ctorParameterInfo = MapParameterInfo(parameters.Take(7));
+                nestedCtor = CreateNestedTupleCtorInfo(parameters[7].ParameterType, offset);
+            }
+            else
+            {
+                ctorParameterInfo = MapParameterInfo(parameters);
+                nestedCtor = null;
+            }
+
+            return new TupleConstructorShapeInfo(tupleType, ctorInfo, ctorParameterInfo, nestedCtor);
+
+            MethodParameterShapeInfo[] MapParameterInfo(IEnumerable<ParameterInfo> parameters)
+                => parameters.Select(p => new MethodParameterShapeInfo(p, logicalName: $"Item{++offset}")).ToArray();
+        }
     }
 }

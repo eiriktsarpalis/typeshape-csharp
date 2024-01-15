@@ -29,6 +29,14 @@ public static class IncrementalCompilationTests
 
         namespace Test;
 
+        [GenerateShape]
+        public partial record MyPoco(int x, string[] ys);
+        """)]
+    [InlineData("""
+        using TypeShape;
+
+        namespace Test;
+
         public record MyPoco(int x, string[] ys);
 
         [GenerateShape<MyPoco>]

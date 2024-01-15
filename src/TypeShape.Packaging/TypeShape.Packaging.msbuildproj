@@ -3,15 +3,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageId>typeshape-csharp</PackageId>
-    <Description>Practical Generic Programming for C#</Description>
-    <Authors>Eirik Tsarpalis</Authors>
-    <Copyright>2023</Copyright>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/eiriktsarpalis/typeshape-csharp</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/eiriktsarpalis/typeshape-csharp</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageTags>generic programming, source generator, polytypic</PackageTags>
-    <PackageOutputPath>$(RepoRoot)artifacts/</PackageOutputPath>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../TypeShape/TypeShape.csproj" />

@@ -101,7 +101,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         switch (memberInfo)
         {
             case PropertyInfo prop:
-                Debug.Assert(prop.CanRead);
+                Debug.Assert(prop.CanWrite);
                 MethodInfo setter = prop.GetSetMethod(true)!;
                 if (typeof(TDeclaringType).IsValueType)
                 {
@@ -114,6 +114,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
                 break;
 
             case FieldInfo field:
+                Debug.Assert(!field.IsInitOnly);
                 generator.Emit(OpCodes.Stfld, field);
                 break;
 
@@ -632,8 +633,11 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         }
     }
 
-    public Func<T, TResult> CreateDelegate<T, TResult>(ConstructorInfo ctorInfo)
+    public Func<T, TResult> CreateFuncDelegate<T, TResult>(ConstructorInfo ctorInfo)
         => CreateDelegate<Func<T, TResult>>(EmitConstructor(ctorInfo));
+
+    public SpanConstructor<T, TResult> CreateSpanConstructorDelegate<T, TResult>(ConstructorInfo ctorInfo)
+        => CreateDelegate<SpanConstructor<T, TResult>>(EmitConstructor(ctorInfo));
 
     private static DynamicMethod EmitConstructor(ConstructorInfo ctorInfo)
     {

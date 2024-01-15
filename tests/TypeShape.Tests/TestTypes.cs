@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using TypeShape.ReflectionProvider;
 using static TypeShape.Tests.ValidationTests;
 
 namespace TypeShape.Tests;
@@ -17,9 +18,10 @@ public abstract record TestCase<T>(T Value) : ITestCase
 {
     Type ITestCase.Type => typeof(T);
     object? ITestCase.Value => Value;
-    public bool HasConstructors => 
+    public bool HasConstructors(ITypeShapeProvider provider) =>
         !(IsAbstract && !typeof(IEnumerable).IsAssignableFrom(typeof(T))) &&
-        !IsMultiDimensionalArray;
+        !IsMultiDimensionalArray &&
+        (!UsesSpanConstructor || provider is not ReflectionTypeShapeProvider { UseReflectionEmit: false });
 
     public bool IsNullable => default(T) is null;
     public bool IsEquatable => Value is IEquatable<T> &&
@@ -33,13 +35,13 @@ public abstract record TestCase<T>(T Value) : ITestCase
     public bool IsAbstract => typeof(T).IsAbstract || typeof(T).IsInterface;
     public bool IsStack { get; init; }
     public bool DoesNotRoundtrip { get; init; }
+    public bool UsesSpanConstructor { get; init; }
 }
 
 public interface ITestCase
 {
     public Type Type { get; }
     public object? Value { get; }
-    public bool HasConstructors { get; }
 }
 
 public static class TestTypes
@@ -129,6 +131,10 @@ public static class TestTypes
         yield return Create(new StructDictionary<string, string> { ["key"] = "value" }, p);
         yield return Create<CollectionWithBuilderAttribute, SourceGenProvider>([1, 2, 3], p);
         yield return Create<GenericCollectionWithBuilderAttribute<int>, SourceGenProvider>([1, 2, 3], p);
+        yield return Create(new CollectionWithEnumerableCtor([1, 2, 3]), p);
+        yield return Create(new DictionaryWithEnumerableCtor([new("key", 42)]), p);
+        yield return Create(new CollectionWithSpanCtor([1, 2, 3]), p, usesSpanCtor: true);
+        yield return Create(new DictionaryWithSpanCtor([new("key", 42)]), p, usesSpanCtor: true);
 
         yield return Create<ImmutableArray<int>, SourceGenProvider>([1, 2, 3], p);
         yield return Create<ImmutableList<string>, SourceGenProvider>(["1", "2", "3"], p);
@@ -149,6 +155,8 @@ public static class TestTypes
 
         yield return Create(new BaseClass { X = 1 }, p);
         yield return Create(new DerivedClass { X = 1, Y = 2 }, p);
+        
+        yield return Create(new DerivedClassWithVirtualProperties(), p);
 
         var value = new DiamondImplementation { X = 1, Y = 2, Z = 3, W = 4, T = 5 };
         yield return Create<IBaseInterface, SourceGenProvider>(value, p);
@@ -394,9 +402,9 @@ public static class TestTypes
         yield return CreateSelfProvided(new PersonRecord("John", 40));
         yield return CreateSelfProvided(new PersonRecordStruct("John", 40));
 
-        static TestCase<T, TProvider> Create<T, TProvider>(T value, TProvider provider, bool isStack = false, bool doesNotRoundtrip = false) 
+        static TestCase<T, TProvider> Create<T, TProvider>(T value, TProvider provider, bool isStack = false, bool doesNotRoundtrip = false, bool usesSpanCtor = false) 
             where TProvider : ITypeShapeProvider<T> 
-            => new(value) { IsStack = isStack, DoesNotRoundtrip = doesNotRoundtrip };
+            => new(value) { IsStack = isStack, DoesNotRoundtrip = doesNotRoundtrip, UsesSpanConstructor = usesSpanCtor };
 
         static TestCase<T, T> CreateSelfProvided<T>(T value) where T : ITypeShapeProvider<T>
             => new(value);
@@ -497,6 +505,51 @@ public class BaseClass
 public class DerivedClass : BaseClass
 {
     public int Y { get; set; }
+}
+
+public abstract class BaseClassWithVirtualProperties
+{
+    public virtual int X { get; set; }
+    public abstract string Y { get; set; }
+    public virtual int Z { get; set; }
+    public virtual int W { get; set; }
+}
+
+public class DerivedClassWithVirtualProperties : BaseClassWithVirtualProperties
+{
+    private int? _x;
+    private string? _y;
+
+    public override int X 
+    {
+        get => _x ?? 42;
+        set
+        {
+            if (_x != null)
+            {
+                throw new InvalidOperationException("Value has already been set once");
+            }
+
+            _x = value;
+        }
+    }
+
+    public override string Y
+    {
+        get => _y ?? "str";
+        set
+        {
+            if (_y != null)
+            {
+                throw new InvalidOperationException("Value has already been set once");
+            }
+
+            _y = value;
+        }
+    }
+
+    public override int Z => 42;
+    public override int W { set => base.W = value; }
 }
 
 public interface IBaseInterface
@@ -1076,6 +1129,50 @@ public static class GenericCollectionWithBuilderAttribute
     }
 }
 
+public class CollectionWithEnumerableCtor : List<int>
+{
+    public CollectionWithEnumerableCtor(IEnumerable<int> values)
+    {
+        foreach (var value in values)
+        {
+            Add(value);
+        }
+    }
+}
+
+public class DictionaryWithEnumerableCtor : Dictionary<string, int>
+{
+    public DictionaryWithEnumerableCtor(IEnumerable<KeyValuePair<string, int>> values)
+    {
+        foreach (var value in values)
+        {
+            this[value.Key] = value.Value;
+        }
+    }
+}
+
+public class CollectionWithSpanCtor : List<int>
+{
+    public CollectionWithSpanCtor(ReadOnlySpan<int> values)
+    {
+        foreach (var value in values)
+        {
+            Add(value);
+        }
+    }
+}
+
+public class DictionaryWithSpanCtor : Dictionary<string, int>
+{
+    public DictionaryWithSpanCtor(ReadOnlySpan<KeyValuePair<string, int>> values)
+    {
+        foreach (var value in values)
+        {
+            this[value.Key] = value.Value;
+        }
+    }
+}
+
 public record Todos(Todo[] Items);
 
 public record Todo(int Id, string? Title, DateOnly? DueBy, Status Status);
@@ -1174,6 +1271,7 @@ public record HighLowTemps
 [GenerateShape<PocoWithListAndDictionaryProps>]
 [GenerateShape<BaseClass>]
 [GenerateShape<DerivedClass>]
+[GenerateShape<DerivedClassWithVirtualProperties>]
 [GenerateShape<IBaseInterface>]
 [GenerateShape<IDerivedInterface>]
 [GenerateShape<IDerived2Interface>]
@@ -1289,6 +1387,10 @@ public record HighLowTemps
 [GenerateShape<PersonRecordStruct>]
 [GenerateShape<CollectionWithBuilderAttribute>]
 [GenerateShape<GenericCollectionWithBuilderAttribute<int>>]
+[GenerateShape<CollectionWithEnumerableCtor>]
+[GenerateShape<DictionaryWithEnumerableCtor>]
+[GenerateShape<CollectionWithSpanCtor>]
+[GenerateShape<DictionaryWithSpanCtor>]
 [GenerateShape<ClassWithInternalMembers>]
 [GenerateShape<Todos>]
 [GenerateShape<WeatherForecast>]
