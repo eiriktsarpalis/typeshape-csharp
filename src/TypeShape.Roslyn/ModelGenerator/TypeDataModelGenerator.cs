@@ -17,7 +17,7 @@ public partial class TypeDataModelGenerator
     /// Creates a new <see cref="TypeDataModelGenerator"/> instance.
     /// </summary>
     /// <param name="generationScope">The context symbol used to determine accessibility for processed types.</param>
-    /// <param name="knownSymbols">The known symbols cache constructed from the current <see cref="Compilation">.</param>
+    /// <param name="knownSymbols">The known symbols cache constructed from the current <see cref="Compilation"/>.</param>
     /// <param name="cancellationToken">The cancellation token to be used by the generator.</param>
     public TypeDataModelGenerator(ISymbol generationScope, KnownSymbols knownSymbols, CancellationToken cancellationToken)
     {
@@ -33,7 +33,7 @@ public partial class TypeDataModelGenerator
     public ISymbol GenerationScope { get; }
 
     /// <summary>
-    /// The known symbols cache constructed from the current <see cref="Compilation">.
+    /// The known symbols cache constructed from the current <see cref="Compilation" />.
     /// </summary>
     public KnownSymbols KnownSymbols { get; }
 

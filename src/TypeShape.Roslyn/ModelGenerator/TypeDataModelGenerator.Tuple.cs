@@ -7,7 +7,7 @@ namespace TypeShape.Roslyn;
 public partial class TypeDataModelGenerator
 {
     /// <summary>
-    /// Determines whether <see cref="System.Tuple"> tuples should be mapped to 
+    /// Determines whether <see cref="System.Tuple" /> tuples should be mapped to 
     /// <see cref="TupleDataModel"/> instances and flattened to a single type for
     /// tuples containing over 8 elements.
     /// </summary>

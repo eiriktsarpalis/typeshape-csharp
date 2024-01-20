@@ -1,4 +1,6 @@
-﻿namespace TypeShape.Roslyn;
+﻿using Microsoft.CodeAnalysis;
+
+namespace TypeShape.Roslyn;
 
 /// <summary>
 /// Model generation result returned for a requested <see cref="ITypeSymbol"/>.

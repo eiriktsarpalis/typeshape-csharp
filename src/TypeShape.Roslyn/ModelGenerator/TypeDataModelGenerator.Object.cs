@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Reflection;
 using TypeShape.Roslyn.Helpers;
 
 namespace TypeShape.Roslyn;
@@ -127,7 +128,7 @@ public partial class TypeDataModelGenerator
 
     private PropertyDataModel MapProperty(ITypeSymbol type, IPropertySymbol property)
     {
-        Debug.Assert(!property.IsStatic && !property.IsIndexer);
+        Debug.Assert(property is { IsStatic: false, IsIndexer: false });
         property = property.OverriddenProperty ?? property; // If an override, we want to process the original property.
         property.ResolveNullableAnnotation(out bool isGetterNonNullable, out bool isSetterNonNullable);
         return new PropertyDataModel(property)

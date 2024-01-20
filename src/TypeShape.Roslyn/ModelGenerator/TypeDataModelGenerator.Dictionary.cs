@@ -138,8 +138,8 @@ public partial class TypeDataModelGenerator
             {
                 return KnownSymbols.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableDictionary")
                     .GetMethodSymbol(method =>
-                        method.IsStatic && method.IsGenericMethod && method.Name is "CreateRange" &&
-                        method.Parameters.Length == 1 && method.Parameters[0].Type.Name is "IEnumerable")
+                        method is { IsStatic: true, IsGenericMethod: true, Name: "CreateRange", Parameters: [var param] } &&
+                        param.Type.Name is "IEnumerable")
                     .MakeGenericMethod(namedType.TypeArguments[0], namedType.TypeArguments[1]);
             }
 
@@ -147,8 +147,8 @@ public partial class TypeDataModelGenerator
             {
                 return KnownSymbols.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableSortedDictionary")
                     .GetMethodSymbol(method =>
-                        method.IsStatic && method.IsGenericMethod && method.Name is "CreateRange" &&
-                        method.Parameters.Length == 1 && method.Parameters[0].Type.Name is "IEnumerable")
+                        method is { IsStatic: true, IsGenericMethod: true, Name: "CreateRange", Parameters: [var param] } && 
+                        param.Type.Name is "IEnumerable")
                     .MakeGenericMethod(namedType.TypeArguments[0], namedType.TypeArguments[1]);
             }
 
