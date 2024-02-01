@@ -1373,8 +1373,8 @@ public record DerivedClassWithShadowingMember : BaseClassWithShadowingMembers
 [GenerateShape<(int, int, int, int, int, int, int)>]
 [GenerateShape<(int, int, int, int, int, int, int, int, int)>]
 [GenerateShape<(int, int, int, int, int, int, int, int, int, int, 
-                   int, int, int, int, int, int, int, int, int, int,
-                   int, int, int, int, int, int, int, int, int, int)>]
+                int, int, int, int, int, int, int, int, int, int,
+                int, int, int, int, int, int, int, int, int, int)>]
 [GenerateShape<Dictionary<int, (int, int)>>]
 [GenerateShape<Tuple<int>>]
 [GenerateShape<Tuple<int, int>>]
