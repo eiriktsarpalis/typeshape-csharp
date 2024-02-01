@@ -124,11 +124,15 @@ public sealed partial class Parser
         List<ConstructorParameterShapeModel>? requiredOrInitMembers = null;
         List<ConstructorParameterShapeModel>? optionalProperties = null;
 
-        foreach (PropertyDataModel propertyModel in constructor.MemberInitializers)
+        foreach (PropertyDataModel propertyModel in constructor.MemberInitializers.OrderByDescending(p => p.IsRequired || p.IsInitOnly))
         {
             var memberInitializer = new ConstructorParameterShapeModel
             {
                 ParameterType = CreateTypeId(propertyModel.PropertyType),
+                DeclaringType = SymbolEqualityComparer.Default.Equals(propertyModel.DeclaringType, declaringType)
+                    ? declaringTypeId
+                    : CreateTypeId(propertyModel.DeclaringType),
+
                 Name = propertyModel.Name,
                 Position = position++,
                 IsRequired = propertyModel.IsRequired,
@@ -161,7 +165,7 @@ public sealed partial class Parser
                 ? declaringTypeId
                 : CreateTypeId(constructor.DeclaringType),
 
-            Parameters = constructor.Parameters.Select(MapConstructorParameter).ToImmutableEquatableArray(),
+            Parameters = constructor.Parameters.Select(p => MapConstructorParameter(declaringTypeId, p)).ToImmutableEquatableArray(),
             RequiredOrInitMembers = requiredOrInitMembers?.ToImmutableEquatableArray() ?? [],
             OptionalMembers = optionalProperties?.ToImmutableEquatableArray() ?? [],
             OptionalMemberFlagsType = (optionalProperties?.Count ?? 0) switch
@@ -179,12 +183,13 @@ public sealed partial class Parser
         };
     }
 
-    private static ConstructorParameterShapeModel MapConstructorParameter(ConstructorParameterDataModel parameter)
+    private static ConstructorParameterShapeModel MapConstructorParameter(TypeId declaringTypeId, ConstructorParameterDataModel parameter)
     {
         return new ConstructorParameterShapeModel
         {
             Name = parameter.Parameter.Name,
             Position = parameter.Parameter.Ordinal,
+            DeclaringType = declaringTypeId,
             ParameterType = CreateTypeId(parameter.Parameter.Type),
             Kind = ParameterKind.ConstructorParameter,
             IsRequired = !parameter.HasDefaultValue,
@@ -216,7 +221,7 @@ public sealed partial class Parser
         yield return new ConstructorShapeModel
         {
             DeclaringType = typeId,
-            Parameters = tupleModel.Elements.Select(MapTupleConstructorParameter).ToImmutableEquatableArray(),
+            Parameters = tupleModel.Elements.Select((p, i) => MapTupleConstructorParameter(typeId, p, i)).ToImmutableEquatableArray(),
             RequiredOrInitMembers = [],
             OptionalMembers = [],
             OptionalMemberFlagsType = OptionalMemberFlagsType.None,
@@ -224,13 +229,14 @@ public sealed partial class Parser
             IsPublic = true,
         };
 
-        static ConstructorParameterShapeModel MapTupleConstructorParameter(PropertyDataModel tupleElement, int position)
+        static ConstructorParameterShapeModel MapTupleConstructorParameter(TypeId typeId, PropertyDataModel tupleElement, int position)
         {
             return new ConstructorParameterShapeModel
             {
                 Name = $"Item{position + 1}",
                 Position = position,
                 ParameterType = CreateTypeId(tupleElement.PropertyType),
+                DeclaringType = typeId,
                 HasDefaultValue = false,
                 Kind = ParameterKind.ConstructorParameter,
                 IsRequired = true,

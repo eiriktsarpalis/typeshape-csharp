@@ -142,8 +142,8 @@ internal static class ReflectionHelpers
 
         if (member.DeclaringType!.IsConstructedGenericType)
         {
-            const BindingFlags AllMemberFlags = 
-                BindingFlags.Static | BindingFlags.Instance | 
+            const BindingFlags AllMemberFlags =
+                BindingFlags.Static | BindingFlags.Instance |
                 BindingFlags.Public | BindingFlags.NonPublic;
 
             return member.DeclaringType.GetGenericTypeDefinition()
@@ -243,7 +243,7 @@ internal static class ReflectionHelpers
                     builderMethod = method;
                     return true;
                 }
-                
+
                 if (method.IsGenericMethod && method.GetGenericArguments() is [Type typeParameter] &&
                     spanElementType == typeParameter)
                 {
@@ -323,24 +323,22 @@ internal static class ReflectionHelpers
 
     public static bool IsExplicitInterfaceImplementation(this PropertyInfo propertyInfo)
     {
-        return 
+        return
             propertyInfo.GetMethod?.IsExplicitInterfaceImplementation() == true ||
-            propertyInfo.SetMethod?.IsExplicitInterfaceImplementation() == true ;
+            propertyInfo.SetMethod?.IsExplicitInterfaceImplementation() == true;
     }
 
-    public static PropertyInfo GetBaseProperty(this PropertyInfo propertyInfo)
+    public static bool IsOverride(this MemberInfo member)
     {
-        MethodInfo? getterOrSetter = propertyInfo.GetGetMethod(true) ?? propertyInfo.GetSetMethod(true);
-        Debug.Assert(getterOrSetter != null);
-        MethodInfo baseMethod = getterOrSetter.GetBaseDefinition();
-        if (baseMethod.DeclaringType != getterOrSetter.DeclaringType)
+        Debug.Assert(member is FieldInfo or PropertyInfo);
+        if (member is PropertyInfo propInfo)
         {
-            // Find the base property with the same name and getter signature
-            const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
-            return baseMethod.DeclaringType!.GetProperty(propertyInfo.Name, flags)!;
+            MethodInfo? getterOrSetter = propInfo.GetMethod ?? propInfo.SetMethod;
+            Debug.Assert(getterOrSetter != null);
+            return getterOrSetter.IsVirtual && getterOrSetter.GetBaseDefinition() != getterOrSetter;
         }
 
-        return propertyInfo;
+        return false;
     }
 
     public static bool TryGetDefaultValueNormalized(this ParameterInfo parameterInfo, out object? result)
@@ -384,13 +382,22 @@ internal static class ReflectionHelpers
         return true;
     }
 
-    public static Type[] GetSortedTypeHierarchy(this Type type)
+    public static ICollection<Type> GetSortedTypeHierarchy(this Type type)
     {
         if (!type.IsInterface)
         {
-            // No need to walk the class hierarchy in reflection,
-            // all members are reported in the current type.
-            return [type];
+            var list = new List<Type>();
+            for (Type? current = type; current != null; current = current.BaseType)
+            {
+                if (current == typeof(object) || current == typeof(ValueType))
+                {
+                    break;
+                }
+
+                list.Add(current);
+            }
+
+            return list;
         }
         else
         {

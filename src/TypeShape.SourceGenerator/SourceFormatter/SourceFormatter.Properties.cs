@@ -57,9 +57,7 @@ internal static partial class SourceFormatter
                     return "null";
                 }
 
-                return property.IsField
-                    ? $"static () => typeof({property.DeclaringType.FullyQualifiedName}).GetField({FormatStringLiteral(property.Name)}, {InstanceBindingFlagsConstMember})"
-                    : $"static () => typeof({property.DeclaringType.FullyQualifiedName}).GetProperty({FormatStringLiteral(property.Name)}, {InstanceBindingFlagsConstMember})";
+                return $"static () => typeof({property.DeclaringType.FullyQualifiedName}).GetMember({FormatStringLiteral(property.Name)}, {InstanceBindingFlagsConstMember})[0]";
             }
         }
 

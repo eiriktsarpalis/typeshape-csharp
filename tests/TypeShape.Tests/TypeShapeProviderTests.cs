@@ -477,7 +477,7 @@ public abstract class TypeShapeProviderTests
             if (property.IsField)
             {
                 FieldInfo fieldInfo = Assert.IsAssignableFrom<FieldInfo>(attributeProvider);
-                Assert.Equal(typeof(T), fieldInfo.ReflectedType);
+                Assert.True(fieldInfo.DeclaringType!.IsAssignableFrom(typeof(T)));
                 Assert.Equal(property.Name, fieldInfo.Name);
                 Assert.Equal(property.PropertyType.Type, fieldInfo.FieldType);
                 Assert.True(property.HasGetter);
@@ -488,7 +488,7 @@ public abstract class TypeShapeProviderTests
             else
             {
                 PropertyInfo propertyInfo = Assert.IsAssignableFrom<PropertyInfo>(attributeProvider);
-                propertyInfo = propertyInfo.GetBaseProperty();
+                Assert.False(propertyInfo.IsOverride());
                 Assert.True(propertyInfo.DeclaringType!.IsAssignableFrom(typeof(T)));
                 Assert.Equal(property.Name, propertyInfo.Name);
                 Assert.Equal(property.PropertyType.Type, propertyInfo.PropertyType);
@@ -552,7 +552,6 @@ public abstract class TypeShapeProviderTests
 
                     if (memberInfo is PropertyInfo p)
                     {
-                        p = p.GetBaseProperty();
                         Assert.Equal(p.PropertyType, ctorParam.ParameterType.Type);
                         Assert.NotNull(p.SetMethod);
                     }

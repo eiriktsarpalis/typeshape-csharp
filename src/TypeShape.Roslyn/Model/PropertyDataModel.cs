@@ -18,9 +18,9 @@ public readonly struct PropertyDataModel
     }
 
     /// <summary>
-    /// The logical declaring type of the property or field.
+    /// The declaring type of the property or field.
     /// </summary>
-    public required ITypeSymbol DeclaringType { get; init; }
+    public ITypeSymbol DeclaringType => PropertySymbol.ContainingType;
 
     /// <summary>
     /// Either an IPropertySymbol or an IFieldSymbol.

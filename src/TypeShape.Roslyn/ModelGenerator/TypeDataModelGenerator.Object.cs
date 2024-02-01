@@ -84,7 +84,7 @@ public partial class TypeDataModelGenerator
     private ImmutableArray<PropertyDataModel> MapProperties(INamedTypeSymbol type, ref TypeDataModelGenerationContext ctx)
     {
         List<PropertyDataModel> properties = [];
-        HashSet<IPropertySymbol>? overrides = null;
+        HashSet<string> membersInScope = new(StringComparer.Ordinal);
 
         foreach (ITypeSymbol current in type.GetSortedTypeHierarchy())
         {
@@ -95,46 +95,34 @@ public partial class TypeDataModelGenerator
             foreach (ISymbol member in members) 
             {
                 if (member is IPropertySymbol { IsStatic: false, Parameters: [] } ps &&
-                    !IsAlreadyProcessedOverride(ps) && IsAccessibleSymbol(ps) && !IgnoreProperty(ps) &&
+                    IsAccessibleSymbol(ps) && !IsOverriddenOrShadowed(ps) && !IgnoreProperty(ps) && 
                     IncludeNestedType(ps.Type, ref ctx) is TypeDataModelGenerationStatus.Success)
                 {
-                    PropertyDataModel propertyModel = MapProperty(type, ps);
+                    PropertyDataModel propertyModel = MapProperty(ps);
                     properties.Add(propertyModel);
                 }
                 else if (
-                    member is IFieldSymbol { IsStatic: false } fs &&
-                    IsAccessibleSymbol(fs) && !IgnoreField(fs) &&
+                    member is IFieldSymbol { IsStatic: false, IsConst: false } fs &&
+                    IsAccessibleSymbol(fs) && !IsOverriddenOrShadowed(fs) && !IgnoreField(fs) && 
                     IncludeNestedType(fs.Type, ref ctx) is TypeDataModelGenerationStatus.Success)
                 {
                     PropertyDataModel fieldModel = MapField(fs);
                     properties.Add(fieldModel);
                 }
+
+                bool IsOverriddenOrShadowed(ISymbol member) => member.IsOverride || !membersInScope.Add(member.Name);
             }
         }
 
         return properties.ToImmutableArray();
-
-        bool IsAlreadyProcessedOverride(IPropertySymbol property)
-        {
-            if (property.OverriddenProperty is IPropertySymbol originalProp)
-            {
-                overrides ??= new(SymbolEqualityComparer.Default);
-                return !overrides.Add(originalProp);
-            }
-
-            return overrides?.Contains(property) == true;
-        }
     }
 
-    private PropertyDataModel MapProperty(ITypeSymbol type, IPropertySymbol property)
+    private PropertyDataModel MapProperty(IPropertySymbol property)
     {
         Debug.Assert(property is { IsStatic: false, IsIndexer: false });
-        property = property.OverriddenProperty ?? property; // If an override, we want to process the original property.
         property.ResolveNullableAnnotation(out bool isGetterNonNullable, out bool isSetterNonNullable);
         return new PropertyDataModel(property)
         {
-            // For interface types, we use the declaring type of the property rather than the actual type.
-            DeclaringType = type.TypeKind is TypeKind.Interface ? property.ContainingType : type,
             CanRead = property.GetMethod is { } getter && IsAccessibleSymbol(getter),
             CanWrite = property.SetMethod is IMethodSymbol { IsInitOnly: false } setter && IsAccessibleSymbol(setter),
             IsGetterNonNullable = isGetterNonNullable,
@@ -148,7 +136,6 @@ public partial class TypeDataModelGenerator
         field.ResolveNullableAnnotation(out bool isGetterNonNullable, out bool isSetterNonNullable);
         return new PropertyDataModel(field)
         {
-            DeclaringType = field.ContainingType,
             CanRead = true,
             CanWrite = !field.IsReadOnly,
             IsGetterNonNullable = isGetterNonNullable,

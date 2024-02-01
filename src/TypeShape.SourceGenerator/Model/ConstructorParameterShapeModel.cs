@@ -4,6 +4,7 @@ public sealed record ConstructorParameterShapeModel
 {
     public required string Name { get; init; }
     public required TypeId ParameterType { get; init; }
+    public required TypeId DeclaringType { get; init; }
     public required ParameterKind Kind { get; init; }
     public required int Position { get; init; }
     public required bool IsRequired { get; init; }

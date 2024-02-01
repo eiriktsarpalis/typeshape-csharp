@@ -148,6 +148,7 @@ internal static partial class SourceFormatter
                 {
                     Debug.Assert(parameter.Kind is ParameterKind.OptionalMember);
                     int flagOffset = parameter.Position - constructor.Parameters.Length - constructor.RequiredOrInitMembers.Length;
+                    Debug.Assert(flagOffset >= 0);
                     string conditionalExpr = constructor.OptionalMemberFlagsType is OptionalMemberFlagsType.BitArray
                         ? $"{stateVar}.Item{constructor.TotalArity + 1}[{flagOffset}]"
                         : $"({stateVar}.Item{constructor.TotalArity + 1} & (1 << {flagOffset})) != 0";
@@ -241,7 +242,7 @@ internal static partial class SourceFormatter
 
                 if (parameter.Kind is not ParameterKind.ConstructorParameter)
                 {
-                    return $"static () => typeof({constructor.DeclaringType.FullyQualifiedName}).GetMember({FormatStringLiteral(parameter.Name)}, {InstanceBindingFlagsConstMember})[0]";
+                    return $"static () => typeof({parameter.DeclaringType.FullyQualifiedName}).GetMember({FormatStringLiteral(parameter.Name)}, {InstanceBindingFlagsConstMember})[0]";
                 }
 
                 string parameterTypes = constructor.Parameters.Length == 0
@@ -262,6 +263,7 @@ internal static partial class SourceFormatter
                 if (parameter.Kind is ParameterKind.OptionalMember)
                 {
                     int flagOffset = parameter.Position - constructor.Parameters.Length - constructor.RequiredOrInitMembers.Length;
+                    Debug.Assert(flagOffset >= 0);
                     string setFlagExpr = constructor.OptionalMemberFlagsType is OptionalMemberFlagsType.BitArray
                         ? $"state.Item{constructor.TotalArity + 1}[{flagOffset}] = true"
                         : $"state.Item{constructor.TotalArity + 1} |= 1 << {flagOffset}";

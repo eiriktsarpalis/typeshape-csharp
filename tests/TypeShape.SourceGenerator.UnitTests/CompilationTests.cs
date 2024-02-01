@@ -150,4 +150,33 @@ public static class CompilationTests
         TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation);
         Assert.Empty(result.Diagnostics);
     }
+
+    [Fact]
+    public static void DerivedClassWithShadowedMembers_NoErrors()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+            using TypeShape;
+            #nullable enable
+
+            public record BaseClassWithShadowingMembers
+            {
+                public string? PropA { get; init; }
+                public string? PropB { get; init; }
+                public int FieldA;
+                public int FieldB;
+            }
+
+            [GenerateShape]
+            public partial record DerivedClassWithShadowingMember : BaseClassWithShadowingMembers
+            {
+                public new string? PropA { get; init; }
+                public required new int PropB { get; init; }
+                public new int FieldA;
+                public required new string FieldB;
+            }
+            """);
+
+        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
 }

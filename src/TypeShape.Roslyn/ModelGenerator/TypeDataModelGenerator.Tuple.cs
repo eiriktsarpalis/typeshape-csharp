@@ -69,7 +69,7 @@ public partial class TypeDataModelGenerator
                     return true;
                 }
 
-                PropertyDataModel propertyModel = MapProperty(type, elementProp);
+                PropertyDataModel propertyModel = MapProperty(elementProp);
                 elements.Add(propertyModel);
             }
 

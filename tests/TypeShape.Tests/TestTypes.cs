@@ -395,6 +395,8 @@ public static class TestTypes
             }
         }, p);
 
+        yield return Create(new DerivedClassWithShadowingMember { PropA = "propA", PropB = 2, FieldA = 1, FieldB = "fieldB" }, p);
+
         yield return CreateSelfProvided(new PersonClass("John", 40));
         yield return CreateSelfProvided(new PersonStruct("John", 40));
         yield return CreateSelfProvided<IPersonInterface>(new IPersonInterface.Impl("John", 40));
@@ -1212,6 +1214,21 @@ public record HighLowTemps
     public int High { get; init; }
 }
 
+public record BaseClassWithShadowingMembers
+{
+    public string? PropA { get; init; }
+    public string? PropB { get; init; }
+    public int FieldA;
+    public int FieldB;
+}
+public record DerivedClassWithShadowingMember : BaseClassWithShadowingMembers
+{
+    public new string? PropA { get; init; }
+    public required new int PropB { get; init; }
+    public new int FieldA;
+    public required new string FieldB;
+}
+
 [GenerateShape<object>]
 [GenerateShape<bool>]
 [GenerateShape<string>]
@@ -1395,6 +1412,7 @@ public record HighLowTemps
 [GenerateShape<Todos>]
 [GenerateShape<WeatherForecast>]
 [GenerateShape<WeatherForecastDTO>]
+[GenerateShape<DerivedClassWithShadowingMember>]
 internal partial class SourceGenProvider;
 
 internal partial class Outer1

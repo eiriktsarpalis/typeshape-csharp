@@ -141,6 +141,7 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
     {
         Debug.Assert(Kind is TypeKind.Object);
         BindingFlags flags = GetInstanceBindingFlags(nonPublic);
+        HashSet<string> membersInScope = new(StringComparer.Ordinal);
 
         foreach (Type current in typeof(T).GetSortedTypeHierarchy())
         {
@@ -148,10 +149,10 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
             {
                 if (propertyInfo.GetIndexParameters().Length == 0 &&
                     propertyInfo.PropertyType.CanBeGenericArgument() &&
-                    !propertyInfo.IsExplicitInterfaceImplementation())
+                    !propertyInfo.IsExplicitInterfaceImplementation() &&
+                    !IsOverriddenOrShadowed(propertyInfo))
                 {
-                    // For overridden properties, only process the base definition.
-                    yield return propertyInfo.GetBaseProperty();
+                    yield return propertyInfo;
                 }
             }
 
@@ -159,13 +160,17 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
             {
                 foreach (FieldInfo fieldInfo in current.GetFields(flags))
                 {
-                    if (fieldInfo.FieldType.CanBeGenericArgument())
+                    if (fieldInfo.FieldType.CanBeGenericArgument() &&
+                        !IsOverriddenOrShadowed(fieldInfo))
                     {
                         yield return fieldInfo;
                     }
                 }
             }
         }
+
+        bool IsOverriddenOrShadowed(MemberInfo memberInfo) => 
+            memberInfo.IsOverride() || !membersInScope.Add(memberInfo.Name);
     }
 
     public IEnumShape GetEnumShape()
