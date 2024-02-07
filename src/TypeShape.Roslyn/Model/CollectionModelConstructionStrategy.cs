@@ -3,7 +3,7 @@
 /// <summary>
 /// The construction strategy resolved for the collection type.
 /// </summary>
-public enum CollectionConstructionStrategy
+public enum CollectionModelConstructionStrategy
 {
     /// <summary>
     /// No available construction strategy.
@@ -17,9 +17,16 @@ public enum CollectionConstructionStrategy
     Mutable,
 
     /// <summary>
-    /// Type exposes a constructor or factory method that takes a <see cref="IEnumerable{T}"/>.
+    /// Type exposes a constructor or factory method that takes a parameter that is compatible with <see cref="List{T}"/>,
+    /// such as <see cref="IEnumerable{T}"/> or <see cref="IList{T}"/>.
     /// </summary>
-    Enumerable,
+    List,
+
+    /// <summary>
+    /// Type exposes a constructor or factory method that takes a parameter that is compatible with <see cref="Dictionary{TKey, TValue}"/>,
+    /// such as <see cref="IReadOnlyDictionary{TKey, TValue}"/> or <see cref="IDictionary{TKey, TValue}"/>.
+    /// </summary>
+    Dictionary,
 
     /// <summary>
     /// Type defines a constructor or factory method accepting a <see cref="ReadOnlySpan{T}"/>,

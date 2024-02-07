@@ -48,7 +48,7 @@ internal static partial class SourceFormatter
                     GetEnumerableFunc = {{FormatGetEnumerableFunc(enumerableType)}},
                     AddElementFunc = {{FormatAddElementFunc(enumerableType)}},
                     Rank = {{enumerableType.Rank}},
-                };
+               };
             }
             """, trimNullAssignmentLines: true);
 
@@ -87,22 +87,31 @@ internal static partial class SourceFormatter
 
         static string FormatSpanConstructorFunc(EnumerableShapeModel enumerableType)
         {
+            if (enumerableType.ConstructionStrategy is not CollectionConstructionStrategy.Span)
+            {
+                return "null";
+            }
+
+            string valuesExpr = enumerableType.CtorRequiresListConversion ? "CollectionHelpers.CreateList(values)" : "values";
             return enumerableType switch
             {
                 { Kind: EnumerableKind.ArrayOfT or EnumerableKind.ReadOnlyMemoryOfT or EnumerableKind.MemoryOfT } => $"static values => values.ToArray()",
-                { SpanFactoryMethod: { } spanFactory } => $"static values => {spanFactory}(values)",
-                { ConstructionStrategy: CollectionConstructionStrategy.Span } => $"static values => new {enumerableType.Type.FullyQualifiedName}(values)",
-                _ => "null",
+                { StaticFactoryMethod: string spanFactory } => $"static values => {spanFactory}({valuesExpr})",
+                _ => $"static values => new {enumerableType.Type.FullyQualifiedName}({valuesExpr})",
             };
         }
 
         static string FormatEnumerableConstructorFunc(EnumerableShapeModel enumerableType)
         {
+            if (enumerableType.ConstructionStrategy is not CollectionConstructionStrategy.Enumerable)
+            {
+                return "null";
+            }
+
             return enumerableType switch
             {
-                { EnumerableFactoryMethod: string factory } => $"static values => {factory}(values)",
-                { ConstructionStrategy: CollectionConstructionStrategy.Enumerable } => $"static values => new {enumerableType.Type.FullyQualifiedName}(values)",
-                _ => "null",
+                { StaticFactoryMethod: { } enumerableFactory } => $"static values => {enumerableFactory}(values)",
+                _ => $"static values => new {enumerableType.Type.FullyQualifiedName}(values)",
             };
         }
     }
@@ -157,23 +166,32 @@ internal static partial class SourceFormatter
             };
         }
 
-        static string FormatEnumerableConstructorFunc(DictionaryShapeModel enumerableType)
+        static string FormatEnumerableConstructorFunc(DictionaryShapeModel dictionaryType)
         {
-            return enumerableType switch
+            if (dictionaryType.ConstructionStrategy is not CollectionConstructionStrategy.Enumerable)
             {
-                { EnumerableFactoryMethod: string factory } => $"static values => {factory}(values)",
-                { ConstructionStrategy: CollectionConstructionStrategy.Enumerable } => $"static values => new {enumerableType.Type.FullyQualifiedName}(values)",
-                _ => "null",
+                return "null";
+            }
+
+            return dictionaryType switch
+            {
+                { StaticFactoryMethod: string factory } => $"static values => {factory}(values)",
+                _ => $"static values => new {dictionaryType.Type.FullyQualifiedName}(values)",
             };
         }
 
-        static string FormatSpanConstructorFunc(DictionaryShapeModel enumerableType)
+        static string FormatSpanConstructorFunc(DictionaryShapeModel dictionaryType)
         {
-            return enumerableType switch
+            if (dictionaryType.ConstructionStrategy is not CollectionConstructionStrategy.Span)
             {
-                { SpanFactoryMethod: string factory } => $"static values => {factory}(values)",
-                { ConstructionStrategy: CollectionConstructionStrategy.Span } => $"static values => new {enumerableType.Type.FullyQualifiedName}(values)",
-                _ => "null",
+                return "null";
+            }
+
+            string valuesExpr = dictionaryType.CtorRequiresDictionaryConversion ? "CollectionHelpers.CreateDictionary(values)" : "values";
+            return dictionaryType switch
+            {
+                { StaticFactoryMethod: string factory } => $"static values => {factory}({valuesExpr})",
+                _ => $"static values => new {dictionaryType.Type.FullyQualifiedName}({valuesExpr})",
             };
         }
     }

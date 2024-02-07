@@ -24,7 +24,7 @@ public sealed class EnumerableDataModel : TypeDataModel
     /// <summary>
     /// The preferred construction strategy for this collection type.
     /// </summary>
-    public CollectionConstructionStrategy ConstructionStrategy { get; init; }
+    public CollectionModelConstructionStrategy ConstructionStrategy { get; init; }
 
     /// <summary>
     /// Instance method used for appending an element to the collection.
@@ -33,29 +33,9 @@ public sealed class EnumerableDataModel : TypeDataModel
     public required IMethodSymbol? AddElementMethod { get; init; }
 
     /// <summary>
-    /// Constructed using a standard implementation of the current collection interface.
+    /// Constructor or static factory method whose shape is governed by <see cref="ConstructionStrategy"/>.
     /// </summary>
-    public required INamedTypeSymbol? ImplementationType { get; init; }
-
-    /// <summary>
-    /// Static factory method accepting a <see cref="ReadOnlySpan{T}"/>.
-    /// </summary>
-    /// <remarks>
-    /// If <see langword="null"/> and <see cref="ConstructionStrategy"/> equals 
-    /// <see cref="CollectionConstructionStrategy.Span"/>, then the type has an 
-    /// accessible constructor accepting a <see cref="ReadOnlySpan{T}"/>.
-    /// </remarks>
-    public required IMethodSymbol? SpanFactory { get; init; }
-
-    /// <summary>
-    /// Static factory method accepting an <see cref="IEnumerable{T}"/>.
-    /// </summary>
-    /// <remarks>
-    /// If <see langword="null"/> and <see cref="ConstructionStrategy"/> equals 
-    /// <see cref="CollectionConstructionStrategy.Enumerable"/>, then the type has an 
-    /// accessible constructor accepting a <see cref="IEnumerable{T}"/>.
-    /// </remarks>
-    public required IMethodSymbol? EnumerableFactory { get; init; }
+    public required IMethodSymbol? FactoryMethod { get; init; }
 
     /// <summary>
     /// If the enumerable is an array, the rank of the array.

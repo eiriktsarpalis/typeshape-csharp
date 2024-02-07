@@ -19,12 +19,11 @@ public partial class TypeDataModelGenerator
 
         int rank = 1;
         EnumerableKind kind = EnumerableKind.None;
-        CollectionConstructionStrategy constructionStrategy = CollectionConstructionStrategy.None;
+        CollectionModelConstructionStrategy constructionStrategy = CollectionModelConstructionStrategy.None;
         ITypeSymbol? elementType = null;
         IMethodSymbol? addElementMethod = null;
-        IMethodSymbol? spanCtor = null;
-        INamedTypeSymbol? implementationType = null;
-        IMethodSymbol? enumerableCtor = null;
+        //INamedTypeSymbol? implementationType = null;
+        IMethodSymbol? factoryMethod = null;
 
         if (type is IArrayTypeSymbol array)
         {
@@ -72,36 +71,40 @@ public partial class TypeDataModelGenerator
 
             if (namedType.TryGetCollectionBuilderAttribute(elementType, out IMethodSymbol? builderMethod))
             {
-                constructionStrategy = CollectionConstructionStrategy.Span;
-                spanCtor = builderMethod;
+                constructionStrategy = CollectionModelConstructionStrategy.Span;
+                factoryMethod = builderMethod;
             }
-            else if (GetImmutableCollectionFactory(namedType) is IMethodSymbol factoryMethod)
+            else if (GetImmutableCollectionFactory(namedType) is IMethodSymbol factory)
             {
                 // Must be run before mutable collection checks since ImmutableArray
                 // also has a default constructor and an Add method.
-                constructionStrategy = CollectionConstructionStrategy.Enumerable;
-                enumerableCtor = factoryMethod;
+                constructionStrategy = CollectionModelConstructionStrategy.List;
+                factoryMethod = factory;
             }
-            else if (namedType.Constructors.Any(ctor => ctor.Parameters.Length == 0 && !ctor.IsStatic && IsAccessibleSymbol(ctor)) &&
+            else if (namedType.Constructors.FirstOrDefault(ctor => ctor.Parameters.Length == 0 && !ctor.IsStatic && IsAccessibleSymbol(ctor)) is { } ctor &&
                 TryGetAddMethod(type, elementType, out addElementMethod))
             {
-                constructionStrategy = CollectionConstructionStrategy.Mutable;
+                constructionStrategy = CollectionModelConstructionStrategy.Mutable;
+                factoryMethod = ctor;
             }
-            else if (namedType.Constructors.Any(ctor =>
+            else if (namedType.Constructors.FirstOrDefault(ctor =>
                 IsAccessibleSymbol(ctor) &&
                 ctor.Parameters is [{ Type: INamedTypeSymbol parameterType }] &&
                 SymbolEqualityComparer.Default.Equals(parameterType.ConstructedFrom, KnownSymbols.ReadOnlySpanOfT) &&
-                SymbolEqualityComparer.Default.Equals(parameterType.TypeArguments[0], elementType)))
+                SymbolEqualityComparer.Default.Equals(parameterType.TypeArguments[0], elementType)) is IMethodSymbol ctor2)
             {
-                constructionStrategy = CollectionConstructionStrategy.Span;
+                constructionStrategy = CollectionModelConstructionStrategy.Span;
+                factoryMethod = ctor2;
             }
-            else if (namedType.Constructors.Any(ctor =>
+            else if (namedType.Constructors.FirstOrDefault(ctor =>
                 IsAccessibleSymbol(ctor) &&
-                ctor.Parameters is [{ Type: INamedTypeSymbol parameterType }] &&
-                parameterType.ConstructedFrom.SpecialType is SpecialType.System_Collections_Generic_IEnumerable_T &&
-                SymbolEqualityComparer.Default.Equals(parameterType.TypeArguments[0], elementType)))
+                ctor.Parameters is [{ Type: INamedTypeSymbol { IsGenericType: true } parameterType }] &&
+                KnownSymbols.ListOfT?.GetCompatibleGenericBaseType(parameterType.ConstructedFrom) != null &&
+                SymbolEqualityComparer.Default.Equals(parameterType.TypeArguments[0], elementType)) is IMethodSymbol ctor3)
             {
-                constructionStrategy = CollectionConstructionStrategy.Enumerable;
+                // Type exposes a constructor that accepts a subtype of List<T>
+                constructionStrategy = CollectionModelConstructionStrategy.List;
+                factoryMethod = ctor3;
             }
             else if (namedType.TypeKind is TypeKind.Interface)
             {
@@ -109,8 +112,8 @@ public partial class TypeDataModelGenerator
                 if (namedType.IsAssignableFrom(listOfT))
                 {
                     // Handle IEnumerable<T>, ICollection<T>, IList<T>, IReadOnlyCollection<T> and IReadOnlyList<T> types using List<T>
-                    constructionStrategy = CollectionConstructionStrategy.Mutable;
-                    implementationType = listOfT;
+                    constructionStrategy = CollectionModelConstructionStrategy.Mutable;
+                    factoryMethod = listOfT.Constructors.First(c => c.Parameters.IsEmpty);
                     addElementMethod = listOfT.GetMembers("Add")
                         .OfType<IMethodSymbol>()
                         .First(m =>
@@ -122,8 +125,8 @@ public partial class TypeDataModelGenerator
                 if (namedType.IsAssignableFrom(hashSetOfT))
                 {
                     // Handle ISet<T> and IReadOnlySet<T> types using HashSet<T>
-                    constructionStrategy = CollectionConstructionStrategy.Mutable;
-                    implementationType = hashSetOfT;
+                    constructionStrategy = CollectionModelConstructionStrategy.Mutable;
+                    factoryMethod = hashSetOfT.Constructors.First(c => c.Parameters.IsEmpty);
                     addElementMethod = hashSetOfT.GetMembers("Add")
                         .OfType<IMethodSymbol>()
                         .First(m =>
@@ -137,17 +140,18 @@ public partial class TypeDataModelGenerator
             elementType = KnownSymbols.Compilation.ObjectType;
             kind = EnumerableKind.IEnumerable;
 
-            if (namedType.Constructors.Any(ctor => ctor.Parameters.Length == 0 && !ctor.IsStatic && IsAccessibleSymbol(ctor)) &&
+            if (namedType.Constructors.FirstOrDefault(ctor => ctor.Parameters.Length == 0 && !ctor.IsStatic && IsAccessibleSymbol(ctor)) is { } ctor &&
                 TryGetAddMethod(type, elementType, out addElementMethod))
             {
-                constructionStrategy = CollectionConstructionStrategy.Mutable;
+                constructionStrategy = CollectionModelConstructionStrategy.Mutable;
+                factoryMethod = ctor;
             }
             else if (type.IsAssignableFrom(KnownSymbols.IList))
             {
                 // Handle construction of IList, ICollection and IEnumerable interfaces using List<object?>
                 INamedTypeSymbol listOfObject = KnownSymbols.ListOfT!.Construct(elementType);
-                constructionStrategy = CollectionConstructionStrategy.Mutable;
-                implementationType = listOfObject;
+                constructionStrategy = CollectionModelConstructionStrategy.Mutable;
+                factoryMethod = listOfObject.Constructors.First(c => c.Parameters.IsEmpty);
                 addElementMethod = listOfObject.GetMembers("Add")
                     .OfType<IMethodSymbol>()
                     .FirstOrDefault(m =>
@@ -173,10 +177,8 @@ public partial class TypeDataModelGenerator
             ElementType = elementType,
             EnumerableKind = kind,
             ConstructionStrategy = constructionStrategy,
-            SpanFactory = spanCtor,
             AddElementMethod = addElementMethod,
-            EnumerableFactory = enumerableCtor,
-            ImplementationType = implementationType,
+            FactoryMethod = factoryMethod,
             Rank = rank,
         };
 

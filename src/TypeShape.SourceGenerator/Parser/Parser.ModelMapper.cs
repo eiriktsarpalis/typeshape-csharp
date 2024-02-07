@@ -30,14 +30,35 @@ public sealed partial class Parser
             {
                 Type = typeId,
                 ElementType = CreateTypeId(enumerableModel.ElementType),
-                ConstructionStrategy = enumerableModel.EnumerableKind is EnumerableKind.ArrayOfT or EnumerableKind.MemoryOfT or EnumerableKind.ReadOnlyMemoryOfT
-                    ? CollectionConstructionStrategy.Span // use ReadOnlySpan.ToArray() to create the collection
-                    : enumerableModel.ConstructionStrategy,
+                ConstructionStrategy = enumerableModel.ConstructionStrategy switch
+                {
+                    _ when enumerableModel.EnumerableKind is EnumerableKind.ArrayOfT or EnumerableKind.MemoryOfT or EnumerableKind.ReadOnlyMemoryOfT
+                        => CollectionConstructionStrategy.Span, // use ReadOnlySpan.ToArray() to create the collection
+
+                    CollectionModelConstructionStrategy.Mutable => CollectionConstructionStrategy.Mutable,
+                    CollectionModelConstructionStrategy.Span => CollectionConstructionStrategy.Span,
+                    CollectionModelConstructionStrategy.List => 
+                        IsFactoryAcceptingIEnumerable(enumerableModel.FactoryMethod) 
+                        ? CollectionConstructionStrategy.Enumerable 
+                        : CollectionConstructionStrategy.Span,
+
+                    _ => CollectionConstructionStrategy.None,
+                },
 
                 AddElementMethod = enumerableModel.AddElementMethod?.Name,
-                ImplementationTypeFQN = enumerableModel.ImplementationType?.GetFullyQualifiedName(),
-                SpanFactoryMethod = enumerableModel.SpanFactory?.GetFullyQualifiedName(),
-                EnumerableFactoryMethod = enumerableModel.EnumerableFactory?.GetFullyQualifiedName(),
+                ImplementationTypeFQN = 
+                    enumerableModel.ConstructionStrategy is CollectionModelConstructionStrategy.Mutable &&
+                    enumerableModel.FactoryMethod is { IsStatic: false, ContainingType: INamedTypeSymbol implType } && 
+                    !SymbolEqualityComparer.Default.Equals(implType, enumerableModel.Type)
+
+                    ? implType.GetFullyQualifiedName()
+                    : null,
+
+                StaticFactoryMethod = enumerableModel.FactoryMethod is { IsStatic: true } m ? m.GetFullyQualifiedName() : null,
+                CtorRequiresListConversion = 
+                    enumerableModel.ConstructionStrategy is CollectionModelConstructionStrategy.List &&
+                    !IsFactoryAcceptingIEnumerable(enumerableModel.FactoryMethod),
+
                 Kind = enumerableModel.EnumerableKind,
                 Rank = enumerableModel.Rank,
                 EmitGenericTypeShapeProviderImplementation = emitGenericProviderImplementation,
@@ -48,12 +69,32 @@ public sealed partial class Parser
                 Type = typeId,
                 KeyType = CreateTypeId(dictionaryModel.KeyType),
                 ValueType = CreateTypeId(dictionaryModel.ValueType),
-                ConstructionStrategy = dictionaryModel.ConstructionStrategy,
-                ImplementationTypeFQN = dictionaryModel.ImplementationType?.GetFullyQualifiedName(),
-                EnumerableFactoryMethod = dictionaryModel.EnumerableFactory?.GetFullyQualifiedName(),
-                SpanFactoryMethod = dictionaryModel.SpanFactory?.GetFullyQualifiedName(),
+                ConstructionStrategy = dictionaryModel.ConstructionStrategy switch
+                {
+                    CollectionModelConstructionStrategy.Mutable => CollectionConstructionStrategy.Mutable,
+                    CollectionModelConstructionStrategy.Span => CollectionConstructionStrategy.Span,
+                    CollectionModelConstructionStrategy.Dictionary =>
+                        IsFactoryAcceptingIEnumerable(dictionaryModel.FactoryMethod)
+                        ? CollectionConstructionStrategy.Enumerable
+                        : CollectionConstructionStrategy.Span,
+
+                    _ => CollectionConstructionStrategy.None,
+                },
+
+                ImplementationTypeFQN =
+                    dictionaryModel.ConstructionStrategy is CollectionModelConstructionStrategy.Mutable &&
+                    dictionaryModel.FactoryMethod is { IsStatic: false, ContainingType: INamedTypeSymbol implType } &&
+                    !SymbolEqualityComparer.Default.Equals(implType, dictionaryModel.Type)
+
+                    ? implType.GetFullyQualifiedName()
+                    : null,
+
+                StaticFactoryMethod = dictionaryModel.FactoryMethod is { IsStatic: true } m ? m.GetFullyQualifiedName() : null,
                 Kind = dictionaryModel.DictionaryKind,
                 EmitGenericTypeShapeProviderImplementation = emitGenericProviderImplementation,
+                CtorRequiresDictionaryConversion =
+                    dictionaryModel.ConstructionStrategy is CollectionModelConstructionStrategy.Dictionary &&
+                    !IsFactoryAcceptingIEnumerable(dictionaryModel.FactoryMethod),
             },
 
             ObjectDataModel objectModel => new ObjectShapeModel
@@ -95,6 +136,11 @@ public sealed partial class Parser
                 EmitGenericTypeShapeProviderImplementation = emitGenericProviderImplementation,
             }
         };
+
+        static bool IsFactoryAcceptingIEnumerable(IMethodSymbol? method)
+        {
+            return method?.Parameters is [{ Type: INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Collections_Generic_IEnumerable_T } }];
+        }
     }
 
     private static PropertyShapeModel MapProperty(ITypeSymbol parentType, TypeId parentTypeId, PropertyDataModel property, bool isClassTupleType = false, int tupleElementIndex = -1)

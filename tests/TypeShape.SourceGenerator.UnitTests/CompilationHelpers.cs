@@ -47,6 +47,7 @@ public static class CompilationHelpers
         [
             MetadataReference.CreateFromFile(typeof(int).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(System.Linq.Enumerable).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(System.Collections.Immutable.ImmutableArray<>).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(JavaScriptEncoder).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(LinkedList<>).Assembly.Location),
             MetadataReference.CreateFromFile(systemRuntimeAssembly.Location),

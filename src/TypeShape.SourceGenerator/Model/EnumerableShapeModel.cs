@@ -10,6 +10,6 @@ public sealed record EnumerableShapeModel : TypeShapeModel
     public required CollectionConstructionStrategy ConstructionStrategy { get; init; }
     public required string? AddElementMethod { get; init; }
     public required string? ImplementationTypeFQN { get; init; }
-    public required string? EnumerableFactoryMethod { get; init; }
-    public required string? SpanFactoryMethod { get; init; }
+    public required string? StaticFactoryMethod { get; init; }
+    public required bool CtorRequiresListConversion { get; init; }
 }

@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using System.Transactions;
 using TypeShape.Roslyn.Helpers;
 
 namespace TypeShape.Roslyn;
@@ -17,10 +18,8 @@ public partial class TypeDataModelGenerator
         }
 
         DictionaryKind kind = default;
-        CollectionConstructionStrategy constructionStrategy = CollectionConstructionStrategy.None;
-        INamedTypeSymbol? implementationType = null;
-        IMethodSymbol? spanFactory = null;
-        IMethodSymbol? enumerableFactory = null;
+        CollectionModelConstructionStrategy constructionStrategy = CollectionModelConstructionStrategy.None;
+        IMethodSymbol? factoryMethod = null;
         ITypeSymbol? keyType = null;
         ITypeSymbol? valueType = null;
 
@@ -47,12 +46,13 @@ public partial class TypeDataModelGenerator
             return false; // Not a dictionary type
         }
 
-        if (namedType.Constructors.Any(ctor => ctor.Parameters.Length == 0 && !ctor.IsStatic && IsAccessibleSymbol(ctor)) &&
+        if (namedType.Constructors.FirstOrDefault(ctor => ctor.Parameters.Length == 0 && !ctor.IsStatic && IsAccessibleSymbol(ctor)) is { } ctor &&
             ContainsSettableIndexer(type, keyType, valueType))
         {
-            constructionStrategy = CollectionConstructionStrategy.Mutable;
+            constructionStrategy = CollectionModelConstructionStrategy.Mutable;
+            factoryMethod = ctor;
         }
-        else if (namedType.Constructors.Any(ctor =>
+        else if (namedType.Constructors.FirstOrDefault(ctor =>
             IsAccessibleSymbol(ctor) &&
             ctor.Parameters is [{ Type: INamedTypeSymbol parameterType }] &&
             SymbolEqualityComparer.Default.Equals(parameterType.ConstructedFrom, KnownSymbols.ReadOnlySpanOfT) &&
@@ -60,21 +60,43 @@ public partial class TypeDataModelGenerator
             SymbolEqualityComparer.Default.Equals(elementType.ConstructedFrom, KnownSymbols.KeyValuePairOfKV) &&
             elementType.TypeArguments is [INamedTypeSymbol k, INamedTypeSymbol v] &&
             SymbolEqualityComparer.Default.Equals(k, keyType) &&
-            SymbolEqualityComparer.Default.Equals(v, valueType)))
+            SymbolEqualityComparer.Default.Equals(v, valueType)) is IMethodSymbol ctor2)
         {
-            constructionStrategy = CollectionConstructionStrategy.Span;
+            constructionStrategy = CollectionModelConstructionStrategy.Span;
+            factoryMethod = ctor2;
         }
-        else if (namedType.Constructors.Any(ctor =>
-            IsAccessibleSymbol(ctor) &&
-            ctor.Parameters is [{ Type: INamedTypeSymbol parameterType }] &&
-            SymbolEqualityComparer.Default.Equals(parameterType.ConstructedFrom, KnownSymbols.IEnumerableOfT) &&
-            parameterType.TypeArguments is [INamedTypeSymbol elementType] &&
-            SymbolEqualityComparer.Default.Equals(elementType.ConstructedFrom, KnownSymbols.KeyValuePairOfKV) &&
-            elementType.TypeArguments is [INamedTypeSymbol k, INamedTypeSymbol v] &&
-            SymbolEqualityComparer.Default.Equals(k, keyType) &&
-            SymbolEqualityComparer.Default.Equals(v, valueType)))
+        else if (namedType.Constructors.FirstOrDefault(ctor =>
+            {
+                if (IsAccessibleSymbol(ctor) &&
+                    ctor.Parameters is [{ Type: INamedTypeSymbol { IsGenericType: true } parameterType }] &&
+                    KnownSymbols.DictionaryOfTKeyTValue?.GetCompatibleGenericBaseType(parameterType.ConstructedFrom) != null)
+                {
+                    // Constructor accepts a single parameter that is a subtype of Dictionary<,>
+
+                    if (parameterType.TypeArguments is [INamedTypeSymbol k, INamedTypeSymbol v] &&
+                        SymbolEqualityComparer.Default.Equals(k, keyType) &&
+                        SymbolEqualityComparer.Default.Equals(v, valueType))
+                    {
+                        // The parameter type is Dictionary<TKey, TValue>, IDictionary<TKey, TValue> or IReadOnlyDictionary<TKey, TValue>
+                        return true;
+                    }
+
+                    if (parameterType.TypeArguments is [INamedTypeSymbol kvp] &&
+                        SymbolEqualityComparer.Default.Equals(kvp.ConstructedFrom, KnownSymbols.KeyValuePairOfKV) &&
+                        kvp.TypeArguments is [INamedTypeSymbol k1, INamedTypeSymbol v2] &&
+                        SymbolEqualityComparer.Default.Equals(k1, keyType) &&
+                        SymbolEqualityComparer.Default.Equals(v2, valueType))
+                    {
+                        // The parameter type is IEnumerable<KeyValuePair<TKey, TValue>>, ICollection<KeyValuePair<TKey, TValue>> or IReadOnlyCollection<KeyValuePair<TKey, TValue>>
+                        return true;
+                    }
+                }
+
+                return false;
+            }) is IMethodSymbol ctor3)
         {
-            constructionStrategy = CollectionConstructionStrategy.Enumerable;
+            constructionStrategy = CollectionModelConstructionStrategy.Dictionary;
+            factoryMethod = ctor3;
         }
 
         if (namedType.TypeKind is TypeKind.Interface)
@@ -83,21 +105,21 @@ public partial class TypeDataModelGenerator
             {
                 // Handle IDictionary<TKey, TValue> and IReadOnlyDictionary<TKey, TValue> using Dictionary<TKey, TValue>
                 INamedTypeSymbol dictOfTKeyTValue = KnownSymbols.DictionaryOfTKeyTValue!.Construct(keyType, valueType);
-                constructionStrategy = CollectionConstructionStrategy.Mutable;
-                implementationType = dictOfTKeyTValue;
+                constructionStrategy = CollectionModelConstructionStrategy.Mutable;
+                factoryMethod = dictOfTKeyTValue.Constructors.FirstOrDefault(ctor => ctor.Parameters.IsEmpty);
             }
             else if (SymbolEqualityComparer.Default.Equals(namedType, KnownSymbols.IDictionary))
             {
                 // Handle IDictionary using Dictionary<object, object>
                 INamedTypeSymbol dictOfObject = KnownSymbols.DictionaryOfTKeyTValue!.Construct(keyType, valueType);
-                constructionStrategy = CollectionConstructionStrategy.Mutable;
-                implementationType = dictOfObject;
+                constructionStrategy = CollectionModelConstructionStrategy.Mutable;
+                factoryMethod = dictOfObject.Constructors.FirstOrDefault(ctor => ctor.Parameters.IsEmpty);
             }
         }
-        else if (GetImmutableDictionaryFactory(namedType) is IMethodSymbol factoryMethod)
+        else if (GetImmutableDictionaryFactory(namedType) is IMethodSymbol factory)
         {
-            constructionStrategy = CollectionConstructionStrategy.Enumerable;
-            enumerableFactory = factoryMethod;
+            constructionStrategy = CollectionModelConstructionStrategy.Dictionary;
+            factoryMethod = factory;
         }
 
         if ((status = IncludeNestedType(keyType, ref ctx)) != TypeDataModelGenerationStatus.Success ||
@@ -114,9 +136,7 @@ public partial class TypeDataModelGenerator
             ValueType = valueType,
             DictionaryKind = kind,
             ConstructionStrategy = constructionStrategy,
-            ImplementationType = implementationType,
-            SpanFactory = spanFactory,
-            EnumerableFactory = enumerableFactory,
+            FactoryMethod = factoryMethod,
         };
 
         return true;

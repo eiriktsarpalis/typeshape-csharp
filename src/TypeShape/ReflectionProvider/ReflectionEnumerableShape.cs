@@ -17,6 +17,7 @@ internal abstract class ReflectionEnumerableShape<TEnumerable, TElement>(Reflect
     private MethodInfo? _addMethod;
     private MethodBase? _enumerableCtor;
     private MethodBase? _spanCtor;
+    private ConstructorInfo? _listCtor;
 
     public virtual CollectionConstructionStrategy ConstructionStrategy => _constructionStrategy ??= DetermineConstructionStrategy();
     public virtual int Rank => 1;
@@ -70,6 +71,13 @@ internal abstract class ReflectionEnumerableShape<TEnumerable, TElement>(Reflect
             throw new InvalidOperationException("The current enumerable shape does not support span constructors.");
         }
 
+
+        if (_listCtor is ConstructorInfo listCtor)
+        {
+            var listCtorDelegate = provider.MemberAccessor.CreateFuncDelegate<List<TElement>, TEnumerable>(listCtor);
+            return span => listCtorDelegate(CollectionHelpers.CreateList(span));
+        }
+
         Debug.Assert(_spanCtor != null);
         return _spanCtor switch
         {
@@ -112,6 +120,15 @@ internal abstract class ReflectionEnumerableShape<TEnumerable, TElement>(Reflect
         {
             _enumerableCtor = enumerableCtor;
             return CollectionConstructionStrategy.Enumerable;
+        }
+
+        if (typeof(TEnumerable).GetConstructors()
+                .FirstOrDefault(ctor => ctor.GetParameters() is [{ ParameterType: Type { IsGenericType: true } paramTy }] && paramTy.IsAssignableFrom(typeof(List<TElement>))) 
+                is ConstructorInfo listCtor)
+        {
+            // Handle types accepting IList<T> or IReadOnlyList<T> such as ReadOnlyCollection<T>
+            _listCtor = listCtor;
+            return CollectionConstructionStrategy.Span;
         }
 
         if (typeof(TEnumerable).IsInterface)

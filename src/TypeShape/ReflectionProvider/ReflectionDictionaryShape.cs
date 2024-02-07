@@ -17,6 +17,7 @@ internal abstract class ReflectionDictionaryShape<TDictionary, TKey, TValue>(Ref
     private MethodInfo? _addMethod;
     private MethodBase? _enumerableCtor;
     private MethodBase? _spanCtor;
+    private ConstructorInfo? _dictionaryCtor;
 
     public CollectionConstructionStrategy ConstructionStrategy => _constructionStrategy ??= DetermineConstructionStrategy();
 
@@ -70,6 +71,12 @@ internal abstract class ReflectionDictionaryShape<TDictionary, TKey, TValue>(Ref
             throw new InvalidOperationException("The current enumerable shape does not support span constructors.");
         }
 
+        if (_dictionaryCtor is ConstructorInfo dictionaryCtor)
+        {
+            var dictionaryCtorDelegate = provider.MemberAccessor.CreateFuncDelegate<Dictionary<TKey, TValue>, TDictionary>(dictionaryCtor);
+            return span => dictionaryCtorDelegate(CollectionHelpers.CreateDictionary(span));
+        }
+
         Debug.Assert(_spanCtor != null);
         return _spanCtor switch
         {
@@ -111,6 +118,15 @@ internal abstract class ReflectionDictionaryShape<TDictionary, TKey, TValue>(Ref
         {
             _enumerableCtor = enumerableCtor;
             return CollectionConstructionStrategy.Enumerable;
+        }
+
+        if (typeof(TDictionary).GetConstructors()
+            .FirstOrDefault(ctor => ctor.GetParameters() is [{ ParameterType: Type { IsGenericType: true } paramTy }] && paramTy.IsAssignableFrom(typeof(Dictionary<TKey, TValue>)))
+            is ConstructorInfo dictionaryCtor)
+        {
+            // Handle types with ctors accepting IDictionary or IReadOnlyDictionary such as ReadOnlyDictionary<TKey, TValue>
+            _dictionaryCtor = dictionaryCtor;
+            return CollectionConstructionStrategy.Span;
         }
 
         if (typeof(TDictionary).IsInterface)
