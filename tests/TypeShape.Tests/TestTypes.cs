@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Reflection;
@@ -19,6 +20,7 @@ public abstract record TestCase<T>(T Value) : ITestCase
     Type ITestCase.Type => typeof(T);
     object? ITestCase.Value => Value;
     public bool HasConstructors(ITypeShapeProvider provider) =>
+        !DoesNotHaveConstructors &&
         !(IsAbstract && !typeof(IEnumerable).IsAssignableFrom(typeof(T))) &&
         !IsMultiDimensionalArray &&
         (!UsesSpanConstructor || provider is not ReflectionTypeShapeProvider { UseReflectionEmit: false });
@@ -35,6 +37,7 @@ public abstract record TestCase<T>(T Value) : ITestCase
     public bool IsAbstract => typeof(T).IsAbstract || typeof(T).IsInterface;
     public bool IsStack { get; init; }
     public bool DoesNotRoundtrip { get; init; }
+    public bool DoesNotHaveConstructors { get; init; }
     public bool UsesSpanConstructor { get; init; }
 }
 
@@ -135,6 +138,14 @@ public static class TestTypes
         yield return Create(new DictionaryWithEnumerableCtor([new("key", 42)]), p);
         yield return Create(new CollectionWithSpanCtor([1, 2, 3]), p, usesSpanCtor: true);
         yield return Create(new DictionaryWithSpanCtor([new("key", 42)]), p, usesSpanCtor: true);
+
+        yield return Create(new Collection<int> { 1, 2, 3 }, p);
+        yield return Create(new ObservableCollection<int> { 1, 2, 3 }, p);
+        yield return Create(new MyKeyedCollection<int> { 1, 2, 3 }, p);
+        yield return Create(new MyKeyedCollection<string> { "1", "2", "3" }, p);
+        // TODO fix roundtripping for ReadOnlyCollections -- constructors require IList, IDictionary parameters respectively.
+        yield return Create(new ReadOnlyCollection<int>([1, 2, 3]), p, doesNotHaveConstructors: true);
+        yield return Create(new ReadOnlyDictionary<int, int>(new Dictionary<int, int> { [1] = 1, [2] = 2 }), p, doesNotHaveConstructors: true);
 
         yield return Create<ImmutableArray<int>, SourceGenProvider>([1, 2, 3], p);
         yield return Create<ImmutableList<string>, SourceGenProvider>(["1", "2", "3"], p);
@@ -404,9 +415,9 @@ public static class TestTypes
         yield return CreateSelfProvided(new PersonRecord("John", 40));
         yield return CreateSelfProvided(new PersonRecordStruct("John", 40));
 
-        static TestCase<T, TProvider> Create<T, TProvider>(T value, TProvider provider, bool isStack = false, bool doesNotRoundtrip = false, bool usesSpanCtor = false) 
+        static TestCase<T, TProvider> Create<T, TProvider>(T value, TProvider provider, bool isStack = false, bool doesNotRoundtrip = false, bool usesSpanCtor = false, bool doesNotHaveConstructors = false) 
             where TProvider : ITypeShapeProvider<T> 
-            => new(value) { IsStack = isStack, DoesNotRoundtrip = doesNotRoundtrip, UsesSpanConstructor = usesSpanCtor };
+            => new(value) { IsStack = isStack, DoesNotRoundtrip = doesNotRoundtrip, UsesSpanConstructor = usesSpanCtor, DoesNotHaveConstructors = doesNotHaveConstructors };
 
         static TestCase<T, T> CreateSelfProvided<T>(T value) where T : ITypeShapeProvider<T>
             => new(value);
@@ -1175,6 +1186,12 @@ public class DictionaryWithSpanCtor : Dictionary<string, int>
     }
 }
 
+public class MyKeyedCollection<T> : KeyedCollection<int, T>
+{
+    private int _count;
+    protected override int GetKeyForItem(T key) => _count++;
+}
+
 public record Todos(Todo[] Items);
 
 public record Todo(int Id, string? Title, DateOnly? DueBy, Status Status);
@@ -1408,6 +1425,13 @@ public record DerivedClassWithShadowingMember : BaseClassWithShadowingMembers
 [GenerateShape<DictionaryWithEnumerableCtor>]
 [GenerateShape<CollectionWithSpanCtor>]
 [GenerateShape<DictionaryWithSpanCtor>]
+[GenerateShape<ReadOnlyCollection<int>>]
+[GenerateShape<Collection<int>>]
+[GenerateShape<ReadOnlyCollection<int>>]
+[GenerateShape<ReadOnlyDictionary<int, int>>]
+[GenerateShape<ObservableCollection<int>>]
+[GenerateShape<MyKeyedCollection<int>>]
+[GenerateShape<MyKeyedCollection<string>>]
 [GenerateShape<ClassWithInternalMembers>]
 [GenerateShape<Todos>]
 [GenerateShape<WeatherForecast>]
