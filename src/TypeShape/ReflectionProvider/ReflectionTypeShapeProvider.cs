@@ -84,7 +84,7 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
         return (ITypeShape)Activator.CreateInstance(reflectionType, provider)!;
     }
 
-    internal IPropertyShape CreateProperty(Type declaringType, MemberInfo memberInfo, MemberInfo[]? parentMembers, bool nonPublic, string? logicalName = null)
+    internal IPropertyShape CreateProperty(Type declaringType, MemberInfo memberInfo, MemberInfo[]? parentMembers, string? logicalName, bool includeNonPublicAccessors)
     {
         Debug.Assert(memberInfo is FieldInfo or PropertyInfo);
 
@@ -96,7 +96,7 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
         };
 
         Type reflectionPropertyType = typeof(ReflectionPropertyShape<,>).MakeGenericType(declaringType, memberType);
-        return (IPropertyShape)Activator.CreateInstance(reflectionPropertyType, this, logicalName, memberInfo, parentMembers, nonPublic)!;
+        return (IPropertyShape)Activator.CreateInstance(reflectionPropertyType, this, memberInfo, parentMembers, logicalName, includeNonPublicAccessors)!;
     }
 
     internal IConstructorShape CreateConstructor(IConstructorShapeInfo ctorInfo)
@@ -217,7 +217,8 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
         {
             // Treat non-nested tuples as regular types.
             ConstructorInfo ctorInfo = tupleType.GetConstructors()[0];
-            return new MethodConstructorShapeInfo(tupleType, ctorInfo);
+            MethodParameterShapeInfo[] parameters = ctorInfo.GetParameters().Select(p => new MethodParameterShapeInfo(p)).ToArray();
+            return new MethodConstructorShapeInfo(tupleType, ctorInfo, parameters);
         }
 
         return CreateNestedTupleCtorInfo(tupleType, offset: 0);

@@ -2,7 +2,7 @@
 
 namespace TypeShape.SourceGenModel;
 
-public sealed class SourceGenPropertyShape<TDeclaringType, TPropertyType>(bool nonPublic) : IPropertyShape<TDeclaringType, TPropertyType>
+public sealed class SourceGenPropertyShape<TDeclaringType, TPropertyType> : IPropertyShape<TDeclaringType, TPropertyType>
 {
     public required string Name { get; init; }
     public Func<ICustomAttributeProvider?>? AttributeProviderFunc { get; init; }
@@ -14,8 +14,8 @@ public sealed class SourceGenPropertyShape<TDeclaringType, TPropertyType>(bool n
     public Getter<TDeclaringType, TPropertyType>? Getter { get; init; }
     public Setter<TDeclaringType, TPropertyType>? Setter { get; init; }
 
-    public bool HasGetter => Getter is not null && (IsGetterPublic || nonPublic);
-    public bool HasSetter => Setter is not null && (IsSetterPublic || nonPublic);
+    public bool HasGetter => Getter is not null;
+    public bool HasSetter => Setter is not null;
     public required bool IsGetterPublic { get; init; }
     public required bool IsSetterPublic { get; init; }
     public required bool IsGetterNonNullable { get; init; }
@@ -27,7 +27,4 @@ public sealed class SourceGenPropertyShape<TDeclaringType, TPropertyType>(bool n
 
     public Setter<TDeclaringType, TPropertyType> GetSetter()
         => HasSetter ? Setter! : throw new InvalidOperationException("Property shape does not specify a setter.");
-
-    bool IPropertyShape.IsGetterNonNullable => IsGetterNonNullable && HasGetter;
-    bool IPropertyShape.IsSetterNonNullable => IsSetterNonNullable && HasSetter;
 }

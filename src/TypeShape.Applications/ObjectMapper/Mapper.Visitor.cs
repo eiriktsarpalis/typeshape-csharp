@@ -65,7 +65,7 @@ public static partial class Mapper
                 default:
                     Debug.Assert(sourceShape.Kind == TypeKind.Object);
                     IConstructorShape? ctor = targetShape
-                        .GetConstructors(includeProperties: true, includeFields: true)
+                        .GetConstructors()
                         .MinBy(ctor => ctor.ParameterCount);
 
                     if (ctor is null)
@@ -73,7 +73,7 @@ public static partial class Mapper
                         return null; // TTarget is not constructible, so we can't map to it.
                     }
 
-                    IPropertyShape[] sourceGetters = sourceShape.GetProperties(includeFields: true)
+                    IPropertyShape[] sourceGetters = sourceShape.GetProperties()
                         .Where(prop => prop.HasGetter)
                         .ToArray();
 
@@ -120,7 +120,7 @@ public static partial class Mapper
                 if (targetCtor.ParameterCount == 0)
                 {
                     Func<TTarget> defaultCtor = targetCtor.GetDefaultConstructor();
-                    PropertyMapper<TSource, TTarget>[] propertyMappers = targetCtor.DeclaringType.GetProperties(includeFields: true)
+                    PropertyMapper<TSource, TTarget>[] propertyMappers = targetCtor.DeclaringType.GetProperties()
                         .Where(prop => prop.HasSetter)
                         .Select(setter =>
                             sourceGetters.FirstOrDefault(getter => getter.Name == setter.Name) is { } getter

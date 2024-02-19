@@ -7,8 +7,8 @@ public sealed class SourceGenTypeShape<T> : ITypeShape<T>
     public required ITypeShapeProvider Provider { get; init; }
     public required bool IsRecord { get; init; }
     public ICustomAttributeProvider? AttributeProvider { get; init; }
-    public Func<bool /* nonPublic */, IEnumerable<IPropertyShape>>? CreatePropertiesFunc { get; init; }
-    public Func<bool /* nonPublic */, bool /* includeProperties */, bool /* includeFields */, IEnumerable<IConstructorShape>>? CreateConstructorsFunc { get; init; }
+    public Func<IEnumerable<IPropertyShape>>? CreatePropertiesFunc { get; init; }
+    public Func<IEnumerable<IConstructorShape>>? CreateConstructorsFunc { get; init; }
     public Func<IDictionaryShape>? CreateDictionaryShapeFunc { get; init; }
     public Func<IEnumerableShape>? CreateEnumerableShapeFunc { get; init; }
     public Func<IEnumShape>? CreateEnumShapeFunc { get; init; }
@@ -39,33 +39,11 @@ public sealed class SourceGenTypeShape<T> : ITypeShape<T>
         return kind;
     }
 
-    public IEnumerable<IConstructorShape> GetConstructors(bool nonPublic, bool includeProperties, bool includeFields)
-    {
-        IEnumerable<IConstructorShape> constructors = CreateConstructorsFunc?.Invoke(nonPublic, includeProperties, includeFields) ?? [];
+    public IEnumerable<IConstructorShape> GetConstructors()
+        => CreateConstructorsFunc?.Invoke() ?? [];
 
-        if (!nonPublic)
-        {
-            constructors = constructors.Where(ctor => ctor.IsPublic);
-        }
-
-        return constructors;
-    }
-
-    public IEnumerable<IPropertyShape> GetProperties(bool nonPublic, bool includeFields)
-    {
-        IEnumerable<IPropertyShape> properties = CreatePropertiesFunc?.Invoke(nonPublic) ?? [];
-
-        if (!nonPublic)
-        {
-            properties = properties.Where(prop => prop.IsGetterPublic || prop.IsSetterPublic);
-        }
-        if (!includeFields)
-        {
-            properties = properties.Where(prop => !prop.IsField);
-        }
-
-        return properties;
-    }
+    public IEnumerable<IPropertyShape> GetProperties()
+        => CreatePropertiesFunc?.Invoke() ?? [];
 
     public IEnumShape GetEnumShape()
     {

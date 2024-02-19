@@ -63,9 +63,9 @@ internal sealed class MethodParameterShapeInfo : IParameterShapeInfo
 {
     public MethodParameterShapeInfo(ParameterInfo parameterInfo, string? logicalName = null)
     {
-        Name = logicalName
-            ?? parameterInfo.Name
-            ?? throw new NotSupportedException($"The constructor for type '{parameterInfo.Member.DeclaringType}' has had its parameter names trimmed.");
+        string? name = logicalName ?? parameterInfo.Name;
+        Debug.Assert(name != null);
+        Name = name;
 
         ParameterInfo = parameterInfo;
         IsNonNullable = parameterInfo.IsNonNullableAnnotation();
@@ -94,11 +94,12 @@ internal sealed class MethodParameterShapeInfo : IParameterShapeInfo
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
 internal sealed class MemberInitializerShapeInfo : IParameterShapeInfo
 {
-    public MemberInitializerShapeInfo(MemberInfo memberInfo)
+    public MemberInitializerShapeInfo(MemberInfo memberInfo, string? logicalName)
     {
         Debug.Assert(memberInfo is PropertyInfo or FieldInfo);
 
         Type = memberInfo.MemberType();
+        Name = logicalName ?? memberInfo.Name;
         MemberInfo = memberInfo;
         IsRequired = memberInfo.IsRequired();
         IsInitOnly = memberInfo.IsInitOnly();
@@ -115,7 +116,7 @@ internal sealed class MemberInitializerShapeInfo : IParameterShapeInfo
     public bool IsNonNullable { get; }
     public bool IsPublic { get; }
 
-    public string Name => MemberInfo.Name;
+    public string Name { get; }
     public ICustomAttributeProvider? AttributeProvider => MemberInfo;
     public bool HasDefaultValue => false;
     public object? DefaultValue => null;

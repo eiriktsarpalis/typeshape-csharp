@@ -9,7 +9,7 @@ internal static partial class SourceFormatter
 {
     private static void FormatPropertyFactory(SourceWriter writer, string methodName, ObjectShapeModel type)
     {
-        writer.WriteLine($"private IEnumerable<IPropertyShape> {methodName}(bool nonPublic) => new IPropertyShape[]");
+        writer.WriteLine($"private IEnumerable<IPropertyShape> {methodName}() => new IPropertyShape[]");
         writer.WriteLine('{');
         writer.Indentation++;
 
@@ -34,7 +34,7 @@ internal static partial class SourceFormatter
             };
 
             writer.WriteLine($$"""
-                new SourceGenPropertyShape<{{type.Type.FullyQualifiedName}}, {{property.PropertyType.FullyQualifiedName}}>(nonPublic)
+                new SourceGenPropertyShape<{{type.Type.FullyQualifiedName}}, {{property.PropertyType.FullyQualifiedName}}>
                 {
                     Name = "{{property.Name}}",
                     DeclaringType = {{type.Type.GeneratedPropertyName}},
@@ -57,7 +57,7 @@ internal static partial class SourceFormatter
                     return "null";
                 }
 
-                return $"static () => typeof({property.DeclaringType.FullyQualifiedName}).GetMember({FormatStringLiteral(property.Name)}, {InstanceBindingFlagsConstMember})[0]";
+                return $"static () => typeof({property.DeclaringType.FullyQualifiedName}).GetMember({FormatStringLiteral(property.UnderlyingMemberName)}, {InstanceBindingFlagsConstMember})[0]";
             }
         }
 

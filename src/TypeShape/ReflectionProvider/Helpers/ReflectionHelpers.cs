@@ -208,6 +208,26 @@ internal static class ReflectionHelpers
                 && method.GetCustomAttributes().Any(attr => attr.GetType().Name == "CompilerGeneratedAttribute");
     }
 
+    public static Type GetMemberType(this MemberInfo memberInfo)
+    {
+        Debug.Assert(memberInfo is FieldInfo or PropertyInfo);
+        return memberInfo is FieldInfo f ? f.FieldType : ((PropertyInfo)memberInfo).PropertyType;
+    }
+
+    public static void ResolveAccessibility(this MemberInfo memberInfo, out bool isGetterPublic, out bool isSetterPublic)
+    {
+        Debug.Assert(memberInfo is FieldInfo or PropertyInfo);
+        if (memberInfo is PropertyInfo propertyInfo)
+        {
+            isGetterPublic = propertyInfo.GetMethod?.IsPublic is true;
+            isSetterPublic = propertyInfo.SetMethod?.IsPublic is true;
+        }
+        else
+        {
+            isGetterPublic = isSetterPublic = ((FieldInfo)memberInfo).IsPublic;
+        }
+    }
+
     public static bool IsCompilerGenerated(this MemberInfo memberInfo)
         => memberInfo.CustomAttributes.Any(static attr => attr.AttributeType.FullName == "System.Runtime.CompilerServices.CompilerGeneratedAttribute");
 
@@ -453,19 +473,19 @@ internal static class ReflectionHelpers
         };
     }
 
-    public static IEnumerable<(string LogicalName, MemberInfo Member, MemberInfo[] ParentMembers)> EnumerateTupleMemberPaths(Type tupleType)
+    public static IEnumerable<(string LogicalName, MemberInfo Member, MemberInfo[]? ParentMembers)> EnumerateTupleMemberPaths(Type tupleType)
     {
         // Walks the nested tuple representation, returning every element field and the parent "Rest" fields needed to access the value.
         Debug.Assert(tupleType.IsTupleType());
-        List<MemberInfo> nestedMembers = [];
+        List<MemberInfo>? nestedMembers = null;
         bool hasNestedTuple;
         int i = 0;
 
         do
         {
-            MemberInfo[] parentMembers = tupleType.IsValueType 
-                ? nestedMembers.OfType<FieldInfo>().ToArray()
-                : nestedMembers.OfType<PropertyInfo>().ToArray();
+            MemberInfo[]? parentMembers = tupleType.IsValueType 
+                ? nestedMembers?.OfType<FieldInfo>().ToArray()
+                : nestedMembers?.OfType<PropertyInfo>().ToArray();
 
             MemberInfo[] elements = tupleType.IsValueType
                 ? tupleType.GetFields(BindingFlags.Instance | BindingFlags.Public)
@@ -480,7 +500,7 @@ internal static class ReflectionHelpers
                     Type memberType = element.MemberType();
                     if (memberType.IsTupleType())
                     {
-                        nestedMembers.Add(element);
+                        (nestedMembers ??= []).Add(element);
                         tupleType = memberType;
                         hasNestedTuple = true;
                     }

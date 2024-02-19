@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json.Serialization;
 using TypeShape.ReflectionProvider;
 using static TypeShape.Tests.ValidationTests;
 
@@ -163,7 +164,7 @@ public static class TestTypes
 
         yield return Create(new BaseClass { X = 1 }, p);
         yield return Create(new DerivedClass { X = 1, Y = 2 }, p);
-        
+
         yield return Create(new DerivedClassWithVirtualProperties(), p);
 
         var value = new DiamondImplementation { X = 1, Y = 2, Z = 3, W = 4, T = 5 };
@@ -178,6 +179,7 @@ public static class TestTypes
 
         yield return Create(new ClassWithNullabilityAttributes(), p);
         yield return Create(new ClassWithStructNullabilityAttributes(), p);
+        yield return Create(new ClassWithInternalConstructor(42), p);
         yield return Create(new NonNullStringRecord("str"), p);
         yield return Create(new NullableStringRecord(null), p);
         yield return Create(new NotNullGenericRecord<string>("str"), p);
@@ -386,6 +388,8 @@ public static class TestTypes
         }, p);
 
         yield return Create(new ClassWithInternalMembers { X = 1, Y = 2, Z = 3, W = 4, internalField = 5 }, p, doesNotRoundtrip: true);
+        yield return Create(new ClassWithPropertyAnnotations { X = 1, Y = 2 }, p);
+        yield return Create(new ClassWithConstructorAndAnnotations(1, 2), p);
 
         yield return Create(new WeatherForecastDTO
         {
@@ -948,6 +952,14 @@ public class ClassWithStructNullabilityAttributes
     public int? DisallowNullField = 0;
 }
 
+public class ClassWithInternalConstructor
+{
+    [JsonConstructor, ConstructorShape]
+    internal ClassWithInternalConstructor(int value) => Value = value;
+
+    public int Value { get; }
+}
+
 public record ParameterlessRecord();
 public record struct ParameterlessStructRecord();
 public record SimpleRecord(int value);
@@ -1052,11 +1064,44 @@ public struct StructWith40RequiredMembersAndDefaultCtor
 public class ClassWithInternalMembers
 {
     public int X { get; set; }
+
+    [PropertyShape(Ignore = false), JsonInclude]
     internal int Y { get; set; }
+    [PropertyShape, JsonInclude]
     public int Z { internal get; set; }
+    [PropertyShape, JsonInclude]
     public int W { get; internal set; }
 
+    [PropertyShape, JsonInclude]
     internal int internalField;
+}
+
+public class ClassWithPropertyAnnotations
+{
+    [PropertyShape(Name = "AltName", Order = 5)]
+    [JsonPropertyName("AltName"), JsonPropertyOrder(5)]
+    public int X { get; set; }
+
+    [PropertyShape(Name = "AltName2", Order = -1)]
+    [JsonPropertyName("AltName2"), JsonPropertyOrder(-1)]
+    public int Y;
+}
+
+public class ClassWithConstructorAndAnnotations
+{
+    public ClassWithConstructorAndAnnotations(int x, [ParameterShape(Name = "AltName2")] int y)
+    {
+        X = x;
+        Y = y;
+    }
+
+    [PropertyShape(Name = "AltName", Order = 5)]
+    [JsonPropertyName("AltName"), JsonPropertyOrder(5)]
+    public int X { get; }
+
+    [PropertyShape(Name = "AltName2", Order = -1)]
+    [JsonPropertyName("AltName2"), JsonPropertyOrder(-1)]
+    public int Y { get; }
 }
 
 [GenerateShape]
@@ -1370,6 +1415,7 @@ public record DerivedClassWithShadowingMember : BaseClassWithShadowingMembers
 [GenerateShape<RecordWithEnumAndNullableParams>]
 [GenerateShape<ClassWithNullabilityAttributes>]
 [GenerateShape<ClassWithStructNullabilityAttributes>]
+[GenerateShape<ClassWithInternalConstructor>]
 [GenerateShape<NotNullGenericRecord<string>>]
 [GenerateShape<NotNullClassGenericRecord<string>>]
 [GenerateShape<NullClassGenericRecord<string>>]
@@ -1430,6 +1476,8 @@ public record DerivedClassWithShadowingMember : BaseClassWithShadowingMembers
 [GenerateShape<MyKeyedCollection<int>>]
 [GenerateShape<MyKeyedCollection<string>>]
 [GenerateShape<ClassWithInternalMembers>]
+[GenerateShape<ClassWithPropertyAnnotations>]
+[GenerateShape<ClassWithConstructorAndAnnotations>]
 [GenerateShape<Todos>]
 [GenerateShape<WeatherForecast>]
 [GenerateShape<WeatherForecastDTO>]

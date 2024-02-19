@@ -46,7 +46,7 @@ internal abstract class ReflectionDictionaryShape<TDictionary, TKey, TValue>(Ref
         }
 
         Debug.Assert(_defaultCtor != null);
-        return provider.MemberAccessor.CreateDefaultConstructor<TDictionary>(new MethodConstructorShapeInfo(typeof(TDictionary), _defaultCtor));
+        return provider.MemberAccessor.CreateDefaultConstructor<TDictionary>(new MethodConstructorShapeInfo(typeof(TDictionary), _defaultCtor, parameters: []));
     }
 
     public Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> GetEnumerableConstructor()

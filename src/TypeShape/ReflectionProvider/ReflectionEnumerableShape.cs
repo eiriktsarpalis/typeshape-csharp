@@ -46,7 +46,7 @@ internal abstract class ReflectionEnumerableShape<TEnumerable, TElement>(Reflect
         }
 
         Debug.Assert(_defaultCtor != null);
-        return provider.MemberAccessor.CreateDefaultConstructor<TEnumerable>(new MethodConstructorShapeInfo(typeof(TEnumerable), _defaultCtor));
+        return provider.MemberAccessor.CreateDefaultConstructor<TEnumerable>(new MethodConstructorShapeInfo(typeof(TEnumerable), _defaultCtor, parameters: []));
     }
 
     public virtual Func<IEnumerable<TElement>, TEnumerable> GetEnumerableConstructor()

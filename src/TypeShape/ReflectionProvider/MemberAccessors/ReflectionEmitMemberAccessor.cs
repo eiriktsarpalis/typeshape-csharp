@@ -441,7 +441,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
                 {
                     // Emit parameterized constructor + member initializers
 
-                    (string LogicalName, MemberInfo Member, MemberInfo[] ParentMembers)[] fieldPaths = ReflectionHelpers.EnumerateTupleMemberPaths(argumentStateType).ToArray();
+                    (string LogicalName, MemberInfo Member, MemberInfo[]? ParentMembers)[] fieldPaths = ReflectionHelpers.EnumerateTupleMemberPaths(argumentStateType).ToArray();
                     Type? flagType = GetMemberFlagType(ctorInfo, out _);
                     Debug.Assert(flagType != null);
 
@@ -564,16 +564,19 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
             }
         }
 
-        void LdTupleElement((string LogicalName, MemberInfo Member, MemberInfo[] ParentMembers) element)
+        void LdTupleElement((string LogicalName, MemberInfo Member, MemberInfo[]? ParentMembers) element)
         {
             Debug.Assert(element.Member is FieldInfo);
-            Debug.Assert(element.ParentMembers is FieldInfo[]);
+            Debug.Assert(element.ParentMembers is null or FieldInfo[]);
 
             generator.Emit(OpCodes.Ldarg_0);
 
-            foreach (FieldInfo parent in (FieldInfo[])element.ParentMembers)
+            if (element.ParentMembers is FieldInfo[] parentMembers)
             {
-                generator.Emit(OpCodes.Ldflda, parent);
+                foreach (FieldInfo parent in parentMembers)
+                {
+                    generator.Emit(OpCodes.Ldflda, parent);
+                }
             }
 
             generator.Emit(OpCodes.Ldfld, (FieldInfo)element.Member);

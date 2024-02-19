@@ -27,7 +27,7 @@ public static partial class Counter
                     return type.GetEnumerableShape().Accept(this, null);
                 default:
                     Debug.Assert(type.Kind is TypeKind.Object);
-                    Func<T, long>[] propertyCounters = type.GetProperties(includeFields: true)
+                    Func<T, long>[] propertyCounters = type.GetProperties()
                         .Where(prop => prop.HasGetter)
                         .Select(prop => (Func<T, long>)prop.Accept(this, null)!)
                         .ToArray();

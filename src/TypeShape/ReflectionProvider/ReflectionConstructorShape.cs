@@ -53,18 +53,16 @@ internal sealed class MethodConstructorShapeInfo : IConstructorShapeInfo
     public MethodConstructorShapeInfo(
         Type constructedType, 
         MethodBase? constructorMethod,
+        MethodParameterShapeInfo[] parameters,
         MemberInitializerShapeInfo[]? memberInitializers = null)
     {
         Debug.Assert(constructorMethod is null or ConstructorInfo or MethodInfo { IsStatic: true });
         Debug.Assert(constructorMethod != null || constructedType.IsValueType);
+        Debug.Assert((constructorMethod?.GetParameters().Length ?? 0) == parameters.Length);
 
         ConstructedType = constructedType;
         ConstructorMethod = constructorMethod;
-        ConstructorParameters = constructorMethod is null
-            ? []
-            : constructorMethod.GetParameters()
-                .Select(p => new MethodParameterShapeInfo(p))
-                .ToArray();
+        ConstructorParameters = parameters;
 
         MemberInitializers = memberInitializers ?? [];
         Parameters = [ ..ConstructorParameters, ..MemberInitializers ];

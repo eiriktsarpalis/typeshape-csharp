@@ -25,19 +25,14 @@ public interface ITypeShape
     /// <summary>
     /// Gets all available constructor shapes for the given type.
     /// </summary>
-    /// <param name="nonPublic">Determines whether non-public constructors and member initializers should be resolved.</param>
-    /// <param name="includeProperties">Determines whether non-required property setters should be included as constructor parameters.</param>
-    /// <param name="includeFields">Determines whether non-required fields should be included as constructor parameters.</param>
     /// <returns>An enumeration of all available constructor shapes.</returns>
-    IEnumerable<IConstructorShape> GetConstructors(bool nonPublic = false, bool includeProperties = false, bool includeFields = false);
+    IEnumerable<IConstructorShape> GetConstructors();
 
     /// <summary>
     /// Gets all available property/field shapes for the given type.
     /// </summary>
-    /// <param name="nonPublic">Determines whether non-public members should be resolved.</param>
-    /// <param name="includeFields">Determines whether the enumeration should include fields instead of just properties.</param>
     /// <returns>An enumeration of all available property/field shapes.</returns>
-    IEnumerable<IPropertyShape> GetProperties(bool nonPublic = false, bool includeFields = false);
+    IEnumerable<IPropertyShape> GetProperties();
     
     /// <summary>
     /// Determines the <see cref="TypeKind"/> that the current shape supports.

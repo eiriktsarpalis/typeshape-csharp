@@ -71,13 +71,13 @@ public static partial class CborSerializer
                     Debug.Assert(type.Kind is TypeKind.None or TypeKind.Object);
 
                     CborPropertyConverter<T>[] properties = type
-                        .GetProperties(includeFields: true)
+                        .GetProperties()
                         .Select(prop => (CborPropertyConverter<T>)prop.Accept(this, state)!)
                         .ToArray();
 
                     // Prefer the default constructor if available.
                     IConstructorShape? ctor = type
-                        .GetConstructors(includeProperties: true, includeFields: true)
+                        .GetConstructors()
                         .MinBy(ctor => ctor.ParameterCount);
 
                     converter = ctor != null

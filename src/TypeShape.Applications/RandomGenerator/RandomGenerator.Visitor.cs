@@ -33,7 +33,7 @@ public partial class RandomGenerator
                     return type.GetEnumerableShape().Accept(this, null);
                 default:
                     // Prefer the default constructor, if available.
-                    IConstructorShape? constructor = type.GetConstructors(includeProperties: true, includeFields: true)
+                    IConstructorShape? constructor = type.GetConstructors()
                         .MinBy(ctor => ctor.ParameterCount);
 
                     return constructor is null
@@ -54,7 +54,7 @@ public partial class RandomGenerator
             if (constructor.ParameterCount == 0)
             {
                 Func<TDeclaringType> defaultCtor = constructor.GetDefaultConstructor();
-                RandomPropertySetter<TDeclaringType>[] propertySetters = constructor.DeclaringType.GetProperties(includeFields: true)
+                RandomPropertySetter<TDeclaringType>[] propertySetters = constructor.DeclaringType.GetProperties()
                     .Where(prop => prop.HasSetter)
                     .Select(prop => (RandomPropertySetter<TDeclaringType>)prop.Accept(this, null)!)
                     .ToArray();

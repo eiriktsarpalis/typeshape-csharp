@@ -19,7 +19,7 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
     public bool IsRecord => _isRecord ??= typeof(T).IsRecord();
     private bool? _isRecord;
 
-    public IEnumerable<IConstructorShape> GetConstructors(bool nonPublic, bool includeProperties, bool includeFields)
+    public IEnumerable<IConstructorShape> GetConstructors()
     {
         if (typeof(T).IsAbstract || Kind is not TypeKind.Object)
         {
@@ -40,18 +40,36 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
             yield break;
         }
 
-        BindingFlags flags = GetInstanceBindingFlags(nonPublic);
-
-        MemberInitializerShapeInfo[] settableMembers = GetMembers(nonPublic, includeFields: true)
-            .Where(m => m is PropertyInfo { CanWrite: true } or FieldInfo { IsInitOnly: false })
-            .Select(m => new MemberInitializerShapeInfo(m))
-            .Where(m => m.IsRequired || (includeFields && m.MemberInfo is FieldInfo) || (includeProperties && m.MemberInfo is PropertyInfo))
+        var allMembers = GetMembers().ToArray();
+        MemberInitializerShapeInfo[] settableMembers = allMembers
+            .Where(m => m.MemberInfo is PropertyInfo { CanWrite: true } or FieldInfo { IsInitOnly: false })
+            .Select(m => new MemberInitializerShapeInfo(m.MemberInfo, m.LogicalName))
             .OrderByDescending(m => m.IsRequired || m.IsInitOnly) // Shift required or init members first
             .ToArray();
 
+        ConstructorInfo[] constructors = typeof(T).GetConstructors(AllInstanceMemberBindingFlags);
+        bool hasConstructorShapeAttribute = constructors.Any(ctor => ctor.GetCustomAttribute<ConstructorShapeAttribute>() != null);
         bool isConstructorFound = false;
-        foreach (ConstructorInfo constructorInfo in typeof(T).GetConstructors(flags))
+
+        foreach (ConstructorInfo constructorInfo in constructors)
         {
+            if (hasConstructorShapeAttribute)
+            {
+                // For types that contain the [ConstructorShape] attribute, only consider constructors with the attribute.
+                if (constructorInfo.GetCustomAttribute<ConstructorShapeAttribute>() is null)
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                // For types that don't contain the [ConstructorShape] attribute, only consider public constructors.
+                if (!constructorInfo.IsPublic)
+                {
+                    continue;
+                }
+            }
+
             ParameterInfo[] parameters = constructorInfo.GetParameters();
             if (parameters.Any(param => !param.ParameterType.CanBeGenericArgument()))
             {
@@ -59,12 +77,41 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
                 continue;
             }
 
-            if (IsRecord && parameters is [ParameterInfo parameter] &&
-                parameter.ParameterType == typeof(T))
+            if (IsRecord && parameters is [ParameterInfo singleParam] &&
+                singleParam.ParameterType == typeof(T))
             {
                 // Skip the copy constructor in record types
                 continue;
             }
+
+            var parameterShapeInfos = parameters.Select(parameter =>
+            {
+                ParameterShapeAttribute? parameterAttr = parameter.GetCustomAttribute<ParameterShapeAttribute>();
+                string? logicalName = parameterAttr?.Name;
+                if (logicalName is null)
+                {
+                    if (string.IsNullOrEmpty(parameter.Name))
+                    {
+                        throw new NotSupportedException($"The constructor for type '{parameter.Member.DeclaringType}' has had its parameter names trimmed.");
+                    }
+
+                    // If no custom name is specified, attempt to use the custom name from a matching property.
+                    logicalName =
+                        allMembers.FirstOrDefault(member =>
+                            member.LogicalName != null &&
+                            member.MemberInfo.GetMemberType() == parameter.ParameterType &&
+                            ParameterNameMatchesPropertyName(parameter.Name, member.MemberInfo.Name))
+                        .LogicalName;
+
+                    // Match parameter to property names up to camelCase/PascalCase conversion
+                    static bool ParameterNameMatchesPropertyName(string parameterName, string propertyName) =>
+                        parameterName.Length == propertyName.Length &&
+                        char.ToLowerInvariant(parameterName[0]) == char.ToLowerInvariant(propertyName[0]) &&
+                        parameterName.AsSpan(start: 1).Equals(propertyName.AsSpan(start: 1), StringComparison.Ordinal);
+                }
+
+                return new MethodParameterShapeInfo(parameter, logicalName);
+            }).ToArray();
 
             bool setsRequiredMembers = constructorInfo.SetsRequiredMembers();
             bool isDefaultCtorWithoutRequiredOrInitMembers = 
@@ -92,13 +139,13 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
 
                 bool MatchesConstructorParameter(MemberInitializerShapeInfo memberInitializer)
                 {
-                    parameterIndex ??= parameters.ToDictionary(p => p.Name ?? "", p => p.ParameterType, StringComparer.Ordinal);
+                    parameterIndex ??= parameterShapeInfos.ToDictionary(p => p.Name, p => p.ParameterInfo.ParameterType, StringComparer.Ordinal);
                     return parameterIndex.TryGetValue(memberInitializer.Name, out Type? matchingParameterType) &&
                         matchingParameterType == memberInitializer.Type;
                 }
             }
 
-            var ctorShapeInfo = new MethodConstructorShapeInfo(typeof(T), constructorInfo, memberInitializers.ToArray());
+            var ctorShapeInfo = new MethodConstructorShapeInfo(typeof(T), constructorInfo, parameterShapeInfos, memberInitializers.ToArray());
             yield return provider.CreateConstructor(ctorShapeInfo);
             isConstructorFound = true;
         }
@@ -111,66 +158,104 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
         }
         
         static MethodConstructorShapeInfo CreateDefaultConstructor(MemberInitializerShapeInfo[]? memberInitializers)
-            => new(typeof(T), constructorMethod: null, memberInitializers);
+            => new(typeof(T), constructorMethod: null, parameters: [], memberInitializers: memberInitializers);
     }
 
-    public IEnumerable<IPropertyShape> GetProperties(bool nonPublic, bool includeFields)
+    public IEnumerable<IPropertyShape> GetProperties()
     {
         if (Kind is not TypeKind.Object)
         {
             yield break;
         }
 
-        if (typeof(T).IsNestedTupleRepresentation())
+        if (typeof(T).IsTupleType())
         {
             foreach (var field in ReflectionHelpers.EnumerateTupleMemberPaths(typeof(T)))
             {
-                yield return provider.CreateProperty(typeof(T), field.Member, field.ParentMembers, logicalName: field.LogicalName, nonPublic: false);
+                yield return provider.CreateProperty(typeof(T), field.Member, field.ParentMembers, field.LogicalName, includeNonPublicAccessors: false);
             }
 
             yield break;
         }
 
-        foreach (MemberInfo memberInfo in GetMembers(nonPublic, includeFields))
+        foreach ((MemberInfo memberInfo, string? logicalName, _, bool includeNonPublic) in GetMembers())
         {
-            yield return provider.CreateProperty(typeof(T), memberInfo, parentMembers:null, nonPublic);
+            yield return provider.CreateProperty(typeof(T), memberInfo, parentMembers:null, logicalName, includeNonPublic);
         }
     }
 
-    private IEnumerable<MemberInfo> GetMembers(bool nonPublic, bool includeFields)
+    private IEnumerable<(MemberInfo MemberInfo, string? LogicalName, int Order, bool IncludeNonPublic)> GetMembers()
     {
         Debug.Assert(Kind is TypeKind.Object);
-        BindingFlags flags = GetInstanceBindingFlags(nonPublic);
+
+        List<(MemberInfo MemberInfo, string? LogicalName, int Order, bool IncludeNonPublic)> results = [];
         HashSet<string> membersInScope = new(StringComparer.Ordinal);
+        bool isOrderSpecified = false;
 
         foreach (Type current in typeof(T).GetSortedTypeHierarchy())
         {
-            foreach (PropertyInfo propertyInfo in current.GetProperties(flags))
+            foreach (PropertyInfo propertyInfo in current.GetProperties(AllInstanceMemberBindingFlags))
             {
                 if (propertyInfo.GetIndexParameters().Length == 0 &&
                     propertyInfo.PropertyType.CanBeGenericArgument() &&
                     !propertyInfo.IsExplicitInterfaceImplementation() &&
                     !IsOverriddenOrShadowed(propertyInfo))
                 {
-                    yield return propertyInfo;
+                    HandleMember(propertyInfo);
                 }
             }
 
-            if (includeFields)
+            foreach (FieldInfo fieldInfo in current.GetFields(AllInstanceMemberBindingFlags))
             {
-                foreach (FieldInfo fieldInfo in current.GetFields(flags))
+                if (fieldInfo.FieldType.CanBeGenericArgument() &&
+                    !IsOverriddenOrShadowed(fieldInfo))
                 {
-                    if (fieldInfo.FieldType.CanBeGenericArgument() &&
-                        !IsOverriddenOrShadowed(fieldInfo))
-                    {
-                        yield return fieldInfo;
-                    }
+                    HandleMember(fieldInfo);
                 }
             }
         }
 
+        return isOrderSpecified ? results.OrderBy(r => r.Order) : results;
+
         bool IsOverriddenOrShadowed(MemberInfo memberInfo) => 
             memberInfo.IsOverride() || !membersInScope.Add(memberInfo.Name);
+
+        void HandleMember(MemberInfo memberInfo)
+        {
+            PropertyShapeAttribute? propertyAttr = memberInfo.GetCustomAttribute<PropertyShapeAttribute>();
+            string? logicalName = null;
+            bool includeNonPublic = false;
+            int order = 0;
+
+            if (propertyAttr != null)
+            {
+                // If the attribute is present, use the value of the Ignore property to determine its inclusion.
+                if (propertyAttr.Ignore)
+                {
+                    return;
+                }
+
+                logicalName = propertyAttr.Name;
+                if (propertyAttr.Order != 0)
+                {
+                    order = propertyAttr.Order;
+                    isOrderSpecified = true;
+                }
+
+                includeNonPublic = true;
+            }
+            else
+            {
+                // If no attribute is present, only include members that have at least one public accessor.
+                memberInfo.ResolveAccessibility(out bool isGetterPublic, out bool isSetterPublic);
+                if (!isGetterPublic && !isSetterPublic)
+                {
+                    return;
+                }
+            }
+
+            results.Add((memberInfo, logicalName, order, includeNonPublic));
+        }
     }
 
     public IEnumShape GetEnumShape()
@@ -258,10 +343,7 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
         return TypeKind.Object;
     }
 
-    private static BindingFlags GetInstanceBindingFlags(bool nonPublic)
-        => nonPublic 
-        ? BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance
-        : BindingFlags.Public | BindingFlags.Instance;
+    private const BindingFlags AllInstanceMemberBindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
 
     private static bool IsSimpleValue()
     {

@@ -1,11 +1,9 @@
 ﻿using System.Collections;
 using System.Collections.Immutable;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json;
 using TypeShape.Applications.RandomGenerator;
 using TypeShape.ReflectionProvider;
 using Xunit;
@@ -95,7 +93,7 @@ public abstract class TypeShapeProviderTests
         Assert.NotNull(shape);
 
         var visitor = new PropertyTestVisitor();
-        foreach (IPropertyShape property in shape.GetProperties(nonPublic: true, includeFields: true))
+        foreach (IPropertyShape property in shape.GetProperties())
         {
             Assert.Equal(typeof(T), property.DeclaringType.Type);
             property.Accept(visitor, testCase.Value);
@@ -142,7 +140,7 @@ public abstract class TypeShapeProviderTests
         Assert.NotNull(shape);
 
         var visitor = new ConstructorTestVisitor();
-        foreach (IConstructorShape ctor in shape.GetConstructors(nonPublic: true, includeProperties: true, includeFields: true))
+        foreach (IConstructorShape ctor in shape.GetConstructors())
         {
             Assert.Equal(typeof(T), ctor.DeclaringType.Type);
             ctor.Accept(visitor, typeof(T));
@@ -469,16 +467,17 @@ public abstract class TypeShapeProviderTests
         ITypeShape<T> shape = Provider.GetShape<T>()!;
         Assert.Equal(typeof(T), shape.AttributeProvider);
 
-        foreach (IPropertyShape property in shape.GetProperties(nonPublic: true, includeFields: true))
+        foreach (IPropertyShape property in shape.GetProperties())
         {
             ICustomAttributeProvider? attributeProvider = property.AttributeProvider;
             Assert.NotNull(attributeProvider);
+            PropertyShapeAttribute? attr = attributeProvider.GetCustomAttributes(inherit: true).OfType<PropertyShapeAttribute>().FirstOrDefault();
 
             if (property.IsField)
             {
                 FieldInfo fieldInfo = Assert.IsAssignableFrom<FieldInfo>(attributeProvider);
                 Assert.True(fieldInfo.DeclaringType!.IsAssignableFrom(typeof(T)));
-                Assert.Equal(property.Name, fieldInfo.Name);
+                Assert.Equal(attr?.Name ?? fieldInfo.Name, property.Name);
                 Assert.Equal(property.PropertyType.Type, fieldInfo.FieldType);
                 Assert.True(property.HasGetter);
                 Assert.Equal(!fieldInfo.IsInitOnly, property.HasSetter);
@@ -490,7 +489,7 @@ public abstract class TypeShapeProviderTests
                 PropertyInfo propertyInfo = Assert.IsAssignableFrom<PropertyInfo>(attributeProvider);
                 Assert.False(propertyInfo.IsOverride());
                 Assert.True(propertyInfo.DeclaringType!.IsAssignableFrom(typeof(T)));
-                Assert.Equal(property.Name, propertyInfo.Name);
+                Assert.Equal(attr?.Name ?? propertyInfo.Name, property.Name);
                 Assert.Equal(property.PropertyType.Type, propertyInfo.PropertyType);
                 Assert.True(!property.HasGetter || propertyInfo.CanRead);
                 Assert.True(!property.HasSetter || propertyInfo.CanWrite);
@@ -499,7 +498,7 @@ public abstract class TypeShapeProviderTests
             }
         }
 
-        foreach (IConstructorShape constructor in shape.GetConstructors(nonPublic: true, includeProperties: true, includeFields: true))
+        foreach (IConstructorShape constructor in shape.GetConstructors())
         {
             ICustomAttributeProvider? attributeProvider = constructor.AttributeProvider;
             if (attributeProvider is null)
@@ -520,9 +519,21 @@ public abstract class TypeShapeProviderTests
                 if (i < parameters.Length)
                 {
                     ParameterInfo actualParameter = parameters[i];
+                    ParameterShapeAttribute? shapeAttr = actualParameter.GetCustomAttribute<ParameterShapeAttribute>();
+                    string expectedName =
+                        // 1. parameter attribute name
+                        shapeAttr?.Name
+                        // 2. property name picked up from matching parameter
+                        ?? typeof(T).GetMembers(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                            .FirstOrDefault(m => JsonNamingPolicy.CamelCase.ConvertName(m.Name) == actualParameter.Name)
+                            ?.GetCustomAttribute<PropertyShapeAttribute>()
+                            ?.Name
+                        // 3. the actual parameter name.
+                        ?? actualParameter.Name!;
+
                     Assert.Equal(actualParameter.Position, ctorParam.Position);
                     Assert.Equal(actualParameter.ParameterType, ctorParam.ParameterType.Type);
-                    Assert.Equal(actualParameter.Name, ctorParam.Name);
+                    Assert.Equal(expectedName, ctorParam.Name);
 
                     bool hasDefaultValue = actualParameter.TryGetDefaultValueNormalized(out object? defaultValue);
                     Assert.Equal(hasDefaultValue, ctorParam.HasDefaultValue);
@@ -538,9 +549,10 @@ public abstract class TypeShapeProviderTests
                 else
                 {
                     MemberInfo memberInfo = Assert.IsAssignableFrom<MemberInfo>(ctorParam.AttributeProvider);
+                    PropertyShapeAttribute? attr = memberInfo.GetCustomAttribute<PropertyShapeAttribute>();
 
                     Assert.True(memberInfo.DeclaringType!.IsAssignableFrom(typeof(T)));
-                    Assert.Equal(memberInfo.Name, ctorParam.Name);
+                    Assert.Equal(attr?.Name ?? memberInfo.Name, ctorParam.Name);
                     Assert.False(ctorParam.HasDefaultValue);
                     Assert.Equal(i, ctorParam.Position);
                     Assert.False(ctorParam.HasDefaultValue);
@@ -579,7 +591,7 @@ public abstract class TypeShapeProviderTests
         ITypeShape<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
 
-        foreach (IPropertyShape property in shape.GetProperties(nonPublic: true, includeFields: true))
+        foreach (IPropertyShape property in shape.GetProperties())
         {
             MemberInfo memberInfo = Assert.IsAssignableFrom<MemberInfo>(property.AttributeProvider);
 
@@ -588,7 +600,7 @@ public abstract class TypeShapeProviderTests
             Assert.Equal(property.HasSetter && isSetterNonNullable, property.IsSetterNonNullable);
         }
 
-        foreach (IConstructorShape constructor in shape.GetConstructors(nonPublic: true, includeProperties: true, includeFields: true))
+        foreach (IConstructorShape constructor in shape.GetConstructors())
         {
             ICustomAttributeProvider? attributeProvider = constructor.AttributeProvider;
             if (attributeProvider is null)

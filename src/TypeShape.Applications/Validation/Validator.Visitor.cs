@@ -33,7 +33,7 @@ public static partial class Validator
                     Debug.Assert(type.Kind is TypeKind.Object);
 
                     (string, Validator<T>)[] propertyValidators = type
-                        .GetProperties(includeFields: true)
+                        .GetProperties()
                         .Where(prop => prop.HasGetter)
                         .Select(prop => (prop.Name, (Validator<T>)prop.Accept(this, state)!))
                         .ToArray();

@@ -12,6 +12,8 @@ namespace TypeShape.SourceGenerator;
 
 public sealed partial class Parser : TypeDataModelGenerator
 {
+    private readonly TypeShapeKnownSymbols _knownSymbols;
+
     // We want to flatten System.Tuple types for consistency with
     // the reflection-based provider (which caters to F# model types).
     protected override bool FlattenSystemTupleTypes => true;
@@ -24,9 +26,37 @@ public sealed partial class Parser : TypeDataModelGenerator
     protected override ITypeSymbol NormalizeType(ITypeSymbol type)
         => KnownSymbols.Compilation.EraseCompilerMetadata(type);
 
+    // Ignore properties and fields with the [PropertyShape] attribute set to Ignore = true.
+    protected override bool IgnorePropertyOrField(ISymbol propertyOrField)
+    {
+        if (propertyOrField.GetAttribute(_knownSymbols.PropertyShapeAttribute) is AttributeData propertyAttribute)
+        {
+            if (propertyAttribute.TryGetNamedArgument("Ignore", out bool ignoreValue))
+            {
+                return ignoreValue;
+            }
+
+            return false;
+        }
+
+        return base.IgnorePropertyOrField(propertyOrField);
+    }
+
+    // Resolve constructors with the [ConstructorShape] attribute.
+    protected override IEnumerable<IMethodSymbol> ResolveConstructors(ITypeSymbol type)
+    {
+        IEnumerable<IMethodSymbol> constructors = base.ResolveConstructors(type);
+        bool hasConstructorShapeAttribute = constructors.Any(ctor => ctor.HasAttribute(_knownSymbols.ConstructorShapeAttribute));
+        // If there are no constructors with the attribute, we only want public constructors.
+        return hasConstructorShapeAttribute 
+            ? constructors.Where(ctor => ctor.HasAttribute(_knownSymbols.ConstructorShapeAttribute))
+            : constructors.Where(ctor => ctor.DeclaredAccessibility is Accessibility.Public);
+    }
+
     private Parser(ISymbol generationScope, TypeShapeKnownSymbols knownSymbols, CancellationToken cancellationToken) 
         : base(generationScope, knownSymbols, cancellationToken)
-    { 
+    {
+        _knownSymbols = knownSymbols;
     }
 
     public static TypeShapeProviderModel ParseFromGenerateShapeOfTAttributes(
@@ -89,7 +119,7 @@ public sealed partial class Parser : TypeDataModelGenerator
             INamedTypeSymbol? attributeType = attributeData.AttributeClass;
 
             if (attributeType is { TypeArguments: [ITypeSymbol typeArgument] } &&
-                SymbolEqualityComparer.Default.Equals(attributeType.ConstructedFrom, ((TypeShapeKnownSymbols)KnownSymbols).GenerateShapeAttributeOfT))
+                SymbolEqualityComparer.Default.Equals(attributeType.ConstructedFrom, _knownSymbols.GenerateShapeAttributeOfT))
             {
                 TypeDataModelGenerationStatus generationStatus = IncludeType(typeArgument);
 

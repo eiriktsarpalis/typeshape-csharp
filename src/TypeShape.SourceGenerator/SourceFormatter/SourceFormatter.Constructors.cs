@@ -12,7 +12,7 @@ internal static partial class SourceFormatter
 
     private static void FormatConstructorFactory(SourceWriter writer, string methodName, ObjectShapeModel type)
     {
-        writer.WriteLine($"private IEnumerable<IConstructorShape> {methodName}(bool nonPublic, bool includeProperties, bool includeFields) => new IConstructorShape[]");
+        writer.WriteLine($"private IEnumerable<IConstructorShape> {methodName}() => new IConstructorShape[]");
         writer.WriteLine('{');
         writer.Indentation++;
 
@@ -29,7 +29,7 @@ internal static partial class SourceFormatter
             argumentStateFQNs.Add(constructorArgumentStateFQN);
 
             writer.WriteLine($$"""
-                new SourceGenConstructorShape<{{type.Type.FullyQualifiedName}}, {{constructorArgumentStateFQN}}>(nonPublic, includeProperties, includeFields)
+                new SourceGenConstructorShape<{{type.Type.FullyQualifiedName}}, {{constructorArgumentStateFQN}}>
                 {
                     DeclaringType = {{type.Type.GeneratedPropertyName}},
                     ParameterCount = {{constructor.TotalArity}},
@@ -131,7 +131,7 @@ internal static partial class SourceFormatter
                 {
                     (0, 0) => $$"""{{FormatConstructorName(constructor)}}()""",
                     (1, 0) when constructor.OptionalMembers is [] => $$"""{{FormatConstructorName(constructor)}}({{stateVar}})""",
-                    (0, 1) when constructor.OptionalMembers is [] => $$"""{{FormatConstructorName(constructor)}} { {{constructor.RequiredOrInitMembers[0].Name}} = {{stateVar}} }""",
+                    (0, 1) when constructor.OptionalMembers is [] => $$"""{{FormatConstructorName(constructor)}} { {{constructor.RequiredOrInitMembers[0].UnderlyingMemberName}} = {{stateVar}} }""",
                     (_, 0) => $$"""{{FormatConstructorName(constructor)}}({{FormatCtorArgumentsBody()}})""",
                     (0, _) => $$"""{{FormatConstructorName(constructor)}} { {{FormatInitializerBody()}} }""",
                     (_, _) => $$"""{{FormatConstructorName(constructor)}}({{FormatCtorArgumentsBody()}}) { {{FormatInitializerBody()}} }""",
@@ -142,7 +142,7 @@ internal static partial class SourceFormatter
                     : $$"""{ var obj = {{objectInitializerExpr}}; {{FormatOptionalMemberAssignments()}}; return obj; }""";
 
                 string FormatCtorArgumentsBody() => string.Join(", ", constructor.Parameters.Select(p => FormatCtorParameterExpr(p)));
-                string FormatInitializerBody() => string.Join(", ", constructor.RequiredOrInitMembers.Select(p => $"{p.Name} = {FormatCtorParameterExpr(p)}"));
+                string FormatInitializerBody() => string.Join(", ", constructor.RequiredOrInitMembers.Select(p => $"{p.UnderlyingMemberName} = {FormatCtorParameterExpr(p)}"));
                 string FormatOptionalMemberAssignments() => string.Join("; ", constructor.OptionalMembers.Select(FormatOptionalMemberAssignment));
                 string FormatOptionalMemberAssignment(ConstructorParameterShapeModel parameter)
                 {
@@ -153,7 +153,7 @@ internal static partial class SourceFormatter
                         ? $"{stateVar}.Item{constructor.TotalArity + 1}[{flagOffset}]"
                         : $"({stateVar}.Item{constructor.TotalArity + 1} & (1 << {flagOffset})) != 0";
 
-                    return $"if ({conditionalExpr}) obj.{parameter.Name} = {FormatCtorParameterExpr(parameter)}";
+                    return $"if ({conditionalExpr}) obj.{parameter.UnderlyingMemberName} = {FormatCtorParameterExpr(parameter)}";
                 }
 
                 string FormatCtorParameterExpr(ConstructorParameterShapeModel parameter)
@@ -242,7 +242,7 @@ internal static partial class SourceFormatter
 
                 if (parameter.Kind is not ParameterKind.ConstructorParameter)
                 {
-                    return $"static () => typeof({parameter.DeclaringType.FullyQualifiedName}).GetMember({FormatStringLiteral(parameter.Name)}, {InstanceBindingFlagsConstMember})[0]";
+                    return $"static () => typeof({parameter.DeclaringType.FullyQualifiedName}).GetMember({FormatStringLiteral(parameter.UnderlyingMemberName)}, {InstanceBindingFlagsConstMember})[0]";
                 }
 
                 string parameterTypes = constructor.Parameters.Length == 0

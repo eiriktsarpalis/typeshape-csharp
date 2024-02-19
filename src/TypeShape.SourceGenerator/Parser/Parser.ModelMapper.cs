@@ -7,7 +7,7 @@ namespace TypeShape.SourceGenerator;
 
 public sealed partial class Parser
 {
-    private static TypeShapeModel MapModel(TypeId typeId, TypeDataModel model, bool isGeneratedViaWitnessType)
+    private TypeShapeModel MapModel(TypeId typeId, TypeDataModel model, bool isGeneratedViaWitnessType)
     {
         bool emitGenericProviderImplementation = isGeneratedViaWitnessType && model.IsRootType;
         return model switch
@@ -101,11 +101,12 @@ public sealed partial class Parser
             {
                 Type = typeId,
                 Constructors = objectModel.Constructors
-                    .Select(c => MapConstructor(objectModel.Type, typeId, c))
+                    .Select(c => MapConstructor(objectModel, typeId, c))
                     .ToImmutableEquatableArray(),
 
                 Properties = objectModel.Properties
                     .Select(p => MapProperty(model.Type, typeId, p))
+                    .OrderBy(p => p.Order)
                     .ToImmutableEquatableArray(),
 
                 IsValueTupleType = false,
@@ -143,11 +144,12 @@ public sealed partial class Parser
         }
     }
 
-    private static PropertyShapeModel MapProperty(ITypeSymbol parentType, TypeId parentTypeId, PropertyDataModel property, bool isClassTupleType = false, int tupleElementIndex = -1)
+    private PropertyShapeModel MapProperty(ITypeSymbol parentType, TypeId parentTypeId, PropertyDataModel property, bool isClassTupleType = false, int tupleElementIndex = -1)
     {
+        ParsePropertyShapeAttribute(property.PropertySymbol, out string propertyName, out int order);
         return new PropertyShapeModel
         {
-            Name = isClassTupleType ? $"Item{tupleElementIndex + 1}" : property.Name,
+            Name = isClassTupleType ? $"Item{tupleElementIndex + 1}" : propertyName ?? property.Name,
             UnderlyingMemberName = isClassTupleType
                 ? $"{string.Join("", Enumerable.Repeat("Rest.", tupleElementIndex / 7))}Item{(tupleElementIndex % 7) + 1}"
                 : property.Name,
@@ -161,10 +163,11 @@ public sealed partial class Parser
             IsGetterPublic = property.CanRead && property.PropertySymbol is IPropertySymbol { GetMethod.DeclaredAccessibility: Accessibility.Public } or IFieldSymbol { DeclaredAccessibility: Accessibility.Public },
             IsSetterPublic = property.CanWrite && property.PropertySymbol is IPropertySymbol { SetMethod.DeclaredAccessibility: Accessibility.Public } or IFieldSymbol { DeclaredAccessibility: Accessibility.Public },
             IsField = property.IsField,
+            Order = order,
         };
     }
 
-    private static ConstructorShapeModel MapConstructor(ITypeSymbol declaringType, TypeId declaringTypeId, ConstructorDataModel constructor)
+    private ConstructorShapeModel MapConstructor(ObjectDataModel objectModel, TypeId declaringTypeId, ConstructorDataModel constructor)
     {
         int position = constructor.Parameters.Length;
         List<ConstructorParameterShapeModel>? requiredOrInitMembers = null;
@@ -172,14 +175,17 @@ public sealed partial class Parser
 
         foreach (PropertyDataModel propertyModel in constructor.MemberInitializers.OrderByDescending(p => p.IsRequired || p.IsInitOnly))
         {
+            ParsePropertyShapeAttribute(propertyModel.PropertySymbol, out string propertyName, out _);
+
             var memberInitializer = new ConstructorParameterShapeModel
             {
                 ParameterType = CreateTypeId(propertyModel.PropertyType),
-                DeclaringType = SymbolEqualityComparer.Default.Equals(propertyModel.DeclaringType, declaringType)
+                DeclaringType = SymbolEqualityComparer.Default.Equals(propertyModel.DeclaringType, objectModel.Type)
                     ? declaringTypeId
                     : CreateTypeId(propertyModel.DeclaringType),
 
-                Name = propertyModel.Name,
+                Name = propertyName,
+                UnderlyingMemberName = propertyModel.Name,
                 Position = position++,
                 IsRequired = propertyModel.IsRequired,
                 Kind = propertyModel.IsRequired || propertyModel.IsInitOnly
@@ -207,11 +213,11 @@ public sealed partial class Parser
 
         return new ConstructorShapeModel
         {
-            DeclaringType = SymbolEqualityComparer.Default.Equals(constructor.DeclaringType, declaringType)
+            DeclaringType = SymbolEqualityComparer.Default.Equals(constructor.DeclaringType, objectModel.Type)
                 ? declaringTypeId
                 : CreateTypeId(constructor.DeclaringType),
 
-            Parameters = constructor.Parameters.Select(p => MapConstructorParameter(declaringTypeId, p)).ToImmutableEquatableArray(),
+            Parameters = constructor.Parameters.Select(p => MapConstructorParameter(objectModel, declaringTypeId, p)).ToImmutableEquatableArray(),
             RequiredOrInitMembers = requiredOrInitMembers?.ToImmutableEquatableArray() ?? [],
             OptionalMembers = optionalProperties?.ToImmutableEquatableArray() ?? [],
             OptionalMemberFlagsType = (optionalProperties?.Count ?? 0) switch
@@ -229,11 +235,42 @@ public sealed partial class Parser
         };
     }
 
-    private static ConstructorParameterShapeModel MapConstructorParameter(TypeId declaringTypeId, ConstructorParameterDataModel parameter)
+    private ConstructorParameterShapeModel MapConstructorParameter(ObjectDataModel objectModel, TypeId declaringTypeId, ConstructorParameterDataModel parameter)
     {
+        string name = parameter.Parameter.Name;
+
+        AttributeData? parameterAttr = parameter.Parameter.GetAttribute(_knownSymbols.ParameterShapeAttribute);
+        if (parameterAttr != null &&
+            parameterAttr.TryGetNamedArgument("Name", out string? value) && value != null)
+        {
+            // Resolve the [ParameterShape] attribute name override
+            name = value;
+        }
+        else
+        {
+            foreach (PropertyDataModel property in objectModel.Properties)
+            {
+                if (SymbolEqualityComparer.Default.Equals(property.PropertyType, parameter.Parameter.Type) &&
+                    IsMatchingPropertyName(parameter.Parameter.Name, property.Name) &&
+                    property.PropertySymbol.GetAttribute(_knownSymbols.PropertyShapeAttribute) is AttributeData attributeData &&
+                    attributeData.TryGetNamedArgument("Name", out string? result) && result != null)
+                {
+                    // We have a matching property with a name override, use it in the parameter as well.
+                    name = result;
+                }
+
+                // Match property names to parameters up to Pascal/camel case conversion.
+                static bool IsMatchingPropertyName(string parameterName, string propertyName) =>
+                    parameterName.Length == propertyName.Length &&
+                    char.ToLowerInvariant(parameterName[0]) == char.ToLowerInvariant(propertyName[0]) &&
+                    parameterName.AsSpan(start: 1).SequenceEqual(propertyName.AsSpan(start: 1));
+            }
+        }
+
         return new ConstructorParameterShapeModel
         {
-            Name = parameter.Parameter.Name,
+            Name = name,
+            UnderlyingMemberName = parameter.Parameter.Name,
             Position = parameter.Parameter.Ordinal,
             DeclaringType = declaringTypeId,
             ParameterType = CreateTypeId(parameter.Parameter.Type),
@@ -277,9 +314,11 @@ public sealed partial class Parser
 
         static ConstructorParameterShapeModel MapTupleConstructorParameter(TypeId typeId, PropertyDataModel tupleElement, int position)
         {
+            string name = $"Item{position + 1}";
             return new ConstructorParameterShapeModel
             {
-                Name = $"Item{position + 1}",
+                Name = name,
+                UnderlyingMemberName = name,
                 Position = position,
                 ParameterType = CreateTypeId(tupleElement.PropertyType),
                 DeclaringType = typeId,
@@ -291,6 +330,28 @@ public sealed partial class Parser
                 IsNonNullable = tupleElement.IsSetterNonNullable,
                 DefaultValueExpr = null,
             };
+        }
+    }
+
+    private void ParsePropertyShapeAttribute(ISymbol propertySymbol, out string propertyName, out int order)
+    {
+        propertyName = propertySymbol.Name;
+        order = 0;
+
+        if (propertySymbol.GetAttribute(_knownSymbols.PropertyShapeAttribute) is AttributeData propertyAttr)
+        {
+            foreach (KeyValuePair<string, TypedConstant> namedArgument in propertyAttr.NamedArguments)
+            {
+                switch (namedArgument.Key)
+                {
+                    case "Name":
+                        propertyName = (string?)namedArgument.Value.Value ?? propertyName;
+                        break;
+                    case "Order":
+                        order = (int)namedArgument.Value.Value!;
+                        break;
+                }
+            }
         }
     }
 }

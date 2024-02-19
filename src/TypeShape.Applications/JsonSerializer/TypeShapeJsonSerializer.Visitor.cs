@@ -73,13 +73,13 @@ public static partial class TypeShapeJsonSerializer
                     Debug.Assert(type.Kind is TypeKind.None or TypeKind.Object);
 
                     JsonPropertyConverter<T>[] properties = type
-                        .GetProperties(includeFields: true)
+                        .GetProperties()
                         .Select(prop => (JsonPropertyConverter<T>)prop.Accept(this, state)!)
                         .ToArray();
 
                     // Prefer the default constructor if available.
                     IConstructorShape? ctor = type
-                        .GetConstructors(includeProperties: true, includeFields: true)
+                        .GetConstructors()
                         .MinBy(ctor => ctor.ParameterCount);
 
                    converter = ctor != null
@@ -95,7 +95,7 @@ public static partial class TypeShapeJsonSerializer
 
         public object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
         {
-            JsonConverter<TPropertyType> propertyConverter = (JsonConverter<TPropertyType>)property.PropertyType.Accept(this, null)!;
+            var propertyConverter = (JsonConverter<TPropertyType>)property.PropertyType.Accept(this, null)!;
             return new JsonPropertyConverter<TDeclaringType, TPropertyType>(property, propertyConverter);
         }
 

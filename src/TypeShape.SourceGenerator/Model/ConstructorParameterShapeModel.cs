@@ -3,6 +3,7 @@
 public sealed record ConstructorParameterShapeModel
 {
     public required string Name { get; init; }
+    public required string UnderlyingMemberName { get; init; }
     public required TypeId ParameterType { get; init; }
     public required TypeId DeclaringType { get; init; }
     public required ParameterKind Kind { get; init; }

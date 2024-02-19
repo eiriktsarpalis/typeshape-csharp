@@ -69,13 +69,13 @@ public static partial class XmlSerializer
 
                 case TypeKind.Object:
                     XmlPropertyConverter<T>[] properties = type
-                        .GetProperties(includeFields: true)
+                        .GetProperties()
                         .Select(prop => (XmlPropertyConverter<T>)prop.Accept(this, state)!)
                         .ToArray();
 
                     // Prefer the default constructor if available.
                     IConstructorShape? ctor = type
-                        .GetConstructors(includeProperties: true, includeFields: true)
+                        .GetConstructors()
                         .MinBy(ctor => ctor.ParameterCount);
 
                     converter = ctor != null

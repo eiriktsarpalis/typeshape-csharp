@@ -44,16 +44,11 @@ public partial class TypeDataModelGenerator
     }
 
     /// <summary>
-    /// Whether the given property should be ignored from the data model.
+    /// Determines whether the given property or field should be ignored from the data model.
     /// </summary>
     /// <remarks>Defaults to non-public properties being skipped.</remarks>
-    protected virtual bool IgnoreProperty(IPropertySymbol propertySymbol) => propertySymbol.DeclaredAccessibility is not Accessibility.Public;
-
-    /// <summary>
-    /// Whether the given field should be ignored from the data model.
-    /// </summary>
-    /// <remarks>Defaults to non-public fields being skipped.</remarks>
-    protected virtual bool IgnoreField(IFieldSymbol fieldSymbol) => fieldSymbol.DeclaredAccessibility is not Accessibility.Public;
+    protected virtual bool IgnorePropertyOrField(ISymbol propertyOrField)
+        => propertyOrField.DeclaredAccessibility is not Accessibility.Public;
 
     private bool TryMapObject(ITypeSymbol type, ref TypeDataModelGenerationContext ctx, out TypeDataModel? model, out TypeDataModelGenerationStatus status)
     {
@@ -95,7 +90,7 @@ public partial class TypeDataModelGenerator
             foreach (ISymbol member in members) 
             {
                 if (member is IPropertySymbol { IsStatic: false, Parameters: [] } ps &&
-                    IsAccessibleSymbol(ps) && !IsOverriddenOrShadowed(ps) && !IgnoreProperty(ps) && 
+                    IsAccessibleSymbol(ps) && !IsOverriddenOrShadowed(ps) && !IgnorePropertyOrField(ps) && 
                     IncludeNestedType(ps.Type, ref ctx) is TypeDataModelGenerationStatus.Success)
                 {
                     PropertyDataModel propertyModel = MapProperty(ps);
@@ -103,7 +98,7 @@ public partial class TypeDataModelGenerator
                 }
                 else if (
                     member is IFieldSymbol { IsStatic: false, IsConst: false } fs &&
-                    IsAccessibleSymbol(fs) && !IsOverriddenOrShadowed(fs) && !IgnoreField(fs) && 
+                    IsAccessibleSymbol(fs) && !IsOverriddenOrShadowed(fs) && !IgnorePropertyOrField(fs) && 
                     IncludeNestedType(fs.Type, ref ctx) is TypeDataModelGenerationStatus.Success)
                 {
                     PropertyDataModel fieldModel = MapField(fs);

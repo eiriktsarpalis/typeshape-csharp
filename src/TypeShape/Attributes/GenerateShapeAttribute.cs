@@ -6,9 +6,7 @@
 /// implementation for the annotated type.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface, AllowMultiple = false, Inherited = false)]
-public sealed class GenerateShapeAttribute : Attribute
-{
-}
+public sealed class GenerateShapeAttribute : Attribute;
 
 /// <summary>
 /// When applied on a partial class, instructs the TypeShape source generator 
@@ -17,6 +15,4 @@ public sealed class GenerateShapeAttribute : Attribute
 /// </summary>
 /// <typeparam name="T">The type for which shape metadata will be generated.</typeparam>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
-public sealed class GenerateShapeAttribute<T> : Attribute
-{
-}
+public sealed class GenerateShapeAttribute<T> : Attribute;

@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace TypeShape.SourceGenerator.Helpers;
@@ -145,6 +146,34 @@ internal static partial class RoslynHelpers
     {
         SyntaxReference? asr = attributeData.ApplicationSyntaxReference;
         return asr?.SyntaxTree.GetLocation(asr.Span);
+    }
+
+    public static AttributeData? GetAttribute(this ISymbol symbol, INamedTypeSymbol? attributeType)
+    {
+        if (attributeType is null)
+        {
+            return null;
+        }
+
+        return symbol.GetAttributes().FirstOrDefault(ad => SymbolEqualityComparer.Default.Equals(ad.AttributeClass, attributeType));
+    }
+
+    public static bool HasAttribute(this ISymbol symbol, INamedTypeSymbol? attributeType)
+        => attributeType != null && symbol.GetAttributes().Any(ad => SymbolEqualityComparer.Default.Equals(ad.AttributeClass, attributeType));
+
+    public static bool TryGetNamedArgument<T>(this AttributeData attributeData, string name, [NotNullWhen(true)] out T? result)
+    {
+        foreach (KeyValuePair<string, TypedConstant> namedArg in attributeData.NamedArguments)
+        {
+            if (namedArg.Key == name)
+            {
+                result = (T)namedArg.Value.Value!;
+                return true;
+            }
+        }
+
+        result = default;
+        return false;
     }
 
     /// <summary>

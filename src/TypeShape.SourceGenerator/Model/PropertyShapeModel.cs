@@ -17,4 +17,6 @@ public sealed record PropertyShapeModel
 
     public required bool IsGetterNonNullable { get; init; }
     public required bool IsSetterNonNullable { get; init; }
+
+    public required int Order { get; init; }
 }
