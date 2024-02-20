@@ -5,7 +5,7 @@ namespace TypeShape.Applications.XmlSerializer.Converters;
 
 internal abstract class XmlPropertyConverter<TDeclaringType>(string name)
 {
-    public string Name { get; } = name;
+    public string Name { get; } = XmlConvert.EncodeLocalName(name);
     public abstract bool HasGetter { get; }
     public abstract bool HasSetter { get; }
     public bool IsConstructorParameter { get; private protected init; }

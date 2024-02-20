@@ -36,7 +36,7 @@ internal static partial class SourceFormatter
             writer.WriteLine($$"""
                 new SourceGenPropertyShape<{{type.Type.FullyQualifiedName}}, {{property.PropertyType.FullyQualifiedName}}>
                 {
-                    Name = "{{property.Name}}",
+                    Name = {{FormatStringLiteral(property.Name)}},
                     DeclaringType = {{type.Type.GeneratedPropertyName}},
                     PropertyType = {{property.PropertyType.GeneratedPropertyName}},
                     Getter = {{(property.EmitGetter ? $"static (ref {type.Type.FullyQualifiedName} obj) => obj.{property.UnderlyingMemberName}{(suppressGetter ? "!" : "")}" : "null")}},

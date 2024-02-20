@@ -388,8 +388,8 @@ public static class TestTypes
         }, p);
 
         yield return Create(new ClassWithInternalMembers { X = 1, Y = 2, Z = 3, W = 4, internalField = 5 }, p, doesNotRoundtrip: true);
-        yield return Create(new ClassWithPropertyAnnotations { X = 1, Y = 2 }, p);
-        yield return Create(new ClassWithConstructorAndAnnotations(1, 2), p);
+        yield return Create(new ClassWithPropertyAnnotations { X = 1, Y = 2, Z = true }, p);
+        yield return Create(new ClassWithConstructorAndAnnotations(1, 2, true), p);
 
         yield return Create(new WeatherForecastDTO
         {
@@ -987,7 +987,7 @@ public record RecordWithSpecialValueDefaultParams(
     double? dn1 = double.PositiveInfinity, double? dn2 = double.NegativeInfinity, double? dn3 = double.NaN,
     float f1 = float.PositiveInfinity, float f2 = float.NegativeInfinity, float f3 = float.NaN,
     float? fn1 = float.PositiveInfinity, float? fn2 = float.NegativeInfinity, float? fn3 = float.NaN,
-    string s = "\"😀葛🀄🤯𐐀𐐨\"", char c = '\'');
+    string s = "\"😀葛🀄\r\n🤯𐐀𐐨\"", char c = '\'');
 
 [Flags]
 public enum MyEnum { A = 1, B = 2, C = 4, D = 8, E = 16, F = 32, G = 64, H = 128 }
@@ -1085,14 +1085,19 @@ public class ClassWithPropertyAnnotations
     [PropertyShape(Name = "AltName2", Order = -1)]
     [JsonPropertyName("AltName2"), JsonPropertyOrder(-1)]
     public int Y;
+
+    [PropertyShape(Name = "Name\t\f\b with\r\nescaping\'\"", Order = 2)]
+    [JsonPropertyName("Name\t\f\b with\r\nescaping\'\""), JsonPropertyOrder(2)]
+    public bool Z;
 }
 
 public class ClassWithConstructorAndAnnotations
 {
-    public ClassWithConstructorAndAnnotations(int x, [ParameterShape(Name = "AltName2")] int y)
+    public ClassWithConstructorAndAnnotations(int x, [ParameterShape(Name = "AltName2")] int y, bool z)
     {
         X = x;
         Y = y;
+        Z = z;
     }
 
     [PropertyShape(Name = "AltName", Order = 5)]
@@ -1102,6 +1107,10 @@ public class ClassWithConstructorAndAnnotations
     [PropertyShape(Name = "AltName2", Order = -1)]
     [JsonPropertyName("AltName2"), JsonPropertyOrder(-1)]
     public int Y { get; }
+
+    [PropertyShape(Name = "Name\twith\r\nescaping", Order = 2)]
+    [JsonPropertyName("Name\twith\r\nescaping"), JsonPropertyOrder(2)]
+    public bool Z { get; }
 }
 
 [GenerateShape]

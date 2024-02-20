@@ -218,7 +218,7 @@ internal static partial class SourceFormatter
                 new SourceGenConstructorParameterShape<{{constructorArgumentStateFQN}}, {{parameter.ParameterType.FullyQualifiedName}}>
                 {
                     Position = {{parameter.Position}},
-                    Name = "{{parameter.Name}}",
+                    Name = {{FormatStringLiteral(parameter.Name)}},
                     ParameterType = {{parameter.ParameterType.GeneratedPropertyName}},
                     Kind = {{FormatParameterKind(parameter)}},
                     IsRequired = {{FormatBool(parameter.IsRequired)}},
