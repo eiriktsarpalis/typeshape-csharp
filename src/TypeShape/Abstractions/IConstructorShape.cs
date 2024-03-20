@@ -16,7 +16,7 @@ public interface IConstructorShape
     /// The total number of parameters required by the constructor.
     /// </summary>
     /// <remarks>
-    /// This number includes both constructor parameters and 
+    /// This number includes both constructor parameters and
     /// any available property or field initializers.
     /// </remarks>
     int ParameterCount { get; }
@@ -42,7 +42,7 @@ public interface IConstructorShape
     /// </summary>
     /// <param name="visitor">The visitor to accept.</param>
     /// <param name="state">The state parameter to pass to the underlying visitor.</param>
-    /// <returns>The <see cref="object?"/> result returned by the visitor.</returns>
+    /// <returns>The <see cref="object"/> result returned by the visitor.</returns>
     object? Accept(ITypeShapeVisitor visitor, object? state);
 }
 
@@ -61,20 +61,20 @@ public interface IConstructorShape<TDeclaringType, TArgumentState> : IConstructo
     /// <summary>
     /// Creates a delegate wrapping a parameterless constructor, if applicable.
     /// </summary>
-    /// <exception cref="InvalidOperationException">The <see cref="ParameterCount"/> of the constructor is not zero.</exception>
-    /// <returns>A parameterless delegate creating a default instance of <see cref="TDeclaringType"/>.</returns>
+    /// <exception cref="InvalidOperationException">The <see cref="IConstructorShape.ParameterCount"/> of the constructor is not zero.</exception>
+    /// <returns>A parameterless delegate creating a default instance of <typeparamref name="TArgumentState"/>.</returns>
     Func<TDeclaringType> GetDefaultConstructor();
 
     /// <summary>
     /// Creates a constructor delegate for creating a default argument state instance.
     /// </summary>
-    /// <returns>An uninitialized <see cref="TArgumentState"/> value for building constructor parameters.</returns>
+    /// <returns>A delegate for constructing new <typeparamref name="TArgumentState"/> instances.</returns>
     Func<TArgumentState> GetArgumentStateConstructor();
 
     /// <summary>
     /// Creates a constructor delegate parameterized on an argument state object.
     /// </summary>
-    /// <returns>A parameterized delegate returning an instance of <see cref="TDeclaringType"/>.</returns>
+    /// <returns>A parameterized delegate returning an instance of <typeparamref name="TDeclaringType"/>.</returns>
     Constructor<TArgumentState, TDeclaringType> GetParameterizedConstructor();
 
     ITypeShape IConstructorShape.DeclaringType => DeclaringType;

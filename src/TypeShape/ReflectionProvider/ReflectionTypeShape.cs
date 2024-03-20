@@ -114,7 +114,7 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
             }).ToArray();
 
             bool setsRequiredMembers = constructorInfo.SetsRequiredMembers();
-            bool isDefaultCtorWithoutRequiredOrInitMembers = 
+            bool isDefaultCtorWithoutRequiredOrInitMembers =
                 parameters.Length == 0 && !settableMembers.Any(m => m.IsRequired || m.IsInitOnly);
 
             var memberInitializers = new List<MemberInitializerShapeInfo>();
@@ -156,7 +156,7 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
             MethodConstructorShapeInfo ctorShapeInfo = CreateDefaultConstructor(settableMembers);
             yield return provider.CreateConstructor(ctorShapeInfo);
         }
-        
+
         static MethodConstructorShapeInfo CreateDefaultConstructor(MemberInitializerShapeInfo[]? memberInitializers)
             => new(typeof(T), constructorMethod: null, parameters: [], memberInitializers: memberInitializers);
     }
@@ -180,7 +180,7 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
 
         foreach ((MemberInfo memberInfo, string? logicalName, _, bool includeNonPublic) in GetMembers())
         {
-            yield return provider.CreateProperty(typeof(T), memberInfo, parentMembers:null, logicalName, includeNonPublic);
+            yield return provider.CreateProperty(typeof(T), memberInfo, parentMembers: null, logicalName, includeNonPublic);
         }
     }
 
@@ -217,7 +217,7 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
 
         return isOrderSpecified ? results.OrderBy(r => r.Order) : results;
 
-        bool IsOverriddenOrShadowed(MemberInfo memberInfo) => 
+        bool IsOverriddenOrShadowed(MemberInfo memberInfo) =>
             memberInfo.IsOverride() || !membersInScope.Add(memberInfo.Name);
 
         void HandleMember(MemberInfo memberInfo)

@@ -120,8 +120,8 @@ internal sealed class MemberInitializerShapeInfo : IParameterShapeInfo
     public ICustomAttributeProvider? AttributeProvider => MemberInfo;
     public bool HasDefaultValue => false;
     public object? DefaultValue => null;
-    public ConstructorParameterKind Kind => 
-        MemberInfo.MemberType is MemberTypes.Field 
-        ? ConstructorParameterKind.FieldInitializer 
+    public ConstructorParameterKind Kind =>
+        MemberInfo.MemberType is MemberTypes.Field
+        ? ConstructorParameterKind.FieldInitializer
         : ConstructorParameterKind.PropertyInitializer;
 }

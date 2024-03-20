@@ -4,8 +4,17 @@ using System.Runtime.InteropServices;
 
 namespace TypeShape.SourceGenModel;
 
+/// <summary>
+/// Collection helper methods to be consumed by the source generator.
+/// </summary>
 public static class CollectionHelpers
 {
+    /// <summary>
+    /// Creates a list from a <see cref="ReadOnlySpan{T}"/>.
+    /// </summary>
+    /// <typeparam name="T">The element type of the list.</typeparam>
+    /// <param name="span">The span containing the elements of the list.</param>
+    /// <returns>A new list containing the specified elements.</returns>
     public static List<T> CreateList<T>(ReadOnlySpan<T> span)
     {
         var list = new List<T>(span.Length);
@@ -14,6 +23,12 @@ public static class CollectionHelpers
         return list;
     }
 
+    /// <summary>
+    /// Creates a set from a <see cref="ReadOnlySpan{T}"/>.
+    /// </summary>
+    /// <typeparam name="T">The element type of the set.</typeparam>
+    /// <param name="span">The span containing the elements of the set.</param>
+    /// <returns>A new set containing the specified elements.</returns>
     public static HashSet<T> CreateHashSet<T>(ReadOnlySpan<T> span)
     {
         var set = new HashSet<T>(span.Length);
@@ -21,9 +36,17 @@ public static class CollectionHelpers
         {
             set.Add(span[i]);
         }
+
         return set;
     }
 
+    /// <summary>
+    /// Creates a dictionary from a span of key/value pairs.
+    /// </summary>
+    /// <typeparam name="TKey">The key type of the dictionary.</typeparam>
+    /// <typeparam name="TValue">The value type of the dictionary.</typeparam>
+    /// <param name="span">The span containing the entries of the dictionary.</param>
+    /// <returns>A new dictionary containing the specified entries.</returns>
     public static Dictionary<TKey, TValue> CreateDictionary<TKey, TValue>(ReadOnlySpan<KeyValuePair<TKey, TValue>> span)
         where TKey : notnull
     {
@@ -33,13 +56,28 @@ public static class CollectionHelpers
             KeyValuePair<TKey, TValue> kvp = span[i];
             dict[kvp.Key] = kvp.Value;
         }
+
         return dict;
     }
 
+    /// <summary>
+    /// Creates a <see cref="IDictionary{TKey, TValue}"/> wrapper for a <see cref="IReadOnlyDictionary{TKey, TValue}"/>.
+    /// </summary>
+    /// <typeparam name="TDictionary">The dictionary type to be wrapped.</typeparam>
+    /// <typeparam name="TKey">The key type of the dictionary.</typeparam>
+    /// <typeparam name="TValue">The value type of the dictionary.</typeparam>
+    /// <param name="dictionary">The source dictionary to be wrapped.</param>
+    /// <returns>A read-only dictionary instance wrapping the source dictionary.</returns>
     public static IReadOnlyDictionary<TKey, TValue> AsReadOnlyDictionary<TDictionary, TKey, TValue>(TDictionary dictionary)
         where TDictionary : IDictionary<TKey, TValue>
         => new ReadOnlyDictionaryWrapper<TDictionary, TKey, TValue>(dictionary);
 
+    /// <summary>
+    /// Creates a <see cref="IDictionary{TKey, TValue}"/> wrapper for a <see cref="IDictionary"/>.
+    /// </summary>
+    /// <typeparam name="TDictionary">The dictionary type to be wrapped.</typeparam>
+    /// <param name="dictionary">The source dictionary to be wrapped.</param>
+    /// <returns>A read-only dictionary instance wrapping the source dictionary.</returns>
     public static IReadOnlyDictionary<object, object?> AsReadOnlyDictionary<TDictionary>(TDictionary dictionary)
         where TDictionary : IDictionary
         => new ReadOnlyDictionaryWrapper<TDictionary>(dictionary);
@@ -50,8 +88,10 @@ public static class CollectionHelpers
         private readonly TDictionary _dictionary;
         public ReadOnlyDictionaryWrapper(TDictionary dictionary)
         {
-            Debug.Assert(!typeof(TDictionary).IsAssignableTo(typeof(IReadOnlyDictionary<TKey, TValue>)),
-                         "types implementing IReadOnlyDictionary should not call the wrapper helper.");
+            Debug.Assert(
+                !typeof(TDictionary).IsAssignableTo(typeof(IReadOnlyDictionary<TKey, TValue>)),
+                "types implementing IReadOnlyDictionary should not call the wrapper helper.");
+
             _dictionary = dictionary;
         }
 
@@ -95,7 +135,9 @@ public static class CollectionHelpers
         public IEnumerator<KeyValuePair<object, object?>> GetEnumerator()
         {
             foreach (DictionaryEntry entry in _dictionary)
+            {
                 yield return new(entry.Key, entry.Value);
+            }
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

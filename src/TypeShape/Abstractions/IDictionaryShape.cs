@@ -12,23 +12,23 @@ namespace TypeShape;
 public interface IDictionaryShape
 {
     /// <summary>
-    /// The shape of the underlying dictionary type.
+    /// Gets the shape of the underlying dictionary type.
     /// </summary>
     ITypeShape Type { get; }
 
     /// <summary>
-    /// The shape of the underlying key type.
+    /// Gets the shape of the underlying key type.
     /// </summary>
     /// <remarks>
-    /// For non-generic dictionaries this returns <see cref="ITypeShape{object}"/>.
+    /// For non-generic dictionaries this returns the shape for <see cref="object"/>.
     /// </remarks>
     ITypeShape KeyType { get; }
 
     /// <summary>
-    /// The shape of the underlying value type.
+    /// Gets the shape of the underlying value type.
     /// </summary>
     /// <remarks>
-    /// For non-generic dictionaries this returns <see cref="ITypeShape{object}"/>.
+    /// For non-generic dictionaries this returns the shape for <see cref="object"/>.
     /// </remarks>
     ITypeShape ValueType { get; }
 
@@ -42,7 +42,7 @@ public interface IDictionaryShape
     /// </summary>
     /// <param name="visitor">The visitor to accept.</param>
     /// <param name="state">The state parameter to pass to the underlying visitor.</param>
-    /// <returns>The <see cref="object?"/> result returned by the visitor.</returns>
+    /// <returns>The <see cref="object"/> result returned by the visitor.</returns>
     object? Accept(ITypeShapeVisitor visitor, object? state);
 }
 
@@ -68,7 +68,7 @@ public interface IDictionaryShape<TDictionary, TKey, TValue> : IDictionaryShape
     /// The shape of the underlying key type.
     /// </summary>
     /// <remarks>
-    /// For non-generic dictionaries this returns <see cref="ITypeShape{object}"/>.
+    /// For non-generic dictionaries this returns the shape for <see cref="object"/>.
     /// </remarks>
     new ITypeShape<TKey> KeyType { get; }
 
@@ -76,7 +76,7 @@ public interface IDictionaryShape<TDictionary, TKey, TValue> : IDictionaryShape
     /// The shape of the underlying value type.
     /// </summary>
     /// <remarks>
-    /// For non-generic dictionaries this returns <see cref="ITypeShape{object}"/>.
+    /// For non-generic dictionaries this returns the shape for <see cref="object"/>.
     /// </remarks>
     new ITypeShape<TValue> ValueType { get; }
 
@@ -85,7 +85,7 @@ public interface IDictionaryShape<TDictionary, TKey, TValue> : IDictionaryShape
     /// view of the enumerable.
     /// </summary>
     /// <returns>
-    /// A delegate accepting a <typeparamref name="TDictionary"/> and 
+    /// A delegate accepting a <typeparamref name="TDictionary"/> and
     /// returning an <see cref="IReadOnlyDictionary{TKey, TValue}"/> view of the instance.
     /// </returns>
     Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> GetGetDictionary();
@@ -98,7 +98,7 @@ public interface IDictionaryShape<TDictionary, TKey, TValue> : IDictionaryShape
     Func<TDictionary> GetDefaultConstructor();
 
     /// <summary>
-    /// Creates a setter delegate used for appending an 
+    /// Creates a setter delegate used for appending a
     /// <see cref="KeyValuePair{TKey, TValue}"/> to a mutable dictionary.
     /// </summary>
     /// <exception cref="InvalidOperationException">The collection is not <see cref="CollectionConstructionStrategy.Mutable"/>.</exception>
@@ -109,18 +109,25 @@ public interface IDictionaryShape<TDictionary, TKey, TValue> : IDictionaryShape
     /// Creates a constructor delegate for creating a collection from a span.
     /// </summary>
     /// <exception cref="InvalidOperationException">The collection is not <see cref="CollectionConstructionStrategy.Span"/>.</exception>
-    /// <returns></returns>
+    /// <returns>A delegate constructing a collection from a span of values.</returns>
     SpanConstructor<KeyValuePair<TKey, TValue>, TDictionary> GetSpanConstructor();
 
     /// <summary>
     /// Creates a constructor delegate for creating a collection from an enumerable.
     /// </summary>
     /// <exception cref="InvalidOperationException">The collection is not <see cref="CollectionConstructionStrategy.Enumerable"/>.</exception>
-    /// <returns></returns>
+    /// <returns>A delegate constructing a collection from an enumerable of values.</returns>
     Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> GetEnumerableConstructor();
 
+    /// <inheritdoc/>
     ITypeShape IDictionaryShape.Type => Type;
+
+    /// <inheritdoc/>
     ITypeShape IDictionaryShape.KeyType => KeyType;
+
+    /// <inheritdoc/>
     ITypeShape IDictionaryShape.ValueType => ValueType;
+
+    /// <inheritdoc/>
     object? IDictionaryShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitDictionary(this, state);
 }

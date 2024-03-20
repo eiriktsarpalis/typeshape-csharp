@@ -18,7 +18,6 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
     internal const string RequiresUnreferencedCodeMessage = "TypeShape Reflection provider requires unreferenced code.";
     internal const string RequiresDynamicCodeMessage = "TypeShape Reflection provider requires dynamic code.";
 
-
     /// <summary>
     /// Gets the default provider instance using configuration supported by the current platform.
     /// </summary>
@@ -27,13 +26,13 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
     private readonly ConcurrentDictionary<Type, ITypeShape> _cache = new();
 
     /// <summary>
-    /// Creates a new <see cref="ReflectionTypeShapeProvider"/> instance with provided configuration.
+    /// Initializes a new instance of the <see cref="ReflectionTypeShapeProvider"/> class.
     /// </summary>
     /// <param name="useReflectionEmit">Specifies whether System.Reflection.Emit should be used when generating member accessors.</param>
     public ReflectionTypeShapeProvider(bool useReflectionEmit)
     {
-        MemberAccessor = useReflectionEmit 
-            ? new ReflectionEmitMemberAccessor() 
+        MemberAccessor = useReflectionEmit
+            ? new ReflectionEmitMemberAccessor()
             : new ReflectionMemberAccessor();
 
         UseReflectionEmit = useReflectionEmit;
@@ -51,9 +50,11 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
     /// <returns>
     /// A <see cref="ITypeShape{T}"/> instance corresponding to the current type.
     /// </returns>
-    public ITypeShape<T> GetShape<T>() => 
-        (ITypeShape<T>)_cache.GetOrAdd(typeof(T),
-            static (_,@this) => new ReflectionTypeShape<T>(@this), this);
+    public ITypeShape<T> GetShape<T>() =>
+        (ITypeShape<T>)_cache.GetOrAdd(
+            typeof(T),
+            static (_, @this) => new ReflectionTypeShape<T>(@this),
+            this);
 
     /// <summary>
     /// Gets a <see cref="ITypeShape"/> instance corresponding to the supplied type.
@@ -69,6 +70,7 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
         ArgumentNullException.ThrowIfNull(type);
         return _cache.GetOrAdd(type, CreateType, this);
     }
+
     internal IReflectionMemberAccessor MemberAccessor { get; }
 
     private static ITypeShape CreateType(Type type, ReflectionTypeShapeProvider provider)

@@ -10,16 +10,19 @@ public enum CollectionConstructionStrategy
     /// No known construction strategy for the current collection.
     /// </summary>
     None = 0,
+
     /// <summary>
-    /// Constructed using a default constructor and an <see cref="ICollection{T}"/>-compatible <see cref="Add(T)"/> method.
+    /// Constructed using a default constructor and an <see cref="ICollection{T}"/>-compatible Add method.
     /// </summary>
     Mutable = 1,
+
     /// <summary>
     /// Constructed using a <see cref="SpanConstructor{T, TDeclaringType}"/> delegate.
     /// </summary>
     Span = 2,
+
     /// <summary>
-    /// Constructed using a <see cref="Func{IEnumerable{T}, TDeclaringType}"/> delegate.
+    /// Constructed using a <see cref="Func{TEnumerable, TDeclaringType}"/> delegate.
     /// </summary>
     Enumerable = 4,
 }

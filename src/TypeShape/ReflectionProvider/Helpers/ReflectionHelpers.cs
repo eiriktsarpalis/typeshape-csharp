@@ -108,13 +108,13 @@ internal static class ReflectionHelpers
 
         switch (memberInfo)
         {
-            case PropertyInfo prop when (prop.PropertyType.IsNullable()):
+            case PropertyInfo prop when prop.PropertyType.IsNullable():
                 return new NullabilityInfoContext().Create(prop);
 
-            case FieldInfo field when (field.FieldType.IsNullable()):
+            case FieldInfo field when field.FieldType.IsNullable():
                 return new NullabilityInfoContext().Create(field);
 
-            case ParameterInfo parameter when (parameter.ParameterType.IsNullable()):
+            case ParameterInfo parameter when parameter.ParameterType.IsNullable():
                 return new NullabilityInfoContext().Create(parameter);
         }
 
@@ -186,6 +186,7 @@ internal static class ReflectionHelpers
                 isReadOnlyMemory = true;
                 return true;
             }
+
             if (genericTypeDefinition == typeof(Memory<>))
             {
                 elementType = type.GetGenericArguments()[0];
@@ -271,6 +272,7 @@ internal static class ReflectionHelpers
                     if (specializedMethod.ReturnType == type)
                     {
                         builderMethod = specializedMethod;
+
                         // Continue searching since we prioritize non-generic methods.
                     }
                 }
@@ -437,7 +439,7 @@ internal static class ReflectionHelpers
 
         Debug.Assert(type.FullName != null);
         string fullName = type.FullName;
-        return fullName.StartsWith("System.ValueTuple`", StringComparison.Ordinal) || 
+        return fullName.StartsWith("System.ValueTuple`", StringComparison.Ordinal) ||
             fullName.StartsWith("System.Tuple`", StringComparison.Ordinal);
     }
 
@@ -452,7 +454,7 @@ internal static class ReflectionHelpers
         }
 
         Type[] genericArguments = type.GetGenericArguments();
-        return genericArguments.Length == 8 && 
+        return genericArguments.Length == 8 &&
             genericArguments[7].IsValueType == type.IsValueType &&
             genericArguments[7].IsTupleType();
     }
@@ -483,7 +485,7 @@ internal static class ReflectionHelpers
 
         do
         {
-            MemberInfo[]? parentMembers = tupleType.IsValueType 
+            MemberInfo[]? parentMembers = tupleType.IsValueType
                 ? nestedMembers?.OfType<FieldInfo>().ToArray()
                 : nestedMembers?.OfType<PropertyInfo>().ToArray();
 
@@ -514,7 +516,7 @@ internal static class ReflectionHelpers
                     yield return ($"Item{++i}", element, parentMembers);
                 }
             }
-
-        } while (hasNestedTuple);
+        }
+        while (hasNestedTuple);
     }
 }

@@ -9,7 +9,7 @@ namespace TypeShape.ReflectionProvider;
 
 [RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
-internal abstract class ReflectionEnumerableShape<TEnumerable, TElement>(ReflectionTypeShapeProvider provider) 
+internal abstract class ReflectionEnumerableShape<TEnumerable, TElement>(ReflectionTypeShapeProvider provider)
     : IEnumerableShape<TEnumerable, TElement>
 {
     private CollectionConstructionStrategy? _constructionStrategy;
@@ -71,7 +71,6 @@ internal abstract class ReflectionEnumerableShape<TEnumerable, TElement>(Reflect
             throw new InvalidOperationException("The current enumerable shape does not support span constructors.");
         }
 
-
         if (_listCtor is ConstructorInfo listCtor)
         {
             var listCtorDelegate = provider.MemberAccessor.CreateFuncDelegate<List<TElement>, TEnumerable>(listCtor);
@@ -123,7 +122,7 @@ internal abstract class ReflectionEnumerableShape<TEnumerable, TElement>(Reflect
         }
 
         if (typeof(TEnumerable).GetConstructors()
-                .FirstOrDefault(ctor => ctor.GetParameters() is [{ ParameterType: Type { IsGenericType: true } paramTy }] && paramTy.IsAssignableFrom(typeof(List<TElement>))) 
+                .FirstOrDefault(ctor => ctor.GetParameters() is [{ ParameterType: Type { IsGenericType: true } paramTy }] && paramTy.IsAssignableFrom(typeof(List<TElement>)))
                 is ConstructorInfo listCtor)
         {
             // Handle types accepting IList<T> or IReadOnlyList<T> such as ReadOnlyCollection<T>
@@ -164,7 +163,7 @@ internal abstract class ReflectionEnumerableShape<TEnumerable, TElement>(Reflect
 
 [RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
-internal sealed class ReflectionEnumerableOfTShape<TEnumerable, TElement>(ReflectionTypeShapeProvider provider) 
+internal sealed class ReflectionEnumerableOfTShape<TEnumerable, TElement>(ReflectionTypeShapeProvider provider)
     : ReflectionEnumerableShape<TEnumerable, TElement>(provider)
     where TEnumerable : IEnumerable<TElement>
 {
@@ -174,7 +173,7 @@ internal sealed class ReflectionEnumerableOfTShape<TEnumerable, TElement>(Reflec
 
 [RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
-internal sealed class ReflectionNonGenericEnumerableShape<TEnumerable>(ReflectionTypeShapeProvider provider) 
+internal sealed class ReflectionNonGenericEnumerableShape<TEnumerable>(ReflectionTypeShapeProvider provider)
     : ReflectionEnumerableShape<TEnumerable, object?>(provider)
     where TEnumerable : IEnumerable
 {
@@ -184,7 +183,7 @@ internal sealed class ReflectionNonGenericEnumerableShape<TEnumerable>(Reflectio
 
 [RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
-internal sealed class ReflectionArrayShape<TElement>(ReflectionTypeShapeProvider provider) 
+internal sealed class ReflectionArrayShape<TElement>(ReflectionTypeShapeProvider provider)
     : ReflectionEnumerableShape<TElement[], TElement>(provider)
 {
     public override CollectionConstructionStrategy ConstructionStrategy => CollectionConstructionStrategy.Span;
@@ -194,7 +193,7 @@ internal sealed class ReflectionArrayShape<TElement>(ReflectionTypeShapeProvider
 
 [RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
-internal sealed class MultiDimensionalArrayShape<TEnumerable, TElement>(ReflectionTypeShapeProvider provider, int rank) 
+internal sealed class MultiDimensionalArrayShape<TEnumerable, TElement>(ReflectionTypeShapeProvider provider, int rank)
     : ReflectionEnumerableShape<TEnumerable, TElement>(provider)
     where TEnumerable : IEnumerable
 {
@@ -206,7 +205,7 @@ internal sealed class MultiDimensionalArrayShape<TEnumerable, TElement>(Reflecti
 
 [RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
-internal sealed class ReadOnlyMemoryShape<TElement>(ReflectionTypeShapeProvider provider) 
+internal sealed class ReadOnlyMemoryShape<TElement>(ReflectionTypeShapeProvider provider)
     : ReflectionEnumerableShape<ReadOnlyMemory<TElement>, TElement>(provider)
 {
     public override CollectionConstructionStrategy ConstructionStrategy => CollectionConstructionStrategy.Span;
@@ -216,7 +215,7 @@ internal sealed class ReadOnlyMemoryShape<TElement>(ReflectionTypeShapeProvider 
 
 [RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
-internal sealed class MemoryShape<TElement>(ReflectionTypeShapeProvider provider) 
+internal sealed class MemoryShape<TElement>(ReflectionTypeShapeProvider provider)
     : ReflectionEnumerableShape<Memory<TElement>, TElement>(provider)
 {
     public override CollectionConstructionStrategy ConstructionStrategy => CollectionConstructionStrategy.Span;

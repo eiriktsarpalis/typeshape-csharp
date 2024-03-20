@@ -92,7 +92,7 @@ internal abstract class ReflectionDictionaryShape<TDictionary, TKey, TValue>(Ref
         if (typeof(TDictionary).GetConstructor([]) is ConstructorInfo defaultCtor)
         {
             MethodInfo? addMethod = typeof(TDictionary).GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                .Where(m => 
+                .Where(m =>
                     m.Name is "set_Item" or "Add" &&
                     m.GetParameters() is [ParameterInfo key, ParameterInfo value] &&
                     key.ParameterType == typeof(TKey) && value.ParameterType == typeof(TValue))

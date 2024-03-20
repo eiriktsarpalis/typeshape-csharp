@@ -20,7 +20,7 @@ public interface IEnumShape
     /// </summary>
     /// <param name="visitor">The visitor to accept.</param>
     /// <param name="state">The state parameter to pass to the underlying visitor.</param>
-    /// <returns>The <see cref="object?"/> result returned by the visitor.</returns>
+    /// <returns>The <see cref="object"/> result returned by the visitor.</returns>
     object? Accept(ITypeShapeVisitor visitor, object? state);
 }
 
@@ -42,7 +42,12 @@ public interface IEnumShape<TEnum, TUnderlying> : IEnumShape
     /// </summary>
     new ITypeShape<TUnderlying> UnderlyingType { get; }
 
+    /// <inheritdoc/>
     ITypeShape IEnumShape.Type => Type;
+
+    /// <inheritdoc/>
     ITypeShape IEnumShape.UnderlyingType => UnderlyingType;
+
+    /// <inheritdoc/>
     object? IEnumShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitEnum(this, state);
 }

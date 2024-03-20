@@ -15,7 +15,7 @@ public interface INullableShape
     /// </summary>
     /// <param name="visitor">The visitor to accept.</param>
     /// <param name="state">The state parameter to pass to the underlying visitor.</param>
-    /// <returns>The <see cref="object?"/> result returned by the visitor.</returns>
+    /// <returns>The <see cref="object"/> result returned by the visitor.</returns>
     object? Accept(ITypeShapeVisitor visitor, object? state);
 }
 
@@ -31,6 +31,9 @@ public interface INullableShape<T> : INullableShape
     /// </summary>
     new ITypeShape<T> ElementType { get; }
 
+    /// <inheritdoc/>
     ITypeShape INullableShape.ElementType => ElementType;
+
+    /// <inheritdoc/>
     object? INullableShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitNullable(this, state);
 }

@@ -52,7 +52,8 @@ public interface ITypeShapeVisitor
     /// <param name="enumShape">The enum shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    object? VisitEnum<TEnum, TUnderlying>(IEnumShape<TEnum, TUnderlying> enumShape, object? state) where TEnum : struct, Enum;
+    object? VisitEnum<TEnum, TUnderlying>(IEnumShape<TEnum, TUnderlying> enumShape, object? state)
+        where TEnum : struct, Enum;
 
     /// <summary>
     /// Visits an <see cref="INullableShape{T}"/> instance representing the <see cref="Nullable{T}"/> type.
@@ -61,7 +62,8 @@ public interface ITypeShapeVisitor
     /// <param name="nullableShape">The nullable shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    object? VisitNullable<T>(INullableShape<T> nullableShape, object? state) where T : struct;
+    object? VisitNullable<T>(INullableShape<T> nullableShape, object? state)
+        where T : struct;
 
     /// <summary>
     /// Visits an <see cref="IEnumerableShape{TEnumerable, TElement}"/> instance representing an enumerable type.
@@ -82,5 +84,6 @@ public interface ITypeShapeVisitor
     /// <param name="dictionaryShape">The dictionary shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state) where TKey : notnull;
+    object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
+        where TKey : notnull;
 }

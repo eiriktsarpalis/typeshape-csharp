@@ -10,8 +10,8 @@ public interface ITypeShapeProvider
     /// </summary>
     /// <typeparam name="T">The type for which a shape is requested.</typeparam>
     /// <returns>
-    /// A <see cref="ITypeShape{T}"/> instance corresponding to the current type, 
-    /// or <see langword="null"> if a shape is not available.
+    /// A <see cref="ITypeShape{T}"/> instance corresponding to the current type,
+    /// or <see langword="null" /> if a shape is not available.
     /// </returns>
     ITypeShape<T>? GetShape<T>();
 
@@ -20,8 +20,8 @@ public interface ITypeShapeProvider
     /// </summary>
     /// <param name="type">The type for which a shape is requested.</param>
     /// <returns>
-    /// A <see cref="ITypeShape"/> instance corresponding to the current type, 
-    /// or <see langword="null"> if a shape is not available.
+    /// A <see cref="ITypeShape"/> instance corresponding to the current type,
+    /// or <see langword="null" /> if a shape is not available.
     /// </returns>
     ITypeShape? GetShape(Type type);
 }

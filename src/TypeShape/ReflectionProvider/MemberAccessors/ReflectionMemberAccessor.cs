@@ -79,8 +79,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                         object? boxedObj = obj;
                         p.SetValue(boxedObj, value);
                         obj = (TDeclaringType)boxedObj!;
-                    }
-                ,
+                    },
 
                 FieldInfo f =>
                     !typeof(TDeclaringType).IsValueType
@@ -90,8 +89,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                         object? boxedObj = obj;
                         f.SetValue(boxedObj, value);
                         obj = (TDeclaringType)boxedObj!;
-                    }
-                ,
+                    },
 
                 _ => default!,
             };
@@ -149,7 +147,6 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
         };
     }
 
-
     public Func<TDeclaringType> CreateDefaultConstructor<TDeclaringType>(IConstructorShapeInfo ctorInfo)
     {
         Debug.Assert(ctorInfo.Parameters is []);
@@ -180,7 +177,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
 
             return () => defaultValue!;
         }
-        
+
         if (ctorInfo is MethodConstructorShapeInfo { MemberInitializers.Length: > 0 } ctor)
         {
             Debug.Assert(typeof(TArgumentState) == typeof((object?[], object?[], BitArray)));
@@ -197,8 +194,8 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
         {
             Debug.Assert(parameterIndex == 0);
             Debug.Assert(typeof(TArgumentState) == typeof(TParameter));
-            return (Setter<TArgumentState, TParameter>)(object)
-                new Setter<TParameter, TParameter>(static (ref TParameter state, TParameter param) => state = param);
+            return (Setter<TArgumentState, TParameter>)(object)new Setter<TParameter, TParameter>(
+                static (ref TParameter state, TParameter param) => state = param);
         }
 
         if (ctorInfo is MethodConstructorShapeInfo { MemberInitializers.Length: > 0 } ctor)
@@ -206,15 +203,14 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
             Debug.Assert(typeof(TArgumentState) == typeof((object?[], object?[], BitArray)));
             if (parameterIndex < ctor.ConstructorParameters.Length)
             {
-                return (Setter<TArgumentState, TParameter>)(object)
-                    new Setter<(object?[], object?[], BitArray), TParameter>((ref (object?[] ctorArgs, object?[], BitArray) state, TParameter value) 
-                        => state.ctorArgs[parameterIndex] = value);
+                return (Setter<TArgumentState, TParameter>)(object)new Setter<(object?[], object?[], BitArray), TParameter>(
+                    (ref (object?[] ctorArgs, object?[], BitArray) state, TParameter value) => state.ctorArgs[parameterIndex] = value);
             }
             else
             {
                 int initializerIndex = parameterIndex - ctor.ConstructorParameters.Length;
-                return (Setter<TArgumentState, TParameter>)(object)
-                    new Setter<(object?[], object?[], BitArray), TParameter>((ref (object?[], object?[] memberArgs, BitArray flags) state, TParameter value) =>
+                return (Setter<TArgumentState, TParameter>)(object)new Setter<(object?[], object?[], BitArray), TParameter>(
+                    (ref (object?[], object?[] memberArgs, BitArray flags) state, TParameter value) =>
                     {
                         state.memberArgs[initializerIndex] = value;
                         state.flags[initializerIndex] = true;
@@ -223,9 +219,8 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
         }
 
         Debug.Assert(typeof(TArgumentState) == typeof(object?[]));
-        return (Setter<TArgumentState, TParameter>)(object)
-            new Setter<object?[], TParameter>((ref object?[] state, TParameter value) 
-                => state[parameterIndex] = value);
+        return (Setter<TArgumentState, TParameter>)(object)new Setter<object?[], TParameter>(
+            (ref object?[] state, TParameter value) => state[parameterIndex] = value);
     }
 
     public Constructor<TArgumentState, TDeclaringType> CreateParameterizedConstructor<TArgumentState, TDeclaringType>(IConstructorShapeInfo ctorInfo)
@@ -248,8 +243,8 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                 ctorStack.Push((current.ConstructorInfo, current.ConstructorParameters.Length));
             }
 
-            return (Constructor<TArgumentState, TDeclaringType>)(object)
-                new Constructor<object?[], TDeclaringType>((ref object?[] state) =>
+            return (Constructor<TArgumentState, TDeclaringType>)(object)new Constructor<object?[], TDeclaringType>(
+                (ref object?[] state) =>
             {
                 object? result = null;
                 int i = state.Length;
@@ -284,8 +279,8 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
 
                 if (methodCtor.ConstructorMethod is { } cI)
                 {
-                    return (Constructor<TArgumentState, TDeclaringType>)(object)
-                        new Constructor<(object?[], object?[], BitArray), TDeclaringType>((ref (object?[] ctorArgs, object?[] memberArgs, BitArray memberFlags) state) =>
+                    return (Constructor<TArgumentState, TDeclaringType>)(object)new Constructor<(object?[], object?[], BitArray), TDeclaringType>(
+                        (ref (object?[] ctorArgs, object?[] memberArgs, BitArray memberFlags) state) =>
                         {
                             object obj = cI.Invoke(state.ctorArgs);
                             PopulateMemberInitializers(obj, memberInitializers, state.memberArgs, state.memberFlags);
@@ -294,8 +289,8 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                 }
                 else
                 {
-                    return (Constructor<TArgumentState, TDeclaringType>)(object)
-                        new Constructor<(object?[], object?[], BitArray), TDeclaringType>((ref (object?[] ctorArgs, object?[] memberArgs, BitArray memberFlags) state) =>
+                    return (Constructor<TArgumentState, TDeclaringType>)(object)new Constructor<(object?[], object?[], BitArray), TDeclaringType>(
+                        (ref (object?[] ctorArgs, object?[] memberArgs, BitArray memberFlags) state) =>
                         {
                             object obj = default(TDeclaringType)!;
                             PopulateMemberInitializers(obj, memberInitializers, state.memberArgs, state.memberFlags);
@@ -383,6 +378,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
         {
             return () => ([], new object?[memberInitializerLength], new BitArray(memberInitializerLength));
         }
+
         if (ctorInfo.ConstructorParameters.Any(param => param.HasDefaultValue))
         {
             object?[] sourceParamArray = GetDefaultParameterArray(ctorInfo.ConstructorParameters);

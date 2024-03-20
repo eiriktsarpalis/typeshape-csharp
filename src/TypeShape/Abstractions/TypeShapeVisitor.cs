@@ -56,7 +56,8 @@ public abstract class TypeShapeVisitor : ITypeShapeVisitor
     /// <param name="enumShape">The enum shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    public virtual object? VisitEnum<TEnum, TUnderlying>(IEnumShape<TEnum, TUnderlying> enumShape, object? state) where TEnum : struct, Enum
+    public virtual object? VisitEnum<TEnum, TUnderlying>(IEnumShape<TEnum, TUnderlying> enumShape, object? state)
+        where TEnum : struct, Enum
         => ThrowNotImplemented(nameof(VisitEnum));
 
     /// <summary>
@@ -66,7 +67,8 @@ public abstract class TypeShapeVisitor : ITypeShapeVisitor
     /// <param name="nullableShape">The nullable shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    public virtual object? VisitNullable<T>(INullableShape<T> nullableShape, object? state) where T : struct
+    public virtual object? VisitNullable<T>(INullableShape<T> nullableShape, object? state)
+        where T : struct
         => ThrowNotImplemented(nameof(VisitNullable));
 
     /// <summary>
@@ -89,7 +91,8 @@ public abstract class TypeShapeVisitor : ITypeShapeVisitor
     /// <param name="dictionaryShape">The dictionary shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    public virtual object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state) where TKey : notnull
+    public virtual object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
+        where TKey : notnull
         => ThrowNotImplemented(nameof(VisitEnumerable));
 
     private object? ThrowNotImplemented(string methodName)

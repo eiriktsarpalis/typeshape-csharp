@@ -33,7 +33,7 @@ public interface ITypeShape
     /// </summary>
     /// <returns>An enumeration of all available property/field shapes.</returns>
     IEnumerable<IPropertyShape> GetProperties();
-    
+
     /// <summary>
     /// Determines the <see cref="TypeKind"/> that the current shape supports.
     /// </summary>
@@ -68,7 +68,7 @@ public interface ITypeShape
     /// </summary>
     /// <param name="visitor">The visitor to accept.</param>
     /// <param name="state">The state parameter to pass to the underlying visitor.</param>
-    /// <returns>The <see cref="object?"/> result returned by the visitor.</returns>
+    /// <returns>The <see cref="object"/> result returned by the visitor.</returns>
     object? Accept(ITypeShapeVisitor visitor, object? state);
 
     /// <summary>
@@ -80,8 +80,12 @@ public interface ITypeShape
 /// <summary>
 /// Provides a strongly-typed shape model for a given .NET type.
 /// </summary>
+/// <typeparam name="T">The type that the shape describes.</typeparam>
 public interface ITypeShape<T> : ITypeShape
 {
+    /// <inheritdoc/>
     Type ITypeShape.Type => typeof(T);
+
+    /// <inheritdoc/>
     object? ITypeShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitType(this, state);
 }

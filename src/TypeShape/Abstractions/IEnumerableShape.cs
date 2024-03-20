@@ -19,7 +19,7 @@ public interface IEnumerableShape
     /// The shape of the underlying element type.
     /// </summary>
     /// <remarks>
-    /// For non-generic <see cref="IEnumerable"/> this returns <see cref="ITypeShape{object}"/>.
+    /// For non-generic <see cref="IEnumerable"/> this returns the shape for <see cref="object"/>.
     /// </remarks>
     ITypeShape ElementType { get; }
 
@@ -38,7 +38,7 @@ public interface IEnumerableShape
     /// </summary>
     /// <param name="visitor">The visitor to accept.</param>
     /// <param name="state">The state parameter to pass to the underlying visitor.</param>
-    /// <returns>The <see cref="object?"/> result returned by the visitor.</returns>
+    /// <returns>The <see cref="object"/> result returned by the visitor.</returns>
     object? Accept(ITypeShapeVisitor visitor, object? state);
 }
 
@@ -49,8 +49,8 @@ public interface IEnumerableShape
 /// <typeparam name="TElement">The type of underlying element.</typeparam>
 /// <remarks>
 /// Typically covers all types implementing <see cref="IEnumerable{T}"/> or <see cref="IEnumerable"/>.
-/// 
-/// For non-generic collections, <typeparamref name="TElement"/> is instantiated to <see cref="object?"/>.
+///
+/// For non-generic collections, <typeparamref name="TElement"/> is instantiated to <see cref="object"/>.
 /// </remarks>
 public interface IEnumerableShape<TEnumerable, TElement> : IEnumerableShape
 {
@@ -63,16 +63,16 @@ public interface IEnumerableShape<TEnumerable, TElement> : IEnumerableShape
     /// The shape of the underlying element type.
     /// </summary>
     /// <remarks>
-    /// For non-generic <see cref="IEnumerable"/> this returns <see cref="ITypeShape{object}"/>.
+    /// For non-generic <see cref="IEnumerable"/> this returns the shape for <see cref="object"/>.
     /// </remarks>
     new ITypeShape<TElement> ElementType { get; }
 
     /// <summary>
-    /// Creates a delegate used for getting a <see cref="IEnumerable{TElement}"/> 
+    /// Creates a delegate used for getting a <see cref="IEnumerable{TElement}"/>
     /// view of the enumerable.
     /// </summary>
     /// <returns>
-    /// A delegate accepting a <typeparamref name="TEnumerable"/> and 
+    /// A delegate accepting a <typeparamref name="TEnumerable"/> and
     /// returning an <see cref="IEnumerable{TElement}"/> view of the instance.
     /// </returns>
     Func<TEnumerable, IEnumerable<TElement>> GetGetEnumerable();
@@ -85,7 +85,7 @@ public interface IEnumerableShape<TEnumerable, TElement> : IEnumerableShape
     Func<TEnumerable> GetDefaultConstructor();
 
     /// <summary>
-    /// Creates a setter delegate used for appending an <see cref="TElement"/> to a mutable collection.
+    /// Creates a setter delegate used for appending an <typeparamref name="TElement"/> to a mutable collection.
     /// </summary>
     /// <exception cref="InvalidOperationException">The collection is not <see cref="CollectionConstructionStrategy.Mutable"/>.</exception>
     /// <returns>A setter delegate used for appending elements to a mutable collection.</returns>
@@ -95,17 +95,22 @@ public interface IEnumerableShape<TEnumerable, TElement> : IEnumerableShape
     /// Creates a constructor delegate for creating a collection from a span.
     /// </summary>
     /// <exception cref="InvalidOperationException">The collection is not <see cref="CollectionConstructionStrategy.Span"/>.</exception>
-    /// <returns></returns>
+    /// <returns>A delegate constructing a collection from a span of values.</returns>
     SpanConstructor<TElement, TEnumerable> GetSpanConstructor();
 
     /// <summary>
     /// Creates a constructor delegate for creating a collection from an enumerable.
     /// </summary>
     /// <exception cref="InvalidOperationException">The collection is not <see cref="CollectionConstructionStrategy.Enumerable"/>.</exception>
-    /// <returns></returns>
+    /// <returns>A delegate constructing a collection from an enumerable of values.</returns>
     Func<IEnumerable<TElement>, TEnumerable> GetEnumerableConstructor();
 
+    /// <inheritdoc/>
     ITypeShape IEnumerableShape.Type => Type;
+
+    /// <inheritdoc/>
     ITypeShape IEnumerableShape.ElementType => ElementType;
+
+    /// <inheritdoc/>
     object? IEnumerableShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitEnumerable(this, state);
 }

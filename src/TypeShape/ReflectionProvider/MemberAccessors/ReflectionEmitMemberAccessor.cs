@@ -53,6 +53,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
                     {
                         generator.EmitCall(OpCodes.Callvirt, getter, null);
                     }
+
                     break;
 
                 case FieldInfo field:
@@ -64,6 +65,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
                     {
                         generator.Emit(OpCodes.Ldfld, field);
                     }
+
                     break;
 
                 default:
@@ -111,6 +113,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
                 {
                     generator.EmitCall(OpCodes.Callvirt, setter, null);
                 }
+
                 break;
 
             case FieldInfo field:
@@ -299,8 +302,9 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
             EmitTupleCtor(typeof(TArgumentState), ctorInfo.Parameters.Length);
             void EmitTupleCtor(Type tupleType, int arity)
             {
-                if (arity > 7) // the tuple nests more tuple types
+                if (arity > 7)
                 {
+                    // the tuple nests more tuple types
                     // NB emit NewObj calls starting with innermost type first
                     EmitTupleCtor(tupleType.GetGenericArguments()[7], arity - 7);
                 }
@@ -322,7 +326,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         {
             Debug.Assert(parameterIndex == 0 && typeof(TArgumentState) == typeof(TParameter));
             return (Setter<TArgumentState, TParameter>)(object)new Setter<TParameter, TParameter>(static (ref TParameter state, TParameter value) => state = value);
-        } 
+        }
         else
         {
             Debug.Assert(typeof(TArgumentState).IsValueTupleType());
@@ -351,6 +355,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
                 if (memberFlagType == typeof(ulong))
                 {
                     Debug.Assert(initializerIndex <= 64);
+
                     // arg0.Flags |= 1L << initializerIndex;
                     generator.Emit(OpCodes.Ldflda, flagsElement);
                     generator.Emit(OpCodes.Dup);
@@ -362,6 +367,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
                 else
                 {
                     Debug.Assert(memberFlagType == typeof(BitArray));
+
                     // arg0.Flags[initializerIndex] = true;
                     generator.Emit(OpCodes.Ldfld, flagsElement);
                     generator.Emit(OpCodes.Ldc_I4, initializerIndex);
@@ -386,7 +392,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         else if (ctorInfo is TupleConstructorShapeInfo { IsValueTuple: true })
         {
             Debug.Assert(typeof(TDeclaringType) == typeof(TArgumentState));
-            return (Constructor<TArgumentState, TDeclaringType>)(object)(new Constructor<TArgumentState, TArgumentState>(static (ref TArgumentState arg) => arg));
+            return (Constructor<TArgumentState, TDeclaringType>)(object)new Constructor<TArgumentState, TArgumentState>(static (ref TArgumentState arg) => arg);
         }
 
         return CreateDelegate<Constructor<TArgumentState, TDeclaringType>>(EmitParameterizedConstructorMethod(typeof(TDeclaringType), typeof(TArgumentState), ctorInfo));
@@ -403,6 +409,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
             {
                 Debug.Assert(argumentStateType == typeof(object));
                 Debug.Assert(methodCtor.ConstructorMethod != null);
+
                 // return new TDeclaringType();
                 EmitCall(generator, methodCtor.ConstructorMethod);
                 generator.Emit(OpCodes.Ret);
@@ -412,7 +419,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
                 Debug.Assert(argumentStateType == parameter.Type);
 
                 Debug.Assert(methodCtor.ConstructorMethod != null);
-                
+
                 // return new TDeclaringType(state);
                 generator.Emit(OpCodes.Ldarg_0);
                 LdRef(generator, argumentStateType);
@@ -676,8 +683,9 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
 
     private static FieldInfo LdNestedTuple(ILGenerator generator, Type tupleType, int parameterIndex)
     {
-        while (parameterIndex > 6) // The element we want to access is in a nested tuple
+        while (parameterIndex > 6)
         {
+            // The element we want to access is in a nested tuple
             FieldInfo restField = tupleType.GetField("Rest", BindingFlags.Public | BindingFlags.Instance)!;
             generator.Emit(OpCodes.Ldflda, restField);
             tupleType = restField.FieldType;
@@ -697,8 +705,8 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         else
         {
             var methodInfo = (MethodInfo)methodBase!;
-            OpCode opc = methodInfo.DeclaringType!.IsValueType || methodInfo.IsStatic 
-                ? OpCodes.Call 
+            OpCode opc = methodInfo.DeclaringType!.IsValueType || methodInfo.IsStatic
+                ? OpCodes.Call
                 : OpCodes.Callvirt;
 
             generator.Emit(opc, methodInfo);

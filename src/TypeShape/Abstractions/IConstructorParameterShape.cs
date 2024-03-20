@@ -43,7 +43,7 @@ public interface IConstructorParameterShape
     /// Indicates whether a value is required by the current parameter.
     /// </summary>
     /// <remarks>
-    /// A parameter is reported as required if it is either a 
+    /// A parameter is reported as required if it is either a
     /// constructor parameter without a default value or a required property.
     /// </remarks>
     bool IsRequired { get; }
@@ -52,10 +52,10 @@ public interface IConstructorParameterShape
     /// Specifies whether the parameter requires non-null values.
     /// </summary>
     /// <remarks>
-    /// Returns <see langword="true" /> if the parameter type is a non-nullable struct, a non-nullable reference type 
+    /// Returns <see langword="true" /> if the parameter type is a non-nullable struct, a non-nullable reference type
     /// or the parameter has been annotated with the <see cref="DisallowNullAttribute"/>.
-    /// 
-    /// Conversely, it could return <see langword="false"/> if a non-nullable parameter 
+    ///
+    /// Conversely, it could return <see langword="false"/> if a non-nullable parameter
     /// has been annotated with <see cref="AllowNullAttribute"/>.
     /// </remarks>
     bool IsNonNullable { get; }
@@ -75,7 +75,7 @@ public interface IConstructorParameterShape
     /// </summary>
     /// <param name="visitor">The visitor to accept.</param>
     /// <param name="state">The state parameter to pass to the underlying visitor.</param>
-    /// <returns>The <see cref="object?"/> result returned by the visitor.</returns>
+    /// <returns>The <see cref="object"/> result returned by the visitor.</returns>
     object? Accept(ITypeShapeVisitor visitor, object? state);
 }
 
@@ -93,7 +93,7 @@ public interface IConstructorParameterShape<TArgumentState, TParameterType> : IC
     new ITypeShape<TParameterType> ParameterType { get; }
 
     /// <summary>
-    /// Creates a setter delegate for configuring a state object 
+    /// Creates a setter delegate for configuring a state object
     /// with a value for the current argument.
     /// </summary>
     /// <returns>A <see cref="Setter{TDeclaringType, TPropertyType}"/> delegate.</returns>

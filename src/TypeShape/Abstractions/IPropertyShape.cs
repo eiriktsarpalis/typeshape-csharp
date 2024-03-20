@@ -57,10 +57,10 @@ public interface IPropertyShape
     /// Specifies whether the getter returns non-null values.
     /// </summary>
     /// <remarks>
-    /// Returns <see langword="true" /> if the property type is a non-nullable struct, a non-nullable reference type 
+    /// Returns <see langword="true" /> if the property type is a non-nullable struct, a non-nullable reference type
     /// or the property has been annotated with the <see cref="NotNullAttribute"/>.
-    /// 
-    /// Conversely, it could return <see langword="false"/> if a non-nullable property 
+    ///
+    /// Conversely, it could return <see langword="false"/> if a non-nullable property
     /// has been annotated with <see cref="MaybeNullAttribute"/>.
     /// </remarks>
     bool IsGetterNonNullable { get; }
@@ -69,10 +69,10 @@ public interface IPropertyShape
     /// Specifies whether the setter requires non-null values.
     /// </summary>
     /// <remarks>
-    /// Returns <see langword="true" /> if the property type is a non-nullable struct, a non-nullable reference type 
+    /// Returns <see langword="true" /> if the property type is a non-nullable struct, a non-nullable reference type
     /// or the property has been annotated with the <see cref="DisallowNullAttribute"/>.
-    /// 
-    /// Conversely, it could return <see langword="false"/> if a non-nullable property 
+    ///
+    /// Conversely, it could return <see langword="false"/> if a non-nullable property
     /// has been annotated with <see cref="AllowNullAttribute"/>.
     /// </remarks>
     bool IsSetterNonNullable { get; }
@@ -82,7 +82,7 @@ public interface IPropertyShape
     /// </summary>
     /// <param name="visitor">The visitor to accept.</param>
     /// <param name="state">The state parameter to pass to the underlying visitor.</param>
-    /// <returns>The <see cref="object?"/> result returned by the visitor.</returns>
+    /// <returns>The <see cref="object"/> result returned by the visitor.</returns>
     object? Accept(ITypeShapeVisitor visitor, object? state);
 }
 
@@ -117,7 +117,12 @@ public interface IPropertyShape<TDeclaringType, TPropertyType> : IPropertyShape
     /// <returns>A setter delegate for the property.</returns>
     Setter<TDeclaringType, TPropertyType> GetSetter();
 
+    /// <inheritdoc/>
     ITypeShape IPropertyShape.DeclaringType => DeclaringType;
+
+    /// <inheritdoc/>
     ITypeShape IPropertyShape.PropertyType => PropertyType;
+
+    /// <inheritdoc/>
     object? IPropertyShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitProperty(this, state);
 }

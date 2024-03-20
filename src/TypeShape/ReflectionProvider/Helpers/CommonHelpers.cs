@@ -7,6 +7,11 @@ internal static class CommonHelpers
     /// <summary>
     /// Traverses a DAG and returns its nodes applying topological sorting to the result.
     /// </summary>
+    /// <typeparam name="T">Element type of the graph.</typeparam>
+    /// <param name="entryNode">The entrypoint for the graph.</param>
+    /// <param name="getChildren">The function getting the neighbours of the provided node.</param>
+    /// <param name="comparer">The comparer determining equality.</param>
+    /// <returns>An array of topologically ordered nodes.</returns>
     public static T[] TraverseGraphWithTopologicalSort<T>(T entryNode, Func<T, IReadOnlyCollection<T>> getChildren, IEqualityComparer<T>? comparer = null)
         where T : notnull
     {
@@ -85,8 +90,8 @@ internal static class CommonHelpers
                     }
                 }
             }
-
-        } while (childlessQueue.Count > 0);
+        }
+        while (childlessQueue.Count > 0);
 
         Debug.Assert(idx == 0, "should have populated the entire sortedNodes array.");
         return sortedNodes;

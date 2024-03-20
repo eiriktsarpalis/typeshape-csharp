@@ -5,7 +5,7 @@ using System.Reflection;
 namespace TypeShape.ReflectionProvider;
 
 internal sealed class ReflectionConstructorShape<TDeclaringType, TArgumentState>(
-    ReflectionTypeShapeProvider provider, 
+    ReflectionTypeShapeProvider provider,
     IConstructorShapeInfo ctorInfo) : IConstructorShape<TDeclaringType, TArgumentState>
 {
     public ITypeShape<TDeclaringType> DeclaringType => provider.GetShape<TDeclaringType>();
@@ -51,7 +51,7 @@ internal interface IConstructorShapeInfo
 internal sealed class MethodConstructorShapeInfo : IConstructorShapeInfo
 {
     public MethodConstructorShapeInfo(
-        Type constructedType, 
+        Type constructedType,
         MethodBase? constructorMethod,
         MethodParameterShapeInfo[] parameters,
         MemberInitializerShapeInfo[]? memberInitializers = null)
