@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net8.0": {
+      "Microsoft.DotNet.ILCompiler": {
+        "type": "Direct",
+        "requested": "[8.0.3, )",
+        "resolved": "8.0.3",
+        "contentHash": "LGNORlVTRa2FDy3OcP3Xu1ZSJW4tz2ATO3WrHUwHg7kxbR9HChezgJ51CwZJQt8+Yp6acp32FDC/FTPdFDOumQ=="
+      },
+      "Microsoft.NET.ILLink.Tasks": {
+        "type": "Direct",
+        "requested": "[8.0.3, )",
+        "resolved": "8.0.3",
+        "contentHash": "0kwNg0LBIvVTx9A2mo9Mnw4wLGtaeQgjSz5P13bOOwdWPPLe9HzI+XTkwiMhS7iQCM6X4LAbFR76xScaMw0MrA=="
+      },
+      "typeshape": {
+        "type": "Project"
+      },
+      "typeshape.applications": {
+        "type": "Project",
+        "dependencies": {
+          "System.Formats.Cbor": "[7.0.0, )",
+          "TypeShape": "[1.0.0, )"
+        }
+      },
+      "System.Formats.Cbor": {
+        "type": "CentralTransitive",
+        "requested": "[7.0.0, )",
+        "resolved": "7.0.0",
+        "contentHash": "2DvlHGwr0hEXXRv/8j9x4fw9yqJ7638qusWsf3iruVUmRb+mWl5ODSZRtXe5ZH62/0R6qf/QxA8JTrhIRvWlXw=="
+      }
+    }
+  }
+}
