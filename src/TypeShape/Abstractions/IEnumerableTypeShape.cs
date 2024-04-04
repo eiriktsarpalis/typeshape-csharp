@@ -3,18 +3,13 @@
 namespace TypeShape;
 
 /// <summary>
-/// Provides a strongly-typed shape model for a .NET type that is enumerable.
+/// Provides a strongly typed shape model for a .NET type that is enumerable.
 /// </summary>
 /// <remarks>
 /// Typically covers all types implementing <see cref="IEnumerable{T}"/> or <see cref="IEnumerable"/>.
 /// </remarks>
-public interface IEnumerableShape
+public interface IEnumerableTypeShape : ITypeShape
 {
-    /// <summary>
-    /// The shape of the underlying enumerable type.
-    /// </summary>
-    ITypeShape Type { get; }
-
     /// <summary>
     /// The shape of the underlying element type.
     /// </summary>
@@ -33,17 +28,12 @@ public interface IEnumerableShape
     /// </summary>
     int Rank { get; }
 
-    /// <summary>
-    /// Accepts an <see cref="ITypeShapeVisitor"/> for strongly-typed traversal.
-    /// </summary>
-    /// <param name="visitor">The visitor to accept.</param>
-    /// <param name="state">The state parameter to pass to the underlying visitor.</param>
-    /// <returns>The <see cref="object"/> result returned by the visitor.</returns>
-    object? Accept(ITypeShapeVisitor visitor, object? state);
+    /// <inheritdoc/>
+    TypeShapeKind ITypeShape.Kind => TypeShapeKind.Enumerable;
 }
 
 /// <summary>
-/// Provides a strongly-typed shape model for a .NET type that is enumerable.
+/// Provides a strongly typed shape model for a .NET type that is enumerable.
 /// </summary>
 /// <typeparam name="TEnumerable">The type of underlying enumerable.</typeparam>
 /// <typeparam name="TElement">The type of underlying element.</typeparam>
@@ -52,13 +42,8 @@ public interface IEnumerableShape
 ///
 /// For non-generic collections, <typeparamref name="TElement"/> is instantiated to <see cref="object"/>.
 /// </remarks>
-public interface IEnumerableShape<TEnumerable, TElement> : IEnumerableShape
+public interface IEnumerableTypeShape<TEnumerable, TElement> : ITypeShape<TEnumerable>, IEnumerableTypeShape
 {
-    /// <summary>
-    /// The shape of the underlying enumerable type.
-    /// </summary>
-    new ITypeShape<TEnumerable> Type { get; }
-
     /// <summary>
     /// The shape of the underlying element type.
     /// </summary>
@@ -106,11 +91,8 @@ public interface IEnumerableShape<TEnumerable, TElement> : IEnumerableShape
     Func<IEnumerable<TElement>, TEnumerable> GetEnumerableConstructor();
 
     /// <inheritdoc/>
-    ITypeShape IEnumerableShape.Type => Type;
+    ITypeShape IEnumerableTypeShape.ElementType => ElementType;
 
     /// <inheritdoc/>
-    ITypeShape IEnumerableShape.ElementType => ElementType;
-
-    /// <inheritdoc/>
-    object? IEnumerableShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitEnumerable(this, state);
+    object? ITypeShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitEnumerable(this, state);
 }

@@ -7,8 +7,8 @@ public static partial class Counter
 
     public static Func<T?, long> Create<T>(ITypeShape<T> shape)
     {
-        var visitor = new Visitor();
-        return (Func<T?, long>)shape.Accept(visitor, null)!;
+        var builder = new Builder();
+        return builder.BuildCounter(shape);
     }
 
     public static long GetCount<T>(T? value) where T : ITypeShapeProvider<T>

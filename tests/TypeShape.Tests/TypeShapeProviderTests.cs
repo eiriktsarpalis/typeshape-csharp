@@ -27,60 +27,33 @@ public abstract class TypeShapeProviderTests
         Assert.Equal(typeof(T), shape.AttributeProvider);
         Assert.Equal(typeof(T).IsRecord(), shape.IsRecord);
 
-        TypeKind expectedKind = GetExpectedTypeKind(testCase.Value);
+        TypeShapeKind expectedKind = GetExpectedTypeKind(testCase.Value);
         Assert.Equal(expectedKind, shape.Kind);
 
-        static TypeKind GetExpectedTypeKind(T value)
+        static TypeShapeKind GetExpectedTypeKind(T value)
         {
             if (typeof(T).IsEnum)
             {
-                return TypeKind.Enum;
+                return TypeShapeKind.Enum;
             }
             else if (typeof(T).IsValueType && default(T) is null)
             {
-                return TypeKind.Nullable;
+                return TypeShapeKind.Nullable;
             }
 
             if (value is IEnumerable && value is not string)
             {
                 return typeof(T).GetDictionaryKeyValueTypes() != null
-                    ? TypeKind.Dictionary
-                    : TypeKind.Enumerable;
+                    ? TypeShapeKind.Dictionary
+                    : TypeShapeKind.Enumerable;
             }
 
             if (typeof(T).IsMemoryType(out _, out _))
             {
-                return TypeKind.Enumerable;
+                return TypeShapeKind.Enumerable;
             }
 
-            if (IsSimpleValue())
-            {
-                return TypeKind.None;
-            }
-
-            return TypeKind.Object;
-        }
-
-        static bool IsSimpleValue()
-        {
-            Type type = typeof(T);
-            return type.IsPrimitive ||
-                type == typeof(string) ||
-                type == typeof(decimal) ||
-                type == typeof(Int128) ||
-                type == typeof(UInt128) ||
-                type == typeof(Half) ||
-                type == typeof(DateTime) ||
-                type == typeof(DateTimeOffset) ||
-                type == typeof(DateOnly) ||
-                type == typeof(TimeSpan) ||
-                type == typeof(TimeOnly) ||
-                type == typeof(Guid) ||
-                type == typeof(Version) ||
-                type == typeof(Uri) ||
-                type == typeof(Rune) ||
-                typeof(MemberInfo).IsAssignableFrom(type) ||
-                typeof(Delegate).IsAssignableFrom(type);
+            return TypeShapeKind.None;
         }
     }
 
@@ -92,12 +65,16 @@ public abstract class TypeShapeProviderTests
         ITypeShape<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
 
+        int propCount = 0;
         var visitor = new PropertyTestVisitor();
         foreach (IPropertyShape property in shape.GetProperties())
         {
             Assert.Equal(typeof(T), property.DeclaringType.Type);
             property.Accept(visitor, testCase.Value);
+            propCount++;
         }
+
+        Assert.Equal(propCount > 0, shape.HasProperties);
     }
 
     private sealed class PropertyTestVisitor : TypeShapeVisitor
@@ -139,12 +116,16 @@ public abstract class TypeShapeProviderTests
         ITypeShape<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
 
+        int ctorCount = 0;
         var visitor = new ConstructorTestVisitor();
         foreach (IConstructorShape ctor in shape.GetConstructors())
         {
             Assert.Equal(typeof(T), ctor.DeclaringType.Type);
             ctor.Accept(visitor, typeof(T));
+            ctorCount++;
         }
+
+        Assert.Equal(ctorCount > 0, shape.HasConstructors);
     }
 
     private sealed class ConstructorTestVisitor : TypeShapeVisitor
@@ -207,23 +188,23 @@ public abstract class TypeShapeProviderTests
         ITypeShape<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
 
-        if (shape.Kind.HasFlag(TypeKind.Enum))
+        if (shape.Kind is TypeShapeKind.Enum)
         {
-            IEnumShape enumType = shape.GetEnumShape();
-            Assert.Equal(typeof(T), enumType.Type.Type);
-            Assert.Equal(typeof(T).GetEnumUnderlyingType(), enumType.UnderlyingType.Type);
+            IEnumTypeShape enumTypeShape = Assert.IsAssignableFrom<IEnumTypeShape>(shape);
+            Assert.Equal(typeof(T), enumTypeShape.Type);
+            Assert.Equal(typeof(T).GetEnumUnderlyingType(), enumTypeShape.UnderlyingType.Type);
             var visitor = new EnumTestVisitor();
-            enumType.Accept(visitor, typeof(T));
+            enumTypeShape.Accept(visitor, typeof(T));
         }
         else
         {
-            Assert.Throws<InvalidOperationException>(() => shape.GetEnumShape());
+            Assert.False(shape is IEnumTypeShape);
         }
     }
 
     private sealed class EnumTestVisitor : TypeShapeVisitor
     {
-        public override object? VisitEnum<TEnum, TUnderlying>(IEnumShape<TEnum, TUnderlying> enumType, object? state)
+        public override object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumTypeType, object? state)
         {
             var type = (Type)state!;
             Assert.Equal(typeof(TEnum), type);
@@ -240,26 +221,26 @@ public abstract class TypeShapeProviderTests
         ITypeShape<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
 
-        if (shape.Kind.HasFlag(TypeKind.Nullable))
+        if (shape.Kind is TypeShapeKind.Nullable)
         {
-            INullableShape nullableType = shape.GetNullableShape();
-            Assert.Equal(typeof(T).GetGenericArguments()[0], nullableType.ElementType.Type);
+            INullableTypeShape nullableTypeType = Assert.IsAssignableFrom<INullableTypeShape>(shape);
+            Assert.Equal(typeof(T).GetGenericArguments()[0], nullableTypeType.ElementType.Type);
             var visitor = new NullableTestVisitor();
-            nullableType.Accept(visitor, typeof(T));
+            nullableTypeType.Accept(visitor, typeof(T));
         }
         else
         {
-            Assert.Throws<InvalidOperationException>(() => shape.GetNullableShape());
+            Assert.False(shape is INullableTypeShape);
         }
     }
 
     private sealed class NullableTestVisitor : TypeShapeVisitor
     {
-        public override object? VisitNullable<T>(INullableShape<T> nullable, object? state) where T : struct
+        public override object? VisitNullable<T>(INullableTypeShape<T> nullableType, object? state) where T : struct
         {
             var type = (Type)state!;
             Assert.Equal(typeof(T?), type);
-            Assert.Equal(typeof(T), nullable.ElementType.Type);
+            Assert.Equal(typeof(T), nullableType.ElementType.Type);
             return null;
         }
     }
@@ -272,10 +253,10 @@ public abstract class TypeShapeProviderTests
         ITypeShape<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
 
-        if (shape.Kind.HasFlag(TypeKind.Dictionary))
+        if (shape.Kind is TypeShapeKind.Dictionary)
         {
-            IDictionaryShape dictionaryType = shape.GetDictionaryShape();
-            Assert.Equal(typeof(T), dictionaryType.Type.Type);
+            IDictionaryTypeShape dictionaryType = Assert.IsAssignableFrom<IDictionaryTypeShape>(shape);
+            Assert.Equal(typeof(T), dictionaryType.Type);
 
             Type[]? keyValueTypes = typeof(T).GetDictionaryKeyValueTypes();
             Assert.NotNull(keyValueTypes);
@@ -287,7 +268,7 @@ public abstract class TypeShapeProviderTests
         }
         else
         {
-            Assert.Throws<InvalidOperationException>(() => shape.GetDictionaryShape());
+            Assert.False(shape is IDictionaryTypeShape);
         }
     }
 
@@ -360,30 +341,30 @@ public abstract class TypeShapeProviderTests
         ITypeShape<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
 
-        if (shape.Kind.HasFlag(TypeKind.Enumerable))
+        if (shape.Kind is TypeShapeKind.Enumerable)
         {
-            IEnumerableShape enumerableType = shape.GetEnumerableShape();
-            Assert.Equal(typeof(T), enumerableType.Type.Type);
+            IEnumerableTypeShape enumerableTypeType = Assert.IsAssignableFrom<IEnumerableTypeShape>(shape);
+            Assert.Equal(typeof(T), enumerableTypeType.Type);
 
             if (typeof(T).GetCompatibleGenericInterface(typeof(IEnumerable<>)) is { } enumerableImplementation)
             {
-                Assert.Equal(enumerableImplementation.GetGenericArguments()[0], enumerableType.ElementType.Type);
-                Assert.Equal(1, enumerableType.Rank);
+                Assert.Equal(enumerableImplementation.GetGenericArguments()[0], enumerableTypeType.ElementType.Type);
+                Assert.Equal(1, enumerableTypeType.Rank);
             }
             else if (typeof(T).IsArray)
             {
-                Assert.Equal(typeof(T).GetElementType(), enumerableType.ElementType.Type);
-                Assert.Equal(typeof(T).GetArrayRank(), enumerableType.Rank);
+                Assert.Equal(typeof(T).GetElementType(), enumerableTypeType.ElementType.Type);
+                Assert.Equal(typeof(T).GetArrayRank(), enumerableTypeType.Rank);
             }
             else if (typeof(IEnumerable).IsAssignableFrom(typeof(T)))
             {
-                Assert.Equal(typeof(object), enumerableType.ElementType.Type);
-                Assert.Equal(1, enumerableType.Rank);
+                Assert.Equal(typeof(object), enumerableTypeType.ElementType.Type);
+                Assert.Equal(1, enumerableTypeType.Rank);
             }
             else if (typeof(T).IsMemoryType(out Type? elementType, out _))
             {
-                Assert.Equal(elementType, enumerableType.ElementType.Type);
-                Assert.Equal(1, enumerableType.Rank);
+                Assert.Equal(elementType, enumerableTypeType.ElementType.Type);
+                Assert.Equal(1, enumerableTypeType.Rank);
             }
             else
             {
@@ -391,26 +372,26 @@ public abstract class TypeShapeProviderTests
             }
 
             var visitor = new EnumerableTestVisitor();
-            enumerableType.Accept(visitor, null);
+            enumerableTypeType.Accept(visitor, null);
         }
         else
         {
-            Assert.Throws<InvalidOperationException>(() => shape.GetEnumerableShape());
+            Assert.False(shape is IEnumerableTypeShape);
         }
     }
 
     private sealed class EnumerableTestVisitor : TypeShapeVisitor
     {
-        public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> enumerableShape, object? state)
+        public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableTypeShape, object? state)
         {
             TEnumerable enumerable;
-            RandomGenerator<TElement> elementGenerator = RandomGenerator.Create((ITypeShape<TElement>)enumerableShape.ElementType);
-            var getter = enumerableShape.GetGetEnumerable();
+            RandomGenerator<TElement> elementGenerator = RandomGenerator.Create((ITypeShape<TElement>)enumerableTypeShape.ElementType);
+            var getter = enumerableTypeShape.GetGetEnumerable();
 
-            if (enumerableShape.ConstructionStrategy is CollectionConstructionStrategy.Mutable)
+            if (enumerableTypeShape.ConstructionStrategy is CollectionConstructionStrategy.Mutable)
             {
-                var defaultCtor = enumerableShape.GetDefaultConstructor();
-                var adder = enumerableShape.GetAddElement();
+                var defaultCtor = enumerableTypeShape.GetDefaultConstructor();
+                var adder = enumerableTypeShape.GetAddElement();
 
                 enumerable = defaultCtor();
                 Assert.Empty(getter(enumerable));
@@ -421,13 +402,13 @@ public abstract class TypeShapeProviderTests
             }
             else
             {
-                Assert.Throws<InvalidOperationException>(() => enumerableShape.GetDefaultConstructor());
-                Assert.Throws<InvalidOperationException>(() => enumerableShape.GetAddElement());
+                Assert.Throws<InvalidOperationException>(() => enumerableTypeShape.GetDefaultConstructor());
+                Assert.Throws<InvalidOperationException>(() => enumerableTypeShape.GetAddElement());
             }
 
-            if (enumerableShape.ConstructionStrategy is CollectionConstructionStrategy.Enumerable)
+            if (enumerableTypeShape.ConstructionStrategy is CollectionConstructionStrategy.Enumerable)
             {
-                var enumerableCtor = enumerableShape.GetEnumerableConstructor();
+                var enumerableCtor = enumerableTypeShape.GetEnumerableConstructor();
                 var values = elementGenerator.GenerateValues(seed: 42).Take(10);
 
                 enumerable = enumerableCtor(values);
@@ -435,12 +416,12 @@ public abstract class TypeShapeProviderTests
             }
             else
             {
-                Assert.Throws<InvalidOperationException>(() => enumerableShape.GetEnumerableConstructor());
+                Assert.Throws<InvalidOperationException>(() => enumerableTypeShape.GetEnumerableConstructor());
             }
 
-            if (enumerableShape.ConstructionStrategy is CollectionConstructionStrategy.Span)
+            if (enumerableTypeShape.ConstructionStrategy is CollectionConstructionStrategy.Span)
             {
-                var spanCtor = enumerableShape.GetSpanConstructor();
+                var spanCtor = enumerableTypeShape.GetSpanConstructor();
                 var values = elementGenerator.GenerateValues(seed: 42).Take(10).ToArray();
 
                 enumerable = spanCtor(values);
@@ -448,7 +429,7 @@ public abstract class TypeShapeProviderTests
             }
             else
             {
-                Assert.Throws<InvalidOperationException>(() => enumerableShape.GetSpanConstructor());
+                Assert.Throws<InvalidOperationException>(() => enumerableTypeShape.GetSpanConstructor());
             }
 
             return null;

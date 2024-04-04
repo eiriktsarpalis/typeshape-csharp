@@ -8,75 +8,69 @@ using TypeShape;
 
 public static partial class PrettyPrinter
 {
-    private sealed class Visitor : TypeShapeVisitor
+    private sealed class Builder : TypeShapeVisitor
     {
         private static readonly Dictionary<Type, object> s_defaultPrinters = new(CreateDefaultPrinters());
-        private readonly TypeCache _cache = new();
+        private readonly TypeDictionary _cache = new();
+        
+        public PrettyPrinter<T> BuildPrettyPrinter<T>(ITypeShape<T> typeShape)
+        {
+            if (s_defaultPrinters.TryGetValue(typeShape.Type, out object? defaultPrinter))
+            {
+                return (PrettyPrinter<T>)defaultPrinter;
+            }
+
+            return _cache.GetOrAdd<PrettyPrinter<T>>(
+                typeShape,
+                this,
+                delayedValueFactory: self => new PrettyPrinter<T>((sb, indentation, value) => self.Result(sb, indentation, value)));
+        }
 
         public override object? VisitType<T>(ITypeShape<T> type, object? state)
         {
-            if (TryGetCachedResult<T>() is { } result)
+            PrettyPrinter<T>[] propertyPrinters = type
+                .GetProperties()
+                .Where(prop => prop.HasGetter)
+                .Select(prop => (PrettyPrinter<T>?)prop.Accept(this, null)!)
+                .Where(prop => prop != null)
+                .ToArray();
+
+            return new PrettyPrinter<T>((sb, indentation, value) =>
             {
-                return result;
-            }
+                if (value is null)
+                {
+                    sb.Append("null");
+                    return;
+                }
 
-            switch (type.Kind)
-            {
-                case TypeKind.Nullable:
-                    return type.GetNullableShape().Accept(this, null);
-                case TypeKind.Enum:
-                    return type.GetEnumShape().Accept(this, null);
-                case TypeKind.Dictionary:
-                    return type.GetDictionaryShape().Accept(this, null);
-                case TypeKind.Enumerable:
-                    return type.GetEnumerableShape().Accept(this, null)!;
+                sb.Append("new ");
+                sb.Append(typeof(T).Name);
 
-                default:
+                if (propertyPrinters.Length == 0)
+                {
+                    sb.Append("()");
+                    return;
+                }
 
-                    PrettyPrinter<T>[] propertyPrinters = type
-                        .GetProperties()
-                        .Where(prop => prop.HasGetter)
-                        .Select(prop => (PrettyPrinter<T>?)prop.Accept(this, null)!)
-                        .Where(prop => prop != null)
-                        .ToArray();
+                WriteLine(sb, indentation);
+                sb.Append('{');
+                for (int i = 0; i < propertyPrinters.Length; i++)
+                {
+                    WriteLine(sb, indentation + 1);
+                    propertyPrinters[i](sb, indentation + 1, value);
+                    sb.Append(',');
+                }
 
-                    return CacheResult<T>((sb, indentation, value) =>
-                    {
-                        if (value is null)
-                        {
-                            sb.Append("null");
-                            return;
-                        }
-
-                        sb.Append("new ");
-                        sb.Append(typeof(T).Name);
-
-                        if (propertyPrinters.Length == 0)
-                        {
-                            sb.Append("()");
-                            return;
-                        }
-
-                        WriteLine(sb, indentation);
-                        sb.Append('{');
-                        for (int i = 0; i < propertyPrinters.Length; i++)
-                        {
-                            WriteLine(sb, indentation + 1);
-                            propertyPrinters[i](sb, indentation + 1, value);
-                            sb.Append(',');
-                        }
-
-                        sb.Length--;
-                        WriteLine(sb, indentation);
-                        sb.Append('}');
-                    });
-            }
+                sb.Length--;
+                WriteLine(sb, indentation);
+                sb.Append('}');
+            });
         }
 
         public override object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
         {
             Getter<TDeclaringType, TPropertyType> getter = property.GetGetter();
-            PrettyPrinter<TPropertyType> propertyTypePrinter = (PrettyPrinter<TPropertyType>)property.PropertyType.Accept(this, null)!;
+            PrettyPrinter<TPropertyType> propertyTypePrinter = BuildPrettyPrinter(property.PropertyType);
             return new PrettyPrinter<TDeclaringType>((sb, indentation, obj) =>
             {
                 Debug.Assert(obj != null);
@@ -85,13 +79,13 @@ public static partial class PrettyPrinter
             });
         }
 
-        public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> enumerableShape, object? state)
+        public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableTypeShape, object? state)
         {
-            Func<TEnumerable, IEnumerable<TElement>> enumerableGetter = enumerableShape.GetGetEnumerable();
-            PrettyPrinter<TElement> elementPrinter = (PrettyPrinter<TElement>)enumerableShape.ElementType.Accept(this, null)!;
+            Func<TEnumerable, IEnumerable<TElement>> enumerableGetter = enumerableTypeShape.GetGetEnumerable();
+            PrettyPrinter<TElement> elementPrinter = BuildPrettyPrinter(enumerableTypeShape.ElementType);
             bool valuesArePrimitives = s_defaultPrinters.ContainsKey(typeof(TElement));
 
-            return CacheResult<TEnumerable>((sb, indentation, value) =>
+            return new PrettyPrinter<TEnumerable>((sb, indentation, value) =>
             {
                 if (value is null)
                 {
@@ -137,10 +131,10 @@ public static partial class PrettyPrinter
         public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
         {
             Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> dictionaryGetter = dictionaryShape.GetGetDictionary();
-            PrettyPrinter<TKey> keyPrinter = (PrettyPrinter<TKey>)dictionaryShape.KeyType.Accept(this, null)!;
-            PrettyPrinter<TValue> valuePrinter = (PrettyPrinter<TValue>)dictionaryShape.ValueType.Accept(this, null)!;
+            PrettyPrinter<TKey> keyPrinter = BuildPrettyPrinter(dictionaryShape.KeyType);
+            PrettyPrinter<TValue> valuePrinter = BuildPrettyPrinter(dictionaryShape.ValueType);
 
-            return CacheResult<TDictionary>((sb, indentation, value) =>
+            return new PrettyPrinter<TDictionary>((sb, indentation, value) =>
             {
                 if (value is null)
                 {
@@ -177,15 +171,15 @@ public static partial class PrettyPrinter
             });
         }
 
-        public override object? VisitEnum<TEnum, TUnderlying>(IEnumShape<TEnum, TUnderlying> enumType, object? state)
+        public override object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumTypeType, object? state)
         {
-            return CacheResult<TEnum>((sb, _, e) => sb.Append('"').Append(e).Append('"'));
+            return new PrettyPrinter<TEnum>((sb, _, e) => sb.Append('"').Append(e).Append('"'));
         }
 
-        public override object? VisitNullable<T>(INullableShape<T> nullableShape, object? state) where T : struct
+        public override object? VisitNullable<T>(INullableTypeShape<T> nullableTypeShape, object? state) where T : struct
         {
-            var elementPrinter = (PrettyPrinter<T>)nullableShape.ElementType.Accept(this, null)!;
-            return CacheResult<T?>((sb, indentation, value) =>
+            PrettyPrinter<T> elementPrinter = BuildPrettyPrinter(nullableTypeShape.ElementType);
+            return new PrettyPrinter<T?>((sb, indentation, value) =>
             {
                 if (value is null)
                     sb.Append("null");
@@ -243,22 +237,6 @@ public static partial class PrettyPrinter
 
             static KeyValuePair<Type, object> Create<T>(PrettyPrinter<T> printer)
                 => new(typeof(T), printer);
-        }
-
-        private PrettyPrinter<T>? TryGetCachedResult<T>()
-        {
-            if (s_defaultPrinters.TryGetValue(typeof(T), out object? result))
-            {
-                return (PrettyPrinter<T>)result;
-            }
-
-            return _cache.GetOrAddDelayedValue<PrettyPrinter<T>>(static holder => ((b,i,v) => holder.Value!(b,i,v)));
-        }
-
-        private PrettyPrinter<T> CacheResult<T>(PrettyPrinter<T> counter)
-        {
-            _cache.Add(counter);
-            return counter;
         }
     }
 }

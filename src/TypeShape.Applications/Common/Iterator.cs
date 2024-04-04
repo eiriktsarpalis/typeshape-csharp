@@ -29,7 +29,7 @@ public static class Iterator
     /// <summary>
     /// Creates an iterator instance from the specified enumerable shape.
     /// </summary>
-    public static IIterator<TEnumerable, TElement> Create<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> shape)
+    public static IIterator<TEnumerable, TElement> Create<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> typeShape)
     {
         if (typeof(TEnumerable).IsArray)
         {
@@ -77,7 +77,7 @@ public static class Iterator
         }
 
         // Default to an iterator that just allocates an enumerator.
-        Func<TEnumerable, IEnumerable<TElement>> getEnumerable = shape.GetGetEnumerable();
+        Func<TEnumerable, IEnumerable<TElement>> getEnumerable = typeShape.GetGetEnumerable();
         return new IEnumerableOfTGetterIterator<TEnumerable, TElement>(getEnumerable);
     }
 

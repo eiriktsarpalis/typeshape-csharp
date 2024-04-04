@@ -24,7 +24,7 @@ public delegate void Setter<TDeclaringType, TPropertyType>(ref TDeclaringType ob
 /// <typeparam name="TArgumentState">Type of the state object containing all constructor arguments.</typeparam>
 /// <typeparam name="TDeclaringType">Type of the object to be constructed.</typeparam>
 /// <param name="state">State object containing all constructor arguments.</param>
-/// <returns>The isntance created by the constructor.</returns>
+/// <returns>The instance created by the constructor.</returns>
 public delegate TDeclaringType Constructor<TArgumentState, TDeclaringType>(ref TArgumentState state);
 
 /// <summary>

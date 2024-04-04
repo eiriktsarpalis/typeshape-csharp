@@ -6,7 +6,7 @@
 public abstract class TypeShapeVisitor : ITypeShapeVisitor
 {
     /// <summary>
-    /// Visits an <see cref="ITypeShape{T}"/> instance.
+    /// Visits an <see cref="ITypeShape{T}"/> representing a simple type or object.
     /// </summary>
     /// <typeparam name="T">The type represented by the shape instance.</typeparam>
     /// <param name="typeShape">The type shape to visit.</param>
@@ -49,37 +49,37 @@ public abstract class TypeShapeVisitor : ITypeShapeVisitor
         => ThrowNotImplemented(nameof(VisitConstructorParameter));
 
     /// <summary>
-    /// Visits an <see cref="IEnumShape{TEnum, TUnderlying}"/> instance.
+    /// Visits an <see cref="IEnumTypeShape{TEnum,TUnderlying}"/> instance.
     /// </summary>
     /// <typeparam name="TEnum">The type of visited enum.</typeparam>
     /// <typeparam name="TUnderlying">The underlying type used by the enum.</typeparam>
-    /// <param name="enumShape">The enum shape to visit.</param>
+    /// <param name="enumTypeShape">The enum shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    public virtual object? VisitEnum<TEnum, TUnderlying>(IEnumShape<TEnum, TUnderlying> enumShape, object? state)
+    public virtual object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumTypeShape, object? state)
         where TEnum : struct, Enum
         => ThrowNotImplemented(nameof(VisitEnum));
 
     /// <summary>
-    /// Visits an <see cref="INullableShape{T}"/> instance representing the <see cref="Nullable{T}"/> type.
+    /// Visits an <see cref="INullableTypeShape{T}"/> instance representing the <see cref="Nullable{T}"/> type.
     /// </summary>
     /// <typeparam name="T">The element type of the visited nullable.</typeparam>
-    /// <param name="nullableShape">The nullable shape to visit.</param>
+    /// <param name="nullableTypeShape">The nullable shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    public virtual object? VisitNullable<T>(INullableShape<T> nullableShape, object? state)
+    public virtual object? VisitNullable<T>(INullableTypeShape<T> nullableTypeShape, object? state)
         where T : struct
         => ThrowNotImplemented(nameof(VisitNullable));
 
     /// <summary>
-    /// Visits an <see cref="IEnumerableShape{TEnumerable, TElement}"/> instance representing an enumerable type.
+    /// Visits an <see cref="IEnumerableTypeShape{TEnumerable,TElement}"/> instance representing an enumerable type.
     /// </summary>
     /// <typeparam name="TEnumerable">The type of the visited enumerable.</typeparam>
     /// <typeparam name="TElement">The element type of the visited enumerable.</typeparam>
-    /// <param name="enumerableShape">The enumerable shape to visit.</param>
+    /// <param name="enumerableTypeShape">The enumerable shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    public virtual object? VisitEnumerable<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> enumerableShape, object? state)
+    public virtual object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableTypeShape, object? state)
         => ThrowNotImplemented(nameof(VisitEnumerable));
 
     /// <summary>

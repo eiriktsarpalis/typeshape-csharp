@@ -20,10 +20,9 @@ internal abstract class ReflectionDictionaryShape<TDictionary, TKey, TValue>(Ref
     private ConstructorInfo? _dictionaryCtor;
 
     public CollectionConstructionStrategy ConstructionStrategy => _constructionStrategy ??= DetermineConstructionStrategy();
-
-    public ITypeShape<TDictionary> Type => provider.GetShape<TDictionary>();
     public ITypeShape<TKey> KeyType => provider.GetShape<TKey>();
     public ITypeShape<TValue> ValueType => provider.GetShape<TValue>();
+    public ITypeShapeProvider Provider => provider;
 
     public abstract Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> GetGetDictionary();
 

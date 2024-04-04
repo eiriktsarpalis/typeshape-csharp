@@ -3,7 +3,7 @@
 namespace TypeShape;
 
 /// <summary>
-/// Provides a strongly-typed shape model for a given .NET type.
+/// Provides a strongly typed shape model for a given .NET type.
 /// </summary>
 public interface ITypeShape
 {
@@ -11,6 +11,11 @@ public interface ITypeShape
     /// The underlying <see cref="Type"/> that this instance represents.
     /// </summary>
     Type Type { get; }
+
+    /// <summary>
+    /// Determines the <see cref="TypeShapeKind"/> that the current shape supports.
+    /// </summary>
+    TypeShapeKind Kind => TypeShapeKind.None;
 
     /// <summary>
     /// The provider used to generate this instance.
@@ -23,45 +28,31 @@ public interface ITypeShape
     public ICustomAttributeProvider? AttributeProvider { get; }
 
     /// <summary>
-    /// Gets all available constructor shapes for the given type.
+    /// Determines whether the current shape represents a C# record type.
     /// </summary>
-    /// <returns>An enumeration of all available constructor shapes.</returns>
-    IEnumerable<IConstructorShape> GetConstructors();
+    bool IsRecord => false;
+
+    /// <summary>
+    /// Determines whether the current type defines any property shapes.
+    /// </summary>
+    bool HasProperties => false;
+
+    /// <summary>
+    /// Determines whether the current type defines any constructor shapes.
+    /// </summary>
+    bool HasConstructors => false;
 
     /// <summary>
     /// Gets all available property/field shapes for the given type.
     /// </summary>
     /// <returns>An enumeration of all available property/field shapes.</returns>
-    IEnumerable<IPropertyShape> GetProperties();
+    IEnumerable<IPropertyShape> GetProperties() => [];
 
     /// <summary>
-    /// Determines the <see cref="TypeKind"/> that the current shape supports.
+    /// Gets all available constructor shapes for the given type.
     /// </summary>
-    TypeKind Kind { get; }
-
-    /// <summary>
-    /// Resolves an enum shape view for the current type, if of applicable <see cref="TypeKind"/>.
-    /// </summary>
-    /// <returns>An <see cref="IEnumShape"/> for the current <see cref="Type"/>.</returns>
-    IEnumShape GetEnumShape();
-
-    /// <summary>
-    /// Resolves a nullable shape view for the current type, if of applicable <see cref="TypeKind"/>.
-    /// </summary>
-    /// <returns>An <see cref="INullableShape"/> for the current <see cref="Type"/>.</returns>
-    INullableShape GetNullableShape();
-
-    /// <summary>
-    /// Resolves an enumerable shape view for the current type, if of applicable <see cref="TypeKind"/>.
-    /// </summary>
-    /// <returns>An <see cref="IEnumerableShape"/> for the current <see cref="Type"/>.</returns>
-    IEnumerableShape GetEnumerableShape();
-
-    /// <summary>
-    /// Resolves a dictionary shape view for the current type, if of applicable <see cref="TypeKind"/>.
-    /// </summary>
-    /// <returns>An <see cref="IDictionaryShape"/> for the current <see cref="Type"/>.</returns>
-    IDictionaryShape GetDictionaryShape();
+    /// <returns>An enumeration of all available constructor shapes.</returns>
+    IEnumerable<IConstructorShape> GetConstructors() => [];
 
     /// <summary>
     /// Accepts an <see cref="ITypeShapeVisitor"/> for strongly-typed traversal.
@@ -72,20 +63,22 @@ public interface ITypeShape
     object? Accept(ITypeShapeVisitor visitor, object? state);
 
     /// <summary>
-    /// Determines whether the current shape is a C# record type.
+    /// Invokes the specified generic function with the given state.
     /// </summary>
-    bool IsRecord { get; }
+    /// <param name="function">The generic function to be invoked.</param>
+    /// <param name="state">The state to be passed to the function.</param>
+    /// <returns>The result produced by the function.</returns>
+    object? Invoke(ITypeShapeFunc function, object? state);
 }
 
 /// <summary>
-/// Provides a strongly-typed shape model for a given .NET type.
+/// Provides a strongly typed shape model for a given .NET type.
 /// </summary>
 /// <typeparam name="T">The type that the shape describes.</typeparam>
 public interface ITypeShape<T> : ITypeShape
 {
-    /// <inheritdoc/>
     Type ITypeShape.Type => typeof(T);
-
-    /// <inheritdoc/>
+    ICustomAttributeProvider ITypeShape.AttributeProvider => typeof(T);
     object? ITypeShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitType(this, state);
+    object? ITypeShape.Invoke(ITypeShapeFunc function, object? state) => function.Invoke(this, state);
 }

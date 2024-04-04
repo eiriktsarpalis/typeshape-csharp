@@ -9,8 +9,8 @@ public static partial class PrettyPrinter
 {
     public static PrettyPrinter<T> Create<T>(ITypeShape<T> type)
     {
-        var builder = new Visitor();
-        return (PrettyPrinter<T>)type.Accept(builder, null)!;
+        var builder = new Builder();
+        return builder.BuildPrettyPrinter(type);
     }
 
     public static string Print<T>(this PrettyPrinter<T> pp, T? value)

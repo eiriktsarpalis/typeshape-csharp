@@ -1,22 +1,14 @@
 ﻿using System.Diagnostics;
 using System.Xml;
+using TypeShape.Applications.Common;
 
 namespace TypeShape.Applications.XmlSerializer.Converters;
 
-internal sealed class DelayedXmlConverter<T>(ResultHolder<XmlConverter<T>> holder) : XmlConverter<T>
+internal sealed class DelayedXmlConverter<T>(ResultBox<XmlConverter<T>> self) : XmlConverter<T>
 {
-    public XmlConverter<T> Underlying
-    {
-        get
-        {
-            Debug.Assert(holder.Value != null);
-            return holder.Value;
-        }
-    }
+    public override T? Read(XmlReader reader) =>
+        self.Result.Read(reader);
 
-    public override T? Read(XmlReader reader)
-        => Underlying.Read(reader);
-
-    public override void Write(XmlWriter writer, string localName, T? value)
-        => Underlying.Write(writer, localName, value);
+    public override void Write(XmlWriter writer, string localName, T? value) =>
+        self.Result.Write(writer, localName, value);
 }

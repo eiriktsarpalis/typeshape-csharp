@@ -6,7 +6,8 @@ namespace TypeShape.ReflectionProvider;
 
 internal sealed class ReflectionConstructorShape<TDeclaringType, TArgumentState>(
     ReflectionTypeShapeProvider provider,
-    IConstructorShapeInfo ctorInfo) : IConstructorShape<TDeclaringType, TArgumentState>
+    IConstructorShapeInfo ctorInfo) :
+    IConstructorShape<TDeclaringType, TArgumentState>
 {
     public ITypeShape<TDeclaringType> DeclaringType => provider.GetShape<TDeclaringType>();
     public int ParameterCount => ctorInfo.Parameters.Length;

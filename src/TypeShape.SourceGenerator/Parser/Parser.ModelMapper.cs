@@ -131,9 +131,14 @@ public sealed partial class Parser
                 EmitGenericTypeShapeProviderImplementation = emitGenericProviderImplementation,
             },
 
-            _ => new TypeShapeModel
+            _ => new ObjectShapeModel
             { 
                 Type = typeId,
+                Constructors = [],
+                Properties = [],
+                IsValueTupleType = false,
+                IsClassTupleType = false,
+                IsRecord = false,
                 EmitGenericTypeShapeProviderImplementation = emitGenericProviderImplementation,
             }
         };

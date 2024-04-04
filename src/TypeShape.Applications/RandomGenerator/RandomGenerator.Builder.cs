@@ -10,42 +10,39 @@ public partial class RandomGenerator
 {
     private delegate void RandomPropertySetter<T>(ref T value, Random random, int size);
 
-    private sealed class Visitor : ITypeShapeVisitor
+    private sealed class Builder : ITypeShapeVisitor
     {
-        private readonly TypeCache _cache = new(CreateDefaultGenerators());
+        private static readonly Dictionary<Type, object> s_defaultGenerators = new(CreateDefaultGenerators());
+        private readonly TypeDictionary _cache = new();
+
+        public RandomGenerator<T> BuildGenerator<T>(ITypeShape<T> type)
+        {
+            if (s_defaultGenerators.TryGetValue(type.Type, out object? defaultGenerator))
+            {
+                return (RandomGenerator<T>)defaultGenerator;
+            }
+
+            return _cache.GetOrAdd<RandomGenerator<T>>(
+                type, 
+                this,
+                delayedValueFactory: self => new RandomGenerator<T>((r, s) => self.Result(r,s)));
+        }
 
         public object? VisitType<T>(ITypeShape<T> type, object? state)
         {
-            if (TryGetCachedResult<T>() is { } result)
-            {
-                return result;
-            }
+            // Prefer the default constructor, if available.
+            IConstructorShape? constructor = type.GetConstructors()
+                .MinBy(ctor => ctor.ParameterCount);
 
-            switch (type.Kind)
-            {
-                case TypeKind.Enum:
-                    return type.GetEnumShape().Accept(this, null);
-                case TypeKind.Nullable:
-                    return type.GetNullableShape().Accept(this, null);
-                case TypeKind.Dictionary:
-                    return type.GetDictionaryShape().Accept(this, null);
-                case TypeKind.Enumerable:
-                    return type.GetEnumerableShape().Accept(this, null);
-                default:
-                    // Prefer the default constructor, if available.
-                    IConstructorShape? constructor = type.GetConstructors()
-                        .MinBy(ctor => ctor.ParameterCount);
-
-                    return constructor is null
-                        ? throw new NotSupportedException($"Type '{typeof(T)}' does not support random generation.")
-                        : constructor.Accept(this, null);
-            }
+            return constructor is null
+                ? throw new NotSupportedException($"Type '{typeof(T)}' does not support random generation.")
+                : constructor.Accept(this, null);
         }
 
         public object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
         {
             Setter<TDeclaringType, TPropertyType> setter = property.GetSetter();
-            RandomGenerator<TPropertyType> propertyGenerator = (RandomGenerator<TPropertyType>)property.PropertyType.Accept(this, null)!;
+            RandomGenerator<TPropertyType> propertyGenerator = BuildGenerator(property.PropertyType);
             return new RandomPropertySetter<TDeclaringType>((ref TDeclaringType obj, Random random, int size) => setter(ref obj, propertyGenerator(random, size)));
         }
 
@@ -59,7 +56,7 @@ public partial class RandomGenerator
                     .Select(prop => (RandomPropertySetter<TDeclaringType>)prop.Accept(this, null)!)
                     .ToArray();
 
-                return CacheResult((Random random, int size) =>
+                return new RandomGenerator<TDeclaringType>((Random random, int size) =>
                 {
                     if (size == 0) 
                         return default!;
@@ -81,7 +78,7 @@ public partial class RandomGenerator
                     .Select(param => (RandomPropertySetter<TArgumentState>)param.Accept(this, null)!)
                     .ToArray();
 
-                return CacheResult((Random random, int size) =>
+                return new RandomGenerator<TDeclaringType>((Random random, int size) =>
                 {
                     if (size == 0)
                         return default!;
@@ -100,27 +97,25 @@ public partial class RandomGenerator
         public object? VisitConstructorParameter<TArgumentState, TParameter>(IConstructorParameterShape<TArgumentState, TParameter> parameter, object? state)
         {
             Setter<TArgumentState, TParameter> setter = parameter.GetSetter();
-            RandomGenerator<TParameter> propertyGenerator = (RandomGenerator<TParameter>)parameter.ParameterType.Accept(this, null)!;
-            return new RandomPropertySetter<TArgumentState>((ref TArgumentState obj, Random random, int size) => setter(ref obj, propertyGenerator(random, size)));
+            RandomGenerator<TParameter> parameterGenerator = BuildGenerator(parameter.ParameterType);
+            return new RandomPropertySetter<TArgumentState>((ref TArgumentState obj, Random random, int size) => setter(ref obj, parameterGenerator(random, size)));
         }
 
-        public object? VisitEnum<TEnum, TUnderlying>(IEnumShape<TEnum, TUnderlying> enumType, object? state)
-            where TEnum : struct, Enum
+        public object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumTypeType, object? state) where TEnum: struct, Enum
         {
             TEnum[] values = Enum.GetValues<TEnum>();
-            return CacheResult((Random random, int _) => values[random.Next(0, values.Length)]);
+            return new RandomGenerator<TEnum>((Random random, int _) => values[random.Next(0, values.Length)]);
         }
 
-        public object? VisitNullable<T>(INullableShape<T> nullableShape, object? state)
-            where T : struct
+        public object? VisitNullable<T>(INullableTypeShape<T> nullableTypeShape, object? state) where T : struct
         {
-            var underlyingGenerator = (RandomGenerator<T>)nullableShape.ElementType.Accept(this, null)!;
-            return CacheResult<T?>((Random random, int size) => NextBoolean(random) ? null : underlyingGenerator(random, size - 1));
+            RandomGenerator<T> elementGenerator = BuildGenerator(nullableTypeShape.ElementType);
+            return new RandomGenerator<T?>((Random random, int size) => NextBoolean(random) ? null : elementGenerator(random, size - 1));
         }
 
-        public object? VisitEnumerable<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> enumerableShape, object? state)
+        public object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableTypeShape, object? state)
         {
-            var elementGenerator = (RandomGenerator<TElement>)enumerableShape.ElementType.Accept(this, null)!;
+            RandomGenerator<TElement> elementGenerator = BuildGenerator(enumerableTypeShape.ElementType);
 
             if (typeof(TEnumerable).IsArray)
             {
@@ -129,7 +124,7 @@ public partial class RandomGenerator
                     throw new NotImplementedException("Multi-dimensional array support.");
                 }
 
-                return CacheResult((Random random, int size) =>
+                return new RandomGenerator<TElement[]>((Random random, int size) =>
                 {
                     int length = random.Next(0, size);
                     var array = new TElement[length];
@@ -142,12 +137,12 @@ public partial class RandomGenerator
                 });
             }
 
-            switch (enumerableShape.ConstructionStrategy)
+            switch (enumerableTypeShape.ConstructionStrategy)
             {
                 case CollectionConstructionStrategy.Mutable:
-                    Func<TEnumerable> defaultCtor = enumerableShape.GetDefaultConstructor();
-                    Setter<TEnumerable, TElement> addElementFunc = enumerableShape.GetAddElement();
-                    return CacheResult((Random random, int size) =>
+                    Func<TEnumerable> defaultCtor = enumerableTypeShape.GetDefaultConstructor();
+                    Setter<TEnumerable, TElement> addElementFunc = enumerableTypeShape.GetAddElement();
+                    return new RandomGenerator<TEnumerable>((Random random, int size) =>
                     {
                         if (size == 0)
                             return default!;
@@ -163,8 +158,8 @@ public partial class RandomGenerator
                     });
 
                 case CollectionConstructionStrategy.Enumerable:
-                    Func<IEnumerable<TElement>, TEnumerable> enumerableCtor = enumerableShape.GetEnumerableConstructor();
-                    return CacheResult((Random random, int size) =>
+                    Func<IEnumerable<TElement>, TEnumerable> enumerableCtor = enumerableTypeShape.GetEnumerableConstructor();
+                    return new RandomGenerator<TEnumerable>((Random random, int size) =>
                     {
                         if (size == 0)
                             return default!;
@@ -180,8 +175,8 @@ public partial class RandomGenerator
                     });
 
                 case CollectionConstructionStrategy.Span:
-                    SpanConstructor<TElement, TEnumerable> spanCtor = enumerableShape.GetSpanConstructor();
-                    return CacheResult((Random random, int size) =>
+                    SpanConstructor<TElement, TEnumerable> spanCtor = enumerableTypeShape.GetSpanConstructor();
+                    return new RandomGenerator<TEnumerable>((Random random, int size) =>
                     {
                         if (size == 0)
                             return default!;
@@ -201,18 +196,17 @@ public partial class RandomGenerator
             }
         }
 
-        public object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
-            where TKey : notnull
+        public object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state) where TKey : notnull
         {
-            var keyGenerator = (RandomGenerator<TKey>)dictionaryShape.KeyType.Accept(this, null)!;
-            var valueGenerator = (RandomGenerator<TValue>)dictionaryShape.ValueType.Accept(this, null)!;
+            RandomGenerator<TKey> keyGenerator = BuildGenerator(dictionaryShape.KeyType);
+            RandomGenerator<TValue> valueGenerator = BuildGenerator(dictionaryShape.ValueType);
 
             switch (dictionaryShape.ConstructionStrategy)
             {
                 case CollectionConstructionStrategy.Mutable:
                     Func<TDictionary> defaultCtorFunc = dictionaryShape.GetDefaultConstructor();
                     Setter<TDictionary, KeyValuePair<TKey, TValue>> addKeyValuePairFunc = dictionaryShape.GetAddKeyValuePair();
-                    return CacheResult((Random random, int size) =>
+                    return new RandomGenerator<TDictionary>((Random random, int size) =>
                     {
                         if (size == 0)
                             return default!;
@@ -231,7 +225,7 @@ public partial class RandomGenerator
 
                 case CollectionConstructionStrategy.Enumerable:
                     Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> enumerableCtorFunc = dictionaryShape.GetEnumerableConstructor();
-                    return CacheResult((Random random, int size) =>
+                    return new RandomGenerator<TDictionary>((Random random, int size) =>
                     {
                         if (size == 0)
                             return default!;
@@ -250,7 +244,7 @@ public partial class RandomGenerator
 
                 case CollectionConstructionStrategy.Span:
                     SpanConstructor<KeyValuePair<TKey, TValue>, TDictionary> spanCtorFunc = dictionaryShape.GetSpanConstructor();
-                    return CacheResult((Random random, int size) =>
+                    return new RandomGenerator<TDictionary>((Random random, int size) =>
                     {
                         if (size == 0)
                             return default!;
@@ -339,7 +333,7 @@ public partial class RandomGenerator
             });
 
             static KeyValuePair<Type, object> Create<T>(RandomGenerator<T> randomGenerator)
-                => new(typeof(RandomGenerator<T>), randomGenerator);
+                => new(typeof(T), randomGenerator);
         }
 
         private static long NextLong(Random random)
@@ -381,14 +375,6 @@ public partial class RandomGenerator
                 1 => (int)Math.Round(parentSize * 0.9),
                 _ => (int)Math.Round(parentSize / (double)totalChildren),
             };
-        }
-        private RandomGenerator<T>? TryGetCachedResult<T>()
-            => _cache.GetOrAddDelayedValue<RandomGenerator<T>>(static holder => (r,s) => holder.Value!(r,s));
-
-        private RandomGenerator<T> CacheResult<T>(RandomGenerator<T> generator)
-        {
-            _cache.Add(generator);
-            return generator;
         }
     }
 }

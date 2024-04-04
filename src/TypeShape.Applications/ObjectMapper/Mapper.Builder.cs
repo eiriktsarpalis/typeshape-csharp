@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Numerics;
 
 namespace TypeShape.Applications.ObjectMapper;
 
@@ -8,22 +7,25 @@ public static partial class Mapper
 {
     private delegate void PropertyMapper<TSource, TTarget>(ref TSource source, ref TTarget target);
 
-    private sealed class Visitor : TypeShapeVisitor
+    private sealed class Builder : TypeShapeVisitor
     {
-        private readonly TypeCache _cache = new();
+        private readonly TypeDictionary _cache = new();
 
-        public Mapper<TSource, TTarget>? CreateMapper<TSource, TTarget>(ITypeShape<TSource> fromShape, ITypeShape<TTarget> toShape)
+        public Mapper<TSource, TTarget>? BuildMapper<TSource, TTarget>(ITypeShape<TSource> fromShape, ITypeShape<TTarget> toShape)
         {
-            if (TryGetCachedResult(out Mapper<TSource, TTarget>? mapper))
+            Type key = typeof(Mapper<TSource, TTarget>);
+
+            if (_cache.TryGetValue(key, out Mapper<TSource, TTarget>? mapper, delayedValueFactory: CreateDelayedMapper))
             {
                 return mapper;
             }
 
-            mapper = CreateMapperCore(fromShape, toShape);
-            return CacheResult(mapper);
+            mapper = BuildMapperCore(fromShape, toShape);
+            _cache.Add(key, mapper);
+            return mapper;
         }
 
-        private Mapper<TSource, TTarget>? CreateMapperCore<TSource, TTarget>(ITypeShape<TSource> sourceShape, ITypeShape<TTarget> targetShape)
+        private Mapper<TSource, TTarget>? BuildMapperCore<TSource, TTarget>(ITypeShape<TSource> sourceShape, ITypeShape<TTarget> targetShape)
         {
             if (sourceShape.Kind != targetShape.Kind)
             {
@@ -31,54 +33,33 @@ public static partial class Mapper
                 return null;
             }
 
-            if (sourceShape.Kind is TypeKind.None or TypeKind.Enum ||
-                typeof(TSource) == typeof(BigInteger) ||
-                typeof(TSource) == typeof(object))
-            {
-                // Only map if TSource is a subtype of TTarget.
-                if (typeof(TTarget).IsAssignableFrom(typeof(TSource)))
-                {
-                    return (Mapper<TSource, TTarget>)(object)(new Mapper<TSource, TSource>(source => source));
-                }
-
-                // For simplicity, do not support conversion between numeric/string types.
-                return null;
-            }
-
             switch (sourceShape.Kind)
             {
-                case TypeKind.Nullable:
-                    INullableShape sourceNullable = sourceShape.GetNullableShape();
-                    INullableShape targetNullable = targetShape.GetNullableShape();
-                    return (Mapper<TSource, TTarget>?)sourceNullable.Accept(this, targetNullable);
-
-                case TypeKind.Enumerable:
-                    IEnumerableShape sourceEnumerable = sourceShape.GetEnumerableShape();
-                    IEnumerableShape targetEnumerable = targetShape.GetEnumerableShape();
-                    return (Mapper<TSource, TTarget>?)sourceEnumerable.Accept(this, targetEnumerable);
-
-                case TypeKind.Dictionary:
-                    IDictionaryShape sourceDictionary = sourceShape.GetDictionaryShape();
-                    IDictionaryShape targetDictionary = targetShape.GetDictionaryShape();
-                    return (Mapper<TSource, TTarget>?)sourceDictionary.Accept(this, targetDictionary);
-
-                default:
-                    Debug.Assert(sourceShape.Kind == TypeKind.Object);
-                    IConstructorShape? ctor = targetShape
-                        .GetConstructors()
+                case TypeShapeKind.None:
+                    IConstructorShape? ctor = targetShape.GetConstructors()
                         .MinBy(ctor => ctor.ParameterCount);
 
                     if (ctor is null)
                     {
-                        return null; // TTarget is not constructible, so we can't map to it.
+                        // If TTarget is not constructible, only map if TSource is a subtype of TTarget and has no properties.
+                        return typeof(TTarget).IsAssignableFrom(typeof(TSource)) && !targetShape.HasProperties
+                            ? (Mapper<TSource, TTarget>)(object)(new Mapper<TSource, TSource>(source => source))
+                            : null;
                     }
 
                     IPropertyShape[] sourceGetters = sourceShape.GetProperties()
                         .Where(prop => prop.HasGetter)
                         .ToArray();
 
+                    // Bring TSource into scope for the target ctor using a new generic visitor.
                     var visitor = new TypeScopedVisitor<TSource>(this);
                     return (Mapper<TSource, TTarget>?)ctor.Accept(visitor, sourceGetters);
+
+                case TypeShapeKind.Enum:
+                    return new Mapper<TSource, TTarget>(source => (TTarget)(object)source!);
+
+                default:
+                    return (Mapper<TSource, TTarget>?)sourceShape.Accept(this, targetShape);
             }
         }
 
@@ -91,28 +72,28 @@ public static partial class Mapper
                 : ((IConstructorParameterShape)state).Accept(visitor, sourceGetter);
         }
 
-        public override object? VisitNullable<TSource>(INullableShape<TSource> sourceNullable, object? state)
+        public override object? VisitNullable<TSource>(INullableTypeShape<TSource> sourceNullableType, object? state)
         {
-            var targetNullable = (INullableShape)state!;
+            var targetNullable = (INullableTypeShape)state!;
             var visitor = new NullableScopedVisitor<TSource>(this);
-            return targetNullable.Accept(visitor, sourceNullable);
+            return targetNullable.Accept(visitor, sourceNullableType);
         }
 
-        public override object? VisitEnumerable<TSource, TSourceElement>(IEnumerableShape<TSource, TSourceElement> sourceEnumerable, object? state)
+        public override object? VisitEnumerable<TSource, TSourceElement>(IEnumerableTypeShape<TSource, TSourceElement> sourceEnumerableType, object? state)
         {
-            var targetEnumerable = (IEnumerableShape)state!;
+            var targetEnumerable = (IEnumerableTypeShape)state!;
             var visitor = new EnumerableScopedVisitor<TSource, TSourceElement>(this);
-            return targetEnumerable.Accept(visitor, sourceEnumerable);
+            return targetEnumerable.Accept(visitor, sourceEnumerableType);
         }
 
         public override object? VisitDictionary<TSourceDictionary, TSourceKey, TSourceValue>(IDictionaryShape<TSourceDictionary, TSourceKey, TSourceValue> sourceDictionary, object? state)
         {
-            var targetDictionary = (IDictionaryShape)state!;
+            var targetDictionary = (IDictionaryTypeShape)state!;
             var visitor = new DictionaryScopedVisitor<TSourceDictionary, TSourceKey, TSourceValue>(this);
             return targetDictionary.Accept(visitor, sourceDictionary);
         }
 
-        private sealed class TypeScopedVisitor<TSource>(Visitor baseVisitor) : TypeShapeVisitor
+        private sealed class TypeScopedVisitor<TSource>(Builder baseVisitor) : TypeShapeVisitor
         {
             public override object? VisitConstructor<TTarget, TArgumentState>(IConstructorShape<TTarget, TArgumentState> targetCtor, object? state)
             {
@@ -190,12 +171,12 @@ public static partial class Mapper
             }
         }
 
-        private sealed class PropertyScopedVisitor<TSource, TSourceProperty>(Visitor baseVisitor) : TypeShapeVisitor
+        private sealed class PropertyScopedVisitor<TSource, TSourceProperty>(Builder baseVisitor) : TypeShapeVisitor
         {
             public override object? VisitProperty<TTarget, TTargetProperty>(IPropertyShape<TTarget, TTargetProperty> targetProperty, object? state)
             {
                 IPropertyShape<TSource, TSourceProperty> sourceProperty = (IPropertyShape<TSource, TSourceProperty>)state!;
-                var propertyTypeMapper = baseVisitor.CreateMapper(sourceProperty.PropertyType, targetProperty.PropertyType);
+                var propertyTypeMapper = baseVisitor.BuildMapper(sourceProperty.PropertyType, targetProperty.PropertyType);
                 if (propertyTypeMapper is null)
                     return null;
 
@@ -212,7 +193,7 @@ public static partial class Mapper
             public override object? VisitConstructorParameter<TArgumentState, TTargetParameter>(IConstructorParameterShape<TArgumentState, TTargetParameter> targetParameter, object? state)
             {
                 var sourceProperty = (IPropertyShape<TSource, TSourceProperty>)state!;
-                var propertyTypeMapper = baseVisitor.CreateMapper(sourceProperty.PropertyType, targetParameter.ParameterType);
+                var propertyTypeMapper = baseVisitor.BuildMapper(sourceProperty.PropertyType, targetParameter.ParameterType);
                 if (propertyTypeMapper is null)
                     return null;
 
@@ -227,14 +208,14 @@ public static partial class Mapper
             }
         }
 
-        private sealed class NullableScopedVisitor<TSourceElement>(Visitor baseVisitor) : TypeShapeVisitor
+        private sealed class NullableScopedVisitor<TSourceElement>(Builder baseVisitor) : TypeShapeVisitor
             where TSourceElement : struct
         {
-            public override object? VisitNullable<TTargetElement>(INullableShape<TTargetElement> targetNullable, object? state)
+            public override object? VisitNullable<TTargetElement>(INullableTypeShape<TTargetElement> targetNullableType, object? state)
                 where TTargetElement : struct
             {
-                var sourceNullable = (INullableShape<TSourceElement>)state!;
-                var elementMapper = baseVisitor.CreateMapper(sourceNullable.ElementType, targetNullable.ElementType);
+                var sourceNullable = (INullableTypeShape<TSourceElement>)state!;
+                var elementMapper = baseVisitor.BuildMapper(sourceNullable.ElementType, targetNullableType.ElementType);
                 if (elementMapper is null)
                     return null;
 
@@ -242,22 +223,22 @@ public static partial class Mapper
             }
         }
 
-        private sealed class EnumerableScopedVisitor<TSourceEnumerable, TSourceElement>(Visitor baseVisitor) : TypeShapeVisitor
+        private sealed class EnumerableScopedVisitor<TSourceEnumerable, TSourceElement>(Builder baseVisitor) : TypeShapeVisitor
         {
-            public override object? VisitEnumerable<TTargetEnumerable, TTargetElement>(IEnumerableShape<TTargetEnumerable, TTargetElement> targetEnumerable, object? state)
+            public override object? VisitEnumerable<TTargetEnumerable, TTargetElement>(IEnumerableTypeShape<TTargetEnumerable, TTargetElement> targetEnumerableType, object? state)
             {
-                var sourceEnumerable = (IEnumerableShape<TSourceEnumerable, TSourceElement>)state!;
+                var sourceEnumerable = (IEnumerableTypeShape<TSourceEnumerable, TSourceElement>)state!;
                 var sourceGetEnumerable = sourceEnumerable.GetGetEnumerable();
 
-                var elementMapper = baseVisitor.CreateMapper(sourceEnumerable.ElementType, targetEnumerable.ElementType);
+                var elementMapper = baseVisitor.BuildMapper(sourceEnumerable.ElementType, targetEnumerableType.ElementType);
                 if (elementMapper is null)
                     return null;
 
-                switch (targetEnumerable.ConstructionStrategy)
+                switch (targetEnumerableType.ConstructionStrategy)
                 {
                     case CollectionConstructionStrategy.Mutable:
-                        var defaultCtor = targetEnumerable.GetDefaultConstructor();
-                        var addElement = targetEnumerable.GetAddElement();
+                        var defaultCtor = targetEnumerableType.GetDefaultConstructor();
+                        var addElement = targetEnumerableType.GetAddElement();
                         return new Mapper<TSourceEnumerable, TTargetEnumerable>(source =>
                         {
                             if (source is null)
@@ -275,7 +256,7 @@ public static partial class Mapper
                         });
 
                     case CollectionConstructionStrategy.Enumerable:
-                        var createEnumerable = targetEnumerable.GetEnumerableConstructor();
+                        var createEnumerable = targetEnumerableType.GetEnumerableConstructor();
                         return new Mapper<TSourceEnumerable, TTargetEnumerable>(source =>
                         {
                             if (source is null)
@@ -287,7 +268,7 @@ public static partial class Mapper
                         });
 
                     case CollectionConstructionStrategy.Span:
-                        var createSpan = targetEnumerable.GetSpanConstructor();
+                        var createSpan = targetEnumerableType.GetSpanConstructor();
                         return new Mapper<TSourceEnumerable, TTargetEnumerable>(source =>
                         {
                             if (source is null)
@@ -304,7 +285,7 @@ public static partial class Mapper
             }
         }
 
-        private sealed class DictionaryScopedVisitor<TSourceDictionary, TSourceKey, TSourceValue>(Visitor baseVisitor) : TypeShapeVisitor
+        private sealed class DictionaryScopedVisitor<TSourceDictionary, TSourceKey, TSourceValue>(Builder baseVisitor) : TypeShapeVisitor
             where TSourceKey : notnull
         {
             public override object? VisitDictionary<TTargetDictionary, TTargetKey, TTargetValue>(IDictionaryShape<TTargetDictionary, TTargetKey, TTargetValue> targetDictionary, object? state)
@@ -312,8 +293,8 @@ public static partial class Mapper
                 var sourceDictionary = (IDictionaryShape<TSourceDictionary, TSourceKey, TSourceValue>)state!;
                 var sourceGetDictionary = sourceDictionary.GetGetDictionary();
 
-                var keyMapper = baseVisitor.CreateMapper(sourceDictionary.KeyType, targetDictionary.KeyType);
-                var valueMapper = baseVisitor.CreateMapper(sourceDictionary.ValueType, targetDictionary.ValueType);
+                var keyMapper = baseVisitor.BuildMapper(sourceDictionary.KeyType, targetDictionary.KeyType);
+                var valueMapper = baseVisitor.BuildMapper(sourceDictionary.ValueType, targetDictionary.ValueType);
                 if (keyMapper is null || valueMapper is null)
                     return null;
 
@@ -373,25 +354,18 @@ public static partial class Mapper
             }
         }
 
-        private Mapper<TSource, TTarget>? CacheResult<TSource, TTarget>(Mapper<TSource, TTarget>? mapper)
+        private static Mapper<TSource, TTarget> CreateDelayedMapper<TSource, TTarget>(ResultBox<Mapper<TSource, TTarget>?> self)
         {
-            // Wrap cache entries in a 1-tuple to allow storing null values, which represent non-mappable types.
-            _cache.Add(new Tuple<Mapper<TSource, TTarget>?>(mapper));
-            return mapper;
-        }
-
-        private bool TryGetCachedResult<TSource, TTarget>(out Mapper<TSource, TTarget>? mapper)
-        {
-            var entry = _cache.GetOrAddDelayedValue<Tuple<Mapper<TSource, TTarget>?>>(static holder =>
-                new Tuple<Mapper<TSource, TTarget>?>(left =>
+            return new Mapper<TSource, TTarget>(left =>
+            {
+                Mapper<TSource, TTarget>? mapper = self.Result;
+                if (mapper is null)
                 {
-                    Mapper<TSource, TTarget>? mapper = holder.Value!.Item1;
-                    if (mapper is null) ThrowCannotMapTypes(typeof(TSource), typeof(TTarget));
-                    return mapper(left);
-                }));
+                    ThrowCannotMapTypes(typeof(TSource), typeof(TTarget));
+                }
 
-            mapper = entry?.Item1;
-            return entry != null;
+                return mapper(left);
+            });
         }
 
         [DoesNotReturn]

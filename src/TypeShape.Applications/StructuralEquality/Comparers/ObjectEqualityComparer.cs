@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
@@ -56,8 +57,10 @@ internal sealed class PropertyEqualityComparer<TDeclaringType, TPropertyType> : 
     }
 }
 
-internal sealed class PolymorphicObjectEqualityComparer(Func<Type, IEqualityComparer> provider) : EqualityComparer<object>
+internal sealed class PolymorphicObjectEqualityComparer(ITypeShapeProvider provider) : EqualityComparer<object>
 {
+    private readonly ConcurrentDictionary<Type, IEqualityComparer?> _cache = new();
+
     public override bool Equals(object? x, object? y)
     {
         if (x is null || y is null)
@@ -70,12 +73,28 @@ internal sealed class PolymorphicObjectEqualityComparer(Func<Type, IEqualityComp
         if (runtimeType == typeof(object))
             return true;
 
-        return provider(runtimeType).Equals(x, y);
+        return GetComparer(runtimeType).Equals(x, y);
     }
 
     public override int GetHashCode([DisallowNull] object obj)
     {
         Type runtimeType = obj.GetType();
-        return runtimeType == typeof(object) ? 1 : provider(runtimeType).GetHashCode(obj);
+        return runtimeType == typeof(object) ? 1 : GetComparer(runtimeType).GetHashCode(obj);
+    }
+
+    private IEqualityComparer GetComparer(Type type)
+    {
+        return _cache.GetOrAdd(type, ResolveComparer, provider) ?? 
+            throw new NotSupportedException($"No type shape provided for type '{type}'.");
+        
+        static IEqualityComparer? ResolveComparer(Type type, ITypeShapeProvider provider)
+        {
+            if (provider.GetShape(type) is not ITypeShape shape)
+            {
+                return null;
+            }
+
+            return StructuralEqualityComparer.Create(shape);
+        }
     }
 }

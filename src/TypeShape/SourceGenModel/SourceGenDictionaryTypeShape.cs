@@ -6,13 +6,13 @@
 /// <typeparam name="TDictionary">The type of the dictionary.</typeparam>
 /// <typeparam name="TKey">The type of the dictionary key.</typeparam>
 /// <typeparam name="TValue">The type of the dictionary value.</typeparam>
-public sealed class SourceGenDictionaryShape<TDictionary, TKey, TValue> : IDictionaryShape<TDictionary, TKey, TValue>
+public sealed class SourceGenDictionaryTypeShape<TDictionary, TKey, TValue> : IDictionaryShape<TDictionary, TKey, TValue>
     where TKey : notnull
 {
     /// <summary>
-    /// The type shape of the dictionary.
+    /// The provider that generated this shape.
     /// </summary>
-    public required ITypeShape<TDictionary> Type { get; init; }
+    public required ITypeShapeProvider Provider { get; init; }
 
     /// <summary>
     /// The type shape of the dictionary key.

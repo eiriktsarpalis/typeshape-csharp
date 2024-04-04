@@ -7,8 +7,8 @@ public static partial class CborSerializer
 {
     public static CborConverter<T> CreateConverter<T>(ITypeShape<T> shape)
     {
-        var visitor = new Visitor();
-        return (CborConverter<T>)shape.Accept(visitor, null)!;
+        var builder = new Builder();
+        return builder.BuildConverter(shape);
     }
 
     public static byte[] Encode<T>(this CborConverter<T> converter, T? value)

@@ -4,7 +4,7 @@ using System.Reflection;
 namespace TypeShape;
 
 /// <summary>
-/// Provides a strongly-typed shape model for a given .NET instance property or field.
+/// Provides a strongly typed shape model for a given .NET instance property or field.
 /// </summary>
 public interface IPropertyShape
 {
@@ -87,7 +87,7 @@ public interface IPropertyShape
 }
 
 /// <summary>
-/// Provides a strongly-typed shape model for a given .NET instance property or field.
+/// Provides a strongly typed shape model for a given .NET instance property or field.
 /// </summary>
 /// <typeparam name="TDeclaringType">The declaring type of the underlying property.</typeparam>
 /// <typeparam name="TPropertyType">The property type of the underlying property.</typeparam>

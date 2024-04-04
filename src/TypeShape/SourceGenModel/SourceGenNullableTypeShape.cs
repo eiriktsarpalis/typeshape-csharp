@@ -4,9 +4,14 @@
 /// Source generator model for nullable types.
 /// </summary>
 /// <typeparam name="T">The element type of the nullable type.</typeparam>
-public sealed class SourceGenNullableShape<T> : INullableShape<T>
+public sealed class SourceGenNullableTypeShape<T> : INullableTypeShape<T>
     where T : struct
 {
+    /// <summary>
+    /// The provider that generated this shape.
+    /// </summary>
+    public required ITypeShapeProvider Provider { get; init; }
+
     /// <summary>
     /// The shape of the element type.
     /// </summary>

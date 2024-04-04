@@ -3,19 +3,14 @@
 namespace TypeShape;
 
 /// <summary>
-/// Provides a strongly-typed shape model for a .NET type that is a dictionary.
+/// Provides a strongly typed shape model for a .NET type that is a dictionary.
 /// </summary>
 /// <remarks>
 /// Typically covers types implementing interfaces such as <see cref="IDictionary{TKey, TValue}"/>,
 /// <see cref="IReadOnlyDictionary{TKey, TValue}"/> or <see cref="IDictionary"/>.
 /// </remarks>
-public interface IDictionaryShape
+public interface IDictionaryTypeShape : ITypeShape
 {
-    /// <summary>
-    /// Gets the shape of the underlying dictionary type.
-    /// </summary>
-    ITypeShape Type { get; }
-
     /// <summary>
     /// Gets the shape of the underlying key type.
     /// </summary>
@@ -37,17 +32,12 @@ public interface IDictionaryShape
     /// </summary>
     CollectionConstructionStrategy ConstructionStrategy { get; }
 
-    /// <summary>
-    /// Accepts an <see cref="ITypeShapeVisitor"/> for strongly-typed traversal.
-    /// </summary>
-    /// <param name="visitor">The visitor to accept.</param>
-    /// <param name="state">The state parameter to pass to the underlying visitor.</param>
-    /// <returns>The <see cref="object"/> result returned by the visitor.</returns>
-    object? Accept(ITypeShapeVisitor visitor, object? state);
+    /// <inheritdoc/>
+    TypeShapeKind ITypeShape.Kind => TypeShapeKind.Dictionary;
 }
 
 /// <summary>
-/// Provides a strongly-typed shape model for a .NET type that is a dictionary.
+/// Provides a strongly typed shape model for a .NET type that is a dictionary.
 /// </summary>
 /// <typeparam name="TDictionary">The type of the underlying dictionary.</typeparam>
 /// <typeparam name="TKey">The type of the underlying key.</typeparam>
@@ -56,14 +46,9 @@ public interface IDictionaryShape
 /// Typically covers types implementing interfaces such as <see cref="IDictionary{TKey, TValue}"/>,
 /// <see cref="IReadOnlyDictionary{TKey, TValue}"/> or <see cref="IDictionary"/>.
 /// </remarks>
-public interface IDictionaryShape<TDictionary, TKey, TValue> : IDictionaryShape
+public interface IDictionaryShape<TDictionary, TKey, TValue> : ITypeShape<TDictionary>, IDictionaryTypeShape
     where TKey : notnull
 {
-    /// <summary>
-    /// The shape of the underlying dictionary type.
-    /// </summary>
-    new ITypeShape<TDictionary> Type { get; }
-
     /// <summary>
     /// The shape of the underlying key type.
     /// </summary>
@@ -120,14 +105,11 @@ public interface IDictionaryShape<TDictionary, TKey, TValue> : IDictionaryShape
     Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> GetEnumerableConstructor();
 
     /// <inheritdoc/>
-    ITypeShape IDictionaryShape.Type => Type;
+    ITypeShape IDictionaryTypeShape.KeyType => KeyType;
 
     /// <inheritdoc/>
-    ITypeShape IDictionaryShape.KeyType => KeyType;
+    ITypeShape IDictionaryTypeShape.ValueType => ValueType;
 
     /// <inheritdoc/>
-    ITypeShape IDictionaryShape.ValueType => ValueType;
-
-    /// <inheritdoc/>
-    object? IDictionaryShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitDictionary(this, state);
+    object? ITypeShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitDictionary(this, state);
 }

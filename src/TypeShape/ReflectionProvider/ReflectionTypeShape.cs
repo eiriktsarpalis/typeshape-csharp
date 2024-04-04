@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
@@ -9,19 +8,22 @@ namespace TypeShape.ReflectionProvider;
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
 internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provider) : ITypeShape<T>
 {
-    public ICustomAttributeProvider AttributeProvider => typeof(T);
+    ITypeShapeProvider ITypeShape.Provider => provider;
 
-    public ITypeShapeProvider Provider => provider;
-
-    public TypeKind Kind => _kind ??= GetTypeKind();
-    private TypeKind? _kind;
+    public TypeShapeKind Kind => TypeShapeKind.None;
 
     public bool IsRecord => _isRecord ??= typeof(T).IsRecord();
     private bool? _isRecord;
 
+    public bool IsSimpleType => _isSimpleType ??= DetermineIsSimpleType(typeof(T));
+    private bool? _isSimpleType;
+
+    public bool HasProperties => !IsSimpleType && (typeof(T).IsTupleType() || GetMembers().Any());
+    public bool HasConstructors => !IsSimpleType && GetConstructors().Any();
+
     public IEnumerable<IConstructorShape> GetConstructors()
     {
-        if (typeof(T).IsAbstract || Kind is not TypeKind.Object)
+        if (typeof(T).IsAbstract || IsSimpleType)
         {
             yield break;
         }
@@ -47,7 +49,7 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
             .OrderByDescending(m => m.IsRequired || m.IsInitOnly) // Shift required or init members first
             .ToArray();
 
-        ConstructorInfo[] constructors = typeof(T).GetConstructors(AllInstanceMemberBindingFlags);
+        ConstructorInfo[] constructors = typeof(T).GetConstructors(AllInstanceMembers);
         bool hasConstructorShapeAttribute = constructors.Any(ctor => ctor.GetCustomAttribute<ConstructorShapeAttribute>() != null);
         bool isConstructorFound = false;
 
@@ -163,7 +165,7 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
 
     public IEnumerable<IPropertyShape> GetProperties()
     {
-        if (Kind is not TypeKind.Object)
+        if (IsSimpleType)
         {
             yield break;
         }
@@ -186,15 +188,14 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
 
     private IEnumerable<(MemberInfo MemberInfo, string? LogicalName, int Order, bool IncludeNonPublic)> GetMembers()
     {
-        Debug.Assert(Kind is TypeKind.Object);
-
+        Debug.Assert(!IsSimpleType);
         List<(MemberInfo MemberInfo, string? LogicalName, int Order, bool IncludeNonPublic)> results = [];
         HashSet<string> membersInScope = new(StringComparer.Ordinal);
         bool isOrderSpecified = false;
 
         foreach (Type current in typeof(T).GetSortedTypeHierarchy())
         {
-            foreach (PropertyInfo propertyInfo in current.GetProperties(AllInstanceMemberBindingFlags))
+            foreach (PropertyInfo propertyInfo in current.GetProperties(AllInstanceMembers))
             {
                 if (propertyInfo.GetIndexParameters().Length == 0 &&
                     propertyInfo.PropertyType.CanBeGenericArgument() &&
@@ -205,7 +206,7 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
                 }
             }
 
-            foreach (FieldInfo fieldInfo in current.GetFields(AllInstanceMemberBindingFlags))
+            foreach (FieldInfo fieldInfo in current.GetFields(AllInstanceMembers))
             {
                 if (fieldInfo.FieldType.CanBeGenericArgument() &&
                     !IsOverriddenOrShadowed(fieldInfo))
@@ -258,99 +259,14 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
         }
     }
 
-    public IEnumShape GetEnumShape()
-    {
-        ValidateKind(TypeKind.Enum);
-        return provider.CreateEnumShape(typeof(T));
-    }
+    private const BindingFlags AllInstanceMembers = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly;
 
-    public INullableShape GetNullableShape()
-    {
-        ValidateKind(TypeKind.Nullable);
-        return provider.CreateNullableShape(typeof(T));
-    }
-
-    public IEnumerableShape GetEnumerableShape()
-    {
-        ValidateKind(TypeKind.Enumerable);
-        return provider.CreateEnumerableShape(typeof(T));
-    }
-
-    public IDictionaryShape GetDictionaryShape()
-    {
-        ValidateKind(TypeKind.Dictionary);
-        return provider.CreateDictionaryShape(typeof(T));
-    }
-
-    private void ValidateKind(TypeKind expectedKind)
-    {
-        if ((Kind & expectedKind) == 0)
-        {
-            throw new InvalidOperationException($"Type {typeof(T)} is not of kind {expectedKind}.");
-        }
-    }
-
-    private static TypeKind GetTypeKind()
-    {
-        Type type = typeof(T);
-
-        if (default(T) is null && type.IsValueType)
-        {
-            return TypeKind.Nullable;
-        }
-
-        if (type.IsEnum)
-        {
-            return TypeKind.Enum;
-        }
-
-        if (typeof(IDictionary).IsAssignableFrom(type))
-        {
-            return TypeKind.Dictionary;
-        }
-        else
-        {
-            foreach (Type interfaceTy in type.GetAllInterfaces())
-            {
-                if (interfaceTy.IsGenericType)
-                {
-                    Type genericInterfaceTy = interfaceTy.GetGenericTypeDefinition();
-                    if (genericInterfaceTy == typeof(IDictionary<,>) ||
-                        genericInterfaceTy == typeof(IReadOnlyDictionary<,>))
-                    {
-                        return TypeKind.Dictionary;
-                    }
-                }
-            }
-        }
-
-        if (typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string))
-        {
-            return TypeKind.Enumerable;
-        }
-
-        if (type.IsMemoryType(out _, out _))
-        {
-            // Memory<T> or ReadOnlyMemory<T>
-            return TypeKind.Enumerable;
-        }
-
-        if (IsSimpleValue())
-        {
-            return TypeKind.None;
-        }
-
-        return TypeKind.Object;
-    }
-
-    private const BindingFlags AllInstanceMemberBindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
-
-    private static bool IsSimpleValue()
+    private static bool DetermineIsSimpleType(Type type)
     {
         // A primitive or self-contained value type that
         // shouldn't expose its properties or constructors.
-        Type type = typeof(T);
         return type.IsPrimitive ||
+            type == typeof(object) ||
             type == typeof(string) ||
             type == typeof(decimal) ||
             type == typeof(UInt128) ||
@@ -365,6 +281,7 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
             type == typeof(Version) ||
             type == typeof(Uri) ||
             type == typeof(System.Text.Rune) ||
+            type == typeof(System.Numerics.BigInteger) ||
             typeof(MemberInfo).IsAssignableFrom(type) ||
             typeof(Delegate).IsAssignableFrom(type);
     }

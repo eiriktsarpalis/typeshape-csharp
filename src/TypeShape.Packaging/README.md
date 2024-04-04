@@ -50,10 +50,9 @@ This can be implemented by extending the `TypeShapeVisitor` class:
 ```C#
 public sealed partial class CounterVisitor : TypeShapeVisitor
 {
+    // For the sake of simplicity, ignore collection types and just focus on properties/fields.
     public override object? VisitType<T>(ITypeShape<T> typeShape, object? state)
     {
-        // For the sake of simplicity, ignore collection types and just focus on properties/fields.
-
         // Recursively generate counters for each individual property/field:
         Func<T, int>[] propertyCounters = typeShape.GetProperties(includeFields: true)
             .Where(prop => prop.HasGetter)

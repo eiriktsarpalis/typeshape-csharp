@@ -15,8 +15,8 @@ public static partial class Validator
     /// </summary>
     public static Validator<T> Create<T>(ITypeShape<T> type)
     {
-        var visitor = new Visitor();
-        return (Validator<T>)type.Accept(visitor, null)!;
+        var builder = new Builder();
+        return builder.BuildValidator(type) ?? Builder.CreateNullValidator<T>();
     }
 
     /// <summary>

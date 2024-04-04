@@ -27,11 +27,11 @@ public static partial class Mapper
     /// <returns>A mapper delegate.</returns>
     public static Mapper<TSource, TTarget> Create<TSource, TTarget>(ITypeShape<TSource> sourceShape, ITypeShape<TTarget> targetShape)
     {
-        var visitor = new Visitor();
-        var mapper = visitor.CreateMapper(sourceShape, targetShape);
+        var builder = new Builder();
+        var mapper = builder.BuildMapper(sourceShape, targetShape);
         if (mapper is null)
         {
-            Visitor.ThrowCannotMapTypes(typeof(TSource), typeof(TTarget));
+            Builder.ThrowCannotMapTypes(typeof(TSource), typeof(TTarget));
         }
 
         return mapper;

@@ -43,6 +43,8 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
     /// </summary>
     public bool UseReflectionEmit { get; }
 
+    internal IReflectionMemberAccessor MemberAccessor { get; }
+
     /// <summary>
     /// Gets a <see cref="ITypeShape{T}"/> instance corresponding to the supplied type.
     /// </summary>
@@ -50,11 +52,7 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
     /// <returns>
     /// A <see cref="ITypeShape{T}"/> instance corresponding to the current type.
     /// </returns>
-    public ITypeShape<T> GetShape<T>() =>
-        (ITypeShape<T>)_cache.GetOrAdd(
-            typeof(T),
-            static (_, @this) => new ReflectionTypeShape<T>(@this),
-            this);
+    public ITypeShape<T> GetShape<T>() => (ITypeShape<T>)GetShape(typeof(T));
 
     /// <summary>
     /// Gets a <see cref="ITypeShape"/> instance corresponding to the supplied type.
@@ -71,8 +69,6 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
         return _cache.GetOrAdd(type, CreateType, this);
     }
 
-    internal IReflectionMemberAccessor MemberAccessor { get; }
-
     private static ITypeShape CreateType(Type type, ReflectionTypeShapeProvider provider)
     {
         Debug.Assert(type != null);
@@ -82,40 +78,23 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
             throw new ArgumentException("Type cannot be a generic parameter", nameof(type));
         }
 
-        Type reflectionType = typeof(ReflectionTypeShape<>).MakeGenericType(type);
-        return (ITypeShape)Activator.CreateInstance(reflectionType, provider)!;
-    }
-
-    internal IPropertyShape CreateProperty(Type declaringType, MemberInfo memberInfo, MemberInfo[]? parentMembers, string? logicalName, bool includeNonPublicAccessors)
-    {
-        Debug.Assert(memberInfo is FieldInfo or PropertyInfo);
-
-        Type memberType = memberInfo switch
+        return DetermineTypeKind(type) switch
         {
-            FieldInfo f => f.FieldType,
-            PropertyInfo p => p.PropertyType,
-            _ => default!,
+          TypeShapeKind.Enumerable => provider.CreateEnumerableShape(type),
+          TypeShapeKind.Dictionary => provider.CreateDictionaryShape(type),
+          TypeShapeKind.Enum => provider.CreateEnumShape(type),
+          TypeShapeKind.Nullable => provider.CreateNullableShape(type),
+          _ => provider.CreateObjectShape(type),
         };
-
-        Type reflectionPropertyType = typeof(ReflectionPropertyShape<,>).MakeGenericType(declaringType, memberType);
-        return (IPropertyShape)Activator.CreateInstance(reflectionPropertyType, this, memberInfo, parentMembers, logicalName, includeNonPublicAccessors)!;
     }
 
-    internal IConstructorShape CreateConstructor(IConstructorShapeInfo ctorInfo)
+    private ITypeShape CreateObjectShape(Type type)
     {
-        Type argumentStateType = MemberAccessor.CreateConstructorArgumentStateType(ctorInfo);
-        Type reflectionConstructorType = typeof(ReflectionConstructorShape<,>).MakeGenericType(ctorInfo.ConstructedType, argumentStateType);
-        return (IConstructorShape)Activator.CreateInstance(reflectionConstructorType, this, ctorInfo)!;
+        Type objectShapeTy = typeof(ReflectionTypeShape<>).MakeGenericType(type);
+        return (ITypeShape)Activator.CreateInstance(objectShapeTy, this)!;
     }
 
-    internal IConstructorParameterShape CreateConstructorParameter(Type constructorArgumentState, IConstructorShapeInfo ctorInfo, int position)
-    {
-        IParameterShapeInfo parameterInfo = ctorInfo.Parameters[position];
-        Type reflectionConstructorParameterType = typeof(ReflectionConstructorParameterShape<,>).MakeGenericType(constructorArgumentState, parameterInfo.Type);
-        return (IConstructorParameterShape)Activator.CreateInstance(reflectionConstructorParameterType, this, ctorInfo, parameterInfo, position)!;
-    }
-
-    internal IEnumerableShape CreateEnumerableShape(Type type)
+    private IEnumerableTypeShape CreateEnumerableShape(Type type)
     {
         Debug.Assert(typeof(IEnumerable).IsAssignableFrom(type) || type.IsMemoryType(out _, out _));
 
@@ -126,13 +105,13 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
 
             if (rank == 1)
             {
-                Type enumerableTypeTy = typeof(ReflectionArrayShape<>).MakeGenericType(elementType);
-                return (IEnumerableShape)Activator.CreateInstance(enumerableTypeTy, this)!;
+                Type enumerableTypeTy = typeof(ReflectionArrayTypeShape<>).MakeGenericType(elementType);
+                return (IEnumerableTypeShape)Activator.CreateInstance(enumerableTypeTy, this)!;
             }
             else
             {
-                Type enumerableTypeTy = typeof(MultiDimensionalArrayShape<,>).MakeGenericType(type, elementType);
-                return (IEnumerableShape)Activator.CreateInstance(enumerableTypeTy, this, rank)!;
+                Type enumerableTypeTy = typeof(MultiDimensionalArrayTypeShape<,>).MakeGenericType(type, elementType);
+                return (IEnumerableTypeShape)Activator.CreateInstance(enumerableTypeTy, this, rank)!;
             }
         }
 
@@ -145,24 +124,24 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
                 if (genericInterfaceTypeDef == typeof(IEnumerable<>))
                 {
                     Type elementType = interfaceTy.GetGenericArguments()[0];
-                    Type enumerableTypeTy = typeof(ReflectionEnumerableOfTShape<,>).MakeGenericType(type, elementType);
-                    return (IEnumerableShape)Activator.CreateInstance(enumerableTypeTy, this)!;
+                    Type enumerableTypeTy = typeof(ReflectionEnumerableTypeOfTShape<,>).MakeGenericType(type, elementType);
+                    return (IEnumerableTypeShape)Activator.CreateInstance(enumerableTypeTy, this)!;
                 }
             }
         }
 
         if (type.IsMemoryType(out Type? memoryElementType, out bool isReadOnlyMemory))
         {
-            Type shapeType = isReadOnlyMemory ? typeof(ReadOnlyMemoryShape<>) : typeof(MemoryShape<>);
+            Type shapeType = isReadOnlyMemory ? typeof(ReadOnlyMemoryTypeShape<>) : typeof(MemoryTypeShape<>);
             Type enumerableTypeTy = shapeType.MakeGenericType(memoryElementType);
-            return (IEnumerableShape)Activator.CreateInstance(enumerableTypeTy, this)!;
+            return (IEnumerableTypeShape)Activator.CreateInstance(enumerableTypeTy, this)!;
         }
 
-        Type enumerableType = typeof(ReflectionNonGenericEnumerableShape<>).MakeGenericType(type);
-        return (IEnumerableShape)Activator.CreateInstance(enumerableType, this)!;
+        Type enumerableType = typeof(ReflectionNonGenericEnumerableTypeShape<>).MakeGenericType(type);
+        return (IEnumerableTypeShape)Activator.CreateInstance(enumerableType, this)!;
     }
 
-    internal IDictionaryShape CreateDictionaryShape(Type type)
+    private IDictionaryTypeShape CreateDictionaryShape(Type type)
     {
         Type? dictionaryTypeTy = null;
 
@@ -194,21 +173,96 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
             dictionaryTypeTy = typeof(ReflectionNonGenericDictionaryShape<>).MakeGenericType(type);
         }
 
-        return (IDictionaryShape)Activator.CreateInstance(dictionaryTypeTy, this)!;
+        return (IDictionaryTypeShape)Activator.CreateInstance(dictionaryTypeTy, this)!;
     }
 
-    internal IEnumShape CreateEnumShape(Type enumType)
+    private IEnumTypeShape CreateEnumShape(Type enumType)
     {
         Debug.Assert(enumType.IsEnum);
-        Type enumTypeTy = typeof(ReflectionEnumShape<,>).MakeGenericType(enumType, Enum.GetUnderlyingType(enumType));
-        return (IEnumShape)Activator.CreateInstance(enumTypeTy, this)!;
+        Type enumTypeTy = typeof(ReflectionEnumTypeShape<,>).MakeGenericType(enumType, Enum.GetUnderlyingType(enumType));
+        return (IEnumTypeShape)Activator.CreateInstance(enumTypeTy, this)!;
     }
 
-    internal INullableShape CreateNullableShape(Type nullableType)
+    private INullableTypeShape CreateNullableShape(Type nullableType)
     {
         Debug.Assert(nullableType.IsNullableStruct());
-        Type nullableTypeTy = typeof(ReflectionNullableShape<>).MakeGenericType(nullableType.GetGenericArguments());
-        return (INullableShape)Activator.CreateInstance(nullableTypeTy, this)!;
+        Type nullableTypeTy = typeof(ReflectionNullableTypeShape<>).MakeGenericType(nullableType.GetGenericArguments());
+        return (INullableTypeShape)Activator.CreateInstance(nullableTypeTy, this)!;
+    }
+
+    private static TypeShapeKind DetermineTypeKind(Type type)
+    {
+        if (type.IsEnum)
+        {
+            return TypeShapeKind.Enum;
+        }
+
+        if (Nullable.GetUnderlyingType(type) is not null)
+        {
+            return TypeShapeKind.Nullable;
+        }
+
+        if (typeof(IDictionary).IsAssignableFrom(type))
+        {
+            return TypeShapeKind.Dictionary;
+        }
+        else
+        {
+            foreach (Type interfaceTy in type.GetAllInterfaces())
+            {
+                if (interfaceTy.IsGenericType)
+                {
+                    Type genericInterfaceTy = interfaceTy.GetGenericTypeDefinition();
+                    if (genericInterfaceTy == typeof(IDictionary<,>) ||
+                        genericInterfaceTy == typeof(IReadOnlyDictionary<,>))
+                    {
+                        return TypeShapeKind.Dictionary;
+                    }
+                }
+            }
+        }
+
+        if (typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string))
+        {
+            return TypeShapeKind.Enumerable;
+        }
+
+        if (type.IsMemoryType(out _, out _))
+        {
+            // Memory<T> or ReadOnlyMemory<T>
+            return TypeShapeKind.Enumerable;
+        }
+
+        return TypeShapeKind.None;
+    }
+
+    internal IPropertyShape CreateProperty(Type declaringType, MemberInfo memberInfo, MemberInfo[]? parentMembers, string? logicalName, bool includeNonPublicAccessors)
+    {
+        Debug.Assert(memberInfo is FieldInfo or PropertyInfo);
+
+        Type memberType = memberInfo switch
+        {
+            FieldInfo f => f.FieldType,
+            PropertyInfo p => p.PropertyType,
+            _ => default!,
+        };
+
+        Type reflectionPropertyType = typeof(ReflectionPropertyShape<,>).MakeGenericType(declaringType, memberType);
+        return (IPropertyShape)Activator.CreateInstance(reflectionPropertyType, this, memberInfo, parentMembers, logicalName, includeNonPublicAccessors)!;
+    }
+
+    internal IConstructorShape CreateConstructor(IConstructorShapeInfo ctorInfo)
+    {
+        Type argumentStateType = MemberAccessor.CreateConstructorArgumentStateType(ctorInfo);
+        Type reflectionConstructorType = typeof(ReflectionConstructorShape<,>).MakeGenericType(ctorInfo.ConstructedType, argumentStateType);
+        return (IConstructorShape)Activator.CreateInstance(reflectionConstructorType, this, ctorInfo)!;
+    }
+
+    internal IConstructorParameterShape CreateConstructorParameter(Type constructorArgumentState, IConstructorShapeInfo ctorInfo, int position)
+    {
+        IParameterShapeInfo parameterInfo = ctorInfo.Parameters[position];
+        Type reflectionConstructorParameterType = typeof(ReflectionConstructorParameterShape<,>).MakeGenericType(constructorArgumentState, parameterInfo.Type);
+        return (IConstructorParameterShape)Activator.CreateInstance(reflectionConstructorParameterType, this, ctorInfo, parameterInfo, position)!;
     }
 
     internal static IConstructorShapeInfo CreateTupleConstructorShapeInfo(Type tupleType)

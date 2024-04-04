@@ -82,6 +82,71 @@ public class KnownSymbols(Compilation compilation)
     public INamedTypeSymbol? ImmutableSortedDictionary => GetOrResolveType("System.Collections.Immutable.ImmutableSortedDictionary`2", ref _ImmutableSortedDictionary);
     private Option<INamedTypeSymbol?> _ImmutableSortedDictionary;
 
+
+    /// <summary>
+    /// A "simple type" in this context defines a type that is either 
+    /// a primitive, string or represents an irreducible value such as Guid or DateTime.
+    /// </summary>
+    public bool IsSimpleType(ITypeSymbol type)
+    {
+        switch (type.SpecialType)
+        {
+            // Primitive types
+            case SpecialType.System_Boolean:
+            case SpecialType.System_Char:
+            case SpecialType.System_SByte:
+            case SpecialType.System_Byte:
+            case SpecialType.System_Int16:
+            case SpecialType.System_UInt16:
+            case SpecialType.System_Int32:
+            case SpecialType.System_UInt32:
+            case SpecialType.System_Int64:
+            case SpecialType.System_UInt64:
+            case SpecialType.System_Single:
+            case SpecialType.System_Double:
+            // CoreLib non-primitives that represent a single value.
+            case SpecialType.System_String:
+            case SpecialType.System_Decimal:
+            case SpecialType.System_DateTime:
+                return true;
+        }
+
+        return (_simpleTypes ??= CreateSimpleTypes(Compilation)).Contains(type);
+
+        static HashSet<ITypeSymbol> CreateSimpleTypes(Compilation compilation)
+        {
+            ReadOnlySpan<string> simpleTypeNames =
+            [
+                "System.Half",
+                "System.Int128",
+                "System.UInt128",
+                "System.Guid",
+                "System.DateTimeOffset",
+                "System.DateOnly",
+                "System.TimeSpan",
+                "System.TimeOnly",
+                "System.Version",
+                "System.Uri",
+                "System.Text.Rune",
+                "System.Numerics.BigInteger",
+            ];
+
+            var simpleTypes = new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default);
+            foreach (string simpleTypeName in simpleTypeNames)
+            {
+                INamedTypeSymbol? simpleType = compilation.GetTypeByMetadataName(simpleTypeName);
+                if (simpleType is not null)
+                {
+                    simpleTypes.Add(simpleType);
+                }
+            }
+
+            return simpleTypes;
+        }
+    }
+
+    private HashSet<ITypeSymbol>? _simpleTypes;
+
     /// <summary>
     /// Get or resolve a type by its fully qualified name.
     /// </summary>

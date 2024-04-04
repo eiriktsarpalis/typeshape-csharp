@@ -4,7 +4,7 @@ using System.Reflection;
 namespace TypeShape;
 
 /// <summary>
-/// Provides a strongly-typed shape model for a given .NET constructor parameter,
+/// Provides a strongly typed shape model for a given .NET constructor parameter,
 /// representing either an actual constructor parameter or a member initializer.
 /// </summary>
 public interface IConstructorParameterShape
@@ -80,7 +80,7 @@ public interface IConstructorParameterShape
 }
 
 /// <summary>
-/// Provides a strongly-typed shape model for a given .NET constructor parameter,
+/// Provides a strongly typed shape model for a given .NET constructor parameter,
 /// representing either an actual constructor parameter or a required or init-only property.
 /// </summary>
 /// <typeparam name="TArgumentState">The state type used for aggregating constructor arguments.</typeparam>

@@ -18,8 +18,8 @@ public partial class TypeDataModelGenerator
     {
         return
             type.TypeKind is not (TypeKind.Class or TypeKind.Struct or TypeKind.Interface) ||
-            KnownSymbols.Compilation.IsSimpleType(KnownSymbols.CoreLibAssembly, type) ||
-            type.SpecialType is SpecialType.System_Nullable_T ||
+            KnownSymbols.IsSimpleType(type) ||
+            type.SpecialType is SpecialType.System_Object or SpecialType.System_Nullable_T ||
             KnownSymbols.MemberInfoType.IsAssignableFrom(type);
     }
 

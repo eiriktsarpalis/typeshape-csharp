@@ -410,58 +410,6 @@ internal static class RoslynHelpers
         return method.Construct(arguments);
     }
 
-    /// <summary>
-    /// A "simple type" in this context defines a type that is either 
-    /// a primitive, string or a self-contained value like decimal, DateTime or Uri.
-    /// </summary>
-    public static bool IsSimpleType(this Compilation compilation, IAssemblySymbol coreLibAssembly, ITypeSymbol type)
-    {
-        switch (type.SpecialType)
-        {
-            // Primitive types
-            case SpecialType.System_Boolean:
-            case SpecialType.System_Char:
-            case SpecialType.System_SByte:
-            case SpecialType.System_Byte:
-            case SpecialType.System_Int16:
-            case SpecialType.System_UInt16:
-            case SpecialType.System_Int32:
-            case SpecialType.System_UInt32:
-            case SpecialType.System_Int64:
-            case SpecialType.System_UInt64:
-            case SpecialType.System_Single:
-            case SpecialType.System_Double:
-            // CoreLib non-primitives that represent a single value.
-            case SpecialType.System_String:
-            case SpecialType.System_Decimal:
-            case SpecialType.System_DateTime:
-                return true;
-        }
-
-        if (!SymbolEqualityComparer.Default.Equals(coreLibAssembly, type.ContainingAssembly))
-        {
-            return false;
-        }
-
-        switch (type.ToDisplayString())
-        {
-            case "System.Half":
-            case "System.Int128":
-            case "System.UInt128":
-            case "System.Guid":
-            case "System.DateTimeOffset":
-            case "System.DateOnly":
-            case "System.TimeSpan":
-            case "System.TimeOnly":
-            case "System.Version":
-            case "System.Uri":
-            case "System.Text.Rune":
-                return true;
-        }
-
-        return false;
-    }
-
     public static string? FormatDefaultValueExpr(this IParameterSymbol parameter)
     {
         if (!parameter.HasExplicitDefaultValue)

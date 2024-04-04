@@ -20,8 +20,8 @@ public static partial class XmlSerializer
 
     public static XmlConverter<T> CreateConverter<T>(ITypeShape<T> shape)
     {
-        var visitor = new Visitor();
-        return (XmlConverter<T>)shape.Accept(visitor, null)!;
+        var builder = new Builder();
+        return builder.BuildConverter(shape);
     }
 
     public static string Serialize<T>(this XmlConverter<T> converter, T? value, XmlWriterSettings? settings = null)

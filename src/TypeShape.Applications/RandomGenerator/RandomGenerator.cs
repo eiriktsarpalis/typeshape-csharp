@@ -6,8 +6,8 @@ public static partial class RandomGenerator
 {
     public static RandomGenerator<T> Create<T>(ITypeShape<T> shape)
     {
-        var visitor = new Visitor();
-        return (RandomGenerator<T>)shape.Accept(visitor, null)!;
+        var builder = new Builder();
+        return builder.BuildGenerator(shape);
     }
 
     public static T GenerateValue<T>(this RandomGenerator<T> generator, int size, int? seed = null)
@@ -41,17 +41,17 @@ public static partial class RandomGenerator
         }
     }
 
-    public static T GenerateValue<T>(int size, int? seed = null) where T : ITypeShapeProvider<T>
-        => RandomGeneratorCache<T, T>.Value.GenerateValue(size, seed);
+    public static T GenerateValue<T>(int size, int? seed = null) where T : ITypeShapeProvider<T> => 
+        RandomGeneratorCache<T, T>.Value.GenerateValue(size, seed);
 
-    public static IEnumerable<T> GenerateValues<T>(int? seed = null, int? minSize = null, int? maxSize = null) where T : ITypeShapeProvider<T>
-        => RandomGeneratorCache<T, T>.Value.GenerateValues(seed, minSize, maxSize);
+    public static IEnumerable<T> GenerateValues<T>(int? seed = null, int? minSize = null, int? maxSize = null) where T : ITypeShapeProvider<T> => 
+        RandomGeneratorCache<T, T>.Value.GenerateValues(seed, minSize, maxSize);
 
-    public static T GenerateValue<T, TProvider>(int size, int? seed = null) where TProvider : ITypeShapeProvider<T>
-        => RandomGeneratorCache<T, TProvider>.Value.GenerateValue(size, seed);
+    public static T GenerateValue<T, TProvider>(int size, int? seed = null) where TProvider : ITypeShapeProvider<T> => 
+        RandomGeneratorCache<T, TProvider>.Value.GenerateValue(size, seed);
 
-    public static IEnumerable<T> GenerateValues<T, TProvider>(int? seed = null, int? minSize = null, int? maxSize = null) where TProvider : ITypeShapeProvider<T>
-        => RandomGeneratorCache<T, TProvider>.Value.GenerateValues(seed, minSize, maxSize);
+    public static IEnumerable<T> GenerateValues<T, TProvider>(int? seed = null, int? minSize = null, int? maxSize = null) where TProvider : ITypeShapeProvider<T> =>
+        RandomGeneratorCache<T, TProvider>.Value.GenerateValues(seed, minSize, maxSize);
 
     private static class RandomGeneratorCache<T, TProvider> where TProvider : ITypeShapeProvider<T>
     {

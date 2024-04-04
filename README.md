@@ -53,7 +53,7 @@ TypeShape is a library that facilitates the development of high-performance data
     * A [reflection provider](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape/ReflectionProvider): uses reflection to derive type models at runtime.
     * A [source generator](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.SourceGenerator): generates type models at compile-time and works with trimmed/Native AOT applications.
 
-In the simplest terms, the library defines a strongly typed reflection model:
+In simplified terms, the library defines a strongly typed reflection model:
 
 ```C#
 public interface ITypeShape<TDeclaringType> : ITypeShape
@@ -83,8 +83,8 @@ public interface IPropertyShape
 
 public interface ITypeShapeVisitor
 {
-    object? Visit<TDeclaringType>(ITypeShape<TDeclaringType> typeShape, object? state);
-    object? Visit<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> typeShape, object? state);
+    object? VisitType<TDeclaringType>(ITypeShape<TDeclaringType> typeShape, object? state);
+    object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> typeShape, object? state);
 }
 ```
 
@@ -127,10 +127,9 @@ The simplest possible example of a datatype-generic programming is counting the 
 ```C#
 public sealed partial class CounterVisitor : TypeShapeVisitor
 {
+    // For the sake of simplicity, ignore collection typs and just focus on properties/fields.
     public override object? VisitType<T>(ITypeShape<T> typeShape, object? state)
     {
-        // For the sake of simplicity, ignore collections and just focus on properties/fields.
-
         // Recursively generate counters for each individual property/field:
         Func<T, int>[] propertyCounters = typeShape.GetProperties(includeFields: true)
             .Where(prop => prop.HasGetter)

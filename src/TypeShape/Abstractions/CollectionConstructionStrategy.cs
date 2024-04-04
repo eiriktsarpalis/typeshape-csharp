@@ -1,7 +1,7 @@
 ﻿namespace TypeShape;
 
 /// <summary>
-/// The construction strategy use for a given <see cref="IEnumerableShape"/> or <see cref="IDictionaryShape"/>.
+/// The construction strategy use for a given <see cref="IEnumerableTypeShape"/> or <see cref="IDictionaryTypeShape"/>.
 /// </summary>
 [Flags]
 public enum CollectionConstructionStrategy

@@ -22,9 +22,17 @@ public abstract class ObjectMapperTests
 
         T? mappedValue = mapper(testCase.Value);
 
-        if (testCase.Value != null && typeof(T) != typeof(object) && shape.Kind != TypeKind.None)
+        if (!typeof(T).IsValueType && testCase.Value != null)
         {
-            Assert.NotSame((object?)mappedValue, (object?)testCase.Value);
+            if (shape is { Kind: TypeShapeKind.None, HasConstructors: false, HasProperties: false })
+            {
+                // Trivial objects without ctors or properties are not copied.
+                Assert.Same((object?)mappedValue, (object?)testCase.Value);
+            }
+            else
+            {
+                Assert.NotSame((object?)mappedValue, (object?)testCase.Value);
+            }
         }
 
         if (testCase.IsStack)

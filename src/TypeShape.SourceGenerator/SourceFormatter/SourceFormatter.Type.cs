@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis.Text;
+using System.Diagnostics;
 using TypeShape.Roslyn;
 using TypeShape.SourceGenerator.Model;
 
@@ -11,12 +12,6 @@ internal static partial class SourceFormatter
         string generatedPropertyType = $"ITypeShape<{type.Type.FullyQualifiedName}>";
         string generatedFactoryMethodName = $"Create_{type.Type.GeneratedPropertyName}";
         string generatedFieldName = "_" + type.Type.GeneratedPropertyName;
-        string? propertiesFactoryMethodName = type is ObjectShapeModel ? $"CreateProperties_{type.Type.GeneratedPropertyName}" : null;
-        string? constructorFactoryMethodName = type is ObjectShapeModel ? $"CreateConstructors_{type.Type.GeneratedPropertyName}" : null;
-        string? enumFactoryMethodName = type is EnumShapeModel ? $"CreateEnumType_{type.Type.GeneratedPropertyName}" : null;
-        string? nullableFactoryMethodName = type is NullableShapeModel ? $"CreateNullableType_{type.Type.GeneratedPropertyName}" : null;
-        string? dictionaryFactoryMethodName = type is DictionaryShapeModel ? $"CreateDictionaryType_{type.Type.GeneratedPropertyName}" : null;
-        string? enumerableFactoryMethodName = type is EnumerableShapeModel ? $"CreateEnumerableType_{type.Type.GeneratedPropertyName}" : null;
 
         var writer = new SourceWriter();
         StartFormatSourceFile(writer, provider.Declaration);
@@ -54,58 +49,31 @@ internal static partial class SourceFormatter
                 """);
         }
 
-        writer.WriteLine($$"""
-            private {{generatedPropertyType}} {{generatedFactoryMethodName}}()
-            {
-                return new SourceGenTypeShape<{{type.Type.FullyQualifiedName}}>
-                {
-                    Provider = this,
-                    AttributeProvider = typeof({{type.Type.FullyQualifiedName}}),
-                    CreatePropertiesFunc = {{FormatNull(propertiesFactoryMethodName)}},
-                    CreateConstructorsFunc = {{FormatNull(constructorFactoryMethodName)}},
-                    CreateEnumShapeFunc = {{FormatNull(enumFactoryMethodName)}},
-                    CreateNullableShapeFunc = {{FormatNull(nullableFactoryMethodName)}},
-                    CreateDictionaryShapeFunc = {{FormatNull(dictionaryFactoryMethodName)}},
-                    CreateEnumerableShapeFunc = {{FormatNull(enumerableFactoryMethodName)}},
-                    IsRecord = {{FormatBool(type is ObjectShapeModel { IsRecord: true })}},
-                };
-            }
-            """, trimNullAssignmentLines: true);
-
-        if (propertiesFactoryMethodName != null)
+        switch (type)
         {
-            writer.WriteLine();
-            FormatPropertyFactory(writer, propertiesFactoryMethodName, (ObjectShapeModel)type);
-        }
+            case ObjectShapeModel objectShapeModel:
+                FormatObjectTypeShapeFactory(writer, generatedFactoryMethodName, objectShapeModel);
+                break;
 
-        if (constructorFactoryMethodName != null)
-        {
-            writer.WriteLine();
-            FormatConstructorFactory(writer, constructorFactoryMethodName, (ObjectShapeModel)type);
-        }
+            case EnumShapeModel enumShapeModel:
+                FormatEnumTypeShapeFactory(writer, generatedFactoryMethodName, enumShapeModel);
+                break;
 
-        if (enumFactoryMethodName != null)
-        {
-            writer.WriteLine();
-            FormatEnumTypeFactory(writer, enumFactoryMethodName, (EnumShapeModel)type);
-        }
+            case NullableShapeModel nullableShapeModel:
+                FormatNullableTypeShapeFactory(writer, generatedFactoryMethodName, nullableShapeModel);
+                break;
 
-        if (nullableFactoryMethodName != null)
-        {
-            writer.WriteLine();
-            FormatNullableTypeFactory(writer, nullableFactoryMethodName, (NullableShapeModel)type);
-        }
+            case EnumerableShapeModel enumerableShapeModel:
+                FormatEnumerableTypeShapeFactory(writer, generatedFactoryMethodName, enumerableShapeModel);
+                break;
 
-        if (enumerableFactoryMethodName != null)
-        {
-            writer.WriteLine();
-            FormatEnumerableTypeFactory(writer, enumerableFactoryMethodName, (EnumerableShapeModel)type);
-        }
+            case DictionaryShapeModel dictionaryShapeModel:
+                FormatDictionaryTypeShapeFactory(writer, generatedFactoryMethodName, dictionaryShapeModel);
+                break;
 
-        if (dictionaryFactoryMethodName != null)
-        {
-            writer.WriteLine();
-            FormatDictionaryTypeFactory(writer, dictionaryFactoryMethodName, (DictionaryShapeModel)type);
+            default:
+                Debug.Fail($"Should not be reached {type.GetType().Name}");
+                throw new InvalidOperationException();
         }
 
         writer.Indentation--;

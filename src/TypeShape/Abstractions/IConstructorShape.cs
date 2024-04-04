@@ -3,7 +3,7 @@
 namespace TypeShape;
 
 /// <summary>
-/// Provides a strongly-typed shape model for a given .NET constructor.
+/// Provides a strongly typed shape model for a given .NET constructor.
 /// </summary>
 public interface IConstructorShape
 {
@@ -47,7 +47,7 @@ public interface IConstructorShape
 }
 
 /// <summary>
-/// Provides a strongly-typed shape model for a given .NET constructor.
+/// Provides a strongly typed shape model for a given .NET constructor.
 /// </summary>
 /// <typeparam name="TDeclaringType">The declaring type of the underlying constructor.</typeparam>
 /// <typeparam name="TArgumentState">The state type used for aggregating constructor arguments.</typeparam>
