@@ -15,5 +15,5 @@ public interface ITypeShapeFunc
     /// <param name="typeShape">The generic shape representation.</param>
     /// <param name="state">The state to be passed to the generic function.</param>
     /// <returns>The result of the generic function.</returns>
-    object? Invoke<T>(ITypeShape<T> typeShape, object? state);
+    object? Invoke<T>(ITypeShape<T> typeShape, object? state = null);
 }

@@ -83,7 +83,7 @@ public interface IPropertyShape
     /// <param name="visitor">The visitor to accept.</param>
     /// <param name="state">The state parameter to pass to the underlying visitor.</param>
     /// <returns>The <see cref="object"/> result returned by the visitor.</returns>
-    object? Accept(ITypeShapeVisitor visitor, object? state);
+    object? Accept(ITypeShapeVisitor visitor, object? state = null);
 }
 
 /// <summary>

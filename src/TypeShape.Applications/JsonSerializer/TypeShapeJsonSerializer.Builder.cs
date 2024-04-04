@@ -29,7 +29,7 @@ public static partial class TypeShapeJsonSerializer
         {
             JsonPropertyConverter<T>[] properties = type
                 .GetProperties()
-                .Select(prop => (JsonPropertyConverter<T>)prop.Accept(this, state)!)
+                .Select(prop => (JsonPropertyConverter<T>)prop.Accept(this)!)
                 .ToArray();
 
             // Prefer the default constructor if available.
@@ -59,7 +59,7 @@ public static partial class TypeShapeJsonSerializer
 
             JsonPropertyConverter<TArgumentState>[] constructorParams = constructor
                 .GetParameters()
-                .Select(param => (JsonPropertyConverter<TArgumentState>)param.Accept(this, null)!)
+                .Select(param => (JsonPropertyConverter<TArgumentState>)param.Accept(this)!)
                 .ToArray();
 
             return new JsonObjectConverterWithParameterizedCtor<TDeclaringType, TArgumentState>(

@@ -12,7 +12,7 @@ public abstract class TypeShapeVisitor : ITypeShapeVisitor
     /// <param name="typeShape">The type shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    public virtual object? VisitType<T>(ITypeShape<T> typeShape, object? state)
+    public virtual object? VisitType<T>(ITypeShape<T> typeShape, object? state = null)
         => ThrowNotImplemented(nameof(VisitType));
 
     /// <summary>
@@ -23,7 +23,7 @@ public abstract class TypeShapeVisitor : ITypeShapeVisitor
     /// <param name="propertyShape">The property shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    public virtual object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> propertyShape, object? state)
+    public virtual object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> propertyShape, object? state = null)
         => ThrowNotImplemented(nameof(VisitProperty));
 
     /// <summary>
@@ -34,7 +34,7 @@ public abstract class TypeShapeVisitor : ITypeShapeVisitor
     /// <param name="constructorShape">The constructor shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    public virtual object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructorShape<TDeclaringType, TArgumentState> constructorShape, object? state)
+    public virtual object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructorShape<TDeclaringType, TArgumentState> constructorShape, object? state = null)
         => ThrowNotImplemented(nameof(VisitConstructor));
 
     /// <summary>
@@ -45,7 +45,7 @@ public abstract class TypeShapeVisitor : ITypeShapeVisitor
     /// <param name="parameterShape">The parameter shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    public virtual object? VisitConstructorParameter<TArgumentState, TParameterType>(IConstructorParameterShape<TArgumentState, TParameterType> parameterShape, object? state)
+    public virtual object? VisitConstructorParameter<TArgumentState, TParameterType>(IConstructorParameterShape<TArgumentState, TParameterType> parameterShape, object? state = null)
         => ThrowNotImplemented(nameof(VisitConstructorParameter));
 
     /// <summary>
@@ -56,7 +56,7 @@ public abstract class TypeShapeVisitor : ITypeShapeVisitor
     /// <param name="enumTypeShape">The enum shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    public virtual object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumTypeShape, object? state)
+    public virtual object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumTypeShape, object? state = null)
         where TEnum : struct, Enum
         => ThrowNotImplemented(nameof(VisitEnum));
 
@@ -67,7 +67,7 @@ public abstract class TypeShapeVisitor : ITypeShapeVisitor
     /// <param name="nullableTypeShape">The nullable shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    public virtual object? VisitNullable<T>(INullableTypeShape<T> nullableTypeShape, object? state)
+    public virtual object? VisitNullable<T>(INullableTypeShape<T> nullableTypeShape, object? state = null)
         where T : struct
         => ThrowNotImplemented(nameof(VisitNullable));
 
@@ -79,7 +79,7 @@ public abstract class TypeShapeVisitor : ITypeShapeVisitor
     /// <param name="enumerableTypeShape">The enumerable shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    public virtual object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableTypeShape, object? state)
+    public virtual object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableTypeShape, object? state = null)
         => ThrowNotImplemented(nameof(VisitEnumerable));
 
     /// <summary>
@@ -91,7 +91,7 @@ public abstract class TypeShapeVisitor : ITypeShapeVisitor
     /// <param name="dictionaryShape">The dictionary shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    public virtual object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
+    public virtual object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state = null)
         where TKey : notnull
         => ThrowNotImplemented(nameof(VisitEnumerable));
 

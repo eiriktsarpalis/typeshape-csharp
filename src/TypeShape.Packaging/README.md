@@ -56,7 +56,7 @@ public sealed partial class CounterVisitor : TypeShapeVisitor
         // Recursively generate counters for each individual property/field:
         Func<T, int>[] propertyCounters = typeShape.GetProperties(includeFields: true)
             .Where(prop => prop.HasGetter)
-            .Select(prop => (Func<T, int>)prop.Accept(this, null)!)
+            .Select(prop => (Func<T, int>)prop.Accept(this)!)
             .ToArray();
 
         // Compose into a counter for the current type.
@@ -76,7 +76,7 @@ public sealed partial class CounterVisitor : TypeShapeVisitor
     public override object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> propertyShape, object? state)
     {
         Getter<TDeclaringType, TPropertyType> getter = propertyShape.GetGetter(); // extract the getter delegate
-        var propertyTypeCounter = (Func<TPropertyType, int>)propertyShape.PropertyType.Accept(this, null)!; // extract the counter for the property type
+        var propertyTypeCounter = (Func<TPropertyType, int>)propertyShape.PropertyType.Accept(this)!; // extract the counter for the property type
         return new Func<TDeclaringType, int>(obj => propertyTypeCounter(getter(ref obj))); // compose to a property-specific counter
     }
 }
@@ -92,7 +92,7 @@ public static class Counter
     public static Func<T?, int> CreateCounter<T>() where T : ITypeShapeProvider<T>
     {
         ITypeShape<T> typeShape = T.GetShape();
-        return (Func<T?, int>)typeShape.Accept(s_visitor, null)!;
+        return (Func<T?, int>)typeShape.Accept(s_visitor)!;
     }
 }
 ```

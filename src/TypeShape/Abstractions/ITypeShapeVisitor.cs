@@ -12,7 +12,7 @@ public interface ITypeShapeVisitor
     /// <param name="typeShape">The type shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    object? VisitType<T>(ITypeShape<T> typeShape, object? state);
+    object? VisitType<T>(ITypeShape<T> typeShape, object? state = null);
 
     /// <summary>
     /// Visits an <see cref="IPropertyShape{TDeclaringType, TPropertyType}"/> instance.
@@ -22,7 +22,7 @@ public interface ITypeShapeVisitor
     /// <param name="propertyShape">The property shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> propertyShape, object? state);
+    object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> propertyShape, object? state = null);
 
     /// <summary>
     /// Visits an <see cref="IConstructorParameterShape{TDeclaringType, TArgumentState}"/> instance.
@@ -32,7 +32,7 @@ public interface ITypeShapeVisitor
     /// <param name="constructorShape">The constructor shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructorShape<TDeclaringType, TArgumentState> constructorShape, object? state);
+    object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructorShape<TDeclaringType, TArgumentState> constructorShape, object? state = null);
 
     /// <summary>
     /// Visits an <see cref="IConstructorParameterShape{TArgumentState, TParameterType}"/> instance.
@@ -42,7 +42,7 @@ public interface ITypeShapeVisitor
     /// <param name="parameterShape">The parameter shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    object? VisitConstructorParameter<TArgumentState, TParameterType>(IConstructorParameterShape<TArgumentState, TParameterType> parameterShape, object? state);
+    object? VisitConstructorParameter<TArgumentState, TParameterType>(IConstructorParameterShape<TArgumentState, TParameterType> parameterShape, object? state = null);
 
     /// <summary>
     /// Visits an <see cref="IEnumTypeShape{TEnum,TUnderlying}"/> instance.
@@ -52,7 +52,7 @@ public interface ITypeShapeVisitor
     /// <param name="enumTypeShape">The enum shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumTypeShape, object? state)
+    object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumTypeShape, object? state = null)
         where TEnum : struct, Enum;
 
     /// <summary>
@@ -62,7 +62,7 @@ public interface ITypeShapeVisitor
     /// <param name="nullableTypeShape">The nullable shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    object? VisitNullable<T>(INullableTypeShape<T> nullableTypeShape, object? state)
+    object? VisitNullable<T>(INullableTypeShape<T> nullableTypeShape, object? state = null)
         where T : struct;
 
     /// <summary>
@@ -73,7 +73,7 @@ public interface ITypeShapeVisitor
     /// <param name="enumerableTypeShape">The enumerable shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableTypeShape, object? state);
+    object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableTypeShape, object? state = null);
 
     /// <summary>
     /// Visits an <see cref="IDictionaryShape{TDictionary, TKey, TValue}"/> instance representing a dictionary type.
@@ -84,6 +84,6 @@ public interface ITypeShapeVisitor
     /// <param name="dictionaryShape">The dictionary shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
+    object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state = null)
         where TKey : notnull;
 }

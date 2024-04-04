@@ -60,7 +60,7 @@ public interface ITypeShape
     /// <param name="visitor">The visitor to accept.</param>
     /// <param name="state">The state parameter to pass to the underlying visitor.</param>
     /// <returns>The <see cref="object"/> result returned by the visitor.</returns>
-    object? Accept(ITypeShapeVisitor visitor, object? state);
+    object? Accept(ITypeShapeVisitor visitor, object? state = null);
 
     /// <summary>
     /// Invokes the specified generic function with the given state.
@@ -68,7 +68,7 @@ public interface ITypeShape
     /// <param name="function">The generic function to be invoked.</param>
     /// <param name="state">The state to be passed to the function.</param>
     /// <returns>The result produced by the function.</returns>
-    object? Invoke(ITypeShapeFunc function, object? state);
+    object? Invoke(ITypeShapeFunc function, object? state = null);
 }
 
 /// <summary>

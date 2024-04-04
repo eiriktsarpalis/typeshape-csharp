@@ -21,7 +21,7 @@ public static partial class XmlSerializer
         public object? VisitType<T>(ITypeShape<T> type, object? state)
         {
             XmlPropertyConverter<T>[] properties = type.GetProperties()
-                .Select(prop => (XmlPropertyConverter<T>)prop.Accept(this, state)!)
+                .Select(prop => (XmlPropertyConverter<T>)prop.Accept(this)!)
                 .ToArray();
 
             // Prefer the default constructor if available.
@@ -29,7 +29,7 @@ public static partial class XmlSerializer
                 .MinBy(ctor => ctor.ParameterCount);
 
             return ctor != null
-                ? (XmlObjectConverter<T>)ctor.Accept(this, properties)!
+                ? (XmlObjectConverter<T>)ctor.Accept(this, state: properties)!
                 : new XmlObjectConverter<T>(properties);
         }
 
@@ -49,7 +49,7 @@ public static partial class XmlSerializer
             }
 
             XmlPropertyConverter<TArgumentState>[] constructorParams = constructor.GetParameters()
-                .Select(param => (XmlPropertyConverter<TArgumentState>)param.Accept(this, null)!)
+                .Select(param => (XmlPropertyConverter<TArgumentState>)param.Accept(this)!)
                 .ToArray();
 
             return new XmlObjectConverterWithParameterizedCtor<TDeclaringType, TArgumentState>(

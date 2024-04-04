@@ -22,7 +22,7 @@ public static partial class CborSerializer
         {
             CborPropertyConverter<T>[] properties = objectShape
                 .GetProperties()
-                .Select(prop => (CborPropertyConverter<T>)prop.Accept(this, state)!)
+                .Select(prop => (CborPropertyConverter<T>)prop.Accept(this)!)
                 .ToArray();
 
             // Prefer the default constructor if available.
@@ -31,7 +31,7 @@ public static partial class CborSerializer
                 .MinBy(ctor => ctor.ParameterCount);
 
             return ctor != null
-                ? (CborObjectConverter<T>)ctor.Accept(this, properties)!
+                ? (CborObjectConverter<T>)ctor.Accept(this, state: properties)!
                 : new CborObjectConverter<T>(properties);
         }
 
@@ -52,7 +52,7 @@ public static partial class CborSerializer
 
             CborPropertyConverter<TArgumentState>[] constructorParams = constructor
                 .GetParameters()
-                .Select(param => (CborPropertyConverter<TArgumentState>)param.Accept(this, null)!)
+                .Select(param => (CborPropertyConverter<TArgumentState>)param.Accept(this)!)
                 .ToArray();
 
             return new CborObjectConverterWithParameterizedCtor<TDeclaringType, TArgumentState>(

@@ -31,7 +31,7 @@ public static partial class PrettyPrinter
             PrettyPrinter<T>[] propertyPrinters = type
                 .GetProperties()
                 .Where(prop => prop.HasGetter)
-                .Select(prop => (PrettyPrinter<T>?)prop.Accept(this, null)!)
+                .Select(prop => (PrettyPrinter<T>?)prop.Accept(this)!)
                 .Where(prop => prop != null)
                 .ToArray();
 

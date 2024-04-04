@@ -70,7 +70,7 @@ public abstract class TypeShapeProviderTests
         foreach (IPropertyShape property in shape.GetProperties())
         {
             Assert.Equal(typeof(T), property.DeclaringType.Type);
-            property.Accept(visitor, testCase.Value);
+            property.Accept(visitor, state: testCase.Value);
             propCount++;
         }
 
@@ -194,7 +194,7 @@ public abstract class TypeShapeProviderTests
             Assert.Equal(typeof(T), enumTypeShape.Type);
             Assert.Equal(typeof(T).GetEnumUnderlyingType(), enumTypeShape.UnderlyingType.Type);
             var visitor = new EnumTestVisitor();
-            enumTypeShape.Accept(visitor, typeof(T));
+            enumTypeShape.Accept(visitor, state: typeof(T));
         }
         else
         {
@@ -226,7 +226,7 @@ public abstract class TypeShapeProviderTests
             INullableTypeShape nullableTypeType = Assert.IsAssignableFrom<INullableTypeShape>(shape);
             Assert.Equal(typeof(T).GetGenericArguments()[0], nullableTypeType.ElementType.Type);
             var visitor = new NullableTestVisitor();
-            nullableTypeType.Accept(visitor, typeof(T));
+            nullableTypeType.Accept(visitor, state: typeof(T));
         }
         else
         {
@@ -264,7 +264,7 @@ public abstract class TypeShapeProviderTests
             Assert.Equal(keyValueTypes[1], dictionaryType.ValueType.Type);
 
             var visitor = new DictionaryTestVisitor();
-            dictionaryType.Accept(visitor, null);
+            dictionaryType.Accept(visitor);
         }
         else
         {
@@ -372,7 +372,7 @@ public abstract class TypeShapeProviderTests
             }
 
             var visitor = new EnumerableTestVisitor();
-            enumerableTypeType.Accept(visitor, null);
+            enumerableTypeType.Accept(visitor);
         }
         else
         {

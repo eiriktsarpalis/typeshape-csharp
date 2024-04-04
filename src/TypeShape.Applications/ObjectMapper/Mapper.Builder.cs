@@ -53,13 +53,13 @@ public static partial class Mapper
 
                     // Bring TSource into scope for the target ctor using a new generic visitor.
                     var visitor = new TypeScopedVisitor<TSource>(this);
-                    return (Mapper<TSource, TTarget>?)ctor.Accept(visitor, sourceGetters);
+                    return (Mapper<TSource, TTarget>?)ctor.Accept(visitor, state: sourceGetters);
 
                 case TypeShapeKind.Enum:
                     return new Mapper<TSource, TTarget>(source => (TTarget)(object)source!);
 
                 default:
-                    return (Mapper<TSource, TTarget>?)sourceShape.Accept(this, targetShape);
+                    return (Mapper<TSource, TTarget>?)sourceShape.Accept(this, state: targetShape);
             }
         }
 
@@ -69,28 +69,28 @@ public static partial class Mapper
             var visitor = new PropertyScopedVisitor<TSource, TSourceProperty>(this);
             return state is IPropertyShape targetProp
                 ? targetProp.Accept(visitor, sourceGetter)
-                : ((IConstructorParameterShape)state).Accept(visitor, sourceGetter);
+                : ((IConstructorParameterShape)state).Accept(visitor, state: sourceGetter);
         }
 
         public override object? VisitNullable<TSource>(INullableTypeShape<TSource> sourceNullableType, object? state)
         {
             var targetNullable = (INullableTypeShape)state!;
             var visitor = new NullableScopedVisitor<TSource>(this);
-            return targetNullable.Accept(visitor, sourceNullableType);
+            return targetNullable.Accept(visitor, state: sourceNullableType);
         }
 
         public override object? VisitEnumerable<TSource, TSourceElement>(IEnumerableTypeShape<TSource, TSourceElement> sourceEnumerableType, object? state)
         {
             var targetEnumerable = (IEnumerableTypeShape)state!;
             var visitor = new EnumerableScopedVisitor<TSource, TSourceElement>(this);
-            return targetEnumerable.Accept(visitor, sourceEnumerableType);
+            return targetEnumerable.Accept(visitor, state: sourceEnumerableType);
         }
 
         public override object? VisitDictionary<TSourceDictionary, TSourceKey, TSourceValue>(IDictionaryShape<TSourceDictionary, TSourceKey, TSourceValue> sourceDictionary, object? state)
         {
             var targetDictionary = (IDictionaryTypeShape)state!;
             var visitor = new DictionaryScopedVisitor<TSourceDictionary, TSourceKey, TSourceValue>(this);
-            return targetDictionary.Accept(visitor, sourceDictionary);
+            return targetDictionary.Accept(visitor, state: sourceDictionary);
         }
 
         private sealed class TypeScopedVisitor<TSource>(Builder baseVisitor) : TypeShapeVisitor
@@ -105,7 +105,7 @@ public static partial class Mapper
                         .Where(prop => prop.HasSetter)
                         .Select(setter =>
                             sourceGetters.FirstOrDefault(getter => getter.Name == setter.Name) is { } getter
-                            ? (PropertyMapper<TSource, TTarget>?)getter.Accept(baseVisitor, setter)
+                            ? (PropertyMapper<TSource, TTarget>?)getter.Accept(baseVisitor, state: setter)
                             : null)
                         .Where(mapper => mapper != null)
                         .ToArray()!;
@@ -139,7 +139,7 @@ public static partial class Mapper
                                 : StringComparison.Ordinal;
 
                             var mapper = sourceGetters.FirstOrDefault(getter => string.Equals(getter.Name, targetParam.Name, comparison)) is { } getter
-                                ? (PropertyMapper<TSource, TArgumentState>?)getter.Accept(baseVisitor, targetParam)
+                                ? (PropertyMapper<TSource, TArgumentState>?)getter.Accept(baseVisitor, state: targetParam)
                                 : null;
 
                             if (mapper is null && targetParam.IsRequired)

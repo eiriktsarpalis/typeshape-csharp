@@ -18,7 +18,7 @@ public static partial class Counter
         {
             Func<T, long>[] propertyCounters = type.GetProperties()
                 .Where(prop => prop.HasGetter)
-                .Select(prop => (Func<T, long>)prop.Accept(this, null)!)
+                .Select(prop => (Func<T, long>)prop.Accept(this)!)
                 .ToArray();
 
             if (propertyCounters.Length == 0)
@@ -55,7 +55,7 @@ public static partial class Counter
 
         public override object? VisitNullable<T>(INullableTypeShape<T> nullableTypeShape, object? state)
         {
-            var elementTypeCounter = (Func<T, long>)nullableTypeShape.ElementType.Accept(this, null)!;
+            var elementTypeCounter = (Func<T, long>)nullableTypeShape.ElementType.Accept(this)!;
             return new Func<T?, long>(t => t.HasValue ? elementTypeCounter(t.Value) : 0);
         }
 

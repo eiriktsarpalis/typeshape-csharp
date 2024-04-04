@@ -22,7 +22,7 @@ public static partial class Validator
             (string, Validator<T>)[] propertyValidators = type
                 .GetProperties()
                 .Where(prop => prop.HasGetter)
-                .Select(prop => (prop.Name, Validator: (Validator<T>?)prop.Accept(this, state)))
+                .Select(prop => (prop.Name, Validator: (Validator<T>?)prop.Accept(this)))
                 .Where(prop => prop.Validator != null)
                 .ToArray()!;
 

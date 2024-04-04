@@ -36,7 +36,7 @@ public partial class RandomGenerator
 
             return constructor is null
                 ? throw new NotSupportedException($"Type '{typeof(T)}' does not support random generation.")
-                : constructor.Accept(this, null);
+                : constructor.Accept(this);
         }
 
         public object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
@@ -53,7 +53,7 @@ public partial class RandomGenerator
                 Func<TDeclaringType> defaultCtor = constructor.GetDefaultConstructor();
                 RandomPropertySetter<TDeclaringType>[] propertySetters = constructor.DeclaringType.GetProperties()
                     .Where(prop => prop.HasSetter)
-                    .Select(prop => (RandomPropertySetter<TDeclaringType>)prop.Accept(this, null)!)
+                    .Select(prop => (RandomPropertySetter<TDeclaringType>)prop.Accept(this)!)
                     .ToArray();
 
                 return new RandomGenerator<TDeclaringType>((Random random, int size) =>
@@ -75,7 +75,7 @@ public partial class RandomGenerator
                 Func<TArgumentState> argumentStateCtor = constructor.GetArgumentStateConstructor();
                 Constructor<TArgumentState, TDeclaringType> ctor = constructor.GetParameterizedConstructor();
                 RandomPropertySetter<TArgumentState>[] parameterSetters = constructor.GetParameters()
-                    .Select(param => (RandomPropertySetter<TArgumentState>)param.Accept(this, null)!)
+                    .Select(param => (RandomPropertySetter<TArgumentState>)param.Accept(this)!)
                     .ToArray();
 
                 return new RandomGenerator<TDeclaringType>((Random random, int size) =>

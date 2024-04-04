@@ -36,7 +36,7 @@ public static partial class StructuralEqualityComparer
             {
                 PropertyComparers = type.GetProperties()
                     .Where(prop => prop.HasGetter)
-                    .Select(prop => (EqualityComparer<T>)prop.Accept(this, null)!)
+                    .Select(prop => (EqualityComparer<T>)prop.Accept(this)!)
                     .ToArray(),
             };
         }
