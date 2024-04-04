@@ -1,7 +1,6 @@
 ﻿namespace TypeShape.Applications.JsonSerializer.Converters;
 
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeShape.Applications.Common;
@@ -90,7 +89,7 @@ internal abstract class JsonImmutableDictionaryConverter<TDictionary, TKey, TVal
     : JsonDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, shape)
     where TKey : notnull
 {
-    private protected abstract TDictionary Construct(List<KeyValuePair<TKey, TValue>> buffer);
+    private protected abstract TDictionary Construct(PooledList<KeyValuePair<TKey, TValue>> buffer);
 
     public sealed override TDictionary? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
@@ -101,7 +100,7 @@ internal abstract class JsonImmutableDictionaryConverter<TDictionary, TKey, TVal
 
         reader.EnsureTokenType(JsonTokenType.StartObject);
 
-        List<KeyValuePair<TKey, TValue>> buffer = [];
+        using PooledList<KeyValuePair<TKey, TValue>> buffer = new();
         reader.EnsureRead();
 
         JsonConverter<TKey> keyConverter = _keyConverter;
@@ -130,8 +129,8 @@ internal sealed class JsonEnumerableConstructorDictionaryConverter<TDictionary, 
     : JsonImmutableDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, shape)
     where TKey : notnull
 {
-    private protected override TDictionary Construct(List<KeyValuePair<TKey, TValue>> buffer)
-        => constructor(buffer);
+    private protected override TDictionary Construct(PooledList<KeyValuePair<TKey, TValue>> buffer)
+        => constructor(buffer.AsEnumerable());
 }
 
 internal sealed class JsonSpanConstructorDictionaryConverter<TDictionary, TKey, TValue>(
@@ -142,6 +141,6 @@ internal sealed class JsonSpanConstructorDictionaryConverter<TDictionary, TKey, 
     : JsonImmutableDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, shape)
     where TKey : notnull
 {
-    private protected override TDictionary Construct(List<KeyValuePair<TKey, TValue>> buffer)
-        => constructor(CollectionsMarshal.AsSpan(buffer));
+    private protected override TDictionary Construct(PooledList<KeyValuePair<TKey, TValue>> buffer)
+        => constructor(buffer.AsSpan());
 }

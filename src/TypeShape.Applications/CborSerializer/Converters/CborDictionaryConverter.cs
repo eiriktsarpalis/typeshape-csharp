@@ -1,5 +1,4 @@
 ﻿using System.Formats.Cbor;
-using System.Runtime.InteropServices;
 
 namespace TypeShape.Applications.CborSerializer.Converters;
 
@@ -83,7 +82,7 @@ internal abstract class CborImmutableDictionaryConverter<TDictionary, TKey, TVal
     Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getDictionary)
     : CborDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, getDictionary)
 {
-    private protected abstract TDictionary Construct(List<KeyValuePair<TKey, TValue>> buffer);
+    private protected abstract TDictionary Construct(PooledList<KeyValuePair<TKey, TValue>> buffer);
     public sealed override TDictionary? Read(CborReader reader)
     {
         if (default(TDictionary) is null && reader.PeekState() is CborReaderState.Null)
@@ -93,7 +92,7 @@ internal abstract class CborImmutableDictionaryConverter<TDictionary, TKey, TVal
         }
 
         int? definiteLength = reader.ReadStartMap();
-        List<KeyValuePair<TKey, TValue>> buffer = new(definiteLength ?? 4);
+        using PooledList<KeyValuePair<TKey, TValue>> buffer = new(definiteLength ?? 4);
         CborConverter<TKey> keyConverter = _keyConverter;
         CborConverter<TValue> valueConverter = _valueConverter;
 
@@ -116,8 +115,8 @@ internal sealed class CborEnumerableConstructorDictionaryConverter<TDictionary, 
     Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> constructor) 
     : CborImmutableDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, getDictionary)
 {
-    private protected override TDictionary Construct(List<KeyValuePair<TKey, TValue>> buffer)
-        => constructor(buffer);
+    private protected override TDictionary Construct(PooledList<KeyValuePair<TKey, TValue>> buffer)
+        => constructor(buffer.AsEnumerable());
 }
 
 internal sealed class CborSpanConstructorDictionaryConverter<TDictionary, TKey, TValue>(
@@ -127,6 +126,6 @@ internal sealed class CborSpanConstructorDictionaryConverter<TDictionary, TKey, 
     SpanConstructor<KeyValuePair<TKey, TValue>, TDictionary> constructor) 
     : CborImmutableDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, getDictionary)
 {
-    private protected override TDictionary Construct(List<KeyValuePair<TKey, TValue>> buffer)
-        => constructor(CollectionsMarshal.AsSpan(buffer));
+    private protected override TDictionary Construct(PooledList<KeyValuePair<TKey, TValue>> buffer)
+        => constructor(buffer.AsSpan());
 }

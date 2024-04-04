@@ -165,13 +165,13 @@ public partial class RandomGenerator
                             return default!;
 
                         int length = random.Next(0, size);
-                        TElement[] buffer = new TElement[length];
+                        using var buffer = new PooledList<TElement>(length);
                         int elementSize = GetChildSize(size, length);
 
                         for (int i = 0; i < length; i++)
-                            buffer[i] = elementGenerator(random, elementSize);
+                            buffer.Add(elementGenerator(random, elementSize));
 
-                        return enumerableCtor(buffer);
+                        return enumerableCtor(buffer.AsEnumerable());
                     });
 
                 case CollectionConstructionStrategy.Span:
@@ -182,13 +182,13 @@ public partial class RandomGenerator
                             return default!;
 
                         int length = random.Next(0, size);
-                        TElement[] buffer = new TElement[length];
+                        using var buffer = new PooledList<TElement>(length);
                         int elementSize = GetChildSize(size, length);
 
                         for (int i = 0; i < length; i++)
-                            buffer[i] = elementGenerator(random, elementSize);
+                            buffer.Add(elementGenerator(random, elementSize));
 
-                        return spanCtor(buffer);
+                        return spanCtor(buffer.AsSpan());
                     });
 
                 default:
@@ -249,15 +249,15 @@ public partial class RandomGenerator
                         if (size == 0)
                             return default!;
 
-                        KeyValuePair<TKey, TValue>[] buffer = new KeyValuePair<TKey, TValue>[size];
+                        using var buffer = new PooledList<KeyValuePair<TKey, TValue>>(size);
                         int entrySize = GetChildSize(size, size);
 
                         for (int i = 0; i < size; i++)
                         {
-                            buffer[i] = new(keyGenerator(random, entrySize), valueGenerator(random, entrySize));
+                            buffer.Add(new(keyGenerator(random, entrySize), valueGenerator(random, entrySize)));
                         }
 
-                        return spanCtorFunc(buffer);
+                        return spanCtorFunc(buffer.AsSpan());
                     });
 
                 default:

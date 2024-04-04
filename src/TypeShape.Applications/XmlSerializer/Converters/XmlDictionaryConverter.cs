@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using System.Xml;
+﻿using System.Xml;
 
 namespace TypeShape.Applications.XmlSerializer.Converters;
 
@@ -97,7 +96,7 @@ internal abstract class XmlImmutableDictionaryConverter<TDictionary, TKey, TValu
     : XmlDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, getEnumerable)
     where TKey : notnull
 {
-    private protected abstract TDictionary Construct(List<KeyValuePair<TKey, TValue>> buffer);
+    private protected abstract TDictionary Construct(PooledList<KeyValuePair<TKey, TValue>> buffer);
     public sealed override TDictionary? Read(XmlReader reader)
     {
         if (default(TDictionary) is null && reader.TryReadNullElement())
@@ -105,15 +104,16 @@ internal abstract class XmlImmutableDictionaryConverter<TDictionary, TKey, TValu
             return default;
         }
 
+        using PooledList<KeyValuePair<TKey, TValue>> buffer = new();
+
         if (reader.IsEmptyElement)
         {
             reader.Read();
-            return Construct([]);
+            return Construct(buffer);
         }
 
         XmlConverter<TKey> keyConverter = _keyConverter;
         XmlConverter<TValue> valueConverter = _valueConverter;
-        List<KeyValuePair<TKey, TValue>> buffer = [];
 
         reader.ReadStartElement();
         while (reader.NodeType != XmlNodeType.EndElement)
@@ -143,8 +143,8 @@ internal sealed class XmlEnumerableConstructorDictionaryConverter<TDictionary, T
     : XmlImmutableDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, getEnumerable)
     where TKey : notnull
 {
-    private protected override TDictionary Construct(List<KeyValuePair<TKey, TValue>> buffer)
-        => constructor(buffer);
+    private protected override TDictionary Construct(PooledList<KeyValuePair<TKey, TValue>> buffer)
+        => constructor(buffer.AsEnumerable());
 }
 
 internal sealed class XmlSpanConstructorDictionaryConverter<TDictionary, TKey, TValue>(
@@ -155,6 +155,6 @@ internal sealed class XmlSpanConstructorDictionaryConverter<TDictionary, TKey, T
     : XmlImmutableDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, getEnumerable)
     where TKey : notnull
 {
-    private protected override TDictionary Construct(List<KeyValuePair<TKey, TValue>> buffer)
-        => constructor(CollectionsMarshal.AsSpan(buffer));
+    private protected override TDictionary Construct(PooledList<KeyValuePair<TKey, TValue>> buffer)
+        => constructor(buffer.AsSpan());
 }

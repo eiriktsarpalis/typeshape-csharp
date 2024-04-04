@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using System.Xml;
+﻿using System.Xml;
 
 namespace TypeShape.Applications.XmlSerializer.Converters;
 
@@ -84,7 +83,7 @@ internal abstract class XmlImmutableEnumerableConverter<TEnumerable, TElement>(
     Func<TEnumerable, IEnumerable<TElement>> getEnumerable)
     : XmlEnumerableConverter<TEnumerable, TElement>(elementConverter, getEnumerable)
 {
-    private protected abstract TEnumerable Construct(List<TElement> buffer);
+    private protected abstract TEnumerable Construct(PooledList<TElement> buffer);
 
     public sealed override TEnumerable? Read(XmlReader reader)
     {
@@ -93,14 +92,15 @@ internal abstract class XmlImmutableEnumerableConverter<TEnumerable, TElement>(
             return default;
         }
 
+        using PooledList<TElement> elements = new();
+
         if (reader.IsEmptyElement)
         {
             reader.ReadStartElement();
-            return Construct([]);
+            return Construct(elements);
         }
 
         XmlConverter<TElement> elementConverter = _elementConverter;
-        List<TElement> elements = [];
 
         reader.ReadStartElement();
         while (reader.NodeType != XmlNodeType.EndElement)
@@ -125,8 +125,8 @@ internal sealed class XmlEnumerableConstructorEnumerableConverter<TEnumerable, T
     Func<IEnumerable<TElement>, TEnumerable> enumerableConstructor)
     : XmlImmutableEnumerableConverter<TEnumerable, TElement>(elementConverter, getEnumerable)
 {
-    private protected override TEnumerable Construct(List<TElement> buffer)
-        => enumerableConstructor(buffer);
+    private protected override TEnumerable Construct(PooledList<TElement> buffer)
+        => enumerableConstructor(buffer.AsEnumerable());
 }
 
 internal sealed class XmlSpanConstructorEnumerableConverter<TEnumerable, TElement>(
@@ -135,6 +135,6 @@ internal sealed class XmlSpanConstructorEnumerableConverter<TEnumerable, TElemen
     SpanConstructor<TElement, TEnumerable> spanConstructor)
     : XmlImmutableEnumerableConverter<TEnumerable, TElement>(elementConverter, getEnumerable)
 {
-    private protected override TEnumerable Construct(List<TElement> buffer)
-        => spanConstructor(CollectionsMarshal.AsSpan(buffer));
+    private protected override TEnumerable Construct(PooledList<TElement> buffer)
+        => spanConstructor(buffer.AsSpan());
 }

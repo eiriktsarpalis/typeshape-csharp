@@ -1,7 +1,7 @@
 ﻿namespace TypeShape.Applications.JsonSerializer.Converters;
 
 using System;
-using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -78,7 +78,7 @@ internal abstract class JsonImmutableEnumerableConverter<TEnumerable, TElement>(
     IEnumerableTypeShape<TEnumerable, TElement> typeShape)
     : JsonEnumerableConverter<TEnumerable, TElement>(elementConverter, typeShape)
 {
-    private protected abstract TEnumerable Construct(List<TElement> buffer);
+    private protected abstract TEnumerable Construct(PooledList<TElement> buffer);
     public sealed override TEnumerable? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {   
         if (default(TEnumerable) is null && reader.TokenType is JsonTokenType.Null)
@@ -89,7 +89,7 @@ internal abstract class JsonImmutableEnumerableConverter<TEnumerable, TElement>(
         reader.EnsureTokenType(JsonTokenType.StartArray);
         reader.EnsureRead();
 
-        List<TElement> buffer = [];
+        using PooledList<TElement> buffer = new();
         JsonConverter<TElement> elementConverter = _elementConverter;
 
         while (reader.TokenType != JsonTokenType.EndArray)
@@ -109,8 +109,8 @@ internal sealed class JsonEnumerableConstructorEnumerableConverter<TEnumerable, 
     Func<IEnumerable<TElement>, TEnumerable> enumerableConstructor) 
     : JsonImmutableEnumerableConverter<TEnumerable, TElement>(elementConverter, typeShape)
 {
-    private protected override TEnumerable Construct(List<TElement> buffer)
-        => enumerableConstructor(buffer);
+    private protected override TEnumerable Construct(PooledList<TElement> buffer)
+        => enumerableConstructor(buffer.AsEnumerable());
 }
 
 internal sealed class JsonSpanConstructorEnumerableConverter<TEnumerable, TElement>(
@@ -119,8 +119,8 @@ internal sealed class JsonSpanConstructorEnumerableConverter<TEnumerable, TEleme
     SpanConstructor<TElement, TEnumerable> spanConstructor) 
     : JsonImmutableEnumerableConverter<TEnumerable, TElement>(elementConverter, typeShape)
 {
-    private protected override TEnumerable Construct(List<TElement> buffer)
-        => spanConstructor(CollectionsMarshal.AsSpan(buffer));
+    private protected override TEnumerable Construct(PooledList<TElement> buffer)
+        => spanConstructor(buffer.AsSpan());
 }
 
 internal sealed class Json2DArrayConverter<TElement>(JsonConverter<TElement> elementConverter) : JsonConverter<TElement[,]>
@@ -135,44 +135,36 @@ internal sealed class Json2DArrayConverter<TElement>(JsonConverter<TElement> ele
         reader.EnsureTokenType(JsonTokenType.StartArray);
         reader.EnsureRead();
 
-        List<List<TElement>?>? rows = null;
-        int n = 0, m = 0;
+        using PooledList<TElement> buffer = new();
+        int rows = 0;
+        int? columns = null;
 
         while (reader.TokenType != JsonTokenType.EndArray)
         {
             reader.EnsureTokenType(JsonTokenType.StartArray);
             reader.EnsureRead();
 
-            List<TElement>? row = null;
-
+            int rowLength = 0;
             while (reader.TokenType != JsonTokenType.EndArray)
             {
                 TElement? element = elementConverter.Read(ref reader, typeof(TElement), options);
-                (row ??= []).Add(element!);
+                buffer.Add(element!);
                 reader.EnsureRead();
+                rowLength++;
             }
 
-            (rows ??= []).Add(row);
-            m = Math.Max(m, row?.Count ?? 0);
             reader.EnsureRead();
-        }
+            rows++;
 
-        n = rows?.Count ?? 0;
-        TElement[,] result = new TElement[n, m];
-
-        for (int i = 0; i < n; i++)
-        {
-            Debug.Assert(rows != null);
-
-            if (rows[i] is { } row)
+            if ((columns ??= rowLength) != rowLength)
             {
-                for (int j = 0; j < row.Count; j++)
-                {
-                    result[i, j] = row[j];
-                }
+                JsonHelpers.ThrowJsonException("The deserialized jagged array must be rectangular.");
             }
         }
 
+        TElement[,] result = new TElement[rows, columns ?? 0];
+        Span<TElement> destination = MemoryMarshal.CreateSpan(ref Unsafe.As<byte, TElement>(ref MemoryMarshal.GetArrayDataReference(result)), result.Length);
+        buffer.AsSpan().CopyTo(destination);
         return result;
     }
 

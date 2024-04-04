@@ -1,5 +1,4 @@
 ﻿using System.Formats.Cbor;
-using System.Runtime.InteropServices;
 
 namespace TypeShape.Applications.CborSerializer.Converters;
 
@@ -73,7 +72,7 @@ internal abstract class CborImmutableEnumerableConverter<TEnumerable, TElement>(
     Func<TEnumerable, IEnumerable<TElement>> getEnumerable) 
     : CborEnumerableConverter<TEnumerable, TElement>(elementConverter, getEnumerable)
 {
-    private protected abstract TEnumerable Construct(List<TElement> buffer);
+    private protected abstract TEnumerable Construct(PooledList<TElement> buffer);
 
     public sealed override TEnumerable? Read(CborReader reader)
     {
@@ -84,7 +83,7 @@ internal abstract class CborImmutableEnumerableConverter<TEnumerable, TElement>(
         }
 
         int? definiteLength = reader.ReadStartArray();
-        List<TElement> buffer = new(definiteLength ?? 4);
+        using PooledList<TElement> buffer = new(definiteLength ?? 4);
         CborConverter<TElement> elementConverter = _elementConverter;
 
         while (reader.PeekState() != CborReaderState.EndArray)
@@ -104,8 +103,8 @@ internal sealed class CborEnumerableConstructorEnumerableConverter<TEnumerable, 
     Func<IEnumerable<TElement>, TEnumerable> constructor)
     : CborImmutableEnumerableConverter<TEnumerable, TElement>(elementConverter, getEnumerable)
 {
-    private protected override TEnumerable Construct(List<TElement> buffer)
-        => constructor(buffer);
+    private protected override TEnumerable Construct(PooledList<TElement> buffer)
+        => constructor(buffer.AsEnumerable());
 }
 
 internal sealed class CborSpanConstructorEnumerableConverter<TEnumerable, TElement>(
@@ -114,6 +113,6 @@ internal sealed class CborSpanConstructorEnumerableConverter<TEnumerable, TEleme
     SpanConstructor<TElement, TEnumerable> constructor)
     : CborImmutableEnumerableConverter<TEnumerable, TElement>(elementConverter, getEnumerable)
 {
-    private protected override TEnumerable Construct(List<TElement> buffer)
-        => constructor(CollectionsMarshal.AsSpan(buffer));
+    private protected override TEnumerable Construct(PooledList<TElement> buffer)
+        => constructor(buffer.AsSpan());
 }
