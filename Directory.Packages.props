@@ -22,5 +22,6 @@
     <PackageVersion Include="coverlet.collector" Version="6.0.0" />
     <PackageVersion Include="BenchmarkDotNet" Version="0.13.8" />
     <PackageVersion Include="System.Formats.Cbor" Version="7.0.0" />
+    <PackageVersion Include="JsonSchema.Net" Version="6.0.7" />
   </ItemGroup>
 </Project>

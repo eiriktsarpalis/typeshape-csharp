@@ -1,5 +1,6 @@
 ﻿using TypeShape;
 using TypeShape.Applications.CborSerializer;
+using TypeShape.Applications.JsonSchema;
 using TypeShape.Applications.JsonSerializer;
 using TypeShape.Applications.PrettyPrinter;
 using TypeShape.Applications.StructuralEquality;
@@ -19,6 +20,9 @@ Console.WriteLine($"Using values:\n{PrettyPrinter.Print(value)}");
 string json = TypeShapeJsonSerializer.Serialize(value);
 Console.WriteLine($"JSON encoding:\n{json}");
 value = TypeShapeJsonSerializer.Deserialize<Todos>(json);
+
+var schema = JsonSchemaGenerator.Generate<Todos>();
+Console.WriteLine($"JSON schema:\n{schema.ToJsonString()}");
 
 string xml = XmlSerializer.Serialize(value);
 Console.WriteLine($"XML encoding:\n{xml}");

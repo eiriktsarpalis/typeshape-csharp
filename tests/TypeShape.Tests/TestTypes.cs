@@ -48,7 +48,6 @@ public interface ITestCase
 
 public static class TestTypes
 {
-
     public static IEnumerable<object[]> GetTestCases()
         => GetTestCasesCore().Select(value => new object[] { value });
 

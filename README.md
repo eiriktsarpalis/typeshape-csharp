@@ -235,6 +235,7 @@ The repo consists of the following projects:
   * A serializer generator targeting System.Text.Json's `JsonConverter`,
   * A simple pretty-printer for .NET values,
   * A generic random value generator based on `System.Random`,
+  * A JSON schema generator for .NET types,
   * A structural `IEqualityComparer<T>` generator for POCOs and collections,
   * An object validator in the style of System.ComponentModel.DataAnnotations.
   * A simple .NET object mapper in the style of AutoMapper.
