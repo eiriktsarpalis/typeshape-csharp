@@ -8,11 +8,15 @@ using TypeShape.Applications.JsonSerializer.Converters;
 
 public static partial class TypeShapeJsonSerializer
 {
-    private sealed class Builder(JsonSerializerOptions options) : ITypeShapeVisitor
+    private sealed class Builder : ITypeShapeVisitor, ITypeShapeFunc
     {
+        private static readonly JsonSerializerOptions s_options = new() { TypeInfoResolver = JsonTypeInfoResolver.Combine() };
         private readonly TypeDictionary _cache = new();
 
-        public JsonConverter<T> BuildConverter<T>(ITypeShape<T> typeShape)
+        public TypeShapeJsonConverter<T> BuildTypeShapeJsonConverter<T>(ITypeShape<T> typeShape) => new(BuildConverter(typeShape), s_options);
+        object? ITypeShapeFunc.Invoke<T>(ITypeShape<T> typeShape, object? state) => BuildTypeShapeJsonConverter(typeShape);
+
+        private JsonConverter<T> BuildConverter<T>(ITypeShape<T> typeShape)
         {
             if (s_defaultConverters.TryGetValue(typeShape.Type, out JsonConverter? defaultConverter))
             {
@@ -27,6 +31,11 @@ public static partial class TypeShapeJsonSerializer
 
         public object? VisitType<T>(ITypeShape<T> type, object? state)
         {
+            if (typeof(T) == typeof(object))
+            {
+                return new JsonObjectConverter(type.Provider);
+            }
+
             JsonPropertyConverter<T>[] properties = type
                 .GetProperties()
                 .Select(prop => (JsonPropertyConverter<T>)prop.Accept(this)!)
@@ -155,7 +164,7 @@ public static partial class TypeShapeJsonSerializer
         public object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumTypeShape, object? state) where TEnum : struct, Enum
         {
             var converter = new JsonStringEnumConverter<TEnum>();
-            return converter.CreateConverter(typeof(TEnum), options);
+            return converter.CreateConverter(typeof(TEnum), s_options);
         }
 
         private static readonly Dictionary<Type, JsonConverter> s_defaultConverters = new JsonConverter[]
@@ -188,7 +197,6 @@ public static partial class TypeShapeJsonSerializer
             JsonMetadataServices.VersionConverter,
             new BigIntegerConverter(),
             new RuneConverter(),
-            new JsonObjectConverter(),
         }.ToDictionary(conv => conv.Type!);
     }
 }

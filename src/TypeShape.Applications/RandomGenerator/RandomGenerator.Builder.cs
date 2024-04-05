@@ -12,14 +12,14 @@ public partial class RandomGenerator
 
     private sealed class Builder : ITypeShapeVisitor
     {
-        private static readonly Dictionary<Type, object> s_defaultGenerators = new(CreateDefaultGenerators());
+        private static readonly Dictionary<Type, (object Generator, RandomGenerator<object?> BoxingGenerator)> s_defaultGenerators = new(CreateDefaultGenerators());
         private readonly TypeDictionary _cache = new();
 
         public RandomGenerator<T> BuildGenerator<T>(ITypeShape<T> type)
         {
-            if (s_defaultGenerators.TryGetValue(type.Type, out object? defaultGenerator))
+            if (s_defaultGenerators.TryGetValue(type.Type, out var entry))
             {
-                return (RandomGenerator<T>)defaultGenerator;
+                return (RandomGenerator<T>)entry.Generator;
             }
 
             return _cache.GetOrAdd<RandomGenerator<T>>(
@@ -30,6 +30,11 @@ public partial class RandomGenerator
 
         public object? VisitType<T>(ITypeShape<T> type, object? state)
         {
+            if (typeof(T) == typeof(object))
+            {
+                return CreateObjectGenerator();
+            }
+
             // Prefer the default constructor, if available.
             IConstructorShape? constructor = type.GetConstructors()
                 .MinBy(ctor => ctor.ParameterCount);
@@ -265,7 +270,17 @@ public partial class RandomGenerator
             }
         }
 
-        private static IEnumerable<KeyValuePair<Type, object>> CreateDefaultGenerators()
+        private static RandomGenerator<object?> CreateObjectGenerator()
+        {
+            RandomGenerator<object?>[] defaultGenerators = s_defaultGenerators.Select(kv => kv.Value.BoxingGenerator).ToArray();
+            return new RandomGenerator<object?>((Random random, int size) =>
+            {
+                int index = random.Next(minValue: -1, defaultGenerators.Length);
+                return index == -1 ? null : defaultGenerators[index](random, size);
+            });
+        }
+
+        private static IEnumerable<KeyValuePair<Type, (object Generator, RandomGenerator<object?> BoxingGenerator)>> CreateDefaultGenerators()
         {
             yield return Create((random, _) => NextBoolean(random));
 
@@ -319,7 +334,6 @@ public partial class RandomGenerator
 
             yield return Create(NextString);
 
-            // TODO implement proper polymorphism
             yield return Create<object>((random, size) =>
             {
                 return (random.Next(0, 5)) switch
@@ -332,8 +346,8 @@ public partial class RandomGenerator
                 };
             });
 
-            static KeyValuePair<Type, object> Create<T>(RandomGenerator<T> randomGenerator)
-                => new(typeof(T), randomGenerator);
+            static KeyValuePair<Type, (object Generator, RandomGenerator<object?> BoxingGenerator)> Create<T>(RandomGenerator<T> randomGenerator)
+                => new(typeof(T), (randomGenerator, (r,i) => randomGenerator(r,i)));
         }
 
         private static long NextLong(Random random)

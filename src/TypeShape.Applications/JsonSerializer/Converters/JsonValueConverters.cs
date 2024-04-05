@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Numerics;
@@ -94,8 +95,9 @@ public sealed class RuneConverter : JsonConverter<Rune>
     }
 }
 
-public sealed class JsonObjectConverter : JsonConverter<object?>
+public sealed class JsonObjectConverter(ITypeShapeProvider provider) : JsonConverter<object?>
 {
+    private static readonly ConcurrentDictionary<Type, ITypeShapeJsonConverter> _derivedTypes = new();
     public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         return reader.TokenType is JsonTokenType.Null ? null : JsonDocument.ParseValue(ref reader).RootElement;
@@ -103,17 +105,21 @@ public sealed class JsonObjectConverter : JsonConverter<object?>
 
     public override void Write(Utf8JsonWriter writer, object? value, JsonSerializerOptions options)
     {
-        switch (value)
+        if (value is null)
         {
-            case null: writer.WriteNullValue(); break;
-            case bool b: writer.WriteBooleanValue(b); break;
-            case int i: writer.WriteNumberValue(i); break;
-            case string s: writer.WriteStringValue(s); break;
-            default:
-                writer.WriteStartObject();
-                writer.WriteEndObject();
-                break;
+            writer.WriteNullValue();
+            return;
         }
+
+        ITypeShapeJsonConverter? derivedConverter = GetDerivedConverter(value);
+        if (derivedConverter is null)
+        {
+            writer.WriteStartObject();
+            writer.WriteEndObject();
+            return;
+        }
+
+        derivedConverter.Write(writer, value);
     }
 
     public override object? ReadAsPropertyName(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -121,4 +127,25 @@ public sealed class JsonObjectConverter : JsonConverter<object?>
 
     public override void WriteAsPropertyName(Utf8JsonWriter writer, object? value, JsonSerializerOptions options)
         => writer.WritePropertyName(value?.ToString() ?? "<null>");
+
+    private ITypeShapeJsonConverter? GetDerivedConverter(object value)
+    {
+        Type runtimeType = value.GetType();
+        if (runtimeType == typeof(object))
+        {
+            return null;
+        }
+
+        return _derivedTypes.GetOrAdd(runtimeType, ResolveDerivedConverter, provider);
+
+        static ITypeShapeJsonConverter ResolveDerivedConverter(Type derivedType, ITypeShapeProvider provider)
+        {
+            if (provider.GetShape(derivedType) is not ITypeShape derivedShape)
+            {
+                throw new NotSupportedException($"Unsupported derived type '{derivedType}'.");
+            }
+
+            return TypeShapeJsonSerializer.CreateConverter(derivedShape);
+        }
+    }
 }

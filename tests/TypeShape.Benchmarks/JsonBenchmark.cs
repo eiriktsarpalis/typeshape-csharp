@@ -20,7 +20,7 @@ public static class JsonData
     public static readonly JsonTypeInfo<MyPoco> StjSourceGenInfo = StjContext.Default.MyPoco;
     public static readonly JsonTypeInfo<MyPoco> StjSourceGenInfo_fastPath = StjContext_FastPath.Default.MyPoco;
 
-    public static readonly TypeShapeJsonSerializer<MyPoco> TypeShapeReflection = TypeShapeJsonSerializer.Create(ReflectionTypeShapeProvider.Default.GetShape<MyPoco>());
+    public static readonly TypeShapeJsonConverter<MyPoco> TypeShapeReflection = TypeShapeJsonSerializer.CreateConverter(ReflectionTypeShapeProvider.Default.GetShape<MyPoco>());
 }
 
 [MemoryDiagnoser]

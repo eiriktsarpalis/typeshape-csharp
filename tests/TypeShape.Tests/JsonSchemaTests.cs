@@ -109,7 +109,7 @@ public abstract class JsonSchemaTests
         Assert.NotNull(shape);
 
         JsonObject schema = JsonSchemaGenerator.Generate(shape);
-        string json = TypeShapeJsonSerializer.Create(shape).Serialize(testCase.Value);
+        string json = TypeShapeJsonSerializer.CreateConverter(shape).Serialize(testCase.Value);
 
         JsonSchema jsonSchema = JsonSerializer.Deserialize<JsonSchema>(schema)!;
         EvaluationOptions options = new() { OutputFormat = OutputFormat.List };

@@ -11,7 +11,7 @@ using TypeShape.ReflectionProvider;
 // serialization, pretty printing, CBOR encoding and validation programs.
 ITypeShape<Todos> shape = ReflectionTypeShapeProvider.Default.GetShape<Todos>();
 
-TypeShapeJsonSerializer<Todos> jsonSerializer = TypeShapeJsonSerializer.Create(shape);
+TypeShapeJsonConverter<Todos> jsonConverter = TypeShapeJsonSerializer.CreateConverter(shape);
 PrettyPrinter<Todos> printer = PrettyPrinter.Create(shape);
 XmlConverter<Todos> xmlConverter = XmlSerializer.CreateConverter(shape);
 CborConverter<Todos> cborConverter = CborSerializer.CreateConverter(shape);
@@ -28,9 +28,9 @@ Todos originalValue = new(
 Todos? value = originalValue;
 Console.WriteLine($"Using values:\n{printer.Print(value)}");
 
-string json = jsonSerializer.Serialize(value);
+string json = jsonConverter.Serialize(value);
 Console.WriteLine($"JSON encoding:\n{json}");
-value = jsonSerializer.Deserialize(json);
+value = jsonConverter.Deserialize(json);
 
 var jsonSchema = JsonSchemaGenerator.Generate(shape);
 Console.WriteLine($"JSON schema:\n{jsonSchema.ToJsonString()}");

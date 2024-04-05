@@ -10,10 +10,8 @@ public static partial class StructuralEqualityComparer
     {
         private readonly TypeDictionary _cache = new();
 
-        public IEqualityComparer<T> BuildEqualityComparer<T>(ITypeShape<T> shape)
-        {
-            return _cache.GetOrAdd<IEqualityComparer<T>>(shape, this, delayedValueFactory: self => new DelayedEqualityComparer<T>(self));
-        }
+        public IEqualityComparer<T> BuildEqualityComparer<T>(ITypeShape<T> shape) =>
+            _cache.GetOrAdd<IEqualityComparer<T>>(shape, this, delayedValueFactory: self => new DelayedEqualityComparer<T>(self));
 
         object? ITypeShapeFunc.Invoke<T>(ITypeShape<T> typeShape, object? state) => BuildEqualityComparer(typeShape);
 

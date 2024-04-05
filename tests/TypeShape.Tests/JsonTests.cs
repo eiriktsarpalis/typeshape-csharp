@@ -23,14 +23,14 @@ public abstract class JsonTests
             return;
         }
 
-        var serializer = GetSerializerUnderTest<T>();
+        var converter = GetConverterUnderTest<T>();
 
-        string json = serializer.Serialize(testCase.Value);
+        string json = converter.Serialize(testCase.Value);
         Assert.Equal(ToJsonBaseline(testCase.Value), json);
 
         if (!testCase.HasConstructors(Provider))
         {
-            Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
+            Assert.Throws<NotSupportedException>(() => converter.Deserialize(json));
         }
         else if (testCase.DoesNotRoundtrip)
         {
@@ -38,7 +38,7 @@ public abstract class JsonTests
         }
         else
         {
-            T? deserializedValue = serializer.Deserialize(json);
+            T? deserializedValue = converter.Deserialize(json);
 
             if (testCase.IsEquatable)
             {
@@ -46,7 +46,7 @@ public abstract class JsonTests
             }
             else if (testCase.IsStack)
             {
-                Assert.Equal(serializer.Serialize(deserializedValue), ToJsonBaseline(deserializedValue));
+                Assert.Equal(converter.Serialize(deserializedValue), ToJsonBaseline(deserializedValue));
             }
             else
             {
@@ -69,15 +69,15 @@ public abstract class JsonTests
             return;
         }
 
-        var serializer = GetSerializerUnderTest<PocoWithGenericProperty<T>>();
+        var converter = GetConverterUnderTest<PocoWithGenericProperty<T>>();
         PocoWithGenericProperty<T> poco = new PocoWithGenericProperty<T> { Value = testCase.Value };
 
-        string json = serializer.Serialize(poco);
+        string json = converter.Serialize(poco);
         Assert.Equal(ToJsonBaseline(poco), json);
 
         if (!testCase.HasConstructors(Provider))
         {
-            Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
+            Assert.Throws<NotSupportedException>(() => converter.Deserialize(json));
         }
         else if (testCase.DoesNotRoundtrip)
         {
@@ -85,7 +85,7 @@ public abstract class JsonTests
         }
         else
         {
-            PocoWithGenericProperty<T>? deserializedValue = serializer.Deserialize(json);
+            PocoWithGenericProperty<T>? deserializedValue = converter.Deserialize(json);
             Assert.NotNull(deserializedValue);
 
             if (testCase.IsEquatable)
@@ -94,7 +94,7 @@ public abstract class JsonTests
             }
             else if (testCase.IsStack)
             {
-                Assert.Equal(serializer.Serialize(deserializedValue), ToJsonBaseline(deserializedValue));
+                Assert.Equal(converter.Serialize(deserializedValue), ToJsonBaseline(deserializedValue));
             }
             else
             {
@@ -117,15 +117,15 @@ public abstract class JsonTests
             return;
         }
 
-        var serializer = GetSerializerUnderTest<List<T>>();
+        var converter = GetConverterUnderTest<List<T>>();
         var list = new List<T> { testCase.Value, testCase.Value, testCase.Value };
 
-        string json = serializer.Serialize(list);
+        string json = converter.Serialize(list);
         Assert.Equal(ToJsonBaseline(list), json);
 
         if (!testCase.HasConstructors(Provider))
         {
-            Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
+            Assert.Throws<NotSupportedException>(() => converter.Deserialize(json));
         }
         else if (testCase.DoesNotRoundtrip)
         {
@@ -133,7 +133,7 @@ public abstract class JsonTests
         }
         else
         {
-            List<T> deserializedValue = serializer.Deserialize(json)!;
+            List<T> deserializedValue = converter.Deserialize(json)!;
             Assert.NotEmpty(deserializedValue);
 
             if (testCase.IsEquatable)
@@ -142,7 +142,7 @@ public abstract class JsonTests
             }
             else if (testCase.IsStack)
             {
-                Assert.Equal(serializer.Serialize(deserializedValue), ToJsonBaseline(deserializedValue));
+                Assert.Equal(converter.Serialize(deserializedValue), ToJsonBaseline(deserializedValue));
             }
             else
             {
@@ -165,15 +165,15 @@ public abstract class JsonTests
             return;
         }
 
-        var serializer = GetSerializerUnderTest<Dictionary<string, T>>();
+        var converter = GetConverterUnderTest<Dictionary<string, T>>();
         var dict = new Dictionary<string, T> { ["key1"] = testCase.Value, ["key2"] = testCase.Value, ["key3"] = testCase.Value };
 
-        string json = serializer.Serialize(dict);
+        string json = converter.Serialize(dict);
         Assert.Equal(ToJsonBaseline(dict), json);
 
         if (!testCase.HasConstructors(Provider))
         {
-            Assert.Throws<NotSupportedException>(() => serializer.Deserialize(json));
+            Assert.Throws<NotSupportedException>(() => converter.Deserialize(json));
         }
         else if (testCase.DoesNotRoundtrip)
         {
@@ -181,7 +181,7 @@ public abstract class JsonTests
         }
         else
         {
-            Dictionary<string, T> deserializedValue = serializer.Deserialize(json)!;
+            Dictionary<string, T> deserializedValue = converter.Deserialize(json)!;
             Assert.NotEmpty(deserializedValue);
 
             if (testCase.IsEquatable)
@@ -190,7 +190,7 @@ public abstract class JsonTests
             }
             else if (testCase.IsStack)
             {
-                Assert.Equal(serializer.Serialize(deserializedValue), ToJsonBaseline(deserializedValue));
+                Assert.Equal(converter.Serialize(deserializedValue), ToJsonBaseline(deserializedValue));
             }
             else
             {
@@ -214,37 +214,37 @@ public abstract class JsonTests
             return;
         }
 
-        var serializer = GetSerializerUnderTest<T>();
+        var converter = GetConverterUnderTest<T>();
 
-        string json = serializer.Serialize(default!);
+        string json = converter.Serialize(default!);
         Assert.Equal("null", json);
 
-        T? deserializedValue = serializer.Deserialize(json);
+        T? deserializedValue = converter.Deserialize(json);
         Assert.Null(deserializedValue);
     }
 
     [Fact]
     public void Serialize_NonNullablePropertyWithNullValue_ThrowsJsonException()
     {
-        var serializer = GetSerializerUnderTest<NonNullStringRecord>();
+        var converter = GetConverterUnderTest<NonNullStringRecord>();
         var invalidValue = new NonNullStringRecord(null!);
-        Assert.Throws<JsonException>(() => serializer.Serialize(invalidValue));
+        Assert.Throws<JsonException>(() => converter.Serialize(invalidValue));
     }
 
     [Fact]
     public void Deserialize_NonNullablePropertyWithNullJsonValue_ThrowsJsonException()
     {
-        var serializer = GetSerializerUnderTest<NonNullStringRecord>();
-        Assert.Throws<JsonException>(() => serializer.Deserialize("""{"value":null}"""));
+        var converter = GetConverterUnderTest<NonNullStringRecord>();
+        Assert.Throws<JsonException>(() => converter.Deserialize("""{"value":null}"""));
     }
 
     [Fact]
     public void Serialize_NullablePropertyWithNullValue_WorksAsExpected()
     {
-        var serializer = GetSerializerUnderTest<NullableStringRecord>();
+        var converter = GetConverterUnderTest<NullableStringRecord>();
         var valueWithNull = new NullableStringRecord(null);
         
-        string json = serializer.Serialize(valueWithNull);
+        string json = converter.Serialize(valueWithNull);
 
         Assert.Equal("""{"value":null}""", json);
     }
@@ -252,9 +252,9 @@ public abstract class JsonTests
     [Fact]
     public void Serialize_NullablePropertyWithNullJsonValue_WorksAsExpected()
     {
-        var serializer = GetSerializerUnderTest<NullableStringRecord>();
+        var coverter = GetConverterUnderTest<NullableStringRecord>();
         
-        NullableStringRecord? result = serializer.Deserialize("""{"value":null}""");
+        NullableStringRecord? result = coverter.Deserialize("""{"value":null}""");
 
         Assert.NotNull(result);
         Assert.Null(result.value);
@@ -266,12 +266,12 @@ public abstract class JsonTests
     {
         // Tuples should be serialized as flat JSON, without exposing "Rest" fields.
 
-        var serializer = GetSerializerUnderTest<TTuple>();
+        var converter = GetConverterUnderTest<TTuple>();
 
-        string json = serializer.Serialize(tuple);
+        string json = converter.Serialize(tuple);
         Assert.Equal(expectedJson, json);
 
-        var deserializedValue = serializer.Deserialize(json);
+        var deserializedValue = converter.Deserialize(json);
         Assert.Equal(tuple, deserializedValue);
     }
 
@@ -302,12 +302,12 @@ public abstract class JsonTests
     public void MultiDimensionalArrays_SerializedAsJaggedArray<TArray>(TArray array, string expectedJson)
         where TArray : IEnumerable
     {
-        var serializer = GetSerializerUnderTest<TArray>();
+        var converter = GetConverterUnderTest<TArray>();
 
-        string json = serializer.Serialize(array);
+        string json = converter.Serialize(array);
         Assert.Equal(expectedJson, json);
 
-        TArray? result = serializer.Deserialize(json);
+        TArray? result = converter.Deserialize(json);
         Assert.Equal(array, result);
     }
 
@@ -335,7 +335,7 @@ public abstract class JsonTests
     public void Roundtrip_DerivedClassWithVirtualProperties()
     {
         const string ExpectedJson = """{"X":42,"Y":"str","Z":42,"W":0}""";
-        var serializer = GetSerializerUnderTest<DerivedClassWithVirtualProperties>();
+        var serializer = GetConverterUnderTest<DerivedClassWithVirtualProperties>();
 
         var value = new DerivedClassWithVirtualProperties();
         string json = serializer.Serialize(value);
@@ -359,11 +359,11 @@ public abstract class JsonTests
         },
     };
 
-    protected TypeShapeJsonSerializer<T> GetSerializerUnderTest<T>()
+    protected TypeShapeJsonConverter<T> GetConverterUnderTest<T>()
     {
         ITypeShape<T>? shape = Provider.GetShape<T>();
         Assert.NotNull(shape);
-        return TypeShapeJsonSerializer.Create(shape);
+        return TypeShapeJsonSerializer.CreateConverter(shape);
     }
 
     private protected static bool IsUnsupportedBySTJ<T>(TestCase<T> value) => 
