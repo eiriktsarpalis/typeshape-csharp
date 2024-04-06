@@ -1329,6 +1329,7 @@ public record DerivedClassWithShadowingMember : BaseClassWithShadowingMembers
 [GenerateShape<int[][]>]
 [GenerateShape<int[,]>]
 [GenerateShape<int[,,]>]
+[GenerateShape<int[,,,,,]>]
 [GenerateShape<Memory<int>>]
 [GenerateShape<ReadOnlyMemory<int>>]
 [GenerateShape<List<string>>]

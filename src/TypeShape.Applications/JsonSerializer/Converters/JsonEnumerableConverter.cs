@@ -1,6 +1,9 @@
-﻿namespace TypeShape.Applications.JsonSerializer.Converters;
+﻿using System.Diagnostics;
+
+namespace TypeShape.Applications.JsonSerializer.Converters;
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -123,68 +126,115 @@ internal sealed class JsonSpanConstructorEnumerableConverter<TEnumerable, TEleme
         => spanConstructor(buffer.AsSpan());
 }
 
-internal sealed class Json2DArrayConverter<TElement>(JsonConverter<TElement> elementConverter) : JsonConverter<TElement[,]>
+internal sealed class JsonMDArrayConverter<TArray, TElement>(JsonConverter<TElement> elementConverter, int rank) : JsonConverter<TArray>
 {
-    public override TElement[,]? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    [ThreadStatic] private static int[]? _dimensions;
+
+    [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "The Array.CreateInstance method generates TArray instances.")]
+    public override TArray? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if (reader.TokenType is JsonTokenType.Null)
         {
-            return null;
+            return default;
         }
 
+        int[] dimensions = _dimensions ??= new int[rank];
+        dimensions.AsSpan().Fill(-1);
+        PooledList<TElement> buffer = new();
+        try
+        {
+            ReadSubArray(ref reader, ref buffer, dimensions, options);
+            dimensions.AsSpan().Replace(-1, 0);
+            Array result = Array.CreateInstance(typeof(TElement), dimensions);
+            buffer.AsSpan().CopyTo(AsSpan(result));
+            return (TArray)(object)result;
+        }
+        finally
+        {
+            buffer.Dispose();
+        }
+    }
+
+    public override void Write(Utf8JsonWriter writer, TArray value, JsonSerializerOptions options)
+    {
+        var array = (Array)(object)value!;
+        Debug.Assert(rank == array.Rank);
+
+        int[] dimensions = _dimensions ??= new int[rank];
+        for (int i = 0; i < rank; i++) dimensions[i] = array.GetLength(i);
+        WriteSubArray(writer, dimensions, AsSpan(array), options);
+    }
+
+    private void ReadSubArray(
+        ref Utf8JsonReader reader,
+        ref PooledList<TElement> buffer,
+        Span<int> dimensions,
+        JsonSerializerOptions options)
+    {
+        Debug.Assert(dimensions.Length > 0);
         reader.EnsureTokenType(JsonTokenType.StartArray);
         reader.EnsureRead();
-
-        using PooledList<TElement> buffer = new();
-        int rows = 0;
-        int? columns = null;
-
+        
+        int dimension = 0;
         while (reader.TokenType != JsonTokenType.EndArray)
         {
-            reader.EnsureTokenType(JsonTokenType.StartArray);
-            reader.EnsureRead();
-
-            int rowLength = 0;
-            while (reader.TokenType != JsonTokenType.EndArray)
+            if (dimensions.Length > 1)
+            {
+                ReadSubArray(ref reader, ref buffer, dimensions[1..], options);
+            }
+            else
             {
                 TElement? element = elementConverter.Read(ref reader, typeof(TElement), options);
                 buffer.Add(element!);
-                reader.EnsureRead();
-                rowLength++;
             }
-
+            
             reader.EnsureRead();
-            rows++;
-
-            if ((columns ??= rowLength) != rowLength)
-            {
-                JsonHelpers.ThrowJsonException("The deserialized jagged array must be rectangular.");
-            }
+            dimension++;
         }
-
-        TElement[,] result = new TElement[rows, columns ?? 0];
-        Span<TElement> destination = MemoryMarshal.CreateSpan(ref Unsafe.As<byte, TElement>(ref MemoryMarshal.GetArrayDataReference(result)), result.Length);
-        buffer.AsSpan().CopyTo(destination);
-        return result;
-    }
-
-    public override void Write(Utf8JsonWriter writer, TElement[,] value, JsonSerializerOptions options)
-    {
-        int n = value.GetLength(0);
-        int m = value.GetLength(1);
-
-        writer.WriteStartArray();
-        for (int i = 0; i < n; i++)
+        
+        if (dimensions[0] < 0)
         {
-            writer.WriteStartArray();
-            for (int j = 0; j < m; j++)
-            {
-                elementConverter.Write(writer, value[i, j], options);
-            }
-
-            writer.WriteEndArray();
+            dimensions[0] = dimension;
         }
+        else if (dimensions[0] != dimension)
+        {
+            JsonHelpers.ThrowJsonException("The deserialized jagged array was not rectangular.");
+        }
+    }
+    
+    private void WriteSubArray(
+        Utf8JsonWriter writer,
+        ReadOnlySpan<int> dimensions,
+        ReadOnlySpan<TElement> elements,
+        JsonSerializerOptions options)
+    {
+        Debug.Assert(dimensions.Length > 0);
+        
+        writer.WriteStartArray();
 
+        int outerDim = dimensions[0];
+        if (dimensions.Length > 1 && outerDim > 0)
+        {
+            int subArrayLength = elements.Length / outerDim;
+            for (int i = 0; i < outerDim; i++)
+            {
+                WriteSubArray(writer, dimensions[1..], elements[..subArrayLength], options);
+                elements = elements[subArrayLength..];
+            }
+        }
+        else
+        {
+            for (int i = 0; i < outerDim; i++)
+            {
+                elementConverter.Write(writer, elements[i], options);
+            }
+        }
+            
         writer.WriteEndArray();
     }
+    
+    private static Span<TElement> AsSpan(Array array) =>
+        MemoryMarshal.CreateSpan(
+            ref Unsafe.As<byte, TElement>(ref MemoryMarshal.GetArrayDataReference(array)), 
+            array.Length);
 }

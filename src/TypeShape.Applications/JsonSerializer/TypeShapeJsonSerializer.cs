@@ -1,8 +1,4 @@
-﻿using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
-
-namespace TypeShape.Applications.JsonSerializer;
+﻿namespace TypeShape.Applications.JsonSerializer;
 
 public static partial class TypeShapeJsonSerializer
 {

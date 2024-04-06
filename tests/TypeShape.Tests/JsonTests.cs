@@ -314,6 +314,8 @@ public abstract class JsonTests
     public static IEnumerable<object?[]> GetMultiDimensionalArraysAndExpectedJson()
     {
         yield return Wrap(new int[,] { }, """[]""");
+        yield return Wrap(new int[,,] { }, """[]""");
+        yield return Wrap(new int[,,,,,] { }, """[]""");
 
         yield return Wrap(
             new int[,] { { 1, 0, }, { 0, 1 } },
@@ -326,6 +328,24 @@ public abstract class JsonTests
         yield return Wrap(
             new int[,] { { 1, 2, 3 }, { 4, 5, 6 } },
             """[[1,2,3],[4,5,6]]""");
+        
+        yield return Wrap(
+            new int[,,] // 3 x 2 x 2
+            {
+                { { 1, 0 }, { 0, 1 } }, 
+                { { 1, 2 }, { 3, 4 } }, 
+                { { 1, 1 }, { 1, 1 } }
+            },
+            """[[[1,0],[0,1]],[[1,2],[3,4]],[[1,1],[1,1]]]""");
+        
+        yield return Wrap(
+            new int[,,] // 3 x 2 x 5
+            {
+                { { 1, 0, 0, 0, 0 }, { 0, 1, 0, 0, 0 } }, 
+                { { 1, 2, 3, 4, 5 }, { 6, 7, 8, 9, 10 } }, 
+                { { 1, 1, 1, 1, 1 }, { 1, 1, 1, 1, 1 } }
+            },
+            """[[[1,0,0,0,0],[0,1,0,0,0]],[[1,2,3,4,5],[6,7,8,9,10]],[[1,1,1,1,1],[1,1,1,1,1]]]""");
 
         static object?[] Wrap<TArray>(TArray tuple, string expectedJson) where TArray : IEnumerable
             => [tuple, expectedJson];

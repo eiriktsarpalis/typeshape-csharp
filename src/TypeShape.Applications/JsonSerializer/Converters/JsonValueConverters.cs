@@ -140,7 +140,7 @@ public sealed class JsonObjectConverter(ITypeShapeProvider provider) : JsonConve
 
         static ITypeShapeJsonConverter ResolveDerivedConverter(Type derivedType, ITypeShapeProvider provider)
         {
-            if (provider.GetShape(derivedType) is not ITypeShape derivedShape)
+            if (provider.GetShape(derivedType) is not { } derivedShape)
             {
                 throw new NotSupportedException($"Unsupported derived type '{derivedType}'.");
             }

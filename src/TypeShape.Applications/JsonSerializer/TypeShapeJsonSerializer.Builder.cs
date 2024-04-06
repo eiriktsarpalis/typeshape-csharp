@@ -36,8 +36,7 @@ public static partial class TypeShapeJsonSerializer
                 return new JsonObjectConverter(type.Provider);
             }
 
-            JsonPropertyConverter<T>[] properties = type
-                .GetProperties()
+            JsonPropertyConverter<T>[] properties = type.GetProperties()
                 .Select(prop => (JsonPropertyConverter<T>)prop.Accept(this)!)
                 .ToArray();
 
@@ -91,11 +90,7 @@ public static partial class TypeShapeJsonSerializer
             if (enumerableTypeShape.Rank > 1)
             {
                 Debug.Assert(typeof(TEnumerable).IsArray);
-                return enumerableTypeShape.Rank switch
-                {
-                    2 => new Json2DArrayConverter<TElement>(elementConverter),
-                    _ => throw new NotImplementedException("Array rank > 2 not implemented."),
-                };
+                return new JsonMDArrayConverter<TEnumerable, TElement>(elementConverter, enumerableTypeShape.Rank);
             }
 
             return enumerableTypeShape.ConstructionStrategy switch
