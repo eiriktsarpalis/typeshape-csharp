@@ -179,4 +179,30 @@ public static class CompilationTests
         TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation);
         Assert.Empty(result.Diagnostics);
     }
+
+    [Fact]
+    public static void MultiplePartialContextDeclarations_NoErrors()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+            using TypeShape;
+
+            public static class Test
+            {
+                public static void TestMethod()
+                {
+                    ITypeShape<string> stringShape = MyWitness.Default.String;
+                    ITypeShape<int> intShape = MyWitness.Default.Int32;
+                }
+            }
+            
+            [GenerateShape<int>]
+            public partial class MyWitness;
+            
+            [GenerateShape<string>]
+            public partial class MyWitness;
+            """);
+
+        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
 }

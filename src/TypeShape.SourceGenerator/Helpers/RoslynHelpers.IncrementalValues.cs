@@ -1,15 +1,15 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Immutable;
 using System.Diagnostics;
 
 namespace TypeShape.SourceGenerator.Helpers;
 
 public readonly struct TypeWithAttributeDeclarationContext
 {
-    public required BaseTypeDeclarationSyntax DeclarationSyntax { get; init; }
     public required ITypeSymbol TypeSymbol { get; init; }
-    public required SemanticModel SemanticModel { get; init; }
+    public required ImmutableArray<(BaseTypeDeclarationSyntax Syntax, SemanticModel Model)> Declarations { get; init; }
 }
 
 internal static partial class RoslynHelpers
@@ -21,14 +21,25 @@ internal static partial class RoslynHelpers
         this SyntaxValueProvider provider, string attributeFullyQualifiedName,
         Func<BaseTypeDeclarationSyntax, CancellationToken, bool> predicate)
     {
-        string attributeName = ParseTypeName(SyntaxFactory.ParseName(attributeFullyQualifiedName), out int attributeArity);
+        NameSyntax attributeNameSyntax = SyntaxFactory.ParseName(attributeFullyQualifiedName);
+        string attributeName = GetTypeName(attributeNameSyntax, out int attributeArity);
+        ImmutableArray<string> attributeNamespace = GetNamespaceTokens(attributeNameSyntax);
         string? attributeNameMinusSuffix = attributeName.EndsWith("Attribute", StringComparison.Ordinal) ? attributeName[..^"Attribute".Length] : null;
-        string? attributeNamespace = attributeFullyQualifiedName.LastIndexOf('.') is >= 0 and int i ? attributeFullyQualifiedName[..i] : null;
 
         return provider.CreateSyntaxProvider(
             predicate: (SyntaxNode node, CancellationToken token) => node is BaseTypeDeclarationSyntax typeDecl && IsAnnotatedTypeDeclaration(typeDecl, token),
             transform: Transform)
-            .Where(ctx => ctx.DeclarationSyntax != null);
+            .Where(ctx => ctx.Type != null)
+            .GroupBy(
+                keySelector: value => value.Type, 
+                resultSelector: static (key, values) => 
+                    new TypeWithAttributeDeclarationContext 
+                    { 
+                        TypeSymbol = (ITypeSymbol)key!, 
+                        Declarations = values.Select(v => (v.Syntax, v.Model)).ToImmutableArray() 
+                    },
+
+                keyComparer: SymbolEqualityComparer.Default);
 
         bool IsAnnotatedTypeDeclaration(BaseTypeDeclarationSyntax typeDecl, CancellationToken token)
         {
@@ -36,7 +47,7 @@ internal static partial class RoslynHelpers
             {
                 foreach (AttributeSyntax attribute in attributeList.Attributes)
                 {
-                    string name = ParseTypeName(attribute.Name, out int arity);
+                    string name = GetTypeName(attribute.Name, out int arity);
                     if ((name == attributeName || name == attributeNameMinusSuffix) && arity == attributeArity)
                     {
                         return predicate(typeDecl, token);
@@ -47,7 +58,7 @@ internal static partial class RoslynHelpers
             return false;
         }
 
-        TypeWithAttributeDeclarationContext Transform(GeneratorSyntaxContext ctx, CancellationToken token)
+        (ITypeSymbol Type, BaseTypeDeclarationSyntax Syntax, SemanticModel Model) Transform(GeneratorSyntaxContext ctx, CancellationToken token)
         {
             BaseTypeDeclarationSyntax typeDecl = (BaseTypeDeclarationSyntax)ctx.Node;
             ITypeSymbol typeSymbol = ctx.SemanticModel.GetDeclaredSymbol(typeDecl, token)!;
@@ -57,16 +68,16 @@ internal static partial class RoslynHelpers
                 if (attrData.AttributeClass is INamedTypeSymbol attributeType &&
                     attributeType.Name == attributeName &&
                     attributeType.Arity == attributeArity &&
-                    attributeType.ContainingNamespace?.ToDisplayString() == attributeNamespace)
+                    attributeType.ContainingNamespace.MatchesNamespace(attributeNamespace))
                 {
-                    return new() { SemanticModel = ctx.SemanticModel, DeclarationSyntax = typeDecl, TypeSymbol = typeSymbol };
+                    return (typeSymbol, typeDecl, ctx.SemanticModel);
                 }
             }
 
             return default;
         }
 
-        static string ParseTypeName(NameSyntax nameSyntax, out int genericTypeArity)
+        static string GetTypeName(NameSyntax nameSyntax, out int genericTypeArity)
         {
             while (true)
             {
@@ -90,5 +101,45 @@ internal static partial class RoslynHelpers
                 }
             }
         }
+
+        static ImmutableArray<string> GetNamespaceTokens(NameSyntax nameSyntax)
+        {
+            var tokens = new List<SimpleNameSyntax>();
+            Traverse(nameSyntax);
+
+            SimpleNameSyntax typeName = tokens[^1];
+            return tokens.Select(t => t.Identifier.Text).Take(tokens.Count - 1).ToImmutableArray();
+
+            void Traverse(NameSyntax current)
+            {
+                switch (current)
+                {
+                    case SimpleNameSyntax simpleName:
+                        tokens.Add(simpleName);
+                        break;
+                    case QualifiedNameSyntax qualifiedName:
+                        Traverse(qualifiedName.Left);
+                        Traverse(qualifiedName.Right);
+                        break;
+                    case AliasQualifiedNameSyntax alias:
+                        Traverse(alias.Name);
+                        break;
+                    default:
+                        Debug.Fail("Unrecognized NameSyntax");
+                        break;
+                }
+            }
+        }
+    }
+
+    // Cf. https://github.com/dotnet/roslyn/issues/72667
+    public static IncrementalValuesProvider<TResult> GroupBy<TSource, TKey, TResult>(
+        this IncrementalValuesProvider<TSource> source,
+        Func<TSource, TKey> keySelector,
+        Func<TKey, IEnumerable<TSource>, TResult> resultSelector,
+        IEqualityComparer<TKey>? keyComparer = null)
+    {
+        keyComparer ??= EqualityComparer<TKey>.Default;
+        return source.Collect().SelectMany((values, _) => values.GroupBy(keySelector, resultSelector, keyComparer));
     }
 }

@@ -145,7 +145,7 @@ public sealed partial class Parser : TypeDataModelGenerator
         {
             if (ctx.TypeSymbol.IsGenericTypeDefinition())
             {
-                ReportDiagnostic(GenericTypeDefinitionsNotSupported, ctx.DeclarationSyntax.GetLocation(), ctx.TypeSymbol.ToDisplayString());
+                ReportDiagnostic(GenericTypeDefinitionsNotSupported, ctx.Declarations.First().Syntax.GetLocation(), ctx.TypeSymbol.ToDisplayString());
                 continue;
             }
 
@@ -153,13 +153,13 @@ public sealed partial class Parser : TypeDataModelGenerator
 
             if (generationStatus is TypeDataModelGenerationStatus.UnsupportedType)
             {
-                ReportDiagnostic(TypeNotSupported, ctx.DeclarationSyntax.GetLocation(), ctx.TypeSymbol.ToDisplayString());
+                ReportDiagnostic(TypeNotSupported, ctx.Declarations.First().Syntax.GetLocation(), ctx.TypeSymbol.ToDisplayString());
                 continue;
             }
 
             if (generationStatus is TypeDataModelGenerationStatus.InaccessibleType)
             {
-                ReportDiagnostic(TypeNotAccessible, ctx.DeclarationSyntax.GetLocation(), ctx.TypeSymbol.ToDisplayString());
+                ReportDiagnostic(TypeNotAccessible, ctx.Declarations.First().Syntax.GetLocation(), ctx.TypeSymbol.ToDisplayString());
                 continue;
             }
 
@@ -183,12 +183,13 @@ public sealed partial class Parser : TypeDataModelGenerator
 
     private TypeDeclarationModel CreateTypeDeclaration(TypeWithAttributeDeclarationContext context, TypeId typeId)
     {
-        string typeDeclarationHeader = FormatTypeDeclarationHeader(context.DeclarationSyntax, context.TypeSymbol, CancellationToken, out bool isPartialHierarchy);
+        (BaseTypeDeclarationSyntax? declarationSyntax, SemanticModel? semanticModel) = context.Declarations.First();
+        string typeDeclarationHeader = FormatTypeDeclarationHeader(declarationSyntax, context.TypeSymbol, CancellationToken, out bool isPartialHierarchy);
 
         Stack<string>? parentStack = null;
-        for (SyntaxNode? parentNode = context.DeclarationSyntax.Parent; parentNode is BaseTypeDeclarationSyntax parentType; parentNode = parentNode.Parent)
+        for (SyntaxNode? parentNode = declarationSyntax.Parent; parentNode is BaseTypeDeclarationSyntax parentType; parentNode = parentNode.Parent)
         {
-            ITypeSymbol parentSymbol = context.SemanticModel.GetDeclaredSymbol(parentType, CancellationToken)!;
+            ITypeSymbol parentSymbol = semanticModel.GetDeclaredSymbol(parentType, CancellationToken)!;
             string parentHeader = FormatTypeDeclarationHeader(parentType, parentSymbol, CancellationToken, out bool isPartialType);
             (parentStack ??= new()).Push(parentHeader);
             isPartialHierarchy &= isPartialType;
@@ -196,7 +197,7 @@ public sealed partial class Parser : TypeDataModelGenerator
 
         if (!isPartialHierarchy)
         {
-            ReportDiagnostic(GeneratedTypeNotPartial, context.DeclarationSyntax.GetLocation(), context.TypeSymbol.ToDisplayString());
+            ReportDiagnostic(GeneratedTypeNotPartial, declarationSyntax.GetLocation(), context.TypeSymbol.ToDisplayString());
         }
 
         return new TypeDeclarationModel
