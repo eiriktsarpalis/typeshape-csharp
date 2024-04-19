@@ -34,7 +34,7 @@ public static class CollectionHelpers
         var set = new HashSet<T>(span.Length);
         for (int i = 0; i < span.Length; i++)
         {
-            set.Add(span[i]);
+            set.Add(span[i]); // NB duplicates have overwrite semantics.
         }
 
         return set;
@@ -54,14 +54,14 @@ public static class CollectionHelpers
         for (int i = 0; i < span.Length; i++)
         {
             KeyValuePair<TKey, TValue> kvp = span[i];
-            dict[kvp.Key] = kvp.Value;
+            dict[kvp.Key] = kvp.Value; // NB duplicate keys have overwrite semantics.
         }
 
         return dict;
     }
 
     /// <summary>
-    /// Creates a <see cref="IDictionary{TKey, TValue}"/> wrapper for a <see cref="IReadOnlyDictionary{TKey, TValue}"/>.
+    /// Creates a <see cref="IReadOnlyDictionary{TKey, TValue}"/> adapter for a <see cref="IDictionary{TKey, TValue}"/>.
     /// </summary>
     /// <typeparam name="TDictionary">The dictionary type to be wrapped.</typeparam>
     /// <typeparam name="TKey">The key type of the dictionary.</typeparam>
@@ -70,28 +70,25 @@ public static class CollectionHelpers
     /// <returns>A read-only dictionary instance wrapping the source dictionary.</returns>
     public static IReadOnlyDictionary<TKey, TValue> AsReadOnlyDictionary<TDictionary, TKey, TValue>(TDictionary dictionary)
         where TDictionary : IDictionary<TKey, TValue>
-        => new ReadOnlyDictionaryWrapper<TDictionary, TKey, TValue>(dictionary);
+        => dictionary is IReadOnlyDictionary<TKey, TValue> rod ? rod : new ReadOnlyDictionaryAdapter<TDictionary, TKey, TValue>(dictionary);
 
     /// <summary>
-    /// Creates a <see cref="IDictionary{TKey, TValue}"/> wrapper for a <see cref="IDictionary"/>.
+    /// Creates a <see cref="IReadOnlyDictionary{TKey, TValue}"/> adapter for a <see cref="IDictionary"/>.
     /// </summary>
     /// <typeparam name="TDictionary">The dictionary type to be wrapped.</typeparam>
     /// <param name="dictionary">The source dictionary to be wrapped.</param>
     /// <returns>A read-only dictionary instance wrapping the source dictionary.</returns>
     public static IReadOnlyDictionary<object, object?> AsReadOnlyDictionary<TDictionary>(TDictionary dictionary)
         where TDictionary : IDictionary
-        => new ReadOnlyDictionaryWrapper<TDictionary>(dictionary);
+        => dictionary is IReadOnlyDictionary<object, object?> rod ? rod : new ReadOnlyDictionaryAdapter<TDictionary>(dictionary);
 
-    private sealed class ReadOnlyDictionaryWrapper<TDictionary, TKey, TValue> : IReadOnlyDictionary<TKey, TValue>
+    private sealed class ReadOnlyDictionaryAdapter<TDictionary, TKey, TValue> : IReadOnlyDictionary<TKey, TValue>
         where TDictionary : IDictionary<TKey, TValue>
     {
         private readonly TDictionary _dictionary;
-        public ReadOnlyDictionaryWrapper(TDictionary dictionary)
+        public ReadOnlyDictionaryAdapter(TDictionary dictionary)
         {
-            Debug.Assert(
-                !typeof(TDictionary).IsAssignableTo(typeof(IReadOnlyDictionary<TKey, TValue>)),
-                "types implementing IReadOnlyDictionary should not call the wrapper helper.");
-
+            Debug.Assert(dictionary is not IReadOnlyDictionary<TKey, TValue>);
             _dictionary = dictionary;
         }
 
@@ -105,12 +102,16 @@ public static class CollectionHelpers
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
-    private sealed class ReadOnlyDictionaryWrapper<TDictionary> : IReadOnlyDictionary<object, object?>
+    private sealed class ReadOnlyDictionaryAdapter<TDictionary> : IReadOnlyDictionary<object, object?>
         where TDictionary : IDictionary
     {
         private readonly TDictionary _dictionary;
-        public ReadOnlyDictionaryWrapper(TDictionary dictionary)
-            => _dictionary = dictionary;
+
+        public ReadOnlyDictionaryAdapter(TDictionary dictionary)
+        {
+            Debug.Assert(dictionary is not IReadOnlyDictionary<object, object?>);
+            _dictionary = dictionary;
+        }
 
         public int Count => _dictionary.Count;
         public IEnumerable<object> Keys => _dictionary.Keys.Cast<object>();

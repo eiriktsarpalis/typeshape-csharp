@@ -66,8 +66,7 @@ public interface IDictionaryShape<TDictionary, TKey, TValue> : ITypeShape<TDicti
     new ITypeShape<TValue> ValueType { get; }
 
     /// <summary>
-    /// Creates a delegate used for getting a <see cref="IReadOnlyDictionary{TKey, TValue}"/>
-    /// view of the enumerable.
+    /// Creates a delegate used for getting a <see cref="IReadOnlyDictionary{TKey, TValue}"/> view of the dictionary.
     /// </summary>
     /// <returns>
     /// A delegate accepting a <typeparamref name="TDictionary"/> and
