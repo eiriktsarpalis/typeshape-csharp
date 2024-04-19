@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using TypeShape.Abstractions;
 
 namespace TypeShape.ReflectionProvider.MemberAccessors;
 

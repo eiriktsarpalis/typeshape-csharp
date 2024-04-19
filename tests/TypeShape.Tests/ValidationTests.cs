@@ -1,4 +1,5 @@
-﻿using TypeShape.Applications.Validation;
+﻿using TypeShape.Abstractions;
+using TypeShape.Applications.Validation;
 using TypeShape.ReflectionProvider;
 using Xunit;
 
@@ -117,12 +118,7 @@ public abstract partial class ValidationTests
         static object?[] Create<T>(T value, List<string>? expectedErrors = null) => [value, expectedErrors];
     }
 
-    private Validator<T> GetValidatorUnderTest<T>()
-    {
-        ITypeShape<T>? shape = Provider.GetShape<T>();
-        Assert.NotNull(shape);
-        return Validator.Create(shape);
-    }
+    private Validator<T> GetValidatorUnderTest<T>() => Validator.Create<T>(Provider);
 
     [GenerateShape]
     public partial record BindingModel

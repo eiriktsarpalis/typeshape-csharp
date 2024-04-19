@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using TypeShape.Abstractions;
 
 namespace TypeShape.Applications.JsonSchema;
 
@@ -10,21 +11,17 @@ namespace TypeShape.Applications.JsonSchema;
 /// </summary>
 public static class JsonSchemaGenerator
 {
+    public static JsonObject Generate<T>(ITypeShapeProvider provider)
+        => Generate(provider.Resolve<T>());
+
     public static JsonObject Generate(ITypeShape typeShape)
-    {
-        var generator = new Generator();
-        return generator.GenerateSchema(typeShape);
-    }
+        => new Generator().GenerateSchema(typeShape);
 
     public static JsonObject Generate<T, TProvider>() where TProvider : ITypeShapeProvider<T>
-    {
-        return Generate(TProvider.GetShape());
-    }
+        => Generate(TProvider.GetShape());
 
     public static JsonObject Generate<T>() where T : ITypeShapeProvider<T>
-    {
-        return Generate(T.GetShape());
-    }
+        => Generate(T.GetShape());
 
     private sealed class Generator
     {

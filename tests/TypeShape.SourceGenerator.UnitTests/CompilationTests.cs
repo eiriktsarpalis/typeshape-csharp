@@ -10,6 +10,7 @@ public static class CompilationTests
     {
         Compilation compilation = CompilationHelpers.CreateCompilation("""
             using TypeShape;
+            using TypeShape.Abstractions;
             using System.Collections.Generic;
 
             [GenerateShape]
@@ -27,7 +28,7 @@ public static class CompilationTests
                 public Dictionary<string, int> Dict { get; set; }
 
                 public static ITypeShape<MyPoco> Test()
-                    => TypeShapeProvider.GetShape<MyPoco>();
+                    => TypeShapeProvider.Resolve<MyPoco>();
             }
             """);
 
@@ -123,6 +124,7 @@ public static class CompilationTests
     {
         Compilation compilation = CompilationHelpers.CreateCompilation("""
             using TypeShape;
+            using TypeShape.Abstractions;
             using System.Collections.Generic;
             #nullable enable
 
@@ -185,6 +187,7 @@ public static class CompilationTests
     {
         Compilation compilation = CompilationHelpers.CreateCompilation("""
             using TypeShape;
+            using TypeShape.Abstractions;
 
             public static class Test
             {

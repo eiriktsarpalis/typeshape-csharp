@@ -1,4 +1,4 @@
-﻿namespace TypeShape;
+﻿namespace TypeShape.Abstractions;
 
 /// <summary>
 /// Provides a visitor for strongly-typed traversal of .NET types.

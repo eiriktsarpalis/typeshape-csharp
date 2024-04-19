@@ -4,6 +4,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using TypeShape.Abstractions;
 
 internal class JsonObjectConverter<T>(JsonPropertyConverter<T>[] properties) : JsonConverter<T>
 {

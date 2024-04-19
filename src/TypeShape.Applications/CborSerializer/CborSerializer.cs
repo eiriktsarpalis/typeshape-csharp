@@ -1,15 +1,16 @@
 ﻿using System.Diagnostics;
 using System.Formats.Cbor;
+using TypeShape.Abstractions;
 
 namespace TypeShape.Applications.CborSerializer;
 
 public static partial class CborSerializer
 {
-    public static CborConverter<T> CreateConverter<T>(ITypeShape<T> shape)
-    {
-        var builder = new Builder();
-        return builder.BuildConverter(shape);
-    }
+    public static CborConverter<T> CreateConverter<T>(ITypeShape<T> shape) =>
+        new Builder().BuildConverter(shape);
+
+    public static CborConverter<T> CreateConverter<T>(ITypeShapeProvider provider) =>
+        CreateConverter(provider.Resolve<T>());
 
     public static byte[] Encode<T>(this CborConverter<T> converter, T? value)
     {

@@ -91,7 +91,7 @@ public interface ITypeShapeVisitor
 Users can extract the shape model for a given type either using the built-in source generator:
 
 ```C#
-ITypeShape<MyPoco> shape = TypeShapeProvider.GetShape<MyPoco>();
+ITypeShape<MyPoco> shape = TypeShapeProvider.Resolve<MyPoco>();
 
 [GenerateShape] // Auto-generates a static abstract factory for ITypeShape<MyPoco>
 public partial record MyPoco(string x, string y);
@@ -100,8 +100,8 @@ public partial record MyPoco(string x, string y);
 For types not accessible in the current compilation, the implementation can be generated using a separate witness type:
 
 ```C#
-ITypeShape<MyPoco[]> shape = TypeShapeProvider.GetShape<MyPoco[], Witness>();
-ITypeShape<MyPoco[][]> shape = TypeShapeProvider.GetShape<MyPoco[][], Witness>();
+ITypeShape<MyPoco[]> shape = TypeShapeProvider.Resolve<MyPoco[], Witness>();
+ITypeShape<MyPoco[][]> shape = TypeShapeProvider.Resolve<MyPoco[][], Witness>();
 
 // Generates factories for both ITypeShape<MyPoco[]> and ITypeShape<MyPoco[][]>
 [GenerateShape<MyPoco[]>]

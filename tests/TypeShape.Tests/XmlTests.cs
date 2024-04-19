@@ -1,7 +1,7 @@
-﻿using System.CodeDom.Compiler;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using System.Numerics;
 using System.Xml;
+using TypeShape.Abstractions;
 using TypeShape.Applications.XmlSerializer;
 using TypeShape.ReflectionProvider;
 using Xunit;
@@ -120,12 +120,7 @@ public abstract class XmlTests
         }
     }
 
-    protected XmlConverter<T> GetConverterUnderTest<T>()
-    {
-        ITypeShape<T>? shape = Provider.GetShape<T>();
-        Assert.NotNull(shape);
-        return XmlSerializer.CreateConverter(shape);
-    }
+    protected XmlConverter<T> GetConverterUnderTest<T>() => XmlSerializer.CreateConverter<T>(Provider);
 }
 
 public sealed class XmlTests_Reflection : XmlTests

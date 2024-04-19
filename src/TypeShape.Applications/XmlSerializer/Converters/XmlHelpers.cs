@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Xml;
 
 namespace TypeShape.Applications.XmlSerializer.Converters;
@@ -39,22 +38,6 @@ internal static class XmlHelpers
 
         return false;
     }
-
-    //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-    //public static void EnsureRead(this XmlReader reader, XmlNodeType expectedNodeType)
-    //{
-    //    if (!reader.Read())
-    //    {
-    //        Throw();
-    //        static void Throw() => throw new InvalidOperationException("Unexpected end of XML stream.");
-    //    }
-
-    //    if (reader.NodeType != expectedNodeType)
-    //    {
-    //        Throw(reader.NodeType);
-    //        static void Throw(XmlNodeType nodeType) => throw new InvalidOperationException($"Unexpected XML node type: {nodeType}.");
-    //    }
-    //}
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static XmlNodeType ReadNextNode(this XmlReader reader)

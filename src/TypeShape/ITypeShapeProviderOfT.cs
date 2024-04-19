@@ -1,4 +1,6 @@
-﻿namespace TypeShape;
+﻿using TypeShape.Abstractions;
+
+namespace TypeShape;
 
 /// <summary>
 /// Defines a static and strongly typed <see cref="ITypeShape"/> provider abstraction.

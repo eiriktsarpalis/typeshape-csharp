@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using TypeShape.Abstractions;
 
 namespace TypeShape.Applications.JsonSerializer.Converters;
 
@@ -136,16 +137,6 @@ public sealed class JsonObjectConverter(ITypeShapeProvider provider) : JsonConve
             return null;
         }
 
-        return _derivedTypes.GetOrAdd(runtimeType, ResolveDerivedConverter, provider);
-
-        static ITypeShapeJsonConverter ResolveDerivedConverter(Type derivedType, ITypeShapeProvider provider)
-        {
-            if (provider.GetShape(derivedType) is not { } derivedShape)
-            {
-                throw new NotSupportedException($"Unsupported derived type '{derivedType}'.");
-            }
-
-            return TypeShapeJsonSerializer.CreateConverter(derivedShape);
-        }
+        return _derivedTypes.GetOrAdd(runtimeType, TypeShapeJsonSerializer.CreateConverter, provider);
     }
 }

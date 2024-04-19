@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using System.Reflection.Emit;
+using TypeShape.Abstractions;
 
 namespace TypeShape.ReflectionProvider.MemberAccessors;
 

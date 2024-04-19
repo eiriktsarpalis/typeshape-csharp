@@ -1,4 +1,6 @@
-﻿namespace TypeShape.SourceGenModel;
+﻿using TypeShape.Abstractions;
+
+namespace TypeShape.SourceGenModel;
 
 /// <summary>
 /// Source generator model for object type shapes.

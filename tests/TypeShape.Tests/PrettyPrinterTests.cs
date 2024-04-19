@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using TypeShape.Abstractions;
 using TypeShape.Applications.PrettyPrinter;
 using TypeShape.ReflectionProvider;
 using Xunit;
@@ -87,12 +88,7 @@ public abstract class PrettyPrinterTests
         static object?[] GetPair<T>(T? value, string expected) => [value, expected.ReplaceLineEndings()];
     }
 
-    private PrettyPrinter<T> GetPrettyPrinterUnderTest<T>()
-    {
-        ITypeShape<T>? shape = Provider.GetShape<T>();
-        Assert.NotNull(shape);
-        return PrettyPrinter.Create(shape);
-    }
+    private PrettyPrinter<T> GetPrettyPrinterUnderTest<T>() => PrettyPrinter.Create<T>(Provider);
 }
 
 public class PrettyPrinterTests_Reflection : PrettyPrinterTests

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
+using TypeShape.Abstractions;
 
 namespace TypeShape.Applications.Validation;
 
@@ -13,11 +14,14 @@ public static partial class Validator
     /// <summary>
     /// Builds a validator delegate using a type shape as input.
     /// </summary>
-    public static Validator<T> Create<T>(ITypeShape<T> type)
-    {
-        var builder = new Builder();
-        return builder.BuildValidator(type) ?? Builder.CreateNullValidator<T>();
-    }
+    public static Validator<T> Create<T>(ITypeShape<T> type) =>
+        new Builder().BuildValidator(type) ?? Builder.CreateNullValidator<T>();
+
+    /// <summary>
+    /// Builds a validator delegate using a shape provider as input.
+    /// </summary>
+    public static Validator<T> Create<T>(ITypeShapeProvider provider) =>
+        Create(provider.Resolve<T>());
 
     /// <summary>
     /// Runs validation against the provided value.

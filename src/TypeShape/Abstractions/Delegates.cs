@@ -1,4 +1,4 @@
-﻿namespace TypeShape;
+﻿namespace TypeShape.Abstractions;
 
 /// <summary>
 /// Delegate representing a property/field getter.

@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Xml;
 using TypeShape.Applications.XmlSerializer.Converters;
+using TypeShape.Abstractions;
 
 namespace TypeShape.Applications.XmlSerializer;
 
@@ -18,11 +19,11 @@ public static partial class XmlSerializer
         IgnoreWhitespace = true,
     };
 
-    public static XmlConverter<T> CreateConverter<T>(ITypeShape<T> shape)
-    {
-        var builder = new Builder();
-        return builder.BuildConverter(shape);
-    }
+    public static XmlConverter<T> CreateConverter<T>(ITypeShape<T> shape) =>
+        new Builder().BuildConverter(shape);
+
+    public static XmlConverter<T> CreateConverter<T>(ITypeShapeProvider provider) =>
+        CreateConverter(provider.Resolve<T>());
 
     public static string Serialize<T>(this XmlConverter<T> converter, T? value, XmlWriterSettings? settings = null)
     {

@@ -1,4 +1,4 @@
-﻿namespace TypeShape;
+﻿namespace TypeShape.Abstractions;
 
 /// <summary>
 /// A generic function used to unpack <see cref="ITypeShape"/> instances.

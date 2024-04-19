@@ -1,5 +1,5 @@
-﻿using System.Collections;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
+using TypeShape.Abstractions;
 using TypeShape.Applications.StructuralEquality.Comparers;
 
 namespace TypeShape.Applications.StructuralEquality;

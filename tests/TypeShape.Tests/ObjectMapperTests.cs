@@ -1,4 +1,5 @@
-﻿using TypeShape.Applications.ObjectMapper;
+﻿using TypeShape.Abstractions;
+using TypeShape.Applications.ObjectMapper;
 using TypeShape.Applications.StructuralEquality;
 using TypeShape.ReflectionProvider;
 using Xunit;
@@ -77,20 +78,11 @@ public abstract class ObjectMapperTests
         Assert.Null(weatherForecast.UnmatchedProperty);
     }
 
-    private Mapper<TFrom, TTo> GetMapper<TFrom, TTo>()
-    {
-        ITypeShape<TFrom>? fromShape = Provider.GetShape<TFrom>();
-        ITypeShape<TTo>? toShape = Provider.GetShape<TTo>();
-        Assert.NotNull(fromShape);
-        Assert.NotNull(toShape);
-
-        return Mapper.Create(fromShape, toShape);
-    }
+    private Mapper<TFrom, TTo> GetMapper<TFrom, TTo>() => Mapper.Create<TFrom, TTo>(Provider);
 
     private (Mapper<T, T>, IEqualityComparer<T>, ITypeShape<T>) GetMapperAndEqualityComparer<T>()
     {
-        ITypeShape<T>? shape = Provider.GetShape<T>();
-        Assert.NotNull(shape);
+        ITypeShape<T> shape = Provider.Resolve<T>();
         return (Mapper.Create(shape, shape), StructuralEqualityComparer.Create(shape), shape);
     }
 }

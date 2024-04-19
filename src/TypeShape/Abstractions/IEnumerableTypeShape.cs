@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 
-namespace TypeShape;
+namespace TypeShape.Abstractions;
 
 /// <summary>
 /// Provides a strongly typed shape model for a .NET type that is enumerable.

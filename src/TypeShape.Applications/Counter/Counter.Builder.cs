@@ -1,4 +1,6 @@
-﻿namespace TypeShape.Applications.Counter;
+﻿using TypeShape.Abstractions;
+
+namespace TypeShape.Applications.Counter;
 
 public static partial class Counter
 {

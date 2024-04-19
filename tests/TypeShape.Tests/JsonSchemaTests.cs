@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using TypeShape.Abstractions;
 using TypeShape.Applications.JsonSchema;
 using TypeShape.Applications.JsonSerializer;
 using TypeShape.ReflectionProvider;
@@ -100,8 +101,7 @@ public abstract class JsonSchemaTests
             return; // Not supported by JsonSchema.NET
         }
 
-        ITypeShape<T>? shape = Provider.GetShape<T>();
-        Assert.NotNull(shape);
+        ITypeShape<T> shape = Provider.Resolve<T>();
 
         JsonObject schema = JsonSchemaGenerator.Generate(shape);
         string json = TypeShapeJsonSerializer.CreateConverter(shape).Serialize(testCase.Value);

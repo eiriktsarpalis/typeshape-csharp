@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Formats.Cbor;
+using TypeShape.Abstractions;
 
 namespace TypeShape.Applications.CborSerializer.Converters;
 

@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using TypeShape.Abstractions;
 using TypeShape.Applications.JsonSerializer;
 using TypeShape.Applications.JsonSerializer.Converters;
 using TypeShape.ReflectionProvider;
@@ -379,12 +380,7 @@ public abstract class JsonTests
         },
     };
 
-    protected TypeShapeJsonConverter<T> GetConverterUnderTest<T>()
-    {
-        ITypeShape<T>? shape = Provider.GetShape<T>();
-        Assert.NotNull(shape);
-        return TypeShapeJsonSerializer.CreateConverter(shape);
-    }
+    protected TypeShapeJsonConverter<T> GetConverterUnderTest<T>() => TypeShapeJsonSerializer.CreateConverter<T>(Provider);
 
     private protected static bool IsUnsupportedBySTJ<T>(TestCase<T> value) => 
         value.IsMultiDimensionalArray ||

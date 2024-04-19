@@ -1,4 +1,6 @@
-﻿namespace TypeShape.Applications.Counter;
+﻿using TypeShape.Abstractions;
+
+namespace TypeShape.Applications.Counter;
 
 public static partial class Counter
 {
@@ -6,10 +8,10 @@ public static partial class Counter
     // walks the object graph returning a count of the number of nodes encountered.
 
     public static Func<T?, long> Create<T>(ITypeShape<T> shape)
-    {
-        var builder = new Builder();
-        return builder.BuildCounter(shape);
-    }
+        => new Builder().BuildCounter(shape);
+
+    public static Func<T?, long> Create<T>(ITypeShapeProvider provider)
+        => Create(provider.Resolve<T>());
 
     public static long GetCount<T>(T? value) where T : ITypeShapeProvider<T>
         => CounterCache<T, T>.Value(value);

@@ -1,4 +1,5 @@
-﻿using TypeShape.Applications.StructuralEquality;
+﻿using TypeShape.Abstractions;
+using TypeShape.Applications.StructuralEquality;
 using TypeShape.ReflectionProvider;
 using Xunit;
 
@@ -90,12 +91,7 @@ public abstract class StructuralEqualityTests
         static object[] NotEqual<T>(T left, T right) => [left!, right!];
     }
 
-    private IEqualityComparer<T> GetEqualityComparerUnderTest<T>()
-    {
-        ITypeShape<T>? shape = Provider.GetShape<T>();
-        Assert.NotNull(shape);
-        return StructuralEqualityComparer.Create(shape);
-    }
+    private IEqualityComparer<T> GetEqualityComparerUnderTest<T>() => StructuralEqualityComparer.Create<T>(Provider);
 }
 
 public class StructuralEqualityTests_Reflection : StructuralEqualityTests

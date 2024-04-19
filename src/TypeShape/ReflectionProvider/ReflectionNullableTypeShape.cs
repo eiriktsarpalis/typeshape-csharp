@@ -1,4 +1,6 @@
-﻿namespace TypeShape.ReflectionProvider;
+﻿using TypeShape.Abstractions;
+
+namespace TypeShape.ReflectionProvider;
 
 internal sealed class ReflectionNullableTypeShape<T>(ReflectionTypeShapeProvider provider) : INullableTypeShape<T>
     where T : struct

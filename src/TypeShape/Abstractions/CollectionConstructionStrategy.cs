@@ -1,4 +1,4 @@
-﻿namespace TypeShape;
+﻿namespace TypeShape.Abstractions;
 
 /// <summary>
 /// The construction strategy use for a given <see cref="IEnumerableTypeShape"/> or <see cref="IDictionaryTypeShape"/>.

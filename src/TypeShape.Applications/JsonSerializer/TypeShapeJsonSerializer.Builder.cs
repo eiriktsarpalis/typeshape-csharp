@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using TypeShape.Abstractions;
 using TypeShape.Applications.JsonSerializer.Converters;
 
 public static partial class TypeShapeJsonSerializer

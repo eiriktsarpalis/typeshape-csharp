@@ -1,21 +1,16 @@
 ﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using TypeShape.Abstractions;
 
 namespace TypeShape.Applications.StructuralEquality;
 
 public static partial class StructuralEqualityComparer
 {
-    public static IEqualityComparer<T> Create<T>(ITypeShape<T> shape)
-    {
-        var builder = new Builder();
-        return builder.BuildEqualityComparer(shape);
-    }
+    public static IEqualityComparer<T> Create<T>(ITypeShape<T> shape) =>
+        new Builder().BuildEqualityComparer(shape);
 
-    public static IEqualityComparer Create(ITypeShape shape)
-    {
-        ITypeShapeFunc builder = new Builder();
-        return (IEqualityComparer)shape.Invoke(builder, null)!;
-    }
+    public static IEqualityComparer<T> Create<T>(ITypeShapeProvider provider) =>
+        Create(provider.Resolve<T>());
 
     public static IEqualityComparer<T> Create<T>() where T : ITypeShapeProvider<T> =>
         EqualityComparerCache<T, T>.Value;
@@ -34,6 +29,13 @@ public static partial class StructuralEqualityComparer
 
     public static bool Equals<T, TProvider>(T? left, T? right) where TProvider : ITypeShapeProvider<T> => 
         EqualityComparerCache<T, TProvider>.Value.Equals(left, right);
+
+    internal static IEqualityComparer Create(Type type, ITypeShapeProvider provider)
+    {
+        ITypeShape shape = provider.Resolve(type);
+        ITypeShapeFunc builder = new Builder();
+        return (IEqualityComparer)shape.Invoke(builder, null)!;
+    }
 
     private static class EqualityComparerCache<T, TProvider> where TProvider : ITypeShapeProvider<T>
     {

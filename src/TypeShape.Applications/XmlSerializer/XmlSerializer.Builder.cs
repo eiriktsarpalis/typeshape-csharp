@@ -1,4 +1,5 @@
 ﻿using TypeShape.Applications.XmlSerializer.Converters;
+using TypeShape.Abstractions;
 
 namespace TypeShape.Applications.XmlSerializer;
 

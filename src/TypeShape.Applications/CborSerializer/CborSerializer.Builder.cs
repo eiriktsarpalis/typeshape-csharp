@@ -1,4 +1,5 @@
-﻿using TypeShape.Applications.CborSerializer.Converters;
+﻿using TypeShape.Abstractions;
+using TypeShape.Applications.CborSerializer.Converters;
 
 namespace TypeShape.Applications.CborSerializer;
 

@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using TypeShape.Abstractions;
 
 namespace TypeShape.ReflectionProvider.MemberAccessors;
 

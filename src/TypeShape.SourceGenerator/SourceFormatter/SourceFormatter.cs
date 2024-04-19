@@ -81,6 +81,7 @@ internal static partial class SourceFormatter
             using System;
             using System.Collections.Generic;
             using TypeShape;
+            using TypeShape.Abstractions;
             using TypeShape.SourceGenModel;
 
             """);

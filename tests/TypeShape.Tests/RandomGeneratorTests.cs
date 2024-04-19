@@ -1,4 +1,5 @@
-﻿using TypeShape.Applications.RandomGenerator;
+﻿using TypeShape.Abstractions;
+using TypeShape.Applications.RandomGenerator;
 using TypeShape.Applications.StructuralEquality;
 using TypeShape.ReflectionProvider;
 using Xunit;
@@ -28,8 +29,7 @@ public abstract class RandomGeneratorTests
 
     private (RandomGenerator<T>, IEqualityComparer<T>) GetGeneratorAndEqualityComparer<T>()
     {
-        ITypeShape<T>? shape = Provider.GetShape<T>();
-        Assert.NotNull(shape);
+        ITypeShape<T> shape = Provider.Resolve<T>();
         return (RandomGenerator.Create(shape), StructuralEqualityComparer.Create(shape));
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace TypeShape;
+﻿namespace TypeShape.Abstractions;
 
 /// <summary>
 /// Specifies the kind of constructor parameter.

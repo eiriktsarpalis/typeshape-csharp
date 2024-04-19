@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace TypeShape;
+namespace TypeShape.Abstractions;
 
 /// <summary>
 /// Provides a strongly typed shape model for a given .NET type.

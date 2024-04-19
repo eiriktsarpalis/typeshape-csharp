@@ -51,7 +51,7 @@ public static class CompilationHelpers
             MetadataReference.CreateFromFile(typeof(JavaScriptEncoder).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(LinkedList<>).Assembly.Location),
             MetadataReference.CreateFromFile(systemRuntimeAssembly.Location),
-            MetadataReference.CreateFromFile(typeof(TypeShape.ITypeShape).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(TypeShape.Abstractions.ITypeShape).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(System.Runtime.CompilerServices.Unsafe).Assembly.Location),
             .. additionalReferences,
         ];

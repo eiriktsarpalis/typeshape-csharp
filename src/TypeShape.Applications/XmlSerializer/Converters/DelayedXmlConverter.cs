@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-using System.Xml;
-using TypeShape.Applications.Common;
+﻿using System.Xml;
 
 namespace TypeShape.Applications.XmlSerializer.Converters;
 

@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using TypeShape.Applications.Common;
+﻿using System.Diagnostics.CodeAnalysis;
 
 namespace TypeShape.Applications.StructuralEquality.Comparers;
 

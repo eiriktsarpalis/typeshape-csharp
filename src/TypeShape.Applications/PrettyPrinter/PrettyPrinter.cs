@@ -2,16 +2,17 @@
 
 using System.Text;
 using TypeShape;
+using TypeShape.Abstractions;
 
 public delegate void PrettyPrinter<T>(StringBuilder builder, int indentation, T? value);
 
 public static partial class PrettyPrinter
 {
     public static PrettyPrinter<T> Create<T>(ITypeShape<T> type)
-    {
-        var builder = new Builder();
-        return builder.BuildPrettyPrinter(type);
-    }
+        => new Builder().BuildPrettyPrinter(type);
+
+    public static PrettyPrinter<T> Create<T>(ITypeShapeProvider provider)
+        => Create(provider.Resolve<T>());
 
     public static string Print<T>(this PrettyPrinter<T> pp, T? value)
     {

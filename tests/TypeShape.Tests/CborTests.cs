@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using TypeShape.Abstractions;
 using TypeShape.Applications.CborSerializer;
 using TypeShape.ReflectionProvider;
 using Xunit;
@@ -108,12 +109,7 @@ public abstract class CborTests
         }
     }
 
-    protected CborConverter<T> GetConverterUnderTest<T>()
-    {
-        ITypeShape<T>? shape = Provider.GetShape<T>();
-        Assert.NotNull(shape);
-        return CborSerializer.CreateConverter(shape);
-    }
+    protected CborConverter<T> GetConverterUnderTest<T>() => CborSerializer.CreateConverter<T>(Provider);
 }
 
 public sealed class CborTests_Reflection : CborTests

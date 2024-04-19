@@ -1,14 +1,16 @@
-﻿namespace TypeShape.Applications.RandomGenerator;
+﻿using TypeShape.Abstractions;
+
+namespace TypeShape.Applications.RandomGenerator;
 
 public delegate T RandomGenerator<T>(Random random, int size);
 
 public static partial class RandomGenerator
 {
-    public static RandomGenerator<T> Create<T>(ITypeShape<T> shape)
-    {
-        var builder = new Builder();
-        return builder.BuildGenerator(shape);
-    }
+    public static RandomGenerator<T> Create<T>(ITypeShape<T> shape) => 
+        new Builder().BuildGenerator(shape);
+
+    public static RandomGenerator<T> Create<T>(ITypeShapeProvider provider) =>
+        Create(provider.Resolve<T>());
 
     public static T GenerateValue<T>(this RandomGenerator<T> generator, int size, int? seed = null)
     {

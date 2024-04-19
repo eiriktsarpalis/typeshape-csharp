@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using TypeShape.Abstractions;
 
 namespace TypeShape.Applications.StructuralEquality.Comparers;
 
@@ -59,7 +60,7 @@ internal sealed class PropertyEqualityComparer<TDeclaringType, TPropertyType> : 
 
 internal sealed class PolymorphicObjectEqualityComparer(ITypeShapeProvider provider) : EqualityComparer<object>
 {
-    private readonly ConcurrentDictionary<Type, IEqualityComparer?> _cache = new();
+    private readonly ConcurrentDictionary<Type, IEqualityComparer> _cache = new();
 
     public override bool Equals(object? x, object? y)
     {
@@ -84,17 +85,6 @@ internal sealed class PolymorphicObjectEqualityComparer(ITypeShapeProvider provi
 
     private IEqualityComparer GetComparer(Type type)
     {
-        return _cache.GetOrAdd(type, ResolveComparer, provider) ?? 
-            throw new NotSupportedException($"No type shape provided for type '{type}'.");
-        
-        static IEqualityComparer? ResolveComparer(Type type, ITypeShapeProvider provider)
-        {
-            if (provider.GetShape(type) is not ITypeShape shape)
-            {
-                return null;
-            }
-
-            return StructuralEqualityComparer.Create(shape);
-        }
+        return _cache.GetOrAdd(type, StructuralEqualityComparer.Create, provider);
     }
 }

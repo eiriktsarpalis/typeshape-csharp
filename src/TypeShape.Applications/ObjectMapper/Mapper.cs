@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using TypeShape.Abstractions;
 
 namespace TypeShape.Applications.ObjectMapper;
 
@@ -36,6 +37,16 @@ public static partial class Mapper
 
         return mapper;
     }
+
+    /// <summary>
+    /// Derives a mapper delegate from a TypeShape provider.
+    /// </summary>
+    /// <typeparam name="TSource">The type to map from.</typeparam>
+    /// <typeparam name="TTarget">The type to map to.</typeparam>
+    /// <param name="provider">The TypeShape provider.</param>
+    /// <returns>A mapper delegate.</returns>
+    public static Mapper<TSource, TTarget> Create<TSource, TTarget>(ITypeShapeProvider provider) =>
+        Create(provider.Resolve<TSource>(), provider.Resolve<TTarget>());
 
     /// <summary>
     /// Maps an object of type <typeparamref name="TSource"/> to an object of type <typeparamref name="TTarget"/>.

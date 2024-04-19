@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Numerics;
 using System.Text;
+using TypeShape.Abstractions;
 
 namespace TypeShape.Applications.RandomGenerator;
 

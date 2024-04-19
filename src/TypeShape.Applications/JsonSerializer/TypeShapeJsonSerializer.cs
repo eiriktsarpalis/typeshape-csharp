@@ -1,18 +1,14 @@
-﻿namespace TypeShape.Applications.JsonSerializer;
+﻿using TypeShape.Abstractions;
+
+namespace TypeShape.Applications.JsonSerializer;
 
 public static partial class TypeShapeJsonSerializer
 {
-    public static TypeShapeJsonConverter<T> CreateConverter<T>(ITypeShape<T> shape)
-    {
-        var builder = new Builder();
-        return builder.BuildTypeShapeJsonConverter(shape);
-    }
+    public static TypeShapeJsonConverter<T> CreateConverter<T>(ITypeShape<T> shape) =>
+        new Builder().BuildTypeShapeJsonConverter(shape);
 
-    public static ITypeShapeJsonConverter CreateConverter(ITypeShape shape)
-    {         
-        ITypeShapeFunc builder = new Builder();
-        return (ITypeShapeJsonConverter)shape.Invoke(builder)!;
-    }
+    public static TypeShapeJsonConverter<T> CreateConverter<T>(ITypeShapeProvider provider) =>
+        CreateConverter(provider.Resolve<T>());
 
     public static string Serialize<T>(T? value) where T : ITypeShapeProvider<T> => 
         SerializerCache<T, T>.Value.Serialize(value);
@@ -25,6 +21,13 @@ public static partial class TypeShapeJsonSerializer
 
     public static T? Deserialize<T, TProvider>(string json) where TProvider : ITypeShapeProvider<T> => 
         SerializerCache<T, TProvider>.Value.Deserialize(json);
+
+    internal static ITypeShapeJsonConverter CreateConverter(Type type, ITypeShapeProvider provider)
+    {
+        ITypeShape shape = provider.Resolve(type);
+        ITypeShapeFunc builder = new Builder();
+        return (ITypeShapeJsonConverter)shape.Invoke(builder)!;
+    }
 
     private static class SerializerCache<T, TProvider> where TProvider : ITypeShapeProvider<T>
     {

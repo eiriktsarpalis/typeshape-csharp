@@ -1,4 +1,5 @@
-﻿using TypeShape.Applications.Counter;
+﻿using TypeShape.Abstractions;
+using TypeShape.Applications.Counter;
 using TypeShape.ReflectionProvider;
 using Xunit;
 
@@ -49,12 +50,7 @@ public abstract class CounterTests
         => TestTypes.GetTestCasesCore()
             .Zip(TestTypes.GetTestCasesCore(), (l, r) => new object[] { l, r });
 
-    protected Func<T, long> GetCounterUnderTest<T>()
-    {
-        ITypeShape<T>? shape = Provider.GetShape<T>();
-        Assert.NotNull(shape);
-        return Counter.Create(shape);
-    }
+    protected Func<T, long> GetCounterUnderTest<T>() => Counter.Create<T>(Provider);
 }
 
 public class CounterTests_Reflection : CounterTests
