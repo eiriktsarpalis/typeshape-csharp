@@ -12,8 +12,9 @@ internal sealed class ReflectionPropertyShape<TDeclaringType, TPropertyType> : I
     private readonly ReflectionTypeShapeProvider _provider;
     private readonly MemberInfo _memberInfo;
     private readonly MemberInfo[]? _parentMembers; // stack of parent members reserved for nested tuple representations
+    private readonly ICustomAttributeProvider _attributeProvider;
 
-    public ReflectionPropertyShape(ReflectionTypeShapeProvider provider, MemberInfo memberInfo, MemberInfo[]? parentMembers, string? logicalName, bool includeNonPublicAccessors)
+    public ReflectionPropertyShape(ReflectionTypeShapeProvider provider, MemberInfo memberInfo, MemberInfo[]? parentMembers, ICustomAttributeProvider attributeProvider, string? logicalName, bool includeNonPublicAccessors)
     {
         Debug.Assert(memberInfo.DeclaringType!.IsAssignableFrom(typeof(TDeclaringType)) || parentMembers is not null);
         Debug.Assert(memberInfo is PropertyInfo or FieldInfo);
@@ -22,6 +23,7 @@ internal sealed class ReflectionPropertyShape<TDeclaringType, TPropertyType> : I
         _provider = provider;
         _memberInfo = memberInfo;
         _parentMembers = parentMembers;
+        _attributeProvider = attributeProvider;
 
         Name = logicalName ?? memberInfo.Name;
 
@@ -47,7 +49,7 @@ internal sealed class ReflectionPropertyShape<TDeclaringType, TPropertyType> : I
     }
 
     public string Name { get; }
-    public ICustomAttributeProvider? AttributeProvider => _memberInfo;
+    public ICustomAttributeProvider AttributeProvider => _attributeProvider;
     public ITypeShape<TDeclaringType> DeclaringType => _provider.GetShape<TDeclaringType>();
     public ITypeShape<TPropertyType> PropertyType => _provider.GetShape<TPropertyType>();
 

@@ -237,7 +237,7 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
         return TypeShapeKind.None;
     }
 
-    internal IPropertyShape CreateProperty(Type declaringType, MemberInfo memberInfo, MemberInfo[]? parentMembers, string? logicalName, bool includeNonPublicAccessors)
+    internal IPropertyShape CreateProperty(Type declaringType, MemberInfo memberInfo, MemberInfo[]? parentMembers, ICustomAttributeProvider attributeProvider, string? logicalName, bool includeNonPublicAccessors)
     {
         Debug.Assert(memberInfo is FieldInfo or PropertyInfo);
 
@@ -249,7 +249,7 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
         };
 
         Type reflectionPropertyType = typeof(ReflectionPropertyShape<,>).MakeGenericType(declaringType, memberType);
-        return (IPropertyShape)Activator.CreateInstance(reflectionPropertyType, this, memberInfo, parentMembers, logicalName, includeNonPublicAccessors)!;
+        return (IPropertyShape)Activator.CreateInstance(reflectionPropertyType, this, memberInfo, parentMembers, attributeProvider, logicalName, includeNonPublicAccessors)!;
     }
 
     internal IConstructorShape CreateConstructor(IConstructorShapeInfo ctorInfo)

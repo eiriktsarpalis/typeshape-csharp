@@ -142,10 +142,6 @@ internal static class ReflectionHelpers
 
         if (member.DeclaringType!.IsConstructedGenericType)
         {
-            const BindingFlags AllMemberFlags =
-                BindingFlags.Static | BindingFlags.Instance |
-                BindingFlags.Public | BindingFlags.NonPublic;
-
             return member.DeclaringType.GetGenericTypeDefinition()
                 .GetMember(member.Name, AllMemberFlags)
                 .First(m => m.MetadataToken == member.MetadataToken);
@@ -350,17 +346,17 @@ internal static class ReflectionHelpers
             propertyInfo.SetMethod?.IsExplicitInterfaceImplementation() == true;
     }
 
-    public static bool IsOverride(this MemberInfo member)
+    public static PropertyInfo GetBaseDefinition(this PropertyInfo propertyInfo)
     {
-        Debug.Assert(member is FieldInfo or PropertyInfo);
-        if (member is PropertyInfo propInfo)
+        MethodInfo? getterOrSetter = propertyInfo.GetMethod ?? propertyInfo.SetMethod;
+        Debug.Assert(getterOrSetter != null);
+        if (getterOrSetter.IsVirtual)
         {
-            MethodInfo? getterOrSetter = propInfo.GetMethod ?? propInfo.SetMethod;
-            Debug.Assert(getterOrSetter != null);
-            return getterOrSetter.IsVirtual && getterOrSetter.GetBaseDefinition() != getterOrSetter;
+            MethodInfo baseDefinition = getterOrSetter.GetBaseDefinition();
+            propertyInfo = baseDefinition.DeclaringType!.GetProperty(propertyInfo.Name, AllMemberFlags | BindingFlags.DeclaredOnly)!;
         }
 
-        return false;
+        return propertyInfo;
     }
 
     public static bool TryGetDefaultValueNormalized(this ParameterInfo parameterInfo, out object? result)
@@ -519,4 +515,8 @@ internal static class ReflectionHelpers
         }
         while (hasNestedTuple);
     }
+
+    private const BindingFlags AllMemberFlags =
+        BindingFlags.Static | BindingFlags.Instance |
+        BindingFlags.Public | BindingFlags.NonPublic;
 }

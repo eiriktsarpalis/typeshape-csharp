@@ -175,22 +175,22 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
         {
             foreach (var field in ReflectionHelpers.EnumerateTupleMemberPaths(typeof(T)))
             {
-                yield return provider.CreateProperty(typeof(T), field.Member, field.ParentMembers, field.LogicalName, includeNonPublicAccessors: false);
+                yield return provider.CreateProperty(typeof(T), field.Member, field.ParentMembers, field.Member, field.LogicalName, includeNonPublicAccessors: false);
             }
 
             yield break;
         }
 
-        foreach ((MemberInfo memberInfo, string? logicalName, _, bool includeNonPublic) in GetMembers())
+        foreach ((MemberInfo memberInfo, ICustomAttributeProvider attributeProvider, string? logicalName, _, bool includeNonPublic) in GetMembers())
         {
-            yield return provider.CreateProperty(typeof(T), memberInfo, parentMembers: null, logicalName, includeNonPublic);
+            yield return provider.CreateProperty(typeof(T), memberInfo, parentMembers: null, attributeProvider, logicalName, includeNonPublic);
         }
     }
 
-    private IEnumerable<(MemberInfo MemberInfo, string? LogicalName, int Order, bool IncludeNonPublic)> GetMembers()
+    private IEnumerable<(MemberInfo MemberInfo, ICustomAttributeProvider AttributeProvider, string? LogicalName, int Order, bool IncludeNonPublic)> GetMembers()
     {
         Debug.Assert(!IsSimpleType);
-        List<(MemberInfo MemberInfo, string? LogicalName, int Order, bool IncludeNonPublic)> results = [];
+        List<(MemberInfo MemberInfo, ICustomAttributeProvider AttributeProvider, string? LogicalName, int Order, bool IncludeNonPublic)> results = [];
         HashSet<string> membersInScope = new(StringComparer.Ordinal);
         bool isOrderSpecified = false;
 
@@ -219,12 +219,17 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
 
         return isOrderSpecified ? results.OrderBy(r => r.Order) : results;
 
-        bool IsOverriddenOrShadowed(MemberInfo memberInfo) =>
-            memberInfo.IsOverride() || !membersInScope.Add(memberInfo.Name);
+        bool IsOverriddenOrShadowed(MemberInfo memberInfo) => !membersInScope.Add(memberInfo.Name);
 
         void HandleMember(MemberInfo memberInfo)
         {
-            PropertyShapeAttribute? propertyAttr = memberInfo.GetCustomAttribute<PropertyShapeAttribute>();
+            // Use the most derived member for attribute resolution but
+            // use the base definition to determine the member signatures
+            // (overrides might declare partial signatures, e.g. only overriding the getter or setter).
+            MemberInfo attributeProvider = memberInfo;
+            memberInfo = memberInfo is PropertyInfo p ? p.GetBaseDefinition() : memberInfo;
+
+            PropertyShapeAttribute? propertyAttr = attributeProvider.GetCustomAttribute<PropertyShapeAttribute>(inherit: true);
             string? logicalName = null;
             bool includeNonPublic = false;
             int order = 0;
@@ -256,7 +261,7 @@ internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provide
                 }
             }
 
-            results.Add((memberInfo, logicalName, order, includeNonPublic));
+            results.Add((memberInfo, attributeProvider, logicalName, order, includeNonPublic));
         }
     }
 

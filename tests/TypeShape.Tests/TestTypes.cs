@@ -389,6 +389,7 @@ public static class TestTypes
         yield return Create(new ClassWithInternalMembers { X = 1, Y = 2, Z = 3, W = 4, internalField = 5 }, p, doesNotRoundtrip: true);
         yield return Create(new ClassWithPropertyAnnotations { X = 1, Y = 2, Z = true }, p);
         yield return Create(new ClassWithConstructorAndAnnotations(1, 2, true), p);
+        yield return Create(new DerivedClassWithPropertyShapeAnnotations(), p);
 
         yield return Create(new WeatherForecastDTO
         {
@@ -1112,6 +1113,38 @@ public class ClassWithConstructorAndAnnotations
     public bool Z { get; }
 }
 
+public abstract class BaseClassWithPropertyShapeAnnotations
+{
+    // JsonIgnore added because of a bug in the STJ baseline
+    // cf. https://github.com/dotnet/runtime/issues/92780
+
+    [PropertyShape(Name = "BaseX")]
+    [JsonIgnore]
+    public abstract int X { get; }
+
+    [PropertyShape(Name = "BaseY")]
+    [JsonIgnore]
+    public virtual int Y { get; }
+
+    [PropertyShape(Name = "BaseZ")]
+    [JsonIgnore]
+    public int Z { get; }
+}
+
+public class DerivedClassWithPropertyShapeAnnotations : BaseClassWithPropertyShapeAnnotations
+{
+    [PropertyShape(Name = "DerivedX")]
+    [JsonPropertyName("DerivedX")] // Expected name
+    public override int X => 1;
+
+    [JsonPropertyName("BaseY")] // Expected name
+    public override int Y => 2;
+
+    [PropertyShape(Name = "DerivedZ")]
+    [JsonPropertyName("DerivedZ")] // Expected name
+    public new int Z { get; } = 3;
+}
+
 [GenerateShape]
 public partial class PersonClass(string name, int age)
 {
@@ -1487,6 +1520,7 @@ public record DerivedClassWithShadowingMember : BaseClassWithShadowingMembers
 [GenerateShape<ClassWithInternalMembers>]
 [GenerateShape<ClassWithPropertyAnnotations>]
 [GenerateShape<ClassWithConstructorAndAnnotations>]
+[GenerateShape<DerivedClassWithPropertyShapeAnnotations>]
 [GenerateShape<Todos>]
 [GenerateShape<WeatherForecast>]
 [GenerateShape<WeatherForecastDTO>]

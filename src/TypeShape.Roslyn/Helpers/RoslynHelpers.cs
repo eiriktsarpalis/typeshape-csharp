@@ -15,6 +15,16 @@ internal static class RoslynHelpers
     public static bool IsNonNullableAnnotation(this IParameterSymbol parameter)
         => IsParameterNonNullable(parameter, parameter.Type);
 
+    public static IPropertySymbol GetBaseProperty(this IPropertySymbol property)
+    {
+        while (property.OverriddenProperty is { } baseProp)
+        {
+            property = baseProp;
+        }
+
+        return property;
+    }
+
     public static void ResolveNullableAnnotation(this ISymbol member, out bool isGetterNonNullable, out bool isSetterNonNullable)
     {
         Debug.Assert(member is IFieldSymbol or IPropertySymbol);
@@ -30,6 +40,13 @@ internal static class RoslynHelpers
         else if (member is IPropertySymbol property)
         {
             Debug.Assert(!property.IsIndexer);
+
+            if (property.OverriddenProperty is { } baseProp && (property.GetMethod is null || property.SetMethod is null))
+            {
+                // We are handling a property that potentially overrides only part of the base signature.
+                // Resolve the annotations of the base property first before looking at the derived ones.
+                baseProp.ResolveNullableAnnotation(out isGetterNonNullable, out isSetterNonNullable);
+            }
 
             if (property.GetMethod != null)
             {

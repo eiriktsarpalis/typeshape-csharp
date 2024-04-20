@@ -443,9 +443,8 @@ public abstract class TypeShapeProviderTests
 
         foreach (IPropertyShape property in shape.GetProperties())
         {
-            ICustomAttributeProvider? attributeProvider = property.AttributeProvider;
-            Assert.NotNull(attributeProvider);
-            PropertyShapeAttribute? attr = attributeProvider.GetCustomAttributes(inherit: true).OfType<PropertyShapeAttribute>().FirstOrDefault();
+            MemberInfo attributeProvider = Assert.IsAssignableFrom<MemberInfo>(property.AttributeProvider);
+            PropertyShapeAttribute? attr = attributeProvider.GetCustomAttribute<PropertyShapeAttribute>();
 
             if (property.IsField)
             {
@@ -461,14 +460,14 @@ public abstract class TypeShapeProviderTests
             else
             {
                 PropertyInfo propertyInfo = Assert.IsAssignableFrom<PropertyInfo>(attributeProvider);
-                Assert.False(propertyInfo.IsOverride());
+                PropertyInfo basePropertyInfo = propertyInfo.GetBaseDefinition();
                 Assert.True(propertyInfo.DeclaringType!.IsAssignableFrom(typeof(T)));
                 Assert.Equal(attr?.Name ?? propertyInfo.Name, property.Name);
                 Assert.Equal(property.PropertyType.Type, propertyInfo.PropertyType);
-                Assert.True(!property.HasGetter || propertyInfo.CanRead);
-                Assert.True(!property.HasSetter || propertyInfo.CanWrite);
-                Assert.Equal(property.HasGetter && propertyInfo.GetMethod!.IsPublic, property.IsGetterPublic);
-                Assert.Equal(property.HasSetter && propertyInfo.SetMethod!.IsPublic, property.IsSetterPublic);
+                Assert.True(!property.HasGetter || basePropertyInfo.CanRead);
+                Assert.True(!property.HasSetter || basePropertyInfo.CanWrite);
+                Assert.Equal(property.HasGetter && basePropertyInfo.GetMethod!.IsPublic, property.IsGetterPublic);
+                Assert.Equal(property.HasSetter && basePropertyInfo.SetMethod!.IsPublic, property.IsSetterPublic);
             }
         }
 
@@ -539,7 +538,7 @@ public abstract class TypeShapeProviderTests
                     if (memberInfo is PropertyInfo p)
                     {
                         Assert.Equal(p.PropertyType, ctorParam.ParameterType.Type);
-                        Assert.NotNull(p.SetMethod);
+                        Assert.NotNull(p.GetBaseDefinition().SetMethod);
                     }
                     else if (memberInfo is FieldInfo f)
                     {

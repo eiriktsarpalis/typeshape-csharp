@@ -165,8 +165,8 @@ public sealed partial class Parser
             IsSetterNonNullable = property.CanWrite && property.IsSetterNonNullable,
             EmitGetter = property.CanRead,
             EmitSetter = property.CanWrite,
-            IsGetterPublic = property.CanRead && property.PropertySymbol is IPropertySymbol { GetMethod.DeclaredAccessibility: Accessibility.Public } or IFieldSymbol { DeclaredAccessibility: Accessibility.Public },
-            IsSetterPublic = property.CanWrite && property.PropertySymbol is IPropertySymbol { SetMethod.DeclaredAccessibility: Accessibility.Public } or IFieldSymbol { DeclaredAccessibility: Accessibility.Public },
+            IsGetterPublic = property.CanRead && property.BaseSymbol is IPropertySymbol { GetMethod.DeclaredAccessibility: Accessibility.Public } or IFieldSymbol { DeclaredAccessibility: Accessibility.Public },
+            IsSetterPublic = property.CanWrite && property.BaseSymbol is IPropertySymbol { SetMethod.DeclaredAccessibility: Accessibility.Public } or IFieldSymbol { DeclaredAccessibility: Accessibility.Public },
             IsField = property.IsField,
             Order = order,
         };

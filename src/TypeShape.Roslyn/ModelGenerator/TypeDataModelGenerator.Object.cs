@@ -105,7 +105,7 @@ public partial class TypeDataModelGenerator
                     properties.Add(fieldModel);
                 }
 
-                bool IsOverriddenOrShadowed(ISymbol member) => member.IsOverride || !membersInScope.Add(member.Name);
+                bool IsOverriddenOrShadowed(ISymbol member) => !membersInScope.Add(member.Name);
             }
         }
 
@@ -115,11 +115,17 @@ public partial class TypeDataModelGenerator
     private PropertyDataModel MapProperty(IPropertySymbol property)
     {
         Debug.Assert(property is { IsStatic: false, IsIndexer: false });
+
+        // Property symbol represents the most derived declaration in the current hierarchy.
+        // Need to use the base symbol to determine the actual signature, but use the derived
+        // symbol for attribute and nullability metadata resolution.
+        IPropertySymbol baseProperty = property.GetBaseProperty();
         property.ResolveNullableAnnotation(out bool isGetterNonNullable, out bool isSetterNonNullable);
+
         return new PropertyDataModel(property)
         {
-            CanRead = property.GetMethod is { } getter && IsAccessibleSymbol(getter),
-            CanWrite = property.SetMethod is IMethodSymbol { IsInitOnly: false } setter && IsAccessibleSymbol(setter),
+            CanRead = baseProperty.GetMethod is { } getter && IsAccessibleSymbol(getter),
+            CanWrite = baseProperty.SetMethod is IMethodSymbol { IsInitOnly: false } setter && IsAccessibleSymbol(setter),
             IsGetterNonNullable = isGetterNonNullable,
             IsSetterNonNullable = isSetterNonNullable,
         };

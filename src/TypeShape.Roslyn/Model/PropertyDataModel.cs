@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using TypeShape.Roslyn.Helpers;
 
 namespace TypeShape.Roslyn;
 
@@ -26,6 +27,15 @@ public readonly struct PropertyDataModel
     /// Either an IPropertySymbol or an IFieldSymbol.
     /// </summary>
     public ISymbol PropertySymbol { get; }
+
+    /// <summary>
+    /// For virtual properties, returns the symbol corresponding to the base property.
+    /// </summary>
+    public ISymbol? BaseSymbol => PropertySymbol switch
+    {
+        IPropertySymbol p => p.GetBaseProperty(),
+        var symbol => symbol,
+    };
 
     /// <summary>
     /// The declared name of the property or field.

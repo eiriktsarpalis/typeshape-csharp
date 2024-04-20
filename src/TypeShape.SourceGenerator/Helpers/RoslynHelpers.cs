@@ -163,14 +163,37 @@ internal static partial class RoslynHelpers
         return asr?.SyntaxTree.GetLocation(asr.Span);
     }
 
-    public static AttributeData? GetAttribute(this ISymbol symbol, INamedTypeSymbol? attributeType)
+    public static AttributeData? GetAttribute(this ISymbol symbol, INamedTypeSymbol? attributeType, bool inherit = true)
     {
         if (attributeType is null)
         {
             return null;
         }
 
-        return symbol.GetAttributes().FirstOrDefault(ad => SymbolEqualityComparer.Default.Equals(ad.AttributeClass, attributeType));
+        AttributeData? attribute = symbol.GetAttributes()
+            .FirstOrDefault(ad => SymbolEqualityComparer.Default.Equals(ad.AttributeClass, attributeType));
+
+        if (attribute is null && inherit)
+        {
+            Debug.Assert(attribute is not IEventSymbol);
+
+            if (symbol is IPropertySymbol { OverriddenProperty: { } baseProperty })
+            {
+                return baseProperty.GetAttribute(attributeType, inherit: true);
+            }
+
+            if (symbol is ITypeSymbol { BaseType: { } baseType })
+            {
+                return baseType.GetAttribute(attributeType, inherit);
+            }
+
+            if (symbol is IMethodSymbol { OverriddenMethod: { } baseMethod })
+            {
+                return baseMethod.GetAttribute(attributeType, inherit: true);
+            }
+        }
+
+        return attribute;
     }
 
     public static bool HasAttribute(this ISymbol symbol, INamedTypeSymbol? attributeType)
