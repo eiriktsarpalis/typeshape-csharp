@@ -114,15 +114,15 @@ public static partial class Validator
             });
         }
 
-        public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableTypeShape, object? state)
+        public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableShape, object? state)
         {
-            Validator<TElement>? elementValidator = BuildValidator(enumerableTypeShape.ElementType);
+            Validator<TElement>? elementValidator = BuildValidator(enumerableShape.ElementType);
             if (elementValidator is null)
             {
                 return null; // Nothing to validate for this type.
             }
 
-            Func<TEnumerable, IEnumerable<TElement>> getEnumerable = enumerableTypeShape.GetGetEnumerable();
+            Func<TEnumerable, IEnumerable<TElement>> getEnumerable = enumerableShape.GetGetEnumerable();
             return new Validator<TEnumerable>((TEnumerable? enumerable, List<string> path, ref List<string>? errors) =>
             {
                 if (enumerable is null)
@@ -141,9 +141,9 @@ public static partial class Validator
             });
         }
 
-        public override object? VisitNullable<T>(INullableTypeShape<T> nullableTypeShape, object? state) where T : struct
+        public override object? VisitNullable<T>(INullableTypeShape<T> nullableShape, object? state) where T : struct
         {
-            Validator<T>? elementValidator = BuildValidator(nullableTypeShape.ElementType);
+            Validator<T>? elementValidator = BuildValidator(nullableShape.ElementType);
             if (elementValidator is null)
             {
                 return null; // Nothing to validate for this type.
@@ -158,7 +158,7 @@ public static partial class Validator
             });
         }
 
-        public override object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumTypeShape, object? state)
+        public override object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumShape, object? state)
         {
             return null; // Nothing to validate for enums.
         }

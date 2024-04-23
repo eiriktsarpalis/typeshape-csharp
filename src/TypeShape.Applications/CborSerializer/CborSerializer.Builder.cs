@@ -69,31 +69,31 @@ public static partial class CborSerializer
             return new CborPropertyConverter<TArgumentState, TParameterType>(parameter, paramConverter);
         }
 
-        public object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableTypeShape, object? state)
+        public object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableShape, object? state)
         {
-            CborConverter<TElement> elementConverter = BuildConverter(enumerableTypeShape.ElementType);
-            Func<TEnumerable, IEnumerable<TElement>> getEnumerable = enumerableTypeShape.GetGetEnumerable();
+            CborConverter<TElement> elementConverter = BuildConverter(enumerableShape.ElementType);
+            Func<TEnumerable, IEnumerable<TElement>> getEnumerable = enumerableShape.GetGetEnumerable();
 
-            return enumerableTypeShape.ConstructionStrategy switch
+            return enumerableShape.ConstructionStrategy switch
             {
                 CollectionConstructionStrategy.Mutable =>
                     new CborMutableEnumerableConverter<TEnumerable, TElement>(
                         elementConverter,
                         getEnumerable,
-                        enumerableTypeShape.GetDefaultConstructor(),
-                        enumerableTypeShape.GetAddElement()),
+                        enumerableShape.GetDefaultConstructor(),
+                        enumerableShape.GetAddElement()),
 
                 CollectionConstructionStrategy.Enumerable =>
                     new CborEnumerableConstructorEnumerableConverter<TEnumerable, TElement>(
                         elementConverter,
                         getEnumerable,
-                        enumerableTypeShape.GetEnumerableConstructor()),
+                        enumerableShape.GetEnumerableConstructor()),
 
                 CollectionConstructionStrategy.Span =>
                     new CborSpanConstructorEnumerableConverter<TEnumerable, TElement>(
                         elementConverter,
                         getEnumerable,
-                        enumerableTypeShape.GetSpanConstructor()),
+                        enumerableShape.GetSpanConstructor()),
 
                 _ => new CborEnumerableConverter<TEnumerable, TElement>(elementConverter, getEnumerable),
             };
@@ -133,13 +133,13 @@ public static partial class CborSerializer
             };
         }
 
-        public object? VisitNullable<T>(INullableTypeShape<T> nullableTypeShape, object? state) where T : struct
+        public object? VisitNullable<T>(INullableTypeShape<T> nullableShape, object? state) where T : struct
         {
-            CborConverter<T> elementConverter = BuildConverter(nullableTypeShape.ElementType);
+            CborConverter<T> elementConverter = BuildConverter(nullableShape.ElementType);
             return new CborNullableConverter<T>(elementConverter);
         }
 
-        public object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumTypeShape, object? state) where TEnum : struct, Enum
+        public object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumShape, object? state) where TEnum : struct, Enum
         {
             return new CborEnumConverter<TEnum>();
         }

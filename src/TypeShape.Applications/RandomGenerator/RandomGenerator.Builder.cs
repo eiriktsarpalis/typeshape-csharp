@@ -107,21 +107,21 @@ public partial class RandomGenerator
             return new RandomPropertySetter<TArgumentState>((ref TArgumentState obj, Random random, int size) => setter(ref obj, parameterGenerator(random, size)));
         }
 
-        public object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumTypeType, object? state) where TEnum: struct, Enum
+        public object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumShape, object? state) where TEnum: struct, Enum
         {
             TEnum[] values = Enum.GetValues<TEnum>();
             return new RandomGenerator<TEnum>((Random random, int _) => values[random.Next(0, values.Length)]);
         }
 
-        public object? VisitNullable<T>(INullableTypeShape<T> nullableTypeShape, object? state) where T : struct
+        public object? VisitNullable<T>(INullableTypeShape<T> nullableShape, object? state) where T : struct
         {
-            RandomGenerator<T> elementGenerator = BuildGenerator(nullableTypeShape.ElementType);
+            RandomGenerator<T> elementGenerator = BuildGenerator(nullableShape.ElementType);
             return new RandomGenerator<T?>((Random random, int size) => NextBoolean(random) ? null : elementGenerator(random, size - 1));
         }
 
-        public object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableTypeShape, object? state)
+        public object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableShape, object? state)
         {
-            RandomGenerator<TElement> elementGenerator = BuildGenerator(enumerableTypeShape.ElementType);
+            RandomGenerator<TElement> elementGenerator = BuildGenerator(enumerableShape.ElementType);
 
             if (typeof(TEnumerable).IsArray)
             {
@@ -143,11 +143,11 @@ public partial class RandomGenerator
                 });
             }
 
-            switch (enumerableTypeShape.ConstructionStrategy)
+            switch (enumerableShape.ConstructionStrategy)
             {
                 case CollectionConstructionStrategy.Mutable:
-                    Func<TEnumerable> defaultCtor = enumerableTypeShape.GetDefaultConstructor();
-                    Setter<TEnumerable, TElement> addElementFunc = enumerableTypeShape.GetAddElement();
+                    Func<TEnumerable> defaultCtor = enumerableShape.GetDefaultConstructor();
+                    Setter<TEnumerable, TElement> addElementFunc = enumerableShape.GetAddElement();
                     return new RandomGenerator<TEnumerable>((Random random, int size) =>
                     {
                         if (size == 0)
@@ -164,7 +164,7 @@ public partial class RandomGenerator
                     });
 
                 case CollectionConstructionStrategy.Enumerable:
-                    Func<IEnumerable<TElement>, TEnumerable> enumerableCtor = enumerableTypeShape.GetEnumerableConstructor();
+                    Func<IEnumerable<TElement>, TEnumerable> enumerableCtor = enumerableShape.GetEnumerableConstructor();
                     return new RandomGenerator<TEnumerable>((Random random, int size) =>
                     {
                         if (size == 0)
@@ -181,7 +181,7 @@ public partial class RandomGenerator
                     });
 
                 case CollectionConstructionStrategy.Span:
-                    SpanConstructor<TElement, TEnumerable> spanCtor = enumerableTypeShape.GetSpanConstructor();
+                    SpanConstructor<TElement, TEnumerable> spanCtor = enumerableShape.GetSpanConstructor();
                     return new RandomGenerator<TEnumerable>((Random random, int size) =>
                     {
                         if (size == 0)

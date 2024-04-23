@@ -48,16 +48,16 @@ public static partial class StructuralEqualityComparer
             };
         }
 
-        public override object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumTypeShape, object? state)
+        public override object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumShape, object? state)
         {
             return EqualityComparer<TEnum>.Default;
         }
 
-        public override object? VisitNullable<T>(INullableTypeShape<T> nullableTypeShape, object? state)
+        public override object? VisitNullable<T>(INullableTypeShape<T> nullableShape, object? state)
         {
             return new NullableEqualityComparer<T>
             {
-                ElementComparer = BuildEqualityComparer(nullableTypeShape.ElementType),
+                ElementComparer = BuildEqualityComparer(nullableShape.ElementType),
             };
         }
 
@@ -84,12 +84,12 @@ public static partial class StructuralEqualityComparer
             }
         }
 
-        public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableTypeShape, object? state)
+        public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableShape, object? state)
         {
             return new EnumerableEqualityComparer<TEnumerable, TElement>
             {
-                ElementComparer = BuildEqualityComparer(enumerableTypeShape.ElementType),
-                GetEnumerable = enumerableTypeShape.GetGetEnumerable()
+                ElementComparer = BuildEqualityComparer(enumerableShape.ElementType),
+                GetEnumerable = enumerableShape.GetGetEnumerable()
             };
         }
     }

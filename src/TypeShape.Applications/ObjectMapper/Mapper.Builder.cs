@@ -73,18 +73,18 @@ public static partial class Mapper
                 : ((IConstructorParameterShape)state).Accept(visitor, state: sourceGetter);
         }
 
-        public override object? VisitNullable<TSource>(INullableTypeShape<TSource> sourceNullableType, object? state)
+        public override object? VisitNullable<TSource>(INullableTypeShape<TSource> nullableShape, object? state)
         {
             var targetNullable = (INullableTypeShape)state!;
             var visitor = new NullableScopedVisitor<TSource>(this);
-            return targetNullable.Accept(visitor, state: sourceNullableType);
+            return targetNullable.Accept(visitor, state: nullableShape);
         }
 
-        public override object? VisitEnumerable<TSource, TSourceElement>(IEnumerableTypeShape<TSource, TSourceElement> sourceEnumerableType, object? state)
+        public override object? VisitEnumerable<TSource, TSourceElement>(IEnumerableTypeShape<TSource, TSourceElement> enumerableShape, object? state)
         {
             var targetEnumerable = (IEnumerableTypeShape)state!;
             var visitor = new EnumerableScopedVisitor<TSource, TSourceElement>(this);
-            return targetEnumerable.Accept(visitor, state: sourceEnumerableType);
+            return targetEnumerable.Accept(visitor, state: enumerableShape);
         }
 
         public override object? VisitDictionary<TSourceDictionary, TSourceKey, TSourceValue>(IDictionaryShape<TSourceDictionary, TSourceKey, TSourceValue> sourceDictionary, object? state)
@@ -212,11 +212,11 @@ public static partial class Mapper
         private sealed class NullableScopedVisitor<TSourceElement>(Builder baseVisitor) : TypeShapeVisitor
             where TSourceElement : struct
         {
-            public override object? VisitNullable<TTargetElement>(INullableTypeShape<TTargetElement> targetNullableType, object? state)
+            public override object? VisitNullable<TTargetElement>(INullableTypeShape<TTargetElement> nullableShape, object? state)
                 where TTargetElement : struct
             {
                 var sourceNullable = (INullableTypeShape<TSourceElement>)state!;
-                var elementMapper = baseVisitor.BuildMapper(sourceNullable.ElementType, targetNullableType.ElementType);
+                var elementMapper = baseVisitor.BuildMapper(sourceNullable.ElementType, nullableShape.ElementType);
                 if (elementMapper is null)
                     return null;
 
@@ -226,20 +226,20 @@ public static partial class Mapper
 
         private sealed class EnumerableScopedVisitor<TSourceEnumerable, TSourceElement>(Builder baseVisitor) : TypeShapeVisitor
         {
-            public override object? VisitEnumerable<TTargetEnumerable, TTargetElement>(IEnumerableTypeShape<TTargetEnumerable, TTargetElement> targetEnumerableType, object? state)
+            public override object? VisitEnumerable<TTargetEnumerable, TTargetElement>(IEnumerableTypeShape<TTargetEnumerable, TTargetElement> enumerableShape, object? state)
             {
                 var sourceEnumerable = (IEnumerableTypeShape<TSourceEnumerable, TSourceElement>)state!;
                 var sourceGetEnumerable = sourceEnumerable.GetGetEnumerable();
 
-                var elementMapper = baseVisitor.BuildMapper(sourceEnumerable.ElementType, targetEnumerableType.ElementType);
+                var elementMapper = baseVisitor.BuildMapper(sourceEnumerable.ElementType, enumerableShape.ElementType);
                 if (elementMapper is null)
                     return null;
 
-                switch (targetEnumerableType.ConstructionStrategy)
+                switch (enumerableShape.ConstructionStrategy)
                 {
                     case CollectionConstructionStrategy.Mutable:
-                        var defaultCtor = targetEnumerableType.GetDefaultConstructor();
-                        var addElement = targetEnumerableType.GetAddElement();
+                        var defaultCtor = enumerableShape.GetDefaultConstructor();
+                        var addElement = enumerableShape.GetAddElement();
                         return new Mapper<TSourceEnumerable, TTargetEnumerable>(source =>
                         {
                             if (source is null)
@@ -257,7 +257,7 @@ public static partial class Mapper
                         });
 
                     case CollectionConstructionStrategy.Enumerable:
-                        var createEnumerable = targetEnumerableType.GetEnumerableConstructor();
+                        var createEnumerable = enumerableShape.GetEnumerableConstructor();
                         return new Mapper<TSourceEnumerable, TTargetEnumerable>(source =>
                         {
                             if (source is null)
@@ -269,7 +269,7 @@ public static partial class Mapper
                         });
 
                     case CollectionConstructionStrategy.Span:
-                        var createSpan = targetEnumerableType.GetSpanConstructor();
+                        var createSpan = enumerableShape.GetSpanConstructor();
                         return new Mapper<TSourceEnumerable, TTargetEnumerable>(source =>
                         {
                             if (source is null)

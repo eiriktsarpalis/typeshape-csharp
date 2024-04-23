@@ -200,7 +200,7 @@ public abstract class TypeShapeProviderTests
 
     private sealed class EnumTestVisitor : TypeShapeVisitor
     {
-        public override object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumTypeType, object? state)
+        public override object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumShape, object? state)
         {
             var type = (Type)state!;
             Assert.Equal(typeof(TEnum), type);
@@ -231,11 +231,11 @@ public abstract class TypeShapeProviderTests
 
     private sealed class NullableTestVisitor : TypeShapeVisitor
     {
-        public override object? VisitNullable<T>(INullableTypeShape<T> nullableType, object? state) where T : struct
+        public override object? VisitNullable<T>(INullableTypeShape<T> nullableShape, object? state) where T : struct
         {
             var type = (Type)state!;
             Assert.Equal(typeof(T?), type);
-            Assert.Equal(typeof(T), nullableType.ElementType.Type);
+            Assert.Equal(typeof(T), nullableShape.ElementType.Type);
             return null;
         }
     }
@@ -375,16 +375,16 @@ public abstract class TypeShapeProviderTests
 
     private sealed class EnumerableTestVisitor : TypeShapeVisitor
     {
-        public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableTypeShape, object? state)
+        public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableShape, object? state)
         {
             TEnumerable enumerable;
-            RandomGenerator<TElement> elementGenerator = RandomGenerator.Create((ITypeShape<TElement>)enumerableTypeShape.ElementType);
-            var getter = enumerableTypeShape.GetGetEnumerable();
+            RandomGenerator<TElement> elementGenerator = RandomGenerator.Create((ITypeShape<TElement>)enumerableShape.ElementType);
+            var getter = enumerableShape.GetGetEnumerable();
 
-            if (enumerableTypeShape.ConstructionStrategy is CollectionConstructionStrategy.Mutable)
+            if (enumerableShape.ConstructionStrategy is CollectionConstructionStrategy.Mutable)
             {
-                var defaultCtor = enumerableTypeShape.GetDefaultConstructor();
-                var adder = enumerableTypeShape.GetAddElement();
+                var defaultCtor = enumerableShape.GetDefaultConstructor();
+                var adder = enumerableShape.GetAddElement();
 
                 enumerable = defaultCtor();
                 Assert.Empty(getter(enumerable));
@@ -395,13 +395,13 @@ public abstract class TypeShapeProviderTests
             }
             else
             {
-                Assert.Throws<InvalidOperationException>(() => enumerableTypeShape.GetDefaultConstructor());
-                Assert.Throws<InvalidOperationException>(() => enumerableTypeShape.GetAddElement());
+                Assert.Throws<InvalidOperationException>(() => enumerableShape.GetDefaultConstructor());
+                Assert.Throws<InvalidOperationException>(() => enumerableShape.GetAddElement());
             }
 
-            if (enumerableTypeShape.ConstructionStrategy is CollectionConstructionStrategy.Enumerable)
+            if (enumerableShape.ConstructionStrategy is CollectionConstructionStrategy.Enumerable)
             {
-                var enumerableCtor = enumerableTypeShape.GetEnumerableConstructor();
+                var enumerableCtor = enumerableShape.GetEnumerableConstructor();
                 var values = elementGenerator.GenerateValues(seed: 42).Take(10);
 
                 enumerable = enumerableCtor(values);
@@ -409,12 +409,12 @@ public abstract class TypeShapeProviderTests
             }
             else
             {
-                Assert.Throws<InvalidOperationException>(() => enumerableTypeShape.GetEnumerableConstructor());
+                Assert.Throws<InvalidOperationException>(() => enumerableShape.GetEnumerableConstructor());
             }
 
-            if (enumerableTypeShape.ConstructionStrategy is CollectionConstructionStrategy.Span)
+            if (enumerableShape.ConstructionStrategy is CollectionConstructionStrategy.Span)
             {
-                var spanCtor = enumerableTypeShape.GetSpanConstructor();
+                var spanCtor = enumerableShape.GetSpanConstructor();
                 var values = elementGenerator.GenerateValues(seed: 42).Take(10).ToArray();
 
                 enumerable = spanCtor(values);
@@ -422,7 +422,7 @@ public abstract class TypeShapeProviderTests
             }
             else
             {
-                Assert.Throws<InvalidOperationException>(() => enumerableTypeShape.GetSpanConstructor());
+                Assert.Throws<InvalidOperationException>(() => enumerableShape.GetSpanConstructor());
             }
 
             return null;

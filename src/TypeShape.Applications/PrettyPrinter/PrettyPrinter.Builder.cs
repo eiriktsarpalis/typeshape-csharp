@@ -79,10 +79,10 @@ public static partial class PrettyPrinter
             });
         }
 
-        public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableTypeShape, object? state)
+        public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableShape, object? state)
         {
-            Func<TEnumerable, IEnumerable<TElement>> enumerableGetter = enumerableTypeShape.GetGetEnumerable();
-            PrettyPrinter<TElement> elementPrinter = BuildPrettyPrinter(enumerableTypeShape.ElementType);
+            Func<TEnumerable, IEnumerable<TElement>> enumerableGetter = enumerableShape.GetGetEnumerable();
+            PrettyPrinter<TElement> elementPrinter = BuildPrettyPrinter(enumerableShape.ElementType);
             bool valuesArePrimitives = s_defaultPrinters.ContainsKey(typeof(TElement));
 
             return new PrettyPrinter<TEnumerable>((sb, indentation, value) =>
@@ -171,14 +171,14 @@ public static partial class PrettyPrinter
             });
         }
 
-        public override object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumTypeType, object? state)
+        public override object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumShape, object? state)
         {
             return new PrettyPrinter<TEnum>((sb, _, e) => sb.Append('"').Append(e).Append('"'));
         }
 
-        public override object? VisitNullable<T>(INullableTypeShape<T> nullableTypeShape, object? state) where T : struct
+        public override object? VisitNullable<T>(INullableTypeShape<T> nullableShape, object? state) where T : struct
         {
-            PrettyPrinter<T> elementPrinter = BuildPrettyPrinter(nullableTypeShape.ElementType);
+            PrettyPrinter<T> elementPrinter = BuildPrettyPrinter(nullableShape.ElementType);
             return new PrettyPrinter<T?>((sb, indentation, value) =>
             {
                 if (value is null)

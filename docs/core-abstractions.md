@@ -128,8 +128,8 @@ A collection type is classed as a dictionary if it implements one of the known d
 ```C#
 public interface ITypeShapeVisitor
 {
-    object? VisitEnumerable<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> shape, object? state = null);
-    object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> shape, object? state = null);
+    object? VisitEnumerable<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> enumerableShape, object? state = null);
+    object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state = null);
 }
 ```
 
@@ -138,10 +138,10 @@ Using the above we can now extend `CounterVisitor` so that collection types are 
 ```C#
 partial class CounterVisitor : TypeShapeVisitor
 {
-    public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> shape, object? _)
+    public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> enumerableShape, object? _)
     {
-        var elementCounter = (Func<TElement, int>)shape.ElementType.Accept(this)!;
-        Func<TEnumerable, IEnumerable<TElement>> getEnumerable = shape.GetGetEnumerable();
+        var elementCounter = (Func<TElement, int>)enumerableShape.ElementType.Accept(this)!;
+        Func<TEnumerable, IEnumerable<TElement>> getEnumerable = enumerableShape.GetGetEnumerable();
         return new Func<TEnumerable, int>(enumerable =>
         {
             if (enumerable is null) return 0;
@@ -154,11 +154,11 @@ partial class CounterVisitor : TypeShapeVisitor
         });
     }
 
-    public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> shape, object? _)
+    public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? _)
     {
-        var keyCounter = (Func<TKey, int>)shape.KeyType.Accept(this);
-        var valueCounter = (Func<TValue, int>)shape.ValueType.Accept(this);
-        Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getDictionary = shape.GetGetDictionary();
+        var keyCounter = (Func<TKey, int>)dictionaryShape.KeyType.Accept(this);
+        var valueCounter = (Func<TValue, int>)dictionaryShape.ValueType.Accept(this);
+        Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getDictionary = dictionaryShape.GetGetDictionary();
         return new Func<TDictionary, int>(dictionary =>
         {
             if (dictionary is null) return 0;
@@ -197,8 +197,8 @@ The `TUnderlying` represents the underlying numeric representation used by the e
 ```C#
 public interface ITypeShapeVisitor
 {
-    object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> shape, object? state = null) where TEnum : struct, Enum;
-    object? VisitNullable<TElement>(INullableTypeShape<TElement> shape, object? state = null) where TElement : struct;
+    object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumShape, object? state = null) where TEnum : struct, Enum;
+    object? VisitNullable<TElement>(INullableTypeShape<TElement> nullableShape, object? state = null) where TElement : struct;
 }
 ```
 
@@ -212,9 +212,9 @@ partial class CounterVisitor : TypeShapeVisitor
         return new Func<TEnum, int>(_ => 1);
     }
 
-    public override object? VisitNullable<TElement>(INullableTypeShape<TElement> shape, object? _)
+    public override object? VisitNullable<TElement>(INullableTypeShape<TElement> nullableShape, object? _)
     {
-        var elementCounter = (Func<TElement, int>)shape.ElementType.Accept(this)!;
+        var elementCounter = (Func<TElement, int>)nullableShape.ElementType.Accept(this)!;
         return new Func<TElement?, int>(nullable => nullable is null ? 0 : elementConverter(nullable.Value));
     }
 }
@@ -253,9 +253,9 @@ public delegate void Mutator<T>(ref T obj);
 
 class MutatorVisitor : TypeShapeVisitor
 {
-    public override object? VisitType(ITypeShape<T> shape, object? _)
+    public override object? VisitType(ITypeShape<T> typeShape, object? _)
     {
-        Mutator<T>[] propertyMutators = shape.GetProperties()
+        Mutator<T>[] propertyMutators = typeShape.GetProperties()
             .Where(prop => prop.HasSetter)
             .Select(prop => (Mutator<T>)prop.Accept(this)!)
             .ToArray();
@@ -351,10 +351,10 @@ class EmptyConstructorVisitor : TypeShapeVisitor
 {
     private delegate void ParameterSetter<T>(ref T object);
 
-    public override object? VisitType<T>(ITypeShape<T> shape, object? _)
+    public override object? VisitType<T>(ITypeShape<T> typeShape, object? _)
     {
         // Pick the ctor with the smallest arity
-        IConstructorShape? ctor = shape.GetConstructors().MinBy(ctor => ctor.ParameterCount);
+        IConstructorShape? ctor = typeShape.GetConstructors().MinBy(ctor => ctor.ParameterCount);
         return ctor is null
             ? new Func<T>(() => default) // Just return the default if no ctor is found
             : ctor.Accept(this);
@@ -448,15 +448,15 @@ Putting it all together, we can extend `EmptyConstructorVisitor` to collection t
 ```C#
 class EmptyConstructorVisitor : TypeShapeVisitor
 {
-    public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> shape, object? _)
+    public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> typeShape, object? _)
     {
         const int size = 10;
-        var elementFactory = (Func<TElement>)shape.Accept(this);
-        switch (shape.ConstructionStrategy)
+        var elementFactory = (Func<TElement>)typeShape.Accept(this);
+        switch (typeShape.ConstructionStrategy)
         {
             case CollectionConstructionStrategy.Mutable:
-                Func<TEnumerable> defaultCtor = shape.GetDefaultConstructor();
-                Setter<TEnumerable, TElement> addElement = shape.GetAddElement();
+                Func<TEnumerable> defaultCtor = typeShape.GetDefaultConstructor();
+                Setter<TEnumerable, TElement> addElement = typeShape.GetAddElement();
                 return new Func<TEnumerable>(() =>
                 {
                     TEnumerable value = defaultCtor();
@@ -465,7 +465,7 @@ class EmptyConstructorVisitor : TypeShapeVisitor
                 });
 
             case CollectionConstructionStrategy.Span:
-                SpanConstructor<TElement, TEnumerable> spanCtor = shape.GetSpanConstructor();
+                SpanConstructor<TElement, TEnumerable> spanCtor = typeShape.GetSpanConstructor();
                 return new Func<TEnumerable>(() =>
                 {
                     var buffer = new TElement[size];
@@ -474,7 +474,7 @@ class EmptyConstructorVisitor : TypeShapeVisitor
                 });
 
             case CollectionConstructionStrategy.Enumerable:
-                Func<IEnumerable<TElement>, TEnumerable> enumerableCtor = shape.GetEnumerableConstructor();
+                Func<IEnumerable<TElement>, TEnumerable> enumerableCtor = typeShape.GetEnumerableConstructor();
                 return new Func<TEnumerable>(() =>
                 {
                     var buffer = new TElement[size];

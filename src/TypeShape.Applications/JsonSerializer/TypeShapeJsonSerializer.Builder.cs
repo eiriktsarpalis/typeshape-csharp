@@ -84,37 +84,37 @@ public static partial class TypeShapeJsonSerializer
             return new JsonPropertyConverter<TArgumentState, TParameter>(parameter, paramConverter);
         }
 
-        public object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableTypeShape, object? state)
+        public object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableShape, object? state)
         {
-            JsonConverter<TElement> elementConverter = BuildConverter(enumerableTypeShape.ElementType);
+            JsonConverter<TElement> elementConverter = BuildConverter(enumerableShape.ElementType);
 
-            if (enumerableTypeShape.Rank > 1)
+            if (enumerableShape.Rank > 1)
             {
                 Debug.Assert(typeof(TEnumerable).IsArray);
-                return new JsonMDArrayConverter<TEnumerable, TElement>(elementConverter, enumerableTypeShape.Rank);
+                return new JsonMDArrayConverter<TEnumerable, TElement>(elementConverter, enumerableShape.Rank);
             }
 
-            return enumerableTypeShape.ConstructionStrategy switch
+            return enumerableShape.ConstructionStrategy switch
             {
                 CollectionConstructionStrategy.Mutable => 
                     new JsonMutableEnumerableConverter<TEnumerable, TElement>(
                         elementConverter,
-                        enumerableTypeShape,
-                        enumerableTypeShape.GetDefaultConstructor(),
-                        enumerableTypeShape.GetAddElement()),
+                        enumerableShape,
+                        enumerableShape.GetDefaultConstructor(),
+                        enumerableShape.GetAddElement()),
 
                 CollectionConstructionStrategy.Enumerable => 
                     new JsonEnumerableConstructorEnumerableConverter<TEnumerable, TElement>(
                         elementConverter,
-                        enumerableTypeShape,
-                        enumerableTypeShape.GetEnumerableConstructor()),
+                        enumerableShape,
+                        enumerableShape.GetEnumerableConstructor()),
 
                 CollectionConstructionStrategy.Span => 
                     new JsonSpanConstructorEnumerableConverter<TEnumerable, TElement>(
                         elementConverter,
-                        enumerableTypeShape,
-                        enumerableTypeShape.GetSpanConstructor()),
-                _ => new JsonEnumerableConverter<TEnumerable, TElement>(elementConverter, enumerableTypeShape),
+                        enumerableShape,
+                        enumerableShape.GetSpanConstructor()),
+                _ => new JsonEnumerableConverter<TEnumerable, TElement>(elementConverter, enumerableShape),
             };
         }
 
@@ -151,13 +151,13 @@ public static partial class TypeShapeJsonSerializer
             };
         }
 
-        public object? VisitNullable<T>(INullableTypeShape<T> nullableTypeShape, object? state) where T : struct
+        public object? VisitNullable<T>(INullableTypeShape<T> nullableShape, object? state) where T : struct
         {
-            JsonConverter<T> elementConverter = BuildConverter(nullableTypeShape.ElementType);
+            JsonConverter<T> elementConverter = BuildConverter(nullableShape.ElementType);
             return new JsonNullableConverter<T>(elementConverter);
         }
 
-        public object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumTypeShape, object? state) where TEnum : struct, Enum
+        public object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumShape, object? state) where TEnum : struct, Enum
         {
             var converter = new JsonStringEnumConverter<TEnum>();
             return converter.CreateConverter(typeof(TEnum), s_options);

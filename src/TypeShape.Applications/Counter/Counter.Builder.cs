@@ -52,19 +52,19 @@ public static partial class Counter
             return new Func<TDeclaringType, long>(obj => propertyTypeCounter(getter(ref obj)));
         }
 
-        public override object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumTypeShape, object? state) => 
+        public override object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumShape, object? state) => 
             new Func<TEnum, long>(_ => 1);
 
-        public override object? VisitNullable<T>(INullableTypeShape<T> nullableTypeShape, object? state)
+        public override object? VisitNullable<T>(INullableTypeShape<T> nullableShape, object? state)
         {
-            var elementTypeCounter = (Func<T, long>)nullableTypeShape.ElementType.Accept(this)!;
+            var elementTypeCounter = (Func<T, long>)nullableShape.ElementType.Accept(this)!;
             return new Func<T?, long>(t => t.HasValue ? elementTypeCounter(t.Value) : 0);
         }
 
-        public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableTypeShape, object? state)
+        public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableShape, object? state)
         {
-            Func<TEnumerable, IEnumerable<TElement>> enumerableGetter = enumerableTypeShape.GetGetEnumerable();
-            Func<TElement, long> elementTypeCounter = BuildCounter(enumerableTypeShape.ElementType);
+            Func<TEnumerable, IEnumerable<TElement>> enumerableGetter = enumerableShape.GetGetEnumerable();
+            Func<TElement, long> elementTypeCounter = BuildCounter(enumerableShape.ElementType);
             return new Func<TEnumerable, long>(enumerable =>
             {
                 if (enumerable is null)
