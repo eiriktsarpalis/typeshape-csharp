@@ -9,6 +9,9 @@ public static partial class TypeShapeJsonSerializer
 
     public static TypeShapeJsonConverter<T> CreateConverter<T>(ITypeShapeProvider provider) =>
         CreateConverter(provider.Resolve<T>());
+    
+    public static TypeShapeJsonConverter<T> CreateConverter<T>() where T : ITypeShapeProvider<T> =>
+        CreateConverter(T.GetShape());
 
     public static string Serialize<T>(T? value) where T : ITypeShapeProvider<T> => 
         SerializerCache<T, T>.Value.Serialize(value);

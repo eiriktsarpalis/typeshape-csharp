@@ -15,6 +15,7 @@ public sealed class TypeShapeJsonConverter<T> : ITypeShapeJsonConverter
 
     public string Serialize(T? value) => System.Text.Json.JsonSerializer.Serialize(value, _jsonTypeInfo);
     public T? Deserialize(string json) => System.Text.Json.JsonSerializer.Deserialize(json, _jsonTypeInfo);
+    public T? Deserialize(ReadOnlySpan<byte> utf8Json) => System.Text.Json.JsonSerializer.Deserialize(utf8Json, _jsonTypeInfo);
 
     public void Write(Utf8JsonWriter writer, T? value) => ((JsonConverter<T?>)_jsonTypeInfo.Converter).Write(writer, value, _jsonTypeInfo.Options);
     public T? Read(ref Utf8JsonReader reader) => ((JsonConverter<T?>)_jsonTypeInfo.Converter).Read(ref reader, typeof(T), _jsonTypeInfo.Options);
@@ -23,7 +24,6 @@ public sealed class TypeShapeJsonConverter<T> : ITypeShapeJsonConverter
     void ITypeShapeJsonConverter.Write(Utf8JsonWriter writer, object? value) => Write(writer, (T?)value);
     object? ITypeShapeJsonConverter.Read(ref Utf8JsonReader reader) => Read(ref reader);
 }
-
 
 public interface ITypeShapeJsonConverter
 {
