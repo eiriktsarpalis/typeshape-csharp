@@ -22,7 +22,7 @@ internal class CborEnumerableConverter<TEnumerable, TElement>(
             return;
         }
 
-        var enumerable = getEnumerable(value);
+        IEnumerable<TElement> enumerable = getEnumerable(value);
         int? definiteLength = enumerable.TryGetNonEnumeratedCount(out int count) ? count : null;
         CborConverter<TElement> elementConverter = _elementConverter;
 

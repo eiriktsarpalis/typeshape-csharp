@@ -9,12 +9,11 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeShape.Abstractions;
-using TypeShape.Applications.Common;
 
 internal class JsonEnumerableConverter<TEnumerable, TElement>(JsonConverter<TElement> elementConverter, IEnumerableTypeShape<TEnumerable, TElement> typeShape) : JsonConverter<TEnumerable>
 {
     private protected readonly JsonConverter<TElement> _elementConverter = elementConverter;
-    private readonly IIterator<TEnumerable, TElement> _iterator = Iterator.Create(typeShape);
+    private readonly Func<TEnumerable, IEnumerable<TElement>> _getEnumerable = typeShape.GetGetEnumerable();
 
     public override TEnumerable? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
@@ -28,18 +27,16 @@ internal class JsonEnumerableConverter<TEnumerable, TElement>(JsonConverter<TEle
             writer.WriteNullValue();
             return;
         }
-
+        
+        JsonConverter<TElement> elementConverter = _elementConverter;
+        
         writer.WriteStartArray();
-
-        (Utf8JsonWriter, JsonConverter<TElement>, JsonSerializerOptions) state = (writer, _elementConverter, options);
-        _iterator.Iterate(value, WriteElement, ref state);
+        foreach (TElement element in _getEnumerable(value))
+        {
+            elementConverter.Write(writer, element, options);
+        }
 
         writer.WriteEndArray();
-
-        static void WriteElement(TElement element, ref (Utf8JsonWriter writer, JsonConverter<TElement> converter, JsonSerializerOptions options) state)
-        {
-            state.converter.Write(state.writer, element, state.options);
-        }
     }
 }
 

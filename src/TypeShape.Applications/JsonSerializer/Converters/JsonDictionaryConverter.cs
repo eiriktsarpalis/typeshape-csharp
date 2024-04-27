@@ -4,14 +4,13 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeShape.Abstractions;
-using TypeShape.Applications.Common;
 
 internal class JsonDictionaryConverter<TDictionary, TKey, TValue>(JsonConverter<TKey> keyConverter, JsonConverter<TValue> valueConverter, IDictionaryShape<TDictionary, TKey, TValue> shape) : JsonConverter<TDictionary>
     where TKey : notnull
 {
     private protected readonly JsonConverter<TKey> _keyConverter = keyConverter;
     private protected readonly JsonConverter<TValue> _valueConverter = valueConverter;
-    private readonly IIterator<TDictionary, KeyValuePair<TKey, TValue>> _iterator = Iterator.Create(shape);
+    private readonly Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> _getDictionary = shape.GetGetDictionary();
 
     public override TDictionary? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
@@ -25,19 +24,18 @@ internal class JsonDictionaryConverter<TDictionary, TKey, TValue>(JsonConverter<
             writer.WriteNullValue();
             return;
         }
-
+        
+        JsonConverter<TKey> keyConverter = _keyConverter;
+        JsonConverter<TValue> valueConverter = _valueConverter;
+        
         writer.WriteStartObject();
-
-        (Utf8JsonWriter, JsonConverter<TKey>, JsonConverter<TValue>, JsonSerializerOptions) state = (writer, _keyConverter, _valueConverter, options);
-        _iterator.Iterate(value, WriteDictionaryEntry, ref state);
+        foreach (KeyValuePair<TKey, TValue> entry in _getDictionary(value))
+        {
+            keyConverter.WriteAsPropertyName(writer, entry.Key, options);
+            valueConverter.Write(writer, entry.Value, options);
+        }
 
         writer.WriteEndObject();
-
-        static void WriteDictionaryEntry(KeyValuePair<TKey, TValue> entry, ref (Utf8JsonWriter writer, JsonConverter<TKey> keyConverter, JsonConverter<TValue> valueConverter, JsonSerializerOptions options) state)
-        {
-            state.keyConverter.WriteAsPropertyName(state.writer, entry.Key, state.options);
-            state.valueConverter.Write(state.writer, entry.Value, state.options);
-        }
     }
 }
 

@@ -24,14 +24,12 @@ internal class CborDictionaryConverter<TDictionary, TKey, TValue>(
             return;
         }
 
-        var kvEnumerable = getDictionary(value);
-        int? definiteLength = kvEnumerable.TryGetNonEnumeratedCount(out int count) ? count : null;
-
+        IReadOnlyDictionary<TKey, TValue> dictionary = getDictionary(value);
         CborConverter<TKey> keyConverter = _keyConverter;
         CborConverter<TValue> valueConverter = _valueConverter;
 
-        writer.WriteStartMap(definiteLength);
-        foreach (KeyValuePair<TKey, TValue> kvp in kvEnumerable)
+        writer.WriteStartMap(dictionary.Count);
+        foreach (KeyValuePair<TKey, TValue> kvp in dictionary)
         {
             keyConverter.Write(writer, kvp.Key);
             valueConverter.Write(writer, kvp.Value);
