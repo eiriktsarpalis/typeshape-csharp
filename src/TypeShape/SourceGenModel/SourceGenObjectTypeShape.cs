@@ -6,7 +6,7 @@ namespace TypeShape.SourceGenModel;
 /// Source generator model for object type shapes.
 /// </summary>
 /// <typeparam name="TObject">The type whose shape is described.</typeparam>
-public sealed class SourceGenTypeShape<TObject> : ITypeShape<TObject>
+public sealed class SourceGenObjectTypeShape<TObject> : IObjectTypeShape<TObject>
 {
     /// <summary>
     /// The provider that generated this shape.
@@ -28,12 +28,12 @@ public sealed class SourceGenTypeShape<TObject> : ITypeShape<TObject>
     /// </summary>
     public Func<IEnumerable<IConstructorShape>>? CreateConstructorsFunc { get; init; }
 
-    IEnumerable<IPropertyShape> ITypeShape.GetProperties() =>
+    IEnumerable<IPropertyShape> IObjectTypeShape.GetProperties() =>
         CreatePropertiesFunc?.Invoke() ?? [];
 
-    IEnumerable<IConstructorShape> ITypeShape.GetConstructors() =>
+    IEnumerable<IConstructorShape> IObjectTypeShape.GetConstructors() =>
         CreateConstructorsFunc?.Invoke() ?? [];
 
-    bool ITypeShape.HasProperties => CreatePropertiesFunc != null;
-    bool ITypeShape.HasConstructors => CreateConstructorsFunc != null;
+    bool IObjectTypeShape.HasProperties => CreatePropertiesFunc != null;
+    bool IObjectTypeShape.HasConstructors => CreateConstructorsFunc != null;
 }

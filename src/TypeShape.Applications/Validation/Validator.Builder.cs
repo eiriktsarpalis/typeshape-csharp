@@ -17,7 +17,7 @@ public static partial class Validator
                 delayedValueFactory: self => new Validator<T>((T? value, List<string> path, ref List<string>? errors) => self.Result(value, path, ref errors)));
         }
 
-        public override object? VisitType<T>(ITypeShape<T> type, object? state)
+        public override object? VisitObject<T>(IObjectTypeShape<T> type, object? state)
         {
             (string, Validator<T>)[] propertyValidators = type
                 .GetProperties()

@@ -96,8 +96,7 @@ internal abstract class ReflectionDictionaryShape<TDictionary, TKey, TValue>(Ref
                     m.Name is "set_Item" or "Add" &&
                     m.GetParameters() is [ParameterInfo key, ParameterInfo value] &&
                     key.ParameterType == typeof(TKey) && value.ParameterType == typeof(TValue))
-                .OrderByDescending(m => m.Name) // Prefer set_Item over Add
-                .FirstOrDefault();
+                .MaxBy(m => m.Name); // Prefer set_Item over Add
 
             if (addMethod != null)
             {

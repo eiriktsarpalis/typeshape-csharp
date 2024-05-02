@@ -36,19 +36,22 @@ public static partial class Mapper
 
             switch (sourceShape.Kind)
             {
-                case TypeShapeKind.None:
-                    IConstructorShape? ctor = targetShape.GetConstructors()
+                case TypeShapeKind.Object:
+                    var sourceObjectShape = (IObjectTypeShape<TSource>)sourceShape;
+                    var targetObjectShape = (IObjectTypeShape<TTarget>)targetShape;
+                    
+                    IConstructorShape? ctor = targetObjectShape.GetConstructors()
                         .MinBy(ctor => ctor.ParameterCount);
 
                     if (ctor is null)
                     {
                         // If TTarget is not constructible, only map if TSource is a subtype of TTarget and has no properties.
-                        return typeof(TTarget).IsAssignableFrom(typeof(TSource)) && !targetShape.HasProperties
+                        return typeof(TTarget).IsAssignableFrom(typeof(TSource)) && !targetObjectShape.HasProperties
                             ? (Mapper<TSource, TTarget>)(object)(new Mapper<TSource, TSource>(source => source))
                             : null;
                     }
 
-                    IPropertyShape[] sourceGetters = sourceShape.GetProperties()
+                    IPropertyShape[] sourceGetters = sourceObjectShape.GetProperties()
                         .Where(prop => prop.HasGetter)
                         .ToArray();
 
@@ -62,6 +65,11 @@ public static partial class Mapper
                 default:
                     return (Mapper<TSource, TTarget>?)sourceShape.Accept(this, state: targetShape);
             }
+        }
+
+        public override object? VisitObject<T>(IObjectTypeShape<T> objectShape, object? state = null)
+        {
+            return base.VisitObject(objectShape, state);
         }
 
         public override object? VisitProperty<TSource, TSourceProperty>(IPropertyShape<TSource, TSourceProperty> sourceGetter, object? state)

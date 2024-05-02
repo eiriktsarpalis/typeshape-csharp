@@ -11,14 +11,14 @@ To illustrate the idea, consider the following APIs modelling objects with prope
 ```C#
 namespace TypeShape.Abstractions;
 
-public partial interface ITypeShape<TDeclaringType> : ITypeShape
+public partial interface IObjectTypeShape<TDeclaringType> : ITypeShape
 {
     IEnumerable<IPropertyShape> GetProperties();
 }
 
 public partial interface IPropertyShape<TDeclaringType, TPropertyType> : IPropertyShape
 {
-    ITypeShape<TPropertyType> PropertyType { get; }
+    IObjectTypeShape<TPropertyType> PropertyType { get; }
     Func<TDeclaringType, TPropertyType> GetGetter();
     bool HasGetter { get; }
 }
@@ -29,7 +29,7 @@ This model is fairly similar to `System.Type` and `System.Reflection.PropertyInf
 ```C#
 public partial interface ITypeShapeVisitor
 {
-    object? VisitType<TDeclaringType>(ITypeShape<TDeclaringType> typeShape, object? state = null);
+    object? VisitObject<TDeclaringType>(IObjectTypeShape<TDeclaringType> objectShape, object? state = null);
     object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> typeShape, object? state = null);
 }
 
@@ -49,10 +49,10 @@ Here's a simple visitor used to construct delegates counting the number nodes in
 ```C#
 partial class CounterVisitor : TypeShapeVisitor
 {
-    public override object? VisitType<T>(ITypeShape<T> typeShape, object? _)
+    public override object? VisitObject<T>(IObjectTypeShape<T> objectShape, object? _)
     {
         // Generate counter delegates for each individual property or field:
-        Func<T, int>[] propertyCounters = typeShape.GetProperties()
+        Func<T, int>[] propertyCounters = objectShape.GetProperties()
             .Where(prop => prop.HasGetter)
             .Select(prop => (Func<T, int>)prop.Accept(this)!)
             .ToArray();
@@ -253,9 +253,9 @@ public delegate void Mutator<T>(ref T obj);
 
 class MutatorVisitor : TypeShapeVisitor
 {
-    public override object? VisitType(ITypeShape<T> typeShape, object? _)
+    public override object? VisitObject(IObjectTypeShape<T> objectShape, object? _)
     {
-        Mutator<T>[] propertyMutators = typeShape.GetProperties()
+        Mutator<T>[] propertyMutators = objectShape.GetProperties()
             .Where(prop => prop.HasSetter)
             .Select(prop => (Mutator<T>)prop.Accept(this)!)
             .ToArray();
@@ -351,10 +351,10 @@ class EmptyConstructorVisitor : TypeShapeVisitor
 {
     private delegate void ParameterSetter<T>(ref T object);
 
-    public override object? VisitType<T>(ITypeShape<T> typeShape, object? _)
+    public override object? VisitObject<T>(ITypeShape<T> objectShape, object? _)
     {
         // Pick the ctor with the smallest arity
-        IConstructorShape? ctor = typeShape.GetConstructors().MinBy(ctor => ctor.ParameterCount);
+        IConstructorShape? ctor = objectShape.GetConstructors().MinBy(ctor => ctor.ParameterCount);
         return ctor is null
             ? new Func<T>(() => default) // Just return the default if no ctor is found
             : ctor.Accept(this);

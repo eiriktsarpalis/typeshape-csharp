@@ -10,7 +10,7 @@ internal sealed class ReflectionConstructorShape<TDeclaringType, TArgumentState>
     IConstructorShapeInfo ctorInfo) :
     IConstructorShape<TDeclaringType, TArgumentState>
 {
-    public ITypeShape<TDeclaringType> DeclaringType => provider.GetShape<TDeclaringType>();
+    public IObjectTypeShape<TDeclaringType> DeclaringType => (IObjectTypeShape<TDeclaringType>)provider.GetShape<TDeclaringType>();
     public int ParameterCount => ctorInfo.Parameters.Length;
     public ICustomAttributeProvider? AttributeProvider => ctorInfo.AttributeProvider;
     public bool IsPublic => ctorInfo.IsPublic;

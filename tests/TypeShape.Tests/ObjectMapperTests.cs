@@ -25,7 +25,7 @@ public abstract class ObjectMapperTests
 
         if (!typeof(T).IsValueType && testCase.Value != null)
         {
-            if (shape is { Kind: TypeShapeKind.None, HasConstructors: false, HasProperties: false })
+            if (shape is IObjectTypeShape { HasConstructors: false, HasProperties: false })
             {
                 // Trivial objects without ctors or properties are not copied.
                 Assert.Same((object?)mappedValue, (object?)testCase.Value);

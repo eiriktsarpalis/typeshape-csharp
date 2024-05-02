@@ -6,27 +6,27 @@
 public enum TypeShapeKind
 {
     /// <summary>
-    /// Shape represents a named type without added structure, but which can define property or constructor shapes.
+    /// Shape represents an object type using <see cref="IObjectTypeShape"/>.
     /// </summary>
-    None = 0,
+    Object = 1,
 
     /// <summary>
     /// Shape represents an enum type using <see cref="IEnumTypeShape"/>.
     /// </summary>
-    Enum = 1,
+    Enum = 2,
 
     /// <summary>
     /// Shape represents a <see cref="Nullable{T}"/> using <see cref="INullableTypeShape"/>.
     /// </summary>
-    Nullable = 2,
+    Nullable = 3,
 
     /// <summary>
     /// Shape represents an enumerable type using <see cref="IEnumerableTypeShape"/>.
     /// </summary>
-    Enumerable = 3,
+    Enumerable = 4,
 
     /// <summary>
     /// Shape represents a dictionary type using <see cref="IDictionaryTypeShape"/>.
     /// </summary>
-    Dictionary = 4,
+    Dictionary = 5,
 }

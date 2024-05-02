@@ -19,7 +19,7 @@ public static partial class CborSerializer
             return _cache.GetOrAdd<CborConverter<T>>(typeShape, this, self => new DelayedCborConverter<T>(self));
         }
 
-        public object? VisitType<T>(ITypeShape<T> objectShape, object? state)
+        public object? VisitObject<T>(IObjectTypeShape<T> objectShape, object? state)
         {
             CborPropertyConverter<T>[] properties = objectShape
                 .GetProperties()

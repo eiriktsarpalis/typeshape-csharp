@@ -19,7 +19,7 @@ public static partial class XmlSerializer
             return _cache.GetOrAdd<XmlConverter<T>>(shape, this, delayedValueFactory: self => new DelayedXmlConverter<T>(self));
         }
 
-        public object? VisitType<T>(ITypeShape<T> type, object? state)
+        public object? VisitObject<T>(IObjectTypeShape<T> type, object? state)
         {
             XmlPropertyConverter<T>[] properties = type.GetProperties()
                 .Select(prop => (XmlPropertyConverter<T>)prop.Accept(this)!)

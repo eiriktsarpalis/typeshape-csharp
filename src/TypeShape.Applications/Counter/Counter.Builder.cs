@@ -16,7 +16,7 @@ public static partial class Counter
                 delayedValueFactory: self => new Func<T?, long>(t => self.Result(t)));
         }
 
-        public override object? VisitType<T>(ITypeShape<T> type, object? state)
+        public override object? VisitObject<T>(IObjectTypeShape<T> type, object? state)
         {
             Func<T, long>[] propertyCounters = type.GetProperties()
                 .Where(prop => prop.HasGetter)

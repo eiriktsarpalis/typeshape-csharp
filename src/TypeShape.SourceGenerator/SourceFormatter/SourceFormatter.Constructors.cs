@@ -31,7 +31,7 @@ internal static partial class SourceFormatter
             writer.WriteLine($$"""
                 new SourceGenConstructorShape<{{type.Type.FullyQualifiedName}}, {{constructorArgumentStateFQN}}>
                 {
-                    DeclaringType = {{type.Type.GeneratedPropertyName}},
+                    DeclaringType = (IObjectTypeShape<{{type.Type.FullyQualifiedName}}>){{type.Type.GeneratedPropertyName}},
                     ParameterCount = {{constructor.TotalArity}},
                     GetParametersFunc = {{(constructor.TotalArity == 0 ? "null" : FormatConstructorParameterFactoryName(type, i))}},
                     DefaultConstructorFunc = {{FormatDefaultCtor(type, constructor)}},

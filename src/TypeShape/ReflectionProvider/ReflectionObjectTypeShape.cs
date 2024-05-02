@@ -7,11 +7,11 @@ namespace TypeShape.ReflectionProvider;
 
 [RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
-internal sealed class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provider) : ITypeShape<T>
+internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider provider) : IObjectTypeShape<T>
 {
     ITypeShapeProvider ITypeShape.Provider => provider;
 
-    public TypeShapeKind Kind => TypeShapeKind.None;
+    public TypeShapeKind Kind => TypeShapeKind.Object;
 
     public bool IsRecord => _isRecord ??= typeof(T).IsRecord();
     private bool? _isRecord;

@@ -30,7 +30,7 @@ public static partial class TypeShapeJsonSerializer
                 delayedValueFactory: self => new DelayedJsonConverter<T>(self));
         }
 
-        public object? VisitType<T>(ITypeShape<T> type, object? state)
+        public object? VisitObject<T>(IObjectTypeShape<T> type, object? state)
         {
             if (typeof(T) == typeof(object))
             {

@@ -18,7 +18,7 @@ public sealed class SourceGenConstructorShape<TDeclaringType, TArgumentState> : 
     /// <summary>
     /// Gets the shape of the declaring type.
     /// </summary>
-    public required ITypeShape<TDeclaringType> DeclaringType { get; init; }
+    public required IObjectTypeShape<TDeclaringType> DeclaringType { get; init; }
 
     /// <summary>
     /// Gets the number of parameters the constructor takes.

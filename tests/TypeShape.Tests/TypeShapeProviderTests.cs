@@ -24,7 +24,7 @@ public abstract class TypeShapeProviderTests
         Assert.Same(Provider, shape.Provider);
         Assert.Equal(typeof(T), shape.Type);
         Assert.Equal(typeof(T), shape.AttributeProvider);
-        Assert.Equal(typeof(T).IsRecord(), shape.IsRecord);
+        Assert.Equal(typeof(T).IsRecord(), shape is IObjectTypeShape { IsRecord: true});
 
         TypeShapeKind expectedKind = GetExpectedTypeKind(testCase.Value);
         Assert.Equal(expectedKind, shape.Kind);
@@ -52,7 +52,7 @@ public abstract class TypeShapeProviderTests
                 return TypeShapeKind.Enumerable;
             }
 
-            return TypeShapeKind.None;
+            return TypeShapeKind.Object;
         }
     }
 
@@ -63,16 +63,21 @@ public abstract class TypeShapeProviderTests
         _ = testCase; // not used here
         ITypeShape<T> shape = Provider.Resolve<T>();
 
+        if (shape is not IObjectTypeShape objectShape)
+        {
+            return;
+        }
+
         int propCount = 0;
         var visitor = new PropertyTestVisitor();
-        foreach (IPropertyShape property in shape.GetProperties())
+        foreach (IPropertyShape property in objectShape.GetProperties())
         {
             Assert.Equal(typeof(T), property.DeclaringType.Type);
             property.Accept(visitor, state: testCase.Value);
             propCount++;
         }
 
-        Assert.Equal(propCount > 0, shape.HasProperties);
+        Assert.Equal(propCount > 0, objectShape.HasProperties);
     }
 
     private sealed class PropertyTestVisitor : TypeShapeVisitor
@@ -113,16 +118,21 @@ public abstract class TypeShapeProviderTests
         _ = testCase; // not used here
         ITypeShape<T> shape = Provider.Resolve<T>();
 
+        if (shape is not IObjectTypeShape objectShape)
+        {
+            return;
+        }
+
         int ctorCount = 0;
         var visitor = new ConstructorTestVisitor();
-        foreach (IConstructorShape ctor in shape.GetConstructors())
+        foreach (IConstructorShape ctor in objectShape.GetConstructors())
         {
             Assert.Equal(typeof(T), ctor.DeclaringType.Type);
             ctor.Accept(visitor, typeof(T));
             ctorCount++;
         }
 
-        Assert.Equal(ctorCount > 0, shape.HasConstructors);
+        Assert.Equal(ctorCount > 0, objectShape.HasConstructors);
     }
 
     private sealed class ConstructorTestVisitor : TypeShapeVisitor
@@ -441,7 +451,12 @@ public abstract class TypeShapeProviderTests
         ITypeShape<T> shape = Provider.Resolve<T>();
         Assert.Equal(typeof(T), shape.AttributeProvider);
 
-        foreach (IPropertyShape property in shape.GetProperties())
+        if (shape is not IObjectTypeShape objectShape)
+        {
+            return;
+        }
+
+        foreach (IPropertyShape property in objectShape.GetProperties())
         {
             MemberInfo attributeProvider = Assert.IsAssignableFrom<MemberInfo>(property.AttributeProvider);
             PropertyShapeAttribute? attr = attributeProvider.GetCustomAttribute<PropertyShapeAttribute>();
@@ -471,7 +486,7 @@ public abstract class TypeShapeProviderTests
             }
         }
 
-        foreach (IConstructorShape constructor in shape.GetConstructors())
+        foreach (IConstructorShape constructor in objectShape.GetConstructors())
         {
             ICustomAttributeProvider? attributeProvider = constructor.AttributeProvider;
             if (attributeProvider is null)
@@ -563,7 +578,12 @@ public abstract class TypeShapeProviderTests
 
         ITypeShape<T> shape = Provider.Resolve<T>();
 
-        foreach (IPropertyShape property in shape.GetProperties())
+        if (shape is not IObjectTypeShape objectShape)
+        {
+            return;
+        }
+
+        foreach (IPropertyShape property in objectShape.GetProperties())
         {
             MemberInfo memberInfo = Assert.IsAssignableFrom<MemberInfo>(property.AttributeProvider);
 
@@ -572,7 +592,7 @@ public abstract class TypeShapeProviderTests
             Assert.Equal(property.HasSetter && isSetterNonNullable, property.IsSetterNonNullable);
         }
 
-        foreach (IConstructorShape constructor in shape.GetConstructors())
+        foreach (IConstructorShape constructor in objectShape.GetConstructors())
         {
             ICustomAttributeProvider? attributeProvider = constructor.AttributeProvider;
             if (attributeProvider is null)

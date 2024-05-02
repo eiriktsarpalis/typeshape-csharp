@@ -21,7 +21,7 @@ public interface IPropertyShape
     /// <summary>
     /// The shape of the declaring type.
     /// </summary>
-    ITypeShape DeclaringType { get; }
+    IObjectTypeShape DeclaringType { get; }
 
     /// <summary>
     /// The shape of the property type.
@@ -96,7 +96,7 @@ public interface IPropertyShape<TDeclaringType, TPropertyType> : IPropertyShape
     /// <summary>
     /// The shape of the declaring type.
     /// </summary>
-    new ITypeShape<TDeclaringType> DeclaringType { get; }
+    new IObjectTypeShape<TDeclaringType> DeclaringType { get; }
 
     /// <summary>
     /// The shape of the property type.
@@ -118,7 +118,7 @@ public interface IPropertyShape<TDeclaringType, TPropertyType> : IPropertyShape
     Setter<TDeclaringType, TPropertyType> GetSetter();
 
     /// <inheritdoc/>
-    ITypeShape IPropertyShape.DeclaringType => DeclaringType;
+    IObjectTypeShape IPropertyShape.DeclaringType => DeclaringType;
 
     /// <inheritdoc/>
     ITypeShape IPropertyShape.PropertyType => PropertyType;

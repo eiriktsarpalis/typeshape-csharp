@@ -91,7 +91,7 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
 
     private ITypeShape CreateObjectShape(Type type)
     {
-        Type objectShapeTy = typeof(ReflectionTypeShape<>).MakeGenericType(type);
+        Type objectShapeTy = typeof(ReflectionObjectTypeShape<>).MakeGenericType(type);
         return (ITypeShape)Activator.CreateInstance(objectShapeTy, this)!;
     }
 
@@ -234,7 +234,7 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
             return TypeShapeKind.Enumerable;
         }
 
-        return TypeShapeKind.None;
+        return TypeShapeKind.Object;
     }
 
     internal IPropertyShape CreateProperty(Type declaringType, MemberInfo memberInfo, MemberInfo[]? parentMembers, ICustomAttributeProvider attributeProvider, string? logicalName, bool includeNonPublicAccessors)

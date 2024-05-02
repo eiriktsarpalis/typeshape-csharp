@@ -29,7 +29,7 @@ public partial class RandomGenerator
                 delayedValueFactory: self => new RandomGenerator<T>((r, s) => self.Result(r,s)));
         }
 
-        public object? VisitType<T>(ITypeShape<T> type, object? state)
+        public object? VisitObject<T>(IObjectTypeShape<T> type, object? state)
         {
             if (typeof(T) == typeof(object))
             {

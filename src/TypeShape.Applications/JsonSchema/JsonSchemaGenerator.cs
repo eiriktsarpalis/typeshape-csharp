@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -69,15 +70,15 @@ public static class JsonSchemaGenerator
                     schema = GenerateSchema(nullableShape.ElementType, cacheLocation: false);
                     break;
 
-                case IEnumerableTypeShape enumerableTypeShape:
-                    for (int i = 0; i < enumerableTypeShape.Rank; i++)
+                case IEnumerableTypeShape enumerableShape:
+                    for (int i = 0; i < enumerableShape.Rank; i++)
                     {
                         Push("items");
                     }
 
-                    schema = GenerateSchema(enumerableTypeShape.ElementType);
+                    schema = GenerateSchema(enumerableShape.ElementType);
 
-                    for (int i = 0; i < enumerableTypeShape.Rank; i++)
+                    for (int i = 0; i < enumerableShape.Rank; i++)
                     {
                         schema = new JsonObject
                         {
@@ -90,9 +91,9 @@ public static class JsonSchemaGenerator
 
                     break;
 
-                case IDictionaryTypeShape dictionaryTypeShape:
+                case IDictionaryTypeShape dictionaryShape:
                     Push("additionalProperties");
-                    JsonObject additionalPropertiesSchema = GenerateSchema(dictionaryTypeShape.ValueType);
+                    JsonObject additionalPropertiesSchema = GenerateSchema(dictionaryShape.ValueType);
                     Pop();
 
                     schema = new JsonObject
@@ -103,12 +104,12 @@ public static class JsonSchemaGenerator
 
                     break;
 
-                default:
+                case IObjectTypeShape objectShape:
                     schema = new();
 
-                    if (typeShape.HasProperties)
+                    if (objectShape.HasProperties)
                     {
-                        IConstructorShape? ctor = typeShape.GetConstructors()
+                        IConstructorShape? ctor = objectShape.GetConstructors()
                             .MaxBy(c => c.ParameterCount);
 
                         Dictionary<string, IConstructorParameterShape>? ctorParams = ctor?.GetParameters()
@@ -119,7 +120,7 @@ public static class JsonSchemaGenerator
                         JsonArray? required = null;
 
                         Push("properties");
-                        foreach (IPropertyShape prop in typeShape.GetProperties())
+                        foreach (IPropertyShape prop in objectShape.GetProperties())
                         {
                             IConstructorParameterShape? associatedParameter = null;
                             ctorParams?.TryGetValue(prop.Name, out associatedParameter);
@@ -151,6 +152,10 @@ public static class JsonSchemaGenerator
                         }
                     }
 
+                    break;
+                
+                default:
+                    schema = new JsonObject();
                     break;
             }
 

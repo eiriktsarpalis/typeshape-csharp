@@ -29,7 +29,7 @@ public static class Cloner
         public Func<T?, T?> BuildCloner<T>(ITypeShape<T> shape) => 
             _cache.GetOrAdd<Func<T?, T?>>(shape, this, self => t => self.Result(t));
         
-        public override object? VisitType<T>(ITypeShape<T> typeShape, object? _)
+        public override object? VisitObject<T>(IObjectTypeShape<T> typeShape, object? _)
         {
             if (s_builtInCloners.TryGetValue(typeof(T), out object? cloner))
             {

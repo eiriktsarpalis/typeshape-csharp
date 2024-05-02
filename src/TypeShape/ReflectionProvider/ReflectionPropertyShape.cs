@@ -12,7 +12,6 @@ internal sealed class ReflectionPropertyShape<TDeclaringType, TPropertyType> : I
     private readonly ReflectionTypeShapeProvider _provider;
     private readonly MemberInfo _memberInfo;
     private readonly MemberInfo[]? _parentMembers; // stack of parent members reserved for nested tuple representations
-    private readonly ICustomAttributeProvider _attributeProvider;
 
     public ReflectionPropertyShape(ReflectionTypeShapeProvider provider, MemberInfo memberInfo, MemberInfo[]? parentMembers, ICustomAttributeProvider attributeProvider, string? logicalName, bool includeNonPublicAccessors)
     {
@@ -23,7 +22,7 @@ internal sealed class ReflectionPropertyShape<TDeclaringType, TPropertyType> : I
         _provider = provider;
         _memberInfo = memberInfo;
         _parentMembers = parentMembers;
-        _attributeProvider = attributeProvider;
+        AttributeProvider = attributeProvider;
 
         Name = logicalName ?? memberInfo.Name;
 
@@ -49,8 +48,8 @@ internal sealed class ReflectionPropertyShape<TDeclaringType, TPropertyType> : I
     }
 
     public string Name { get; }
-    public ICustomAttributeProvider AttributeProvider => _attributeProvider;
-    public ITypeShape<TDeclaringType> DeclaringType => _provider.GetShape<TDeclaringType>();
+    public ICustomAttributeProvider AttributeProvider { get; }
+    public IObjectTypeShape<TDeclaringType> DeclaringType => (IObjectTypeShape<TDeclaringType>)_provider.GetShape<TDeclaringType>();
     public ITypeShape<TPropertyType> PropertyType => _provider.GetShape<TPropertyType>();
 
     public bool IsField { get; }

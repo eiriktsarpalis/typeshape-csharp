@@ -58,14 +58,14 @@ public abstract class JsonSchemaTests
                 Assert.True(JsonNode.DeepEquals(elementSchema, schema));
                 break;
 
-            case IDictionaryTypeShape dictionaryTypeShape:
+            case IDictionaryTypeShape dictionaryShape:
                 AssertType("object");
-                JsonObject valueSchema = JsonSchemaGenerator.Generate(dictionaryTypeShape.ValueType);
+                JsonObject valueSchema = JsonSchemaGenerator.Generate(dictionaryShape.ValueType);
                 Assert.True(JsonNode.DeepEquals(valueSchema, schema["additionalProperties"]));
                 break;
 
-            default:
-                if (shape.HasProperties)
+            case IObjectTypeShape objectShape:
+                if (objectShape.HasProperties)
                 {
                     AssertType("object");
                     Assert.Contains("properties", schema);
@@ -75,6 +75,10 @@ public abstract class JsonSchemaTests
                     Assert.DoesNotContain("properties", schema);
                     Assert.DoesNotContain("required", schema);
                 }
+                break;
+            
+            default:
+                Assert.Empty(schema);
                 break;
         }
 

@@ -23,7 +23,7 @@ public sealed class SourceGenPropertyShape<TDeclaringType, TPropertyType> : IPro
     /// <summary>
     /// The shape of the declaring type.
     /// </summary>
-    public required ITypeShape<TDeclaringType> DeclaringType { get; init; }
+    public required IObjectTypeShape<TDeclaringType> DeclaringType { get; init; }
 
     /// <summary>
     /// The shape of the property type.

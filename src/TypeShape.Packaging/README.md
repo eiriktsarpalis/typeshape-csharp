@@ -46,10 +46,10 @@ The simplest possible example of a datatype-generic programming is counting the 
 public sealed partial class CounterVisitor : TypeShapeVisitor
 {
     // For the sake of simplicity, ignore collection types and just focus on properties/fields.
-    public override object? VisitType<T>(ITypeShape<T> typeShape, object? state)
+    public override object? VisitObject<T>(IObjectTypeShape<T> objectShape, object? state)
     {
         // Recursively generate counters for each individual property/field:
-        Func<T, int>[] propertyCounters = typeShape.GetProperties()
+        Func<T, int>[] propertyCounters = objectShape.GetProperties()
             .Where(prop => prop.HasGetter)
             .Select(prop => (Func<T, int>)prop.Accept(this)!)
             .ToArray();

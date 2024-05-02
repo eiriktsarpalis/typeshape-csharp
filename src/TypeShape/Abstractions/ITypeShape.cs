@@ -15,7 +15,7 @@ public interface ITypeShape
     /// <summary>
     /// Determines the <see cref="TypeShapeKind"/> that the current shape supports.
     /// </summary>
-    TypeShapeKind Kind => TypeShapeKind.None;
+    TypeShapeKind Kind { get; }
 
     /// <summary>
     /// The provider used to generate this instance.
@@ -26,33 +26,6 @@ public interface ITypeShape
     /// The provider used for type-level attribute resolution.
     /// </summary>
     public ICustomAttributeProvider? AttributeProvider { get; }
-
-    /// <summary>
-    /// Determines whether the current shape represents a C# record type.
-    /// </summary>
-    bool IsRecord => false;
-
-    /// <summary>
-    /// Determines whether the current type defines any property shapes.
-    /// </summary>
-    bool HasProperties => false;
-
-    /// <summary>
-    /// Determines whether the current type defines any constructor shapes.
-    /// </summary>
-    bool HasConstructors => false;
-
-    /// <summary>
-    /// Gets all available property/field shapes for the given type.
-    /// </summary>
-    /// <returns>An enumeration of all available property/field shapes.</returns>
-    IEnumerable<IPropertyShape> GetProperties() => [];
-
-    /// <summary>
-    /// Gets all available constructor shapes for the given type.
-    /// </summary>
-    /// <returns>An enumeration of all available constructor shapes.</returns>
-    IEnumerable<IConstructorShape> GetConstructors() => [];
 
     /// <summary>
     /// Accepts an <see cref="ITypeShapeVisitor"/> for strongly-typed traversal.
@@ -79,6 +52,5 @@ public interface ITypeShape<T> : ITypeShape
 {
     Type ITypeShape.Type => typeof(T);
     ICustomAttributeProvider ITypeShape.AttributeProvider => typeof(T);
-    object? ITypeShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitType(this, state);
     object? ITypeShape.Invoke(ITypeShapeFunc function, object? state) => function.Invoke(this, state);
 }

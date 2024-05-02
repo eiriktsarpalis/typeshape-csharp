@@ -26,7 +26,7 @@ public static partial class PrettyPrinter
                 delayedValueFactory: self => new PrettyPrinter<T>((sb, indentation, value) => self.Result(sb, indentation, value)));
         }
 
-        public override object? VisitType<T>(ITypeShape<T> type, object? state)
+        public override object? VisitObject<T>(IObjectTypeShape<T> type, object? state)
         {
             PrettyPrinter<T>[] propertyPrinters = type
                 .GetProperties()

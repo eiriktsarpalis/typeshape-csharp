@@ -6,14 +6,14 @@
 public abstract class TypeShapeVisitor : ITypeShapeVisitor
 {
     /// <summary>
-    /// Visits an <see cref="ITypeShape{T}"/> representing a simple type or object.
+    /// Visits an <see cref="IObjectTypeShape{T}"/> representing a simple type or object.
     /// </summary>
-    /// <typeparam name="T">The type represented by the shape instance.</typeparam>
-    /// <param name="typeShape">The type shape to visit.</param>
+    /// <typeparam name="T">The object type represented by the shape instance.</typeparam>
+    /// <param name="objectShape">The type shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    public virtual object? VisitType<T>(ITypeShape<T> typeShape, object? state = null)
-        => ThrowNotImplemented(nameof(VisitType));
+    public virtual object? VisitObject<T>(IObjectTypeShape<T> objectShape, object? state = null)
+        => ThrowNotImplemented(nameof(VisitObject));
 
     /// <summary>
     /// Visits an <see cref="IPropertyShape{TDeclaringType, TPropertyType}"/> instance.

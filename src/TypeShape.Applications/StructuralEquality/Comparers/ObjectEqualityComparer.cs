@@ -8,7 +8,7 @@ namespace TypeShape.Applications.StructuralEquality.Comparers;
 
 internal sealed class ObjectEqualityComparer<T> : EqualityComparer<T>
 {
-    public required IEqualityComparer<T>[] PropertyComparers { get; init; }
+    public required EqualityComparer<T>[] PropertyComparers { get; init; }
 
     public override bool Equals(T? x, T? y)
     {
@@ -17,7 +17,7 @@ internal sealed class ObjectEqualityComparer<T> : EqualityComparer<T>
             return x is null && y is null;
         }
 
-        foreach (IEqualityComparer<T> prop in PropertyComparers)
+        foreach (EqualityComparer<T> prop in PropertyComparers)
         {
             if (!prop.Equals(x, y))
             {

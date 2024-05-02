@@ -13,7 +13,7 @@ internal static partial class SourceFormatter
         writer.WriteLine($$"""
             private ITypeShape<{{objectShapeModel.Type.FullyQualifiedName}}> {{methodName}}()
             {
-                return new SourceGenTypeShape<{{objectShapeModel.Type.FullyQualifiedName}}>
+                return new SourceGenObjectTypeShape<{{objectShapeModel.Type.FullyQualifiedName}}>
                 {
                     Provider = this,
                     IsRecord = {{FormatBool(objectShapeModel.IsRecord)}},

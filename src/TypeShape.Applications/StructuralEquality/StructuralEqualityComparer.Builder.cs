@@ -15,7 +15,7 @@ public static partial class StructuralEqualityComparer
 
         object? ITypeShapeFunc.Invoke<T>(ITypeShape<T> typeShape, object? state) => BuildEqualityComparer(typeShape);
 
-        public override object? VisitType<T>(ITypeShape<T> type, object? state)
+        public override object? VisitObject<T>(IObjectTypeShape<T> type, object? state)
         {
             if (!RuntimeHelpers.IsReferenceOrContainsReferences<T>() ||
                 (typeof(IEquatable<T>).IsAssignableFrom(typeof(T)) && !type.IsRecord))
