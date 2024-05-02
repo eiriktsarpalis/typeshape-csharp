@@ -26,35 +26,32 @@ public sealed class TypeShapeIncrementalGenerator : IIncrementalGenerator
                 "TypeShape.GenerateShapeAttribute<T>",
                 (node, _) => node is ClassDeclarationSyntax)
             .Combine(knownSymbols)
-            .Select((tuple, cancellationToken) => 
+            .Select((tuple, cancellationToken) =>
                 Parser.ParseFromGenerateShapeOfTAttributes(
                     context: tuple.Left,
-                    knownSymbols: tuple.Right, 
+                    knownSymbols: tuple.Right,
                     cancellationToken));
+
+
+        // I kinda expect this to break the whole incremental pipeline
+        var holder = new RoslynHelpers.MarkerAttributeHolder();
+        context.RegisterAdditionalMarkerAttributeName(holder);
+        IncrementalValuesProvider<TypeWithAttributeDeclarationContext> extraModels = context.SyntaxProvider
+            .ForTypesWithOptionalAttributeDeclaration(holder,
+                (node, _) => node is TypeDeclarationSyntax);
 
         IncrementalValueProvider<TypeShapeProviderModel?> generateDataModels = context.SyntaxProvider
             .ForTypesWithAttributeDeclaration(
                 "TypeShape.GenerateShapeAttribute",
                 (node, _) => node is TypeDeclarationSyntax)
+            .Concat(extraModels)
             .Collect()
             .Combine(knownSymbols)
             .Select((tuple, token) => Parser.ParseFromGenerateShapeAttributes(tuple.Left, tuple.Right, token));
 
-        if (context.TryGetAdditionalMarkerAttributeName(out var attributeName))
-        {
-
-            IncrementalValueProvider<TypeShapeProviderModel?> extraModels = context.SyntaxProvider
-                .ForTypesWithAttributeDeclaration(
-                    attributeName,
-                    (node, _) => node is TypeDeclarationSyntax)
-                .Collect()
-                .Combine(knownSymbols)
-                .Select((tuple, token) => Parser.ParseFromGenerateShapeAttributes(tuple.Left, tuple.Right, token));
-            context.RegisterSourceOutput(extraModels, GenerateSource);
-        }
 
         context.RegisterSourceOutput(generateShapeOfTModels, GenerateSource);
-        context.RegisterSourceOutput(generateDataModels, GenerateSource);
+        context.RegisterSourceOutput(generateDataModels ,  GenerateSource);
     }
 
     private void GenerateSource(SourceProductionContext context, TypeShapeProviderModel? provider)

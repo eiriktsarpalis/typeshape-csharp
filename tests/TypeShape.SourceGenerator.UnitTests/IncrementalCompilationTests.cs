@@ -1,5 +1,4 @@
 ﻿using Microsoft.CodeAnalysis;
-using TypeShape.SourceGenerator.Model;
 using Xunit;
 
 namespace TypeShape.SourceGenerator.UnitTests;
@@ -42,6 +41,18 @@ public static class IncrementalCompilationTests
         [GenerateShape<MyPoco>]
         public class MyContext { } // Non-partial class with warning
         """)]
+    [InlineData("""
+                using System;
+                
+                namespace Test;
+                
+                [MyMarker]
+                public partial record MyPoco(int x, string[] ys);
+                
+                public sealed class MyMarkerAttribute : Attribute
+                {
+                }
+                """)]
     public static void CompilingTheSameSourceResultsInEqualModels(string source)
     {
         Compilation compilation1 = CompilationHelpers.CreateCompilation(source);

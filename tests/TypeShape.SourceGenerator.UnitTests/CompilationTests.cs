@@ -213,6 +213,7 @@ public static class CompilationTests
     public static void AdditionalMarkerAttribute_NoErrors()
     {
         Compilation compilation = CompilationHelpers.CreateCompilation("""
+                                                                       using System;
                                                                        using TypeShape;
                                                                        using TypeShape.Abstractions;
                                                                        using System.Collections.Generic;
