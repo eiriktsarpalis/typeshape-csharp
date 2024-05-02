@@ -118,12 +118,15 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
 
             bool setsRequiredMembers = constructorInfo.SetsRequiredMembers();
             bool isDefaultCtorWithoutRequiredOrInitMembers =
-                parameters.Length == 0 && !settableMembers.Any(m => m.IsRequired || m.IsInitOnly);
+                parameters.Length == 0 && !settableMembers.Any(m => (m.IsRequired && !setsRequiredMembers) || m.IsInitOnly);
+
+            // Do not include member initializers in default constructors that don't have required members or init-only properties.
+            var settableMembersToInclude = isDefaultCtorWithoutRequiredOrInitMembers ? [] : settableMembers;
 
             var memberInitializers = new List<MemberInitializerShapeInfo>();
             Dictionary<string, Type>? parameterIndex = null;
 
-            foreach (MemberInitializerShapeInfo memberInitializer in isDefaultCtorWithoutRequiredOrInitMembers ? [] : settableMembers)
+            foreach (MemberInitializerShapeInfo memberInitializer in settableMembersToInclude)
             {
                 if (setsRequiredMembers && memberInitializer.IsRequired)
                 {
@@ -156,7 +159,10 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
         if (typeof(T).IsValueType && !isConstructorFound)
         {
             // Only emit a default constructor for value types if no explicitly declared constructors were found.
-            MethodConstructorShapeInfo ctorShapeInfo = CreateDefaultConstructor(settableMembers);
+            bool hasRequiredOrInitOnlyMembers = settableMembers.Any(m => m.IsRequired || m.IsInitOnly);
+
+            // Do not include member initializers if no required or init-only members are present.
+            MethodConstructorShapeInfo ctorShapeInfo = CreateDefaultConstructor(hasRequiredOrInitOnlyMembers ? settableMembers : []);
             yield return provider.CreateConstructor(ctorShapeInfo);
         }
 

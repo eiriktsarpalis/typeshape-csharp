@@ -178,7 +178,16 @@ public sealed partial class Parser
         List<ConstructorParameterShapeModel>? requiredOrInitMembers = null;
         List<ConstructorParameterShapeModel>? optionalProperties = null;
 
-        foreach (PropertyDataModel propertyModel in constructor.MemberInitializers.OrderByDescending(p => p.IsRequired || p.IsInitOnly))
+        bool isDefaultCtorWithoutRequiredOrInitMembers =
+            position == 0 && !constructor.MemberInitializers.Any(p => p.IsRequired || p.IsInitOnly);
+        
+        IEnumerable<PropertyDataModel> memberInitializers = isDefaultCtorWithoutRequiredOrInitMembers
+            // Do not include member initializers in default constructors that don't have required members or init-only properties.
+            ? []
+            // Shift required or init-only members to start of the member initializer list.
+            : constructor.MemberInitializers.OrderByDescending(p => p.IsRequired || p.IsInitOnly);
+
+        foreach (PropertyDataModel propertyModel in memberInitializers)
         {
             ParsePropertyShapeAttribute(propertyModel.PropertySymbol, out string propertyName, out _);
 
