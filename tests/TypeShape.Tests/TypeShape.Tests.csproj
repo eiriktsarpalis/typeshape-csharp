@@ -8,12 +8,17 @@
 	<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
 	<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <DefineConstants>IS_TEST_PROJECT</DefineConstants>
+    <TypeShape_SourceGenerator_AdditionalMarkerAttributeName>TypeShape.Tests.AdditionalMarkerAttribute</TypeShape_SourceGenerator_AdditionalMarkerAttributeName>
   </PropertyGroup>
 
     <ItemGroup>
         <Compile Include="..\..\src\TypeShape\ReflectionProvider\Helpers\CommonHelpers.cs" Link="Helpers\CommonHelpers.cs" />
         <Compile Include="..\..\src\TypeShape\ReflectionProvider\Helpers\ReflectionHelpers.cs" Link="Helpers\ReflectionHelpers.cs" />
     </ItemGroup>
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="TypeShape_SourceGenerator_AdditionalMarkerAttributeName" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />

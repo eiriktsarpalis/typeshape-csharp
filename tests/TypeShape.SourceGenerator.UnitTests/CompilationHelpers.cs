@@ -1,7 +1,9 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text.Encodings.Web;
 using TypeShape.Roslyn;
@@ -41,9 +43,9 @@ public static class CompilationHelpers
     {
         parseOptions ??= s_defaultParseOptions;
         additionalReferences ??= [];
-        
-        SyntaxTree[] syntaxTrees = [ CSharpSyntaxTree.ParseText(source, parseOptions) ];
-        MetadataReference[] references = 
+
+        SyntaxTree[] syntaxTrees = [CSharpSyntaxTree.ParseText(source, parseOptions)];
+        MetadataReference[] references =
         [
             MetadataReference.CreateFromFile(typeof(int).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(System.Linq.Enumerable).Assembly.Location),
@@ -64,23 +66,28 @@ public static class CompilationHelpers
         );
     }
 
-    public static CSharpGeneratorDriver CreateTypeShapeSourceGeneratorDriver(Compilation compilation, TypeShapeIncrementalGenerator? generator = null)
+    public static CSharpGeneratorDriver CreateTypeShapeSourceGeneratorDriver(Compilation compilation,
+        TypeShapeIncrementalGenerator? generator = null)
     {
         generator ??= new();
         CSharpParseOptions parseOptions = compilation.SyntaxTrees
             .OfType<CSharpSyntaxTree>()
             .Select(tree => tree.Options)
             .FirstOrDefault() ?? s_defaultParseOptions;
-
+        var configOptionsProvider = new TestGlobalOptionsProvider([
+            ("build_property.TypeShape_SourceGenerator_AdditionalMarkerAttributeName", "MyMarkerAttribute")
+        ]);
         return CSharpGeneratorDriver.Create(
             generators: [generator.AsSourceGenerator()],
-            parseOptions: parseOptions,
+            optionsProvider: configOptionsProvider,
+            parseOptions: parseOptions, 
             driverOptions: new GeneratorDriverOptions(
-                disabledOutputs: IncrementalGeneratorOutputKind.None,
-                trackIncrementalGeneratorSteps: true));
+            disabledOutputs: IncrementalGeneratorOutputKind.None,
+            trackIncrementalGeneratorSteps: true));
     }
 
-    public static TypeShapeSourceGeneratorResult RunTypeShapeSourceGenerator(Compilation compilation, bool disableDiagnosticValidation = false)
+    public static TypeShapeSourceGeneratorResult RunTypeShapeSourceGenerator(Compilation compilation,
+        bool disableDiagnosticValidation = false)
     {
         List<TypeShapeProviderModel> generatedModels = [];
         var generator = new TypeShapeIncrementalGenerator
@@ -89,7 +96,8 @@ public static class CompilationHelpers
         };
 
         CSharpGeneratorDriver driver = CreateTypeShapeSourceGeneratorDriver(compilation, generator);
-        driver.RunGeneratorsAndUpdateCompilation(compilation, out Compilation outCompilation, out ImmutableArray<Diagnostic> diagnostics);
+        driver.RunGeneratorsAndUpdateCompilation(compilation, out Compilation outCompilation,
+            out ImmutableArray<Diagnostic> diagnostics);
 
         if (!disableDiagnosticValidation)
         {
@@ -111,6 +119,7 @@ public static class CompilationHelpers
     public static void AssertStructurallyEqual<T>(T expected, T actual)
     {
         CheckAreEqualCore(expected, actual, new());
+
         static void CheckAreEqualCore(object? expected, object? actual, Stack<string> path)
         {
             if (expected is null || actual is null)
@@ -181,7 +190,8 @@ public static class CompilationHelpers
                 return;
             }
 
-            if (type.GetProperty("EqualityContract", BindingFlags.Instance | BindingFlags.NonPublic, null, returnType: typeof(Type), types: Array.Empty<Type>(), null) != null)
+            if (type.GetProperty("EqualityContract", BindingFlags.Instance | BindingFlags.NonPublic, null,
+                    returnType: typeof(Type), types: Array.Empty<Type>(), null) != null)
             {
                 // Type is a C# record, run pointwise equality comparison.
                 foreach (PropertyInfo property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
@@ -199,7 +209,9 @@ public static class CompilationHelpers
                 FailNotEqual();
             }
 
-            void FailNotEqual() => Assert.Fail($"Value not equal in ${string.Join("", path.Reverse())}: expected {expected}, but was {actual}.");
+            void FailNotEqual() =>
+                Assert.Fail(
+                    $"Value not equal in ${string.Join("", path.Reverse())}: expected {expected}, but was {actual}.");
         }
     }
 
@@ -218,5 +230,30 @@ public static class CompilationHelpers
     {
         FileLinePositionSpan lineSpan = location.GetLineSpan();
         return (lineSpan.EndLinePosition.Line, lineSpan.EndLinePosition.Character);
+    }
+
+    internal class TestGlobalOptionsProvider : AnalyzerConfigOptionsProvider
+    {
+        public TestGlobalOptionsProvider(IEnumerable<(string, string)> options)
+            => GlobalOptions = new TestGlobalOptions(options);
+
+        public override AnalyzerConfigOptions GlobalOptions { get; }
+
+        public override AnalyzerConfigOptions GetOptions(SyntaxTree tree)
+            => GlobalOptions;
+
+        public override AnalyzerConfigOptions GetOptions(AdditionalText textFile)
+            => GlobalOptions;
+    }
+
+    internal class TestGlobalOptions : AnalyzerConfigOptions
+    {
+        private readonly Dictionary<string, string> _options;
+
+        public TestGlobalOptions(IEnumerable<(string key, string value)> options)
+            => _options = options.ToDictionary(e => e.key, e => e.value);
+
+        public override bool TryGetValue(string key, [NotNullWhen(true)] out string? value)
+            => _options.TryGetValue(key, out value);
     }
 }

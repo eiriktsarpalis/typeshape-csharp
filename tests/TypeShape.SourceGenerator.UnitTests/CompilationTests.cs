@@ -208,4 +208,40 @@ public static class CompilationTests
         TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation);
         Assert.Empty(result.Diagnostics);
     }
+
+    [Fact]
+    public static void AdditionalMarkerAttribute_NoErrors()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+                                                                       using TypeShape;
+                                                                       using TypeShape.Abstractions;
+                                                                       using System.Collections.Generic;
+
+                                                                       [MyMarker]
+                                                                       public partial class MyPoco
+                                                                       {
+                                                                           public MyPoco(bool @bool = true, string @string = "str")
+                                                                           {
+                                                                               Bool = @bool;
+                                                                               String = @string;
+                                                                           }
+                                                                       
+                                                                           public bool Bool { get; }
+                                                                           public string String { get; }
+                                                                           public List<int> List { get; set; }
+                                                                           public Dictionary<string, int> Dict { get; set; }
+                                                                       
+                                                                           public static ITypeShape<MyPoco> Test()
+                                                                               => TypeShapeProvider.Resolve<MyPoco>();
+                                                                       }
+                                                                       
+                                                                       public sealed class MyMarkerAttribute : Attribute
+                                                                       {
+                                                                       }
+                                                                       
+                                                                       """);
+
+        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
 }
