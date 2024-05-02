@@ -4,7 +4,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-
 namespace TypeShape.SourceGenerator.Helpers;
 
 internal static partial class RoslynHelpers
@@ -63,7 +62,6 @@ internal static partial class RoslynHelpers
             var tokens = new List<SimpleNameSyntax>();
             Traverse(nameSyntax);
 
-            SimpleNameSyntax typeName = tokens[^1];
             return tokens.Select(t => t.Identifier.Text).Take(tokens.Count - 1).ToImmutableArray();
 
             void Traverse(NameSyntax current)
@@ -94,9 +92,8 @@ internal static partial class RoslynHelpers
             Func<BaseTypeDeclarationSyntax, CancellationToken, bool> predicate)
     {
         return provider.CreateSyntaxProvider(
-                predicate: (SyntaxNode node, CancellationToken token) => node is BaseTypeDeclarationSyntax typeDecl &&
-                                                                         IsAnnotatedTypeDeclaration(typeDecl, token),
-                transform: Transform)
+            predicate: (node, token) => node is BaseTypeDeclarationSyntax typeDecl && IsAnnotatedTypeDeclaration(typeDecl, token),
+            transform: Transform)
             .Where(ctx => ctx.Type != null)
             .GroupBy(
                 keySelector: value => value.Type,

@@ -12,11 +12,7 @@ public sealed class TypeShapeIncrementalGenerator : IIncrementalGenerator
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
 #if LAUNCH_DEBUGGER
-        if (!System.Diagnostics.Debugger.IsAttached)
-        {
-            System.Diagnostics.Debugger.Launch();
-        }
-
+        System.Diagnostics.Debugger.Launch();
 #endif
         IncrementalValueProvider<TypeShapeKnownSymbols> knownSymbols = context.CompilationProvider
             .Select((compilation, _) => new TypeShapeKnownSymbols(compilation));
@@ -51,7 +47,7 @@ public sealed class TypeShapeIncrementalGenerator : IIncrementalGenerator
 
 
         context.RegisterSourceOutput(generateShapeOfTModels, GenerateSource);
-        context.RegisterSourceOutput(generateDataModels ,  GenerateSource);
+        context.RegisterSourceOutput(generateDataModels, GenerateSource);
     }
 
     private void GenerateSource(SourceProductionContext context, TypeShapeProviderModel? provider)
