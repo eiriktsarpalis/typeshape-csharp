@@ -110,8 +110,8 @@ public sealed partial class Parser
                     .ToImmutableEquatableArray(),
 
                 IsValueTupleType = false,
-                IsClassTupleType = false,
-                IsRecord = model.Type.IsRecord,
+                IsTupleType = false,
+                IsRecordType = model.Type.IsRecord,
                 EmitGenericTypeShapeProviderImplementation = emitGenericProviderImplementation,
             },
 
@@ -126,8 +126,8 @@ public sealed partial class Parser
                     .ToImmutableEquatableArray(),
 
                 IsValueTupleType = tupleModel.IsValueTuple,
-                IsClassTupleType = !tupleModel.IsValueTuple,
-                IsRecord = false,
+                IsTupleType = true,
+                IsRecordType = false,
                 EmitGenericTypeShapeProviderImplementation = emitGenericProviderImplementation,
             },
 
@@ -137,8 +137,8 @@ public sealed partial class Parser
                 Constructors = [],
                 Properties = [],
                 IsValueTupleType = false,
-                IsClassTupleType = false,
-                IsRecord = false,
+                IsTupleType = false,
+                IsRecordType = false,
                 EmitGenericTypeShapeProviderImplementation = emitGenericProviderImplementation,
             }
         };

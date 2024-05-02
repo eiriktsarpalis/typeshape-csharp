@@ -29,7 +29,7 @@ public abstract record TestCase<T>(T Value) : ITestCase
     public bool IsEquatable => Value is IEquatable<T> &&
         !typeof(T).IsImmutableArray() &&
         !typeof(T).IsMemoryType(out _, out _) &&
-        !typeof(T).IsRecord();
+        !typeof(T).IsRecordType();
 
     public bool IsTuple => Value is ITuple;
     public bool IsLongTuple => Value is ITuple { Length: > 7 };

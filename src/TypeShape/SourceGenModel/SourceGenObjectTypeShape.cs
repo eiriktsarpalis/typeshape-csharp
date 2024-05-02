@@ -14,9 +14,14 @@ public sealed class SourceGenObjectTypeShape<TObject> : IObjectTypeShape<TObject
     public required ITypeShapeProvider Provider { get; init; }
 
     /// <summary>
-    /// Whether the type is a record.
+    /// Whether the type represents a record.
     /// </summary>
-    public required bool IsRecord { get; init; }
+    public required bool IsRecordType { get; init; }
+
+    /// <summary>
+    /// Whether the type represents a tuple.
+    /// </summary>
+    public required bool IsTupleType { get; init; }
 
     /// <summary>
     /// The factory method for creating property shapes.

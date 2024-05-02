@@ -52,7 +52,7 @@ internal static partial class SourceFormatter
 
             static string FormatAttributeProviderFunc(ObjectShapeModel type, PropertyShapeModel property)
             {
-                if (type.IsValueTupleType || type.IsClassTupleType)
+                if (type.IsTupleType)
                 {
                     return "null";
                 }

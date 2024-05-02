@@ -8,7 +8,12 @@ public interface IObjectTypeShape : ITypeShape
     /// <summary>
     /// Determines whether the current shape represents a C# record type.
     /// </summary>
-    bool IsRecord { get; }
+    bool IsRecordType { get; }
+
+    /// <summary>
+    /// Determines whether the current shape represents a tuple type, either <see cref="System.Tuple"/> or <see cref="System.ValueTuple"/>.
+    /// </summary>
+    bool IsTupleType { get; }
 
     /// <summary>
     /// Determines whether the current type defines any property shapes.

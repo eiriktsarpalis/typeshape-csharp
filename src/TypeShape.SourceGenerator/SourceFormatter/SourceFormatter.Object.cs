@@ -16,7 +16,8 @@ internal static partial class SourceFormatter
                 return new SourceGenObjectTypeShape<{{objectShapeModel.Type.FullyQualifiedName}}>
                 {
                     Provider = this,
-                    IsRecord = {{FormatBool(objectShapeModel.IsRecord)}},
+                    IsRecordType = {{FormatBool(objectShapeModel.IsRecordType)}},
+                    IsTupleType = {{FormatBool(objectShapeModel.IsTupleType)}},
                     CreatePropertiesFunc = {{FormatNull(propertiesFactoryMethodName)}},
                     CreateConstructorsFunc = {{FormatNull(constructorFactoryMethodName)}},
                 };

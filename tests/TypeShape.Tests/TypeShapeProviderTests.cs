@@ -24,7 +24,8 @@ public abstract class TypeShapeProviderTests
         Assert.Same(Provider, shape.Provider);
         Assert.Equal(typeof(T), shape.Type);
         Assert.Equal(typeof(T), shape.AttributeProvider);
-        Assert.Equal(typeof(T).IsRecord(), shape is IObjectTypeShape { IsRecord: true});
+        Assert.Equal(typeof(T).IsRecordType(), shape is IObjectTypeShape { IsRecordType: true});
+        Assert.Equal(typeof(T).IsTupleType(), shape is IObjectTypeShape { IsTupleType: true });
 
         TypeShapeKind expectedKind = GetExpectedTypeKind(testCase.Value);
         Assert.Equal(expectedKind, shape.Kind);

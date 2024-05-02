@@ -196,7 +196,7 @@ internal static class ReflectionHelpers
         return false;
     }
 
-    public static bool IsRecord(this Type type)
+    public static bool IsRecordType(this Type type)
     {
         return !type.IsValueType
             ? type.GetMethod("<Clone>$", BindingFlags.Public | BindingFlags.Instance) is not null
@@ -428,15 +428,13 @@ internal static class ReflectionHelpers
 
     public static bool IsTupleType(this Type type)
     {
-        if (type.Assembly != typeof(ValueTuple<int>).Assembly || !type.IsGenericType)
+        if (type.Assembly != typeof(ValueTuple<int>).Assembly || type.Namespace != "System")
         {
             return false;
         }
 
-        Debug.Assert(type.FullName != null);
-        string fullName = type.FullName;
-        return fullName.StartsWith("System.ValueTuple`", StringComparison.Ordinal) ||
-            fullName.StartsWith("System.Tuple`", StringComparison.Ordinal);
+        return type.Name.StartsWith("ValueTuple", StringComparison.Ordinal) ||
+            type.Name.StartsWith("Tuple", StringComparison.Ordinal);
     }
 
     public static bool IsValueTupleType(this Type type)

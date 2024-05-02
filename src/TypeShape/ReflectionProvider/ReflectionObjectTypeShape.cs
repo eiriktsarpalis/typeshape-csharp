@@ -13,13 +13,16 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
 
     public TypeShapeKind Kind => TypeShapeKind.Object;
 
-    public bool IsRecord => _isRecord ??= typeof(T).IsRecord();
+    public bool IsRecordType => _isRecord ??= typeof(T).IsRecordType();
     private bool? _isRecord;
+
+    public bool IsTupleType => _isTuple ??= typeof(T).IsTupleType();
+    private bool? _isTuple;
 
     public bool IsSimpleType => _isSimpleType ??= DetermineIsSimpleType(typeof(T));
     private bool? _isSimpleType;
 
-    public bool HasProperties => !IsSimpleType && (typeof(T).IsTupleType() || GetMembers().Any());
+    public bool HasProperties => !IsSimpleType && GetMembers().Any();
     public bool HasConstructors => !IsSimpleType && GetConstructors().Any();
 
     public IEnumerable<IConstructorShape> GetConstructors()
@@ -29,14 +32,17 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
             yield break;
         }
 
-        if (typeof(T).IsTupleType())
+        if (IsTupleType)
         {
-            IConstructorShapeInfo ctorInfo = ReflectionTypeShapeProvider.CreateTupleConstructorShapeInfo(typeof(T));
-            yield return provider.CreateConstructor(ctorInfo);
+            if (typeof(T) != typeof(ValueTuple))
+            {
+                IConstructorShapeInfo ctorInfo = ReflectionTypeShapeProvider.CreateTupleConstructorShapeInfo(typeof(T));
+                yield return provider.CreateConstructor(ctorInfo);
+            }
 
             if (typeof(T).IsValueType)
             {
-                ctorInfo = CreateDefaultConstructor(memberInitializers: null);
+                IConstructorShapeInfo ctorInfo = CreateDefaultConstructor(memberInitializers: null);
                 yield return provider.CreateConstructor(ctorInfo);
             }
 
@@ -80,7 +86,7 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
                 continue;
             }
 
-            if (IsRecord && parameters is [ParameterInfo singleParam] &&
+            if (IsRecordType && parameters is [ParameterInfo singleParam] &&
                 singleParam.ParameterType == typeof(T))
             {
                 // Skip the copy constructor in record types
@@ -177,7 +183,7 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
             yield break;
         }
 
-        if (typeof(T).IsTupleType())
+        if (IsTupleType)
         {
             foreach (var field in ReflectionHelpers.EnumerateTupleMemberPaths(typeof(T)))
             {

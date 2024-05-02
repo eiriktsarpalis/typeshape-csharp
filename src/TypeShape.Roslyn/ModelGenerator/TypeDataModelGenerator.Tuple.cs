@@ -30,7 +30,7 @@ public partial class TypeDataModelGenerator
             return false;
         }
 
-        if (namedType.IsTupleType && namedType.TupleElements.Length > 1) // Only tuples of arity > 1 have syntactic sugar support in C#.
+        if (namedType.IsTupleType)
         {
             var elements = new List<PropertyDataModel>();
             foreach (IFieldSymbol element in namedType.TupleElements)

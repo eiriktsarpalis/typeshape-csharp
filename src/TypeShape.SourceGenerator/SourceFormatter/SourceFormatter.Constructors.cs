@@ -46,7 +46,7 @@ internal static partial class SourceFormatter
 
             static string FormatAttributeProviderFunc(ObjectShapeModel type, ConstructorShapeModel constructor)
             {
-                if (type.IsValueTupleType || type.IsClassTupleType || constructor.IsStaticFactory)
+                if (type.IsTupleType || constructor.IsStaticFactory)
                 {
                     return "null";
                 }
@@ -99,7 +99,7 @@ internal static partial class SourceFormatter
                     };
                 }
 
-                if (type.IsClassTupleType)
+                if (type.IsTupleType)
                 {
                     Debug.Assert(constructor.Parameters.Length > 0);
                     Debug.Assert(constructor.RequiredOrInitMembers.Length == 0);
@@ -172,7 +172,7 @@ internal static partial class SourceFormatter
             static string FormatDefaultCtor(ObjectShapeModel type, ConstructorShapeModel constructor)
                 => constructor.TotalArity switch
                 {
-                    0 when (type.IsValueTupleType) => $"static () => default({type.Type.FullyQualifiedName})",
+                    0 when type.IsValueTupleType => $"static () => default({type.Type.FullyQualifiedName})",
                     0 => $"static () => {FormatConstructorName(constructor)}()",
                     _ => "null",
                 };
@@ -235,7 +235,7 @@ internal static partial class SourceFormatter
 
             static string FormatAttributeProviderFunc(ObjectShapeModel type, ConstructorShapeModel constructor, ConstructorParameterShapeModel parameter)
             {
-                if (type.IsValueTupleType || type.IsClassTupleType || constructor.IsStaticFactory)
+                if (type.IsTupleType || constructor.IsStaticFactory)
                 {
                     return "null";
                 }
