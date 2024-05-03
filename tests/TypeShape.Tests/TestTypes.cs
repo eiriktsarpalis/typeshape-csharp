@@ -408,6 +408,7 @@ public static class TestTypes
         }, p);
 
         yield return Create(new DerivedClassWithShadowingMember { PropA = "propA", PropB = 2, FieldA = 1, FieldB = "fieldB" }, p);
+        yield return Create(new ClassWithMultipleSelfReferences { First = new ClassWithMultipleSelfReferences() }, p);
 
         yield return CreateSelfProvided(new PersonClass("John", 40));
         yield return CreateSelfProvided(new PersonStruct("John", 40));
@@ -1329,6 +1330,13 @@ public record DerivedClassWithShadowingMember : BaseClassWithShadowingMembers
     public required new string FieldB;
 }
 
+public class ClassWithMultipleSelfReferences
+{
+    public long Id { get; set; }
+    public ClassWithMultipleSelfReferences? First { get; set; }
+    public ClassWithMultipleSelfReferences[] FirstArray { get; set; } = [];
+}
+
 [GenerateShape<object>]
 [GenerateShape<bool>]
 [GenerateShape<string>]
@@ -1525,6 +1533,7 @@ public record DerivedClassWithShadowingMember : BaseClassWithShadowingMembers
 [GenerateShape<WeatherForecast>]
 [GenerateShape<WeatherForecastDTO>]
 [GenerateShape<DerivedClassWithShadowingMember>]
+[GenerateShape<ClassWithMultipleSelfReferences>]
 internal partial class SourceGenProvider;
 
 internal partial class Outer1
