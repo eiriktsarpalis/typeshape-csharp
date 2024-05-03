@@ -132,12 +132,15 @@ public partial class RandomGenerator
 
                 return new RandomGenerator<TElement[]>((Random random, int size) =>
                 {
+                    if (size == 0)
+                        return default!;
+
                     int length = random.Next(0, size);
                     var array = new TElement[length];
                     int elementSize = GetChildSize(size, length);
 
                     for (int i = 0; i < length; i++)
-                        array[i] = elementGenerator(random, size);
+                        array[i] = elementGenerator(random, elementSize);
 
                     return array;
                 });
