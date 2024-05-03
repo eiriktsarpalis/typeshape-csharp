@@ -1333,8 +1333,8 @@ public record DerivedClassWithShadowingMember : BaseClassWithShadowingMembers
 public class ClassWithMultipleSelfReferences
 {
     public long Id { get; set; }
-    public ClassWithMultipleSelfReferences First { get; set; } = default!;
-    public ClassWithMultipleSelfReferences[] FirstArray { get; set; } = default!;
+    public ClassWithMultipleSelfReferences? First { get; set; }
+    public ClassWithMultipleSelfReferences[] FirstArray { get; set; } = [];
 }
 
 [GenerateShape<object>]
