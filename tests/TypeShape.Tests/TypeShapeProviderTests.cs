@@ -149,6 +149,9 @@ public abstract class TypeShapeProviderTests
 
             if (parameterCount == 0)
             {
+                Assert.Throws<InvalidOperationException>(() => constructor.GetArgumentStateConstructor());
+                Assert.Throws<InvalidOperationException>(() => constructor.GetParameterizedConstructor());
+                
                 var defaultCtor = constructor.GetDefaultConstructor();
                 TDeclaringType defaultValue = defaultCtor();
                 Assert.NotNull(defaultValue);
@@ -156,24 +159,25 @@ public abstract class TypeShapeProviderTests
             else
             {
                 Assert.Throws<InvalidOperationException>(() => constructor.GetDefaultConstructor());
-            }
+                
+                int i = 0;
+                TArgumentState argumentState = constructor.GetArgumentStateConstructor().Invoke();
+                foreach (IConstructorParameterShape parameter in parameters)
+                {
+                    Assert.Equal(i++, parameter.Position);
+                    argumentState = (TArgumentState)parameter.Accept(this, argumentState)!;
+                }
 
-            int i = 0;
-            TArgumentState argumentState = constructor.GetArgumentStateConstructor().Invoke();
-            foreach (IConstructorParameterShape parameter in parameters)
-            {
-                Assert.Equal(i++, parameter.Position);
-                argumentState = (TArgumentState)parameter.Accept(this, argumentState)!;
-            }
+                var parameterizedCtor = constructor.GetParameterizedConstructor();
+                Assert.NotNull(parameterizedCtor);
 
-            var parameterizedCtor = constructor.GetParameterizedConstructor();
-            Assert.NotNull(parameterizedCtor);
-
-            if (typeof(TDeclaringType).Assembly == Assembly.GetExecutingAssembly())
-            {
-                TDeclaringType value = parameterizedCtor.Invoke(ref argumentState);
-                Assert.NotNull(value);
+                if (typeof(TDeclaringType).Assembly == Assembly.GetExecutingAssembly())
+                {
+                    TDeclaringType value = parameterizedCtor.Invoke(ref argumentState);
+                    Assert.NotNull(value);
+                }
             }
+            
             return null;
         }
 
@@ -529,6 +533,7 @@ public abstract class TypeShapeProviderTests
                     Assert.Equal(defaultValue, ctorParam.DefaultValue);
                     Assert.Equal(!hasDefaultValue, ctorParam.IsRequired);
                     Assert.Equal(ConstructorParameterKind.ConstructorParameter, ctorParam.Kind);
+                    Assert.True(ctorParam.IsPublic);
 
                     ParameterInfo paramInfo = Assert.IsAssignableFrom<ParameterInfo>(ctorParam.AttributeProvider);
                     Assert.Equal(actualParameter.Position, paramInfo.Position);
@@ -555,11 +560,13 @@ public abstract class TypeShapeProviderTests
                     {
                         Assert.Equal(p.PropertyType, ctorParam.ParameterType.Type);
                         Assert.NotNull(p.GetBaseDefinition().SetMethod);
+                        Assert.Equal(p.SetMethod?.IsPublic, ctorParam.IsPublic);
                     }
                     else if (memberInfo is FieldInfo f)
                     {
                         Assert.Equal(f.FieldType, ctorParam.ParameterType.Type);
                         Assert.False(f.IsInitOnly);
+                        Assert.Equal(f.IsPublic, ctorParam.IsPublic);
                     }
                 }
 

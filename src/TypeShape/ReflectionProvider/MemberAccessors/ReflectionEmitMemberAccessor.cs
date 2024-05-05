@@ -233,14 +233,11 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
 
     public Func<TArgumentState> CreateConstructorArgumentStateCtor<TArgumentState>(IConstructorShapeInfo ctorInfo)
     {
+        Debug.Assert(ctorInfo.Parameters.Length > 0);
+
         if (ctorInfo is TupleConstructorShapeInfo { IsValueTuple: true })
         {
             Debug.Assert(typeof(TArgumentState) == ctorInfo.ConstructedType);
-            return static () => default!;
-        }
-        else if (ctorInfo.Parameters is [])
-        {
-            Debug.Assert(typeof(TArgumentState) == typeof(object));
             return static () => default!;
         }
         else if (ctorInfo.Parameters is [MethodParameterShapeInfo parameter])
@@ -385,12 +382,9 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
 
     public Constructor<TArgumentState, TDeclaringType> CreateParameterizedConstructor<TArgumentState, TDeclaringType>(IConstructorShapeInfo ctorInfo)
     {
-        if (ctorInfo is MethodConstructorShapeInfo { ConstructorMethod: null, Parameters: [] })
-        {
-            Debug.Assert(typeof(TDeclaringType).IsValueType);
-            return static (ref TArgumentState _) => default!;
-        }
-        else if (ctorInfo is TupleConstructorShapeInfo { IsValueTuple: true })
+        Debug.Assert(ctorInfo.Parameters.Length > 0);
+
+        if (ctorInfo is TupleConstructorShapeInfo { IsValueTuple: true })
         {
             Debug.Assert(typeof(TDeclaringType) == typeof(TArgumentState));
             return (Constructor<TArgumentState, TDeclaringType>)(object)new Constructor<TArgumentState, TArgumentState>(static (ref TArgumentState arg) => arg);
@@ -401,21 +395,14 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
 
     private static DynamicMethod EmitParameterizedConstructorMethod(Type declaringType, Type argumentStateType, IConstructorShapeInfo ctorInfo)
     {
+        Debug.Assert(ctorInfo.Parameters.Length > 0);
+
         DynamicMethod dynamicMethod = CreateDynamicMethod("parameterizedCtor", declaringType, [argumentStateType.MakeByRefType()]);
         ILGenerator generator = dynamicMethod.GetILGenerator();
 
         if (ctorInfo is MethodConstructorShapeInfo methodCtor)
         {
-            if (methodCtor.Parameters is [])
-            {
-                Debug.Assert(argumentStateType == typeof(object));
-                Debug.Assert(methodCtor.ConstructorMethod != null);
-
-                // return new TDeclaringType();
-                EmitCall(generator, methodCtor.ConstructorMethod);
-                generator.Emit(OpCodes.Ret);
-            }
-            else if (methodCtor.Parameters is [MethodParameterShapeInfo parameter])
+            if (methodCtor.Parameters is [MethodParameterShapeInfo parameter])
             {
                 Debug.Assert(argumentStateType == parameter.Type);
 

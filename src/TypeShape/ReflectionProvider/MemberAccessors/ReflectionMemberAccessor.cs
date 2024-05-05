@@ -161,6 +161,7 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
     {
         return ctorInfo switch
         {
+            { Parameters: [] } => typeof(object),
             { Parameters: [MethodParameterShapeInfo param] } => param.Type,
             MethodConstructorShapeInfo { MemberInitializers.Length: > 0 } => typeof((object?[] ctorArgs, object[]? memberInitializerArgs, BitArray memberInitializerFlags)),
             _ => typeof(object?[])
@@ -169,6 +170,8 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
 
     public Func<TArgumentState> CreateConstructorArgumentStateCtor<TArgumentState>(IConstructorShapeInfo ctorInfo)
     {
+        Debug.Assert(ctorInfo.Parameters.Length > 0);
+
         if (ctorInfo.Parameters is [MethodParameterShapeInfo parameter])
         {
             Debug.Assert(typeof(TArgumentState) == parameter.Type);
@@ -191,6 +194,8 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
 
     public Setter<TArgumentState, TParameter> CreateConstructorArgumentStateSetter<TArgumentState, TParameter>(IConstructorShapeInfo ctorInfo, int parameterIndex)
     {
+        Debug.Assert(ctorInfo.Parameters.Length > 0);
+
         if (ctorInfo.Parameters is [MethodParameterShapeInfo])
         {
             Debug.Assert(parameterIndex == 0);
@@ -226,6 +231,8 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
 
     public Constructor<TArgumentState, TDeclaringType> CreateParameterizedConstructor<TArgumentState, TDeclaringType>(IConstructorShapeInfo ctorInfo)
     {
+        Debug.Assert(ctorInfo.Parameters.Length > 0);
+
         if (ctorInfo is TupleConstructorShapeInfo tupleCtor)
         {
             if (ctorInfo.Parameters is [IParameterShapeInfo param])

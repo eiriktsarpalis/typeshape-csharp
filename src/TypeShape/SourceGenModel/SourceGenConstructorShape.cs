@@ -43,12 +43,12 @@ public sealed class SourceGenConstructorShape<TDeclaringType, TArgumentState> : 
     /// <summary>
     /// Gets the argument state constructor for the constructor.
     /// </summary>
-    public required Func<TArgumentState> ArgumentStateConstructorFunc { get; init; }
+    public Func<TArgumentState>? ArgumentStateConstructorFunc { get; init; }
 
     /// <summary>
     /// Gets the parameterized constructor for the constructor.
     /// </summary>
-    public required Constructor<TArgumentState, TDeclaringType> ParameterizedConstructorFunc { get; init; }
+    public Constructor<TArgumentState, TDeclaringType>? ParameterizedConstructorFunc { get; init; }
 
     IEnumerable<IConstructorParameterShape> IConstructorShape.GetParameters()
         => GetParametersFunc?.Invoke() ?? [];
@@ -57,10 +57,10 @@ public sealed class SourceGenConstructorShape<TDeclaringType, TArgumentState> : 
         => DefaultConstructorFunc ?? throw new InvalidOperationException("Constructor shape does not specify a default constructor.");
 
     Func<TArgumentState> IConstructorShape<TDeclaringType, TArgumentState>.GetArgumentStateConstructor()
-        => ArgumentStateConstructorFunc;
+        => ArgumentStateConstructorFunc ?? throw new InvalidOperationException("Constructor shape does not specify a parameterized constructor.");
 
     Constructor<TArgumentState, TDeclaringType> IConstructorShape<TDeclaringType, TArgumentState>.GetParameterizedConstructor()
-        => ParameterizedConstructorFunc;
+        => ParameterizedConstructorFunc ?? throw new InvalidOperationException("Constructor shape does not specify a parameterized constructor.");
 
     ICustomAttributeProvider? IConstructorShape.AttributeProvider => AttributeProviderFunc?.Invoke();
 }

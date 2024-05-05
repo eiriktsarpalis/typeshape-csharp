@@ -68,12 +68,14 @@ public interface IConstructorShape<TDeclaringType, TArgumentState> : IConstructo
     /// <summary>
     /// Creates a constructor delegate for creating a default argument state instance.
     /// </summary>
+    /// <exception cref="InvalidOperationException">The <see cref="IConstructorShape.ParameterCount"/> of the constructor is zero.</exception>
     /// <returns>A delegate for constructing new <typeparamref name="TArgumentState"/> instances.</returns>
     Func<TArgumentState> GetArgumentStateConstructor();
 
     /// <summary>
     /// Creates a constructor delegate parameterized on an argument state object.
     /// </summary>
+    /// <exception cref="InvalidOperationException">The <see cref="IConstructorShape.ParameterCount"/> of the constructor is zero.</exception>
     /// <returns>A parameterized delegate returning an instance of <typeparamref name="TDeclaringType"/>.</returns>
     Constructor<TArgumentState, TDeclaringType> GetParameterizedConstructor();
 

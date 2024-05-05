@@ -16,10 +16,24 @@ internal sealed class ReflectionConstructorShape<TDeclaringType, TArgumentState>
     public bool IsPublic => ctorInfo.IsPublic;
 
     public Func<TArgumentState> GetArgumentStateConstructor()
-        => provider.MemberAccessor.CreateConstructorArgumentStateCtor<TArgumentState>(ctorInfo);
+    {
+        if (ParameterCount == 0)
+        {
+            throw new InvalidOperationException("The current constructor shape is not parameterized.");
+        }
+
+        return provider.MemberAccessor.CreateConstructorArgumentStateCtor<TArgumentState>(ctorInfo);
+    }
 
     public Constructor<TArgumentState, TDeclaringType> GetParameterizedConstructor()
-        => provider.MemberAccessor.CreateParameterizedConstructor<TArgumentState, TDeclaringType>(ctorInfo);
+    {
+        if (ParameterCount == 0)
+        {
+            throw new InvalidOperationException("The current constructor shape is not parameterized.");
+        }
+
+        return provider.MemberAccessor.CreateParameterizedConstructor<TArgumentState, TDeclaringType>(ctorInfo);
+    }
 
     public Func<TDeclaringType> GetDefaultConstructor()
     {

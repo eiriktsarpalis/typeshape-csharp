@@ -35,8 +35,8 @@ internal static partial class SourceFormatter
                     ParameterCount = {{constructor.TotalArity}},
                     GetParametersFunc = {{(constructor.TotalArity == 0 ? "null" : FormatConstructorParameterFactoryName(type, i))}},
                     DefaultConstructorFunc = {{FormatDefaultCtor(type, constructor)}},
-                    ArgumentStateConstructorFunc = static () => {{FormatArgumentStateCtorExpr(constructor, constructorArgumentStateFQN)}},
-                    ParameterizedConstructorFunc = static (ref {{constructorArgumentStateFQN}} state) => {{FormatParameterizedCtorExpr(type, constructor, "state")}},
+                    ArgumentStateConstructorFunc = {{FormatArgumentStateCtor(constructor, constructorArgumentStateFQN)}},
+                    ParameterizedConstructorFunc = {{FormatParameterizedCtor(type, constructor, constructorArgumentStateFQN)}},
                     AttributeProviderFunc = {{FormatAttributeProviderFunc(type, constructor)}},
                     IsPublic = {{FormatBool(constructor.IsPublic)}},
                 },
@@ -58,9 +58,14 @@ internal static partial class SourceFormatter
                 return $"static () => typeof({constructor.DeclaringType.FullyQualifiedName}).GetConstructor({InstanceBindingFlagsConstMember}, {parameterTypes})";
             }
 
-            static string FormatArgumentStateCtorExpr(ConstructorShapeModel constructor, string constructorArgumentStateFQN)
+            static string FormatArgumentStateCtor(ConstructorShapeModel constructor, string constructorArgumentStateFQN)
             {
-                return (constructor.Parameters.Length, constructor.RequiredOrInitMembers.Length, constructor.OptionalMemberFlagsType) switch
+                if (constructor.TotalArity == 0)
+                {
+                    return "null";
+                }
+                
+                string argumentCtorExpr = (constructor.Parameters.Length, constructor.RequiredOrInitMembers.Length, constructor.OptionalMemberFlagsType) switch
                 {
                     (0, 0, OptionalMemberFlagsType.None) => "null!",
                     (1, 0, OptionalMemberFlagsType.None) => FormatDefaultValueExpr(constructor.Parameters[0]),
@@ -83,89 +88,99 @@ internal static partial class SourceFormatter
                                 : "default")),
                 };
 
+                return $"static () => {argumentCtorExpr}";
                 static string FormatTupleConstructor(IEnumerable<string> elementValues)
                     => $"({string.Join(", ", elementValues)})";
             }
 
-            static string FormatParameterizedCtorExpr(ObjectShapeModel type, ConstructorShapeModel constructor, string stateVar)
+            static string FormatParameterizedCtor(ObjectShapeModel type, ConstructorShapeModel constructor, string constructorArgumentStateFQN)
             {
-                if (type.IsValueTupleType)
+                if (constructor.TotalArity == 0)
                 {
-                    return constructor.TotalArity switch
-                    {
-                        0 => $"default({type.Type.FullyQualifiedName})",
-                        1 => $"new ({stateVar})",
-                        _ => stateVar,
-                    };
+                    return "null";
                 }
-
-                if (type.IsTupleType)
+                
+                return $"static (ref {constructorArgumentStateFQN} state) => {FormatParameterizedCtorExpr(type, constructor, "state")}";
+                static string FormatParameterizedCtorExpr(ObjectShapeModel type, ConstructorShapeModel constructor, string stateVar)
                 {
-                    Debug.Assert(constructor.Parameters.Length > 0);
-                    Debug.Assert(constructor.RequiredOrInitMembers.Length == 0);
-
-                    if (constructor.Parameters.Length == 1)
+                    if (type.IsValueTupleType)
                     {
-                        return $"new ({stateVar})";
+                        return constructor.TotalArity switch
+                        {
+                            0 => $"default({type.Type.FullyQualifiedName})",
+                            1 => $"new ({stateVar})",
+                            _ => stateVar,
+                        };
                     }
 
-                    var sb = new StringBuilder();
-                    int indentation = 0;
-                    for (int i = 0; i < constructor.Parameters.Length; i++)
+                    if (type.IsTupleType)
                     {
-                        if (i % 7 == 0)
+                        Debug.Assert(constructor.Parameters.Length > 0);
+                        Debug.Assert(constructor.RequiredOrInitMembers.Length == 0);
+
+                        if (constructor.Parameters.Length == 1)
                         {
-                            sb.Append("new (");
-                            indentation++;
+                            return $"new ({stateVar})";
                         }
 
-                        sb.Append($"{FormatCtorParameterExpr(constructor.Parameters[i])}, ");
+                        var sb = new StringBuilder();
+                        int indentation = 0;
+                        for (int i = 0; i < constructor.Parameters.Length; i++)
+                        {
+                            if (i % 7 == 0)
+                            {
+                                sb.Append("new (");
+                                indentation++;
+                            }
+
+                            sb.Append($"{FormatCtorParameterExpr(constructor.Parameters[i])}, ");
+                        }
+
+                        sb.Length -= 2;
+                        sb.Append(')', indentation);
+                        return sb.ToString();
                     }
 
-                    sb.Length -= 2;
-                    sb.Append(')', indentation);
-                    return sb.ToString();
-                }
-
-                string objectInitializerExpr = (constructor.Parameters.Length, constructor.RequiredOrInitMembers.Length) switch
-                {
-                    (0, 0) => $$"""{{FormatConstructorName(constructor)}}()""",
-                    (1, 0) when constructor.OptionalMembers is [] => $$"""{{FormatConstructorName(constructor)}}({{stateVar}})""",
-                    (0, 1) when constructor.OptionalMembers is [] => $$"""{{FormatConstructorName(constructor)}} { {{constructor.RequiredOrInitMembers[0].UnderlyingMemberName}} = {{stateVar}} }""",
-                    (_, 0) => $$"""{{FormatConstructorName(constructor)}}({{FormatCtorArgumentsBody()}})""",
-                    (0, _) => $$"""{{FormatConstructorName(constructor)}} { {{FormatInitializerBody()}} }""",
-                    (_, _) => $$"""{{FormatConstructorName(constructor)}}({{FormatCtorArgumentsBody()}}) { {{FormatInitializerBody()}} }""",
-                };
-
-                return constructor.OptionalMembers.Length == 0
-                    ? objectInitializerExpr
-                    : $$"""{ var obj = {{objectInitializerExpr}}; {{FormatOptionalMemberAssignments()}}; return obj; }""";
-
-                string FormatCtorArgumentsBody() => string.Join(", ", constructor.Parameters.Select(p => FormatCtorParameterExpr(p)));
-                string FormatInitializerBody() => string.Join(", ", constructor.RequiredOrInitMembers.Select(p => $"{p.UnderlyingMemberName} = {FormatCtorParameterExpr(p)}"));
-                string FormatOptionalMemberAssignments() => string.Join("; ", constructor.OptionalMembers.Select(FormatOptionalMemberAssignment));
-                string FormatOptionalMemberAssignment(ConstructorParameterShapeModel parameter)
-                {
-                    Debug.Assert(parameter.Kind is ParameterKind.OptionalMember);
-                    int flagOffset = parameter.Position - constructor.Parameters.Length - constructor.RequiredOrInitMembers.Length;
-                    Debug.Assert(flagOffset >= 0);
-                    string conditionalExpr = constructor.OptionalMemberFlagsType is OptionalMemberFlagsType.BitArray
-                        ? $"{stateVar}.Item{constructor.TotalArity + 1}[{flagOffset}]"
-                        : $"({stateVar}.Item{constructor.TotalArity + 1} & (1 << {flagOffset})) != 0";
-
-                    return $"if ({conditionalExpr}) obj.{parameter.UnderlyingMemberName} = {FormatCtorParameterExpr(parameter)}";
-                }
-
-                string FormatCtorParameterExpr(ConstructorParameterShapeModel parameter)
-                {
-                    // Reserved for cases where we have Nullable<T> ctor parameters with [DisallowNull] annotation.
-                    bool requiresSuppression = parameter is
+                    string objectInitializerExpr = (constructor.Parameters.Length, constructor.RequiredOrInitMembers.Length) switch
                     {
-                        ParameterType.SpecialType: SpecialType.System_Nullable_T,
-                        IsNonNullable: true
+                        (0, 0) => $$"""{{FormatConstructorName(constructor)}}()""",
+                        (1, 0) when constructor.OptionalMembers is [] => $$"""{{FormatConstructorName(constructor)}}({{stateVar}})""",
+                        (0, 1) when constructor.OptionalMembers is [] => $$"""{{FormatConstructorName(constructor)}} { {{constructor.RequiredOrInitMembers[0].UnderlyingMemberName}} = {{stateVar}} }""",
+                        (_, 0) => $$"""{{FormatConstructorName(constructor)}}({{FormatCtorArgumentsBody()}})""",
+                        (0, _) => $$"""{{FormatConstructorName(constructor)}} { {{FormatInitializerBody()}} }""",
+                        (_, _) => $$"""{{FormatConstructorName(constructor)}}({{FormatCtorArgumentsBody()}}) { {{FormatInitializerBody()}} }""",
                     };
 
-                    return $"{stateVar}.Item{parameter.Position + 1}{(requiresSuppression ? "!" : "")}";
+                    return constructor.OptionalMembers.Length == 0
+                        ? objectInitializerExpr
+                        : $$"""{ var obj = {{objectInitializerExpr}}; {{FormatOptionalMemberAssignments()}}; return obj; }""";
+
+                    string FormatCtorArgumentsBody() => string.Join(", ", constructor.Parameters.Select(p => FormatCtorParameterExpr(p)));
+                    string FormatInitializerBody() => string.Join(", ", constructor.RequiredOrInitMembers.Select(p => $"{p.UnderlyingMemberName} = {FormatCtorParameterExpr(p)}"));
+                    string FormatOptionalMemberAssignments() => string.Join("; ", constructor.OptionalMembers.Select(FormatOptionalMemberAssignment));
+                    string FormatOptionalMemberAssignment(ConstructorParameterShapeModel parameter)
+                    {
+                        Debug.Assert(parameter.Kind is ParameterKind.OptionalMember);
+                        int flagOffset = parameter.Position - constructor.Parameters.Length - constructor.RequiredOrInitMembers.Length;
+                        Debug.Assert(flagOffset >= 0);
+                        string conditionalExpr = constructor.OptionalMemberFlagsType is OptionalMemberFlagsType.BitArray
+                            ? $"{stateVar}.Item{constructor.TotalArity + 1}[{flagOffset}]"
+                            : $"({stateVar}.Item{constructor.TotalArity + 1} & (1 << {flagOffset})) != 0";
+
+                        return $"if ({conditionalExpr}) obj.{parameter.UnderlyingMemberName} = {FormatCtorParameterExpr(parameter)}";
+                    }
+
+                    string FormatCtorParameterExpr(ConstructorParameterShapeModel parameter)
+                    {
+                        // Reserved for cases where we have Nullable<T> ctor parameters with [DisallowNull] annotation.
+                        bool requiresSuppression = parameter is
+                        {
+                            ParameterType.SpecialType: SpecialType.System_Nullable_T,
+                            IsNonNullable: true
+                        };
+
+                        return $"{stateVar}.Item{parameter.Position + 1}{(requiresSuppression ? "!" : "")}";
+                    }
                 }
             }
 
