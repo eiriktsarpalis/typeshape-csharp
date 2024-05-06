@@ -29,7 +29,7 @@ public abstract class JsonTests
         string json = converter.Serialize(testCase.Value);
         Assert.Equal(ToJsonBaseline(testCase.Value), json);
 
-        if (!testCase.HasConstructors(Provider))
+        if (!testCase.HasConstructors(Provider) && testCase.Value is not null)
         {
             Assert.Throws<NotSupportedException>(() => converter.Deserialize(json));
         }
@@ -118,8 +118,8 @@ public abstract class JsonTests
             return;
         }
 
-        var converter = GetConverterUnderTest<List<T>>();
-        var list = new List<T> { testCase.Value, testCase.Value, testCase.Value };
+        var converter = GetConverterUnderTest<List<T?>>();
+        var list = new List<T?> { testCase.Value, testCase.Value, testCase.Value };
 
         string json = converter.Serialize(list);
         Assert.Equal(ToJsonBaseline(list), json);
@@ -134,7 +134,7 @@ public abstract class JsonTests
         }
         else
         {
-            List<T> deserializedValue = converter.Deserialize(json)!;
+            List<T?> deserializedValue = converter.Deserialize(json)!;
             Assert.NotEmpty(deserializedValue);
 
             if (testCase.IsEquatable)
@@ -166,8 +166,8 @@ public abstract class JsonTests
             return;
         }
 
-        var converter = GetConverterUnderTest<Dictionary<string, T>>();
-        var dict = new Dictionary<string, T> { ["key1"] = testCase.Value, ["key2"] = testCase.Value, ["key3"] = testCase.Value };
+        var converter = GetConverterUnderTest<Dictionary<string, T?>>();
+        var dict = new Dictionary<string, T?> { ["key1"] = testCase.Value, ["key2"] = testCase.Value, ["key3"] = testCase.Value };
 
         string json = converter.Serialize(dict);
         Assert.Equal(ToJsonBaseline(dict), json);
@@ -182,7 +182,7 @@ public abstract class JsonTests
         }
         else
         {
-            Dictionary<string, T> deserializedValue = converter.Deserialize(json)!;
+            Dictionary<string, T?> deserializedValue = converter.Deserialize(json)!;
             Assert.NotEmpty(deserializedValue);
 
             if (testCase.IsEquatable)
@@ -412,7 +412,7 @@ public sealed class JsonTests_SourceGen : JsonTests
         string json = TypeShapeJsonSerializer.Serialize<T, TProvider>(testCase.Value);
         Assert.Equal(ToJsonBaseline(testCase.Value), json);
 
-        if (!testCase.HasConstructors(Provider))
+        if (!testCase.HasConstructors(Provider) && testCase.Value is not null)
         {
             Assert.Throws<NotSupportedException>(() => TypeShapeJsonSerializer.Deserialize<T, TProvider>(json));
         }

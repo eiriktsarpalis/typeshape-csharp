@@ -134,10 +134,19 @@ internal sealed class StringConverter : CborConverter<string>
 
 internal sealed class UriConverter : CborConverter<Uri>
 {
-    public override Uri Read(CborReader reader)
+    public override Uri? Read(CborReader reader)
     {
         reader.EnsureTag(CborTag.Uri);
-        return new Uri(reader.ReadTextString(), UriKind.RelativeOrAbsolute);
+        
+        if (reader.PeekState() == CborReaderState.Null)
+        {
+            reader.SkipValue();
+            return null;
+        }
+        else
+        {
+            return new Uri(reader.ReadTextString(), UriKind.RelativeOrAbsolute);   
+        }
     }
 
     public override void Write(CborWriter writer, Uri? value)
@@ -156,9 +165,17 @@ internal sealed class UriConverter : CborConverter<Uri>
 
 internal sealed class VersionConverter : CborConverter<Version>
 {
-    public override Version Read(CborReader reader)
+    public override Version? Read(CborReader reader)
     {
-        return new Version(reader.ReadTextString());
+        if (reader.PeekState() == CborReaderState.Null)
+        {
+            reader.SkipValue();
+            return null;
+        }
+        else
+        {
+            return new Version(reader.ReadTextString());   
+        }
     }
 
     public override void Write(CborWriter writer, Version? value)

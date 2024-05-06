@@ -13,11 +13,16 @@ using static TypeShape.Tests.ValidationTests;
 
 namespace TypeShape.Tests;
 
-public sealed record TestCase<T, TProvider>(T Value) : TestCase<T>(Value)
+public sealed record TestCase<T, TProvider>(T? Value) : TestCase<T>(Value)
     where TProvider : ITypeShapeProvider<T>;
 
-public abstract record TestCase<T>(T Value) : ITestCase
+public abstract record TestCase<T>(T? Value) : ITestCase
 {
+    public T?[] AdditionalValues { get; init; } = [];
+    public bool IsStack { get; init; }
+    public bool DoesNotRoundtrip { get; init; }
+    public bool UsesSpanConstructor { get; init; }
+    
     Type ITestCase.Type => typeof(T);
     object? ITestCase.Value => Value;
     public bool HasConstructors(ITypeShapeProvider provider) =>
@@ -30,34 +35,54 @@ public abstract record TestCase<T>(T Value) : ITestCase
         !typeof(T).IsImmutableArray() &&
         !typeof(T).IsMemoryType(out _, out _) &&
         !typeof(T).IsRecordType();
-
-    public bool IsTuple => Value is ITuple;
-    public bool IsLongTuple => Value is ITuple { Length: > 7 };
+    
+    public bool IsTuple => typeof(ITuple).IsAssignableFrom(typeof(T));
+    public bool IsLongTuple => IsTuple && typeof(T).GetMember("Rest").Any();
     public bool IsMultiDimensionalArray => typeof(T).IsArray && typeof(T).GetArrayRank() != 1;
     public bool IsAbstract => typeof(T).IsAbstract || typeof(T).IsInterface;
-    public bool IsStack { get; init; }
-    public bool DoesNotRoundtrip { get; init; }
-    public bool UsesSpanConstructor { get; init; }
+
+    IEnumerable<ITestCase> ITestCase.ExpandCases()
+    {
+        yield return this;
+        
+        if (default(T) is null && Value is not null)
+        {
+            yield return this with { Value = default };
+        }
+        
+        foreach (T? additionalValue in AdditionalValues)
+        {
+            yield return this with { Value = additionalValue, AdditionalValues = [] };
+        }
+    }
 }
 
 public interface ITestCase
 {
     public Type Type { get; }
     public object? Value { get; }
+    public IEnumerable<ITestCase> ExpandCases();
 }
 
 public static class TestTypes
 {
-    public static IEnumerable<object[]> GetTestCases()
-        => GetTestCasesCore().Select(value => new object[] { value });
+    public static IEnumerable<object[]> GetTestCases() => 
+        GetTestCasesWithExpendedValues()
+        .Select(value => new object[] { value });
+    
+    public static IEnumerable<object[]> GetEqualValuePairs() => 
+        GetTestCasesWithExpendedValues()
+        .Zip(GetTestCasesWithExpendedValues(), (l, r) => new object[] { l, r });
+
+    public static IEnumerable<ITestCase> GetTestCasesWithExpendedValues() =>
+        GetTestCasesCore().SelectMany(testCase => testCase.ExpandCases());
 
     public static IEnumerable<ITestCase> GetTestCasesCore()
     {
         SourceGenProvider p = SourceGenProvider.Default;
         yield return Create(new object(), p);
         yield return Create(false, p);
-        yield return Create("", p);
-        yield return Create("stringValue", p);
+        yield return Create("stringValue", p, additionalValues: [""]);
         yield return Create(Rune.GetRuneAt("🤯", 0), p);
         yield return Create(sbyte.MinValue, p);
         yield return Create(short.MinValue, p);
@@ -83,16 +108,15 @@ public static class TestTypes
         yield return Create(new Uri("https://github.com"), p);
         yield return Create(new Version("1.0.0.0"), p);
         yield return Create(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, p);
-
-        yield return Create(new int[0], p);
-        yield return Create<int[], SourceGenProvider>([1, 2, 3], p);
-        yield return Create<int[][], SourceGenProvider>([[1, 0, 0], [0, 1, 0], [0, 0, 1]], p);
+        
+        yield return Create<int[], SourceGenProvider>([1, 2, 3], p, additionalValues: [new int[0]]);
+        yield return Create<int[][], SourceGenProvider>([[1, 0, 0], [0, 1, 0], [0, 0, 1]], p, additionalValues: [[new int[0]]]);
         yield return Create<byte[], SourceGenProvider>([1, 2, 3], p);
         yield return Create<Memory<int>, SourceGenProvider>(new int[] { 1, 2, 3 }, p);
         yield return Create<ReadOnlyMemory<int>, SourceGenProvider>(new[] { 1, 2, 3 }, p);
         yield return Create<List<string>, SourceGenProvider>(["1", "2", "3"], p);
-        yield return Create<List<byte>, SourceGenProvider>([], p);
-        yield return Create<LinkedList<byte>, SourceGenProvider>([], p);
+        yield return Create<List<byte>, SourceGenProvider>([1, 2, 3], p, additionalValues: [[]]);
+        yield return Create<LinkedList<byte>, SourceGenProvider>(new([1, 2, 3]), p, additionalValues: [[]]);
         yield return Create(new Queue<int>([1, 2, 3]), p);
         yield return Create(new Stack<int>([1, 2, 3]), p, isStack: true);
         yield return Create(new Dictionary<string, int> { ["key1"] = 42, ["key2"] = -1 }, p);
@@ -101,8 +125,8 @@ public static class TestTypes
         yield return Create<SortedSet<string>, SourceGenProvider>(["apple", "orange", "banana"], p);
         yield return Create(new SortedDictionary<string, int> { ["key1"] = 42, ["key2"] = -1 }, p);
 
-        yield return Create(new Hashtable { ["key1"] = 42 }, p);
-        yield return Create<ArrayList, SourceGenProvider>([1, 2, 3], p);
+        yield return Create(new Hashtable { ["key1"] = 42 }, p, additionalValues: [[]]);
+        yield return Create<ArrayList, SourceGenProvider>([1, 2, 3], p, additionalValues: [[]]);
 
         yield return Create(new int[,] { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } }, p);
         yield return Create(new int[,,] { { { 1 } } }, p);
@@ -316,6 +340,12 @@ public static class TestTypes
                 }
             }
         }, p);
+        
+        yield return Create<RecursiveClassWithNonNullableOccurrence, SourceGenProvider>(null!, p);
+        yield return Create(new RecursiveClassWithNonNullableOccurrences
+        {
+            Values = [],
+        }, p);
 
         DateOnly today = DateOnly.Parse("2023-12-07");
         yield return Create(new Todos(
@@ -417,9 +447,13 @@ public static class TestTypes
         yield return CreateSelfProvided(new PersonRecord("John", 40));
         yield return CreateSelfProvided(new PersonRecordStruct("John", 40));
 
-        static TestCase<T, TProvider> Create<T, TProvider>(T value, TProvider provider, bool isStack = false, bool doesNotRoundtrip = false, bool usesSpanCtor = false) 
+        static TestCase<T, TProvider> Create<T, TProvider>(T value, TProvider provider, T?[]? additionalValues = null, bool isStack = false, bool doesNotRoundtrip = false, bool usesSpanCtor = false) 
             where TProvider : ITypeShapeProvider<T> 
-            => new(value) { IsStack = isStack, DoesNotRoundtrip = doesNotRoundtrip, UsesSpanConstructor = usesSpanCtor };
+            => new(value) { 
+                AdditionalValues = additionalValues ?? [], 
+                IsStack = isStack,
+                DoesNotRoundtrip = doesNotRoundtrip, 
+                UsesSpanConstructor = usesSpanCtor };
 
         static TestCase<T, T> CreateSelfProvided<T>(T value) where T : ITypeShapeProvider<T>
             => new(value);
@@ -489,6 +523,16 @@ internal class MyLinkedList<T>
 {
     public T? Value { get; set; }
     public MyLinkedList<T>? Next { get; set; }
+}
+
+internal class RecursiveClassWithNonNullableOccurrence
+{
+    public required RecursiveClassWithNonNullableOccurrence Value { get; init; }
+}
+
+internal class RecursiveClassWithNonNullableOccurrences
+{
+    public required RecursiveClassWithNonNullableOccurrences[] Values { get; init; }
 }
 
 public struct ComplexStruct
@@ -1471,6 +1515,8 @@ public class ClassWithMultipleSelfReferences
 [GenerateShape<NullClassGenericRecord<string>>]
 [GenerateShape<NullObliviousGenericRecord<string>>]
 [GenerateShape<MyLinkedList<int>>]
+[GenerateShape<RecursiveClassWithNonNullableOccurrence>]
+[GenerateShape<RecursiveClassWithNonNullableOccurrences>]
 [GenerateShape<GenericContainer<string>.Inner>]
 [GenerateShape<GenericContainer<string>.Inner<string>>]
 [GenerateShape<ValueTuple>]

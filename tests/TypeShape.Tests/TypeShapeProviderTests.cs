@@ -27,10 +27,10 @@ public abstract class TypeShapeProviderTests
         Assert.Equal(typeof(T).IsRecordType(), shape is IObjectTypeShape { IsRecordType: true});
         Assert.Equal(typeof(T).IsTupleType(), shape is IObjectTypeShape { IsTupleType: true });
 
-        TypeShapeKind expectedKind = GetExpectedTypeKind(testCase.Value);
+        TypeShapeKind expectedKind = GetExpectedTypeKind();
         Assert.Equal(expectedKind, shape.Kind);
 
-        static TypeShapeKind GetExpectedTypeKind(T value)
+        static TypeShapeKind GetExpectedTypeKind()
         {
             if (typeof(T).IsEnum)
             {
@@ -41,7 +41,7 @@ public abstract class TypeShapeProviderTests
                 return TypeShapeKind.Nullable;
             }
 
-            if (value is IEnumerable && value is not string)
+            if (typeof(IEnumerable).IsAssignableFrom(typeof(T)) && typeof(T) != typeof(string))
             {
                 return typeof(T).GetDictionaryKeyValueTypes() != null
                     ? TypeShapeKind.Dictionary
@@ -64,7 +64,7 @@ public abstract class TypeShapeProviderTests
         _ = testCase; // not used here
         ITypeShape<T> shape = Provider.Resolve<T>();
 
-        if (shape is not IObjectTypeShape objectShape)
+        if (shape is not IObjectTypeShape objectShape || testCase.Value is null)
         {
             return;
         }

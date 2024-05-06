@@ -29,6 +29,12 @@ public abstract class ClonerTests
 
         T? clonedValue = cloner(testCase.Value);
 
+        if (testCase.Value is null)
+        {
+            Assert.Null(clonedValue);
+            return;
+        }
+
         if (typeof(T) != typeof(string))
         {
             Assert.NotSame((object?)testCase.Value, (object?)clonedValue);
