@@ -390,7 +390,7 @@ public partial class RandomGenerator
             return totalChildren switch
             {
                 0 => 0,
-                1 => (int)Math.Round(parentSize * 0.9),
+                1 => parentSize - 1,
                 _ => (int)Math.Round(parentSize / (double)totalChildren),
             };
         }

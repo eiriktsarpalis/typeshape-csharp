@@ -335,8 +335,8 @@ internal sealed class DateOnlyConverter : XmlConverter<DateOnly>
 
 internal sealed class UriConverter : XmlConverter<Uri>
 {
-    public override Uri Read(XmlReader reader)
-        => new Uri(reader.ReadElementContentAsString(), UriKind.RelativeOrAbsolute);
+    public override Uri? Read(XmlReader reader)
+        => reader.TryReadNullElement() ? null : new Uri(reader.ReadElementContentAsString(), UriKind.RelativeOrAbsolute);
 
     public override void Write(XmlWriter writer, string localName, Uri? value)
     {
@@ -354,8 +354,8 @@ internal sealed class UriConverter : XmlConverter<Uri>
 
 internal sealed class VersionConverter : XmlConverter<Version>
 {
-    public override Version Read(XmlReader reader)
-        => Version.Parse(reader.ReadElementContentAsString());
+    public override Version? Read(XmlReader reader)
+        => reader.TryReadNullElement() ? null : Version.Parse(reader.ReadElementContentAsString());
 
     public override void Write(XmlWriter writer, string localName, Version? value)
     {

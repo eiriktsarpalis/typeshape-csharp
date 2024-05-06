@@ -129,11 +129,9 @@ public static class JsonSchemaGenerator
                                 (!prop.HasGetter || prop.IsGetterNonNullable) &&
                                 (!prop.HasSetter || prop.IsSetterNonNullable) &&
                                 (associatedParameter is null || associatedParameter.IsNonNullable);
-
-                            bool cachePropertyLocation = !isNonNullable || !IsNullableType(prop.PropertyType.Type);
-
+                            
                             Push(prop.Name);
-                            JsonObject propSchema = GenerateSchema(prop.PropertyType, allowNull: !isNonNullable, cachePropertyLocation);
+                            JsonObject propSchema = GenerateSchema(prop.PropertyType, allowNull: !isNonNullable);
                             Pop();
 
                             properties.Add(prop.Name, propSchema);

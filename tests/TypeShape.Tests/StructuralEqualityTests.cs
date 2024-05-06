@@ -10,25 +10,32 @@ public abstract class StructuralEqualityTests
     protected abstract ITypeShapeProvider Provider { get; }
 
     [Theory]
-    [MemberData(nameof(GetEqualValues))]
+    [MemberData(nameof(TestTypes.GetEqualValuePairs), MemberType = typeof(TestTypes))]
     public void EqualityComparer_EqualValues<T>(TestCase<T> left, TestCase<T> right)
     {
         if (!typeof(T).IsValueType && typeof(T) != typeof(string))
         {
-            Assert.NotSame((object?)left.Value, (object?)right.Value); // ensure we're not using reference equality
+            // ensure we're not using reference equality
+            if (left.Value is null)
+            {
+                Assert.Null(right.Value);
+            }
+            else
+            {
+                Assert.NotSame((object?)left.Value, (object?)right.Value);
+            }
         }
 
         IEqualityComparer<T> cmp = GetEqualityComparerUnderTest<T>();
-        Assert.Equal(cmp.GetHashCode(left.Value!), cmp.GetHashCode(right.Value!));
-        Assert.Equal(left.Value, right.Value, cmp);
 
-        Assert.Equal(cmp.GetHashCode(right.Value!), cmp.GetHashCode(left.Value!));
-        Assert.Equal(right.Value, left.Value, cmp);
+        if (left.Value is not null)
+        {
+            Assert.Equal(cmp.GetHashCode(left.Value!), cmp.GetHashCode(right.Value!));
+        }
+
+        Assert.Equal(left.Value, right.Value, cmp!);
+        Assert.Equal(right.Value, left.Value, cmp!);
     }
-
-    public static IEnumerable<object[]> GetEqualValues()
-        => TestTypes.GetTestCasesCore()
-            .Zip(TestTypes.GetTestCasesCore(), (l, r) => new object[] { l, r });
 
     [Theory]
     [MemberData(nameof(GetNotEqualValues))]
@@ -107,21 +114,32 @@ public class StructuralEqualityTests_ReflectionEmit : StructuralEqualityTests
 public class StructuralEqualityTests_SourceGen : StructuralEqualityTests
 {
     [Theory]
-    [MemberData(nameof(GetEqualValues))]
+    [MemberData(nameof(TestTypes.GetEqualValuePairs), MemberType = typeof(TestTypes))]
     public void EqualityComparer_TypeShapeProvider_EqualValues<T, TProvider>(TestCase<T, TProvider> left, TestCase<T, TProvider> right)
         where TProvider : ITypeShapeProvider<T>
     {
         if (!typeof(T).IsValueType && typeof(T) != typeof(string))
         {
-            Assert.NotSame((object?)left.Value, (object?)right.Value); // ensure we're not using reference equality
+            // ensure we're not using reference equality
+            if (left.Value is null)
+            {
+                Assert.Null(right.Value);
+            }
+            else
+            {
+                Assert.NotSame((object?)left.Value, (object?)right.Value);
+            }
         }
 
         IEqualityComparer<T> cmp = StructuralEqualityComparer.Create<T, TProvider>();
-        Assert.Equal(cmp.GetHashCode(left.Value!), cmp.GetHashCode(right.Value!));
-        Assert.Equal(left.Value, right.Value, cmp);
 
-        Assert.Equal(cmp.GetHashCode(right.Value!), cmp.GetHashCode(left.Value!));
-        Assert.Equal(right.Value, left.Value, cmp);
+        if (left.Value is not null)
+        {
+            Assert.Equal(cmp.GetHashCode(left.Value!), cmp.GetHashCode(right.Value!));
+        }
+        
+        Assert.Equal(left.Value, right.Value, cmp!);
+        Assert.Equal(right.Value, left.Value, cmp!);
     }
 
     protected override ITypeShapeProvider Provider { get; } = SourceGenProvider.Default;
