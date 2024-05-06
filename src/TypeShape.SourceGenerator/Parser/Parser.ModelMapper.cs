@@ -62,6 +62,7 @@ public sealed partial class Parser
                 Kind = enumerableModel.EnumerableKind,
                 Rank = enumerableModel.Rank,
                 EmitGenericTypeShapeProviderImplementation = emitGenericProviderImplementation,
+                ElementTypeContainsNullableAnnotations = enumerableModel.ElementType.ContainsNullabilityAnnotations(),
             },
 
             DictionaryDataModel dictionaryModel => new DictionaryShapeModel
@@ -95,6 +96,9 @@ public sealed partial class Parser
                 CtorRequiresDictionaryConversion =
                     dictionaryModel.ConstructionStrategy is CollectionModelConstructionStrategy.Dictionary &&
                     !IsFactoryAcceptingIEnumerable(dictionaryModel.FactoryMethod),
+                KeyValueTypesContainNullableAnnotations = 
+                    dictionaryModel.KeyType.ContainsNullabilityAnnotations() ||
+                    dictionaryModel.ValueType.ContainsNullabilityAnnotations(),
             },
 
             ObjectDataModel objectModel => new ObjectShapeModel
@@ -163,6 +167,7 @@ public sealed partial class Parser
             PropertyType = CreateTypeId(property.PropertyType),
             IsGetterNonNullable = property.CanRead && property.IsGetterNonNullable,
             IsSetterNonNullable = property.CanWrite && property.IsSetterNonNullable,
+            PropertyTypeContainsNullabilityAnnotations = property.PropertyType.ContainsNullabilityAnnotations(),
             EmitGetter = property.CanRead,
             EmitSetter = property.CanWrite,
             IsGetterPublic = property.CanRead && property.BaseSymbol is IPropertySymbol { GetMethod.DeclaredAccessibility: Accessibility.Public } or IFieldSymbol { DeclaredAccessibility: Accessibility.Public },
@@ -207,6 +212,7 @@ public sealed partial class Parser
                     : ParameterKind.OptionalMember,
 
                 IsNonNullable = propertyModel.IsSetterNonNullable,
+                ParameterTypeContainsNullabilityAnnotations = propertyModel.PropertyType.ContainsNullabilityAnnotations(),
                 IsPublic = propertyModel.PropertySymbol.DeclaredAccessibility is Accessibility.Public,
                 IsField = propertyModel.IsField,
                 HasDefaultValue = false,
@@ -291,6 +297,7 @@ public sealed partial class Parser
             Kind = ParameterKind.ConstructorParameter,
             IsRequired = !parameter.HasDefaultValue,
             IsNonNullable = parameter.IsNonNullable,
+            ParameterTypeContainsNullabilityAnnotations = parameter.Parameter.Type.ContainsNullabilityAnnotations(),
             IsPublic = true,
             IsField = false,
             HasDefaultValue = parameter.HasDefaultValue,
@@ -342,6 +349,7 @@ public sealed partial class Parser
                 IsPublic = true,
                 IsField = true,
                 IsNonNullable = tupleElement.IsSetterNonNullable,
+                ParameterTypeContainsNullabilityAnnotations = tupleElement.PropertyType.ContainsNullabilityAnnotations(),
                 DefaultValueExpr = null,
             };
         }

@@ -20,14 +20,14 @@ internal static partial class SourceFormatter
                 writer.WriteLine();
 
             // Suppress property getters that are nullable, but are not Nullable<T>
-            bool suppressGetter = property is
+            bool suppressGetter = property.PropertyTypeContainsNullabilityAnnotations || property is
             {
                 PropertyType.SpecialType: not SpecialType.System_Nullable_T,
                 IsGetterNonNullable: false
             };
 
             // Suppress non-nullable Nullable<T> property setters (i.e. setters with [DisallowNull] annotation)
-            bool suppressSetter = property is 
+            bool suppressSetter = property.PropertyTypeContainsNullabilityAnnotations || property is 
             { 
                 PropertyType.SpecialType: SpecialType.System_Nullable_T,
                 IsSetterNonNullable: true,

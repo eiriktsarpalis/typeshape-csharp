@@ -27,14 +27,15 @@ internal static partial class SourceFormatter
 
         static string FormatGetEnumerableFunc(EnumerableShapeModel enumerableType)
         {
+            string suppressSuffix = enumerableType.ElementTypeContainsNullableAnnotations ? "!" : "";
             return enumerableType.Kind switch
             {
                 EnumerableKind.IEnumerableOfT or
-                EnumerableKind.ArrayOfT => "static obj => obj",
-                EnumerableKind.MemoryOfT => $"static obj => global::System.Runtime.InteropServices.MemoryMarshal.ToEnumerable((ReadOnlyMemory<{enumerableType.ElementType.FullyQualifiedName}>)obj)",
-                EnumerableKind.ReadOnlyMemoryOfT => $"static obj => global::System.Runtime.InteropServices.MemoryMarshal.ToEnumerable(obj)",
-                EnumerableKind.IEnumerable => "static obj => global::System.Linq.Enumerable.Cast<object>(obj)",
-                EnumerableKind.MultiDimensionalArrayOfT => $"static obj => global::System.Linq.Enumerable.Cast<{enumerableType.ElementType.FullyQualifiedName}>(obj)",
+                EnumerableKind.ArrayOfT => $"static obj => obj{suppressSuffix}",
+                EnumerableKind.MemoryOfT => $"static obj => global::System.Runtime.InteropServices.MemoryMarshal.ToEnumerable((ReadOnlyMemory<{enumerableType.ElementType.FullyQualifiedName}>)obj{suppressSuffix})",
+                EnumerableKind.ReadOnlyMemoryOfT => $"static obj => global::System.Runtime.InteropServices.MemoryMarshal.ToEnumerable(obj{suppressSuffix})",
+                EnumerableKind.IEnumerable => $"static obj => global::System.Linq.Enumerable.Cast<object>(obj{suppressSuffix})",
+                EnumerableKind.MultiDimensionalArrayOfT => $"static obj => global::System.Linq.Enumerable.Cast<{enumerableType.ElementType.FullyQualifiedName}>(obj{suppressSuffix})",
                 _ => throw new ArgumentException(enumerableType.Kind.ToString()),
             };
         }
@@ -48,12 +49,13 @@ internal static partial class SourceFormatter
 
         static string FormatAddElementFunc(EnumerableShapeModel enumerableType)
         {
+            string suppressSuffix = enumerableType.ElementTypeContainsNullableAnnotations ? "!" : "";
             return enumerableType switch
             {
                 { AddElementMethod: { } addMethod, ImplementationTypeFQN: null } =>
-                    $"static (ref {enumerableType.Type.FullyQualifiedName} obj, {enumerableType.ElementType.FullyQualifiedName} value) => obj.{addMethod}(value)",
+                    $"static (ref {enumerableType.Type.FullyQualifiedName} obj, {enumerableType.ElementType.FullyQualifiedName} value) => obj.{addMethod}(value{suppressSuffix})",
                 { AddElementMethod: { } addMethod, ImplementationTypeFQN: { } implTypeFQN } =>
-                    $"static (ref {enumerableType.Type.FullyQualifiedName} obj, {enumerableType.ElementType.FullyQualifiedName} value) => (({implTypeFQN})obj).{addMethod}(value)",
+                    $"static (ref {enumerableType.Type.FullyQualifiedName} obj, {enumerableType.ElementType.FullyQualifiedName} value) => (({implTypeFQN})obj).{addMethod}(value{suppressSuffix})",
                 _ => "null",
             };
         }
@@ -65,10 +67,11 @@ internal static partial class SourceFormatter
                 return "null";
             }
 
-            string valuesExpr = enumerableType.CtorRequiresListConversion ? "CollectionHelpers.CreateList(values)" : "values";
+            string suppressSuffix = enumerableType.ElementTypeContainsNullableAnnotations ? "!" : "";
+            string valuesExpr = enumerableType.CtorRequiresListConversion ? $"CollectionHelpers.CreateList(values{suppressSuffix})" : $"values{suppressSuffix}";
             return enumerableType switch
             {
-                { Kind: EnumerableKind.ArrayOfT or EnumerableKind.ReadOnlyMemoryOfT or EnumerableKind.MemoryOfT } => $"static values => values.ToArray()",
+                { Kind: EnumerableKind.ArrayOfT or EnumerableKind.ReadOnlyMemoryOfT or EnumerableKind.MemoryOfT } => $"static values => {valuesExpr}.ToArray()",
                 { StaticFactoryMethod: string spanFactory } => $"static values => {spanFactory}({valuesExpr})",
                 _ => $"static values => new {enumerableType.Type.FullyQualifiedName}({valuesExpr})",
             };
@@ -81,10 +84,11 @@ internal static partial class SourceFormatter
                 return "null";
             }
 
+            string suppressSuffix = enumerableType.ElementTypeContainsNullableAnnotations ? "!" : "";
             return enumerableType switch
             {
-                { StaticFactoryMethod: { } enumerableFactory } => $"static values => {enumerableFactory}(values)",
-                _ => $"static values => new {enumerableType.Type.FullyQualifiedName}(values)",
+                { StaticFactoryMethod: { } enumerableFactory } => $"static values => {enumerableFactory}(values{suppressSuffix})",
+                _ => $"static values => new {enumerableType.Type.FullyQualifiedName}(values{suppressSuffix})",
             };
         }
     }

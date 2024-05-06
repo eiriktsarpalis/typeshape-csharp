@@ -100,7 +100,8 @@ public abstract class JsonSchemaTests
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void SchemaMatchesJsonSerializer<T>(TestCase<T> testCase)
     {
-        if (typeof(T) == typeof(Int128) || typeof(T) == typeof(UInt128))
+        if (typeof(T) == typeof(Int128) || typeof(T) == typeof(UInt128) ||
+            typeof(T) == typeof(Int128?) || typeof(T) == typeof(UInt128?))
         {
             return; // Not supported by JsonSchema.NET
         }

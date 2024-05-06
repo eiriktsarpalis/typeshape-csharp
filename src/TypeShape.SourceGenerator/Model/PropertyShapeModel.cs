@@ -17,6 +17,12 @@ public sealed record PropertyShapeModel
 
     public required bool IsGetterNonNullable { get; init; }
     public required bool IsSetterNonNullable { get; init; }
+    
+    /// <summary>
+    /// Whether the property type or type parameters of the
+    /// property type contain nullability annotations.
+    /// </summary>
+    public required bool PropertyTypeContainsNullabilityAnnotations { get; init; }
 
     public required int Order { get; init; }
 }

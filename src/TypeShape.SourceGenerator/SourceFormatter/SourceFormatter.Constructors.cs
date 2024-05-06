@@ -173,7 +173,7 @@ internal static partial class SourceFormatter
                     string FormatCtorParameterExpr(ConstructorParameterShapeModel parameter)
                     {
                         // Reserved for cases where we have Nullable<T> ctor parameters with [DisallowNull] annotation.
-                        bool requiresSuppression = parameter is
+                        bool requiresSuppression = parameter.ParameterTypeContainsNullabilityAnnotations || parameter is
                         {
                             ParameterType.SpecialType: SpecialType.System_Nullable_T,
                             IsNonNullable: true
@@ -269,10 +269,17 @@ internal static partial class SourceFormatter
 
             static string FormatSetterBody(ConstructorShapeModel constructor, ConstructorParameterShapeModel parameter)
             {
+                // Suppress non-nullable Nullable<T> property setters (i.e. setters with [DisallowNull] annotation)
+                bool suppressSetter = parameter.ParameterTypeContainsNullabilityAnnotations || parameter is 
+                { 
+                    ParameterType.SpecialType: SpecialType.System_Nullable_T,
+                    IsNonNullable: true,
+                };
+                
                 string assignValueExpr = constructor.TotalArity switch
                 {
-                    1 when constructor.OptionalMembers.Length == 0 => "state = value",
-                    _ => $"state.Item{parameter.Position + 1} = value",
+                    1 when constructor.OptionalMembers.Length == 0 => $"state = value{(suppressSetter ? "!" : "")}",
+                    _ => $"state.Item{parameter.Position + 1} = value{(suppressSetter ? "!" : "")}",
                 };
 
                 if (parameter.Kind is ParameterKind.OptionalMember)

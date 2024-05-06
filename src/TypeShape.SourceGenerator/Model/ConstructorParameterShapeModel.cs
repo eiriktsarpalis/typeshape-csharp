@@ -10,6 +10,7 @@ public sealed record ConstructorParameterShapeModel
     public required int Position { get; init; }
     public required bool IsRequired { get; init; }
     public required bool IsNonNullable { get; init; }
+    public required bool ParameterTypeContainsNullabilityAnnotations { get; init; }
     public required bool IsPublic { get; init; }
     public required bool IsField { get; init; }
     public required bool HasDefaultValue { get; init; }
