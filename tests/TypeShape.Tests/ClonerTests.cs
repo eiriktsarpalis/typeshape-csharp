@@ -1,31 +1,23 @@
 using TypeShape.Abstractions;
 using TypeShape.Applications.Cloner;
 using TypeShape.Applications.StructuralEquality;
-using TypeShape.ReflectionProvider;
 using Xunit;
 
 namespace TypeShape.Tests;
 
-public abstract class ClonerTests
+public abstract class ClonerTests(IProviderUnderTest providerUnderTest)
 {
-    protected abstract ITypeShapeProvider Provider { get; }
-
     [Theory]
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void Cloner_ProducesEqualCopy<T>(TestCase<T> testCase)
     {
-        if (!testCase.HasConstructors(Provider))
+        if (!testCase.HasConstructors(providerUnderTest))
         {
+            Assert.Throws<NotSupportedException>(() => Cloner.CreateCloner(testCase.GetShape(providerUnderTest)));
             return;
         }
 
-        (Func<T?, T?> cloner, IEqualityComparer<T> comparer) = GetClonerAndEqualityComparer<T>();
-
-        if (!testCase.HasConstructors(Provider))
-        {
-            Assert.Throws<NotSupportedException>(() => cloner(testCase.Value));
-            return;
-        }
+        (Func<T?, T?> cloner, IEqualityComparer<T> comparer) = GetClonerAndEqualityComparer<T>(testCase);
 
         T? clonedValue = cloner(testCase.Value);
 
@@ -40,34 +32,26 @@ public abstract class ClonerTests
             Assert.NotSame((object?)testCase.Value, (object?)clonedValue);
         }
 
+        if (testCase.IsLossyRoundtrip)
+        {
+            return;
+        }
+
         if (testCase.IsStack)
         {
-            Assert.Equal(testCase.Value, cloner(clonedValue), comparer!);
+            clonedValue = cloner(clonedValue);
         }
-        else if (!testCase.DoesNotRoundtrip)
-        {
-            Assert.Equal(testCase.Value, clonedValue, comparer!);
-        }
+
+        Assert.Equal(testCase.Value, clonedValue, comparer!);
     }
 
-    private (Func<T?, T?>, IEqualityComparer<T>) GetClonerAndEqualityComparer<T>()
+    private (Func<T?, T?>, IEqualityComparer<T>) GetClonerAndEqualityComparer<T>(TestCase<T> testCase)
     {
-        ITypeShape<T> shape = Provider.Resolve<T>();
+        ITypeShape<T> shape = testCase.GetShape(providerUnderTest);
         return (Cloner.CreateCloner(shape), StructuralEqualityComparer.Create(shape));
     }
 }
 
-public sealed class ClonerTests_Reflection : ClonerTests
-{
-    protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: false);
-}
-
-public sealed class ClonerTests_ReflectionEmit : ClonerTests
-{
-    protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: true);
-}
-
-public sealed class ClonerTests_SourceGen : ClonerTests
-{
-    protected override ITypeShapeProvider Provider { get; } = SourceGenProvider.Default;
-}
+public sealed class ClonerTests_Reflection() : ClonerTests(RefectionProviderUnderTest.Default);
+public sealed class ClonerTests_ReflectionEmit() : ClonerTests(RefectionProviderUnderTest.NoEmit);
+public sealed class ClonerTests_SourceGen() : ClonerTests(SourceGenProviderUnderTest.Default);

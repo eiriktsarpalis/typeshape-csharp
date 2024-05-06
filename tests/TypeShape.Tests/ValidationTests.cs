@@ -1,71 +1,19 @@
-﻿using TypeShape.Abstractions;
-using TypeShape.Applications.Validation;
-using TypeShape.ReflectionProvider;
+﻿using TypeShape.Applications.Validation;
 using Xunit;
 
 namespace TypeShape.Tests;
 
-public abstract partial class ValidationTests
+public abstract partial class ValidationTests(IProviderUnderTest providerUnderTest)
 {
-    protected abstract ITypeShapeProvider Provider { get; }
-
     [Theory]
     [MemberData(nameof(GetValidatorScenaria))]
-    public void SimpleValidationScenaria<T>(T value, List<string>? expectedErrors)
+    public void SimpleValidationScenaria<T>(TestCase<T> testCase, List<string>? expectedErrors)
     {
-        Validator<T> validator = GetValidatorUnderTest<T>();
+        Validator<T> validator = GetValidatorUnderTest(testCase);
 
         bool expectedResult = expectedErrors is null;
-        bool result = validator.TryValidate(value, out List<string>? errors);
+        bool result = validator.TryValidate(testCase.Value, out List<string>? errors);
         
-        Assert.Equal(expectedResult, result);
-        Assert.Equal(expectedErrors, errors);
-    }
-
-    [Theory]
-    [MemberData(nameof(GetValidatorScenaria))]
-    public void PocoValidationScenaria<T>(T value, List<string>? expectedErrors)
-    {
-        Validator<GenericRecord<T>> validator = GetValidatorUnderTest<GenericRecord<T>>();
-        GenericRecord<T> record = new GenericRecord<T>(value);
-
-        expectedErrors = expectedErrors?.Select(error => error.Replace("$.", "$.value.")).ToList();
-        bool expectedResult = expectedErrors is null;
-
-        bool result = validator.TryValidate(record, out List<string>? errors);
-
-        Assert.Equal(expectedResult, result);
-        Assert.Equal(expectedErrors, errors);
-    }
-
-    [Theory]
-    [MemberData(nameof(GetValidatorScenaria))]
-    public void ListValidationScenaria<T>(T value, List<string>? expectedErrors)
-    {
-        Validator<List<T>> validator = GetValidatorUnderTest<List<T>>();
-        List<T> list = new List<T> { value };
-
-        expectedErrors = expectedErrors?.Select(error => error.Replace("$.", "$.[0].")).ToList();
-        bool expectedResult = expectedErrors is null;
-
-        bool result = validator.TryValidate(list, out List<string>? errors);
-
-        Assert.Equal(expectedResult, result);
-        Assert.Equal(expectedErrors, errors);
-    }
-
-    [Theory]
-    [MemberData(nameof(GetValidatorScenaria))]
-    public void DictionaryValidationScenaria<T>(T value, List<string>? expectedErrors)
-    {
-        Validator<Dictionary<string, T>> validator = GetValidatorUnderTest<Dictionary<string, T>>();
-        Dictionary<string, T> dict = new Dictionary<string, T> { ["key"] = value };
-
-        expectedErrors = expectedErrors?.Select(error => error.Replace("$.", "$.key.")).ToList();
-        bool expectedResult = expectedErrors is null;
-
-        bool result = validator.TryValidate(dict, out List<string>? errors);
-
         Assert.Equal(expectedResult, result);
         Assert.Equal(expectedErrors, errors);
     }
@@ -74,8 +22,7 @@ public abstract partial class ValidationTests
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void TypeWithoutAttributeAnnotations_PassesValidation<T>(TestCase<T> testCase)
     {
-        Validator<T> validator = GetValidatorUnderTest<T>();
-
+        Validator<T> validator = GetValidatorUnderTest(testCase);
         bool result = validator.TryValidate(testCase.Value, out List<string>? errors);
 
         Assert.True(result);
@@ -115,10 +62,31 @@ public abstract partial class ValidationTests
             @"$.PhoneNumber: value does not match regex pattern '^\+?[0-9]{7,14}$'."
         ]);
 
-        static object?[] Create<T>(T value, List<string>? expectedErrors = null) => [value, expectedErrors];
+        var provider = ModelProvider.Default;
+        yield return CreateWithProvider(provider,
+            value: new GenericRecord<BindingModel>(validModel with { Id = null }),
+            expectedErrors: ["$.value.Id: value is null or empty.",]
+        );
+
+        yield return CreateWithProvider(provider,
+            value: new List<BindingModel> { validModel with { Id = null } },
+            expectedErrors: ["$.[0].Id: value is null or empty.",]
+        );
+
+        yield return CreateWithProvider(provider,
+            value: new Dictionary<string, BindingModel> { ["key"] = validModel with { Id = null }},
+            expectedErrors: ["$.key.Id: value is null or empty.",]
+        );
+        
+        static object?[] Create<T>(T? value, List<string>? expectedErrors = null) where T : ITypeShapeProvider<T> =>
+            CreateWithProvider(value, value, expectedErrors);
+
+        static object?[] CreateWithProvider<TProvider, T>(TProvider? provider, T? value, List<string>? expectedErrors = null) where TProvider : ITypeShapeProvider<T> =>
+            [TestCase.Create(provider, value), expectedErrors];
     }
 
-    private Validator<T> GetValidatorUnderTest<T>() => Validator.Create<T>(Provider);
+    private Validator<T> GetValidatorUnderTest<T>(TestCase<T> testCase) =>
+        Validator.Create<T>(testCase.GetShape(providerUnderTest));
 
     [GenerateShape]
     public partial record BindingModel
@@ -135,41 +103,13 @@ public abstract partial class ValidationTests
         [RegularExpression(Pattern = @"^\+?[0-9]{7,14}$")]
         public string? PhoneNumber { get; set; }
     }
+
+    [GenerateShape<GenericRecord<BindingModel>>]
+    [GenerateShape<List<BindingModel>>]
+    [GenerateShape<Dictionary<string, BindingModel>>]
+    public partial class ModelProvider;
 }
 
-public class ValidationTests_Reflection : ValidationTests
-{
-    protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: false);
-}
-
-public class ValidationTests_ReflectionEmit : ValidationTests
-{
-    protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: true);
-}
-
-public class ValidationTests_SourceGen : ValidationTests
-{
-    [Theory]
-    [MemberData(nameof(GetValidatorScenaria))]
-    public void SelfShapeProvider_SimpleValidationScenaria<T>(T value, List<string>? expectedErrors) where T : ITypeShapeProvider<T>
-    {
-        bool expectedResult = expectedErrors is null;
-        bool result = value.TryValidate(out List<string>? errors);
-
-        Assert.Equal(expectedResult, result);
-        Assert.Equal(expectedErrors, errors);
-    }
-
-    [Theory]
-    [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
-    public void TypeWithoutAttributeAnnotations_TypeShapeProvider_PassesValidation<T, TProvider>(TestCase<T, TProvider> testCase) 
-        where TProvider : ITypeShapeProvider<T>
-    {
-        bool result = Validator.TryValidate<T, TProvider>(testCase.Value, out List<string>? errors);
-
-        Assert.True(result);
-        Assert.Null(errors);
-    }
-
-    protected override ITypeShapeProvider Provider { get; } = SourceGenProvider.Default;
-}
+public sealed class ValidationTests_Reflection() : ValidationTests(RefectionProviderUnderTest.Default);
+public sealed class ValidationTests_ReflectionEmit() : ValidationTests(RefectionProviderUnderTest.NoEmit);
+public sealed class ValidationTests_SourceGen() : ValidationTests(SourceGenProviderUnderTest.Default);

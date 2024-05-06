@@ -49,7 +49,7 @@ public static class Cloner
             IConstructorShape? ctor = typeShape.GetConstructors()
                 .MinBy(ctor => ctor.ParameterCount);
 
-            return ctor != null ? ctor.Accept(this) : throw new NotSupportedException();
+            return ctor != null ? ctor.Accept(this) : throw TypeNotCloneable<T>();
         }
         
         public override object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructorShape<TDeclaringType, TArgumentState> constructorShape, object? _)
@@ -205,7 +205,7 @@ public static class Cloner
                     });
                 
                 default:
-                    throw new NotSupportedException();
+                    throw TypeNotCloneable<TEnumerable>();
             }
         }
 
@@ -268,7 +268,7 @@ public static class Cloner
                     });
                 
                 default:
-                    throw new NotSupportedException();
+                    throw TypeNotCloneable<TDictionary>();
             }
         }
 
@@ -324,5 +324,7 @@ public static class Cloner
             Func<T?, T?> cloner = BuildCloner(shape);
             return new Func<object?, object?>(source => cloner((T)source!));
         }
+
+        private static NotSupportedException TypeNotCloneable<T>() => new NotSupportedException($"The type '{typeof(T)}' is not cloneable.");
     }
 }

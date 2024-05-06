@@ -1,25 +1,22 @@
 ﻿using TypeShape.Abstractions;
 using TypeShape.Applications.ObjectMapper;
 using TypeShape.Applications.StructuralEquality;
-using TypeShape.ReflectionProvider;
 using Xunit;
 
 namespace TypeShape.Tests;
 
-public abstract class ObjectMapperTests
+public abstract class ObjectMapperTests(IProviderUnderTest providerUnderTest)
 {
-    protected abstract ITypeShapeProvider Provider { get; }
-
     [Theory]
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void MapToTheSameType_ProducesEqualCopy<T>(TestCase<T> testCase)
     {
-        if (!testCase.HasConstructors(Provider))
+        if (!testCase.HasConstructors(providerUnderTest))
         {
             return;
         }
 
-        (Mapper<T, T> mapper, IEqualityComparer<T> comparer, ITypeShape<T> shape) = GetMapperAndEqualityComparer<T>();
+        (Mapper<T, T> mapper, IEqualityComparer<T> comparer, ITypeShape<T> shape) = GetMapperAndEqualityComparer<T>(testCase);
 
         T? mappedValue = mapper(testCase.Value);
 
@@ -36,14 +33,17 @@ public abstract class ObjectMapperTests
             }
         }
 
+        if (testCase.IsLossyRoundtrip)
+        {
+            return;
+        }
+
         if (testCase.IsStack)
         {
-            Assert.Equal(testCase.Value, mapper(mappedValue), comparer!);
+            mappedValue = mapper(mappedValue);
         }
-        else if (!testCase.DoesNotRoundtrip)
-        {
-            Assert.Equal(testCase.Value, mappedValue, comparer!);
-        }
+
+        Assert.Equal(testCase.Value, mappedValue, comparer!);
     }
 
     [Fact]
@@ -78,26 +78,18 @@ public abstract class ObjectMapperTests
         Assert.Null(weatherForecast.UnmatchedProperty);
     }
 
-    private Mapper<TFrom, TTo> GetMapper<TFrom, TTo>() => Mapper.Create<TFrom, TTo>(Provider);
+    private Mapper<TFrom, TTo> GetMapper<TFrom, TTo>() 
+        where TFrom : ITypeShapeProvider<TFrom>
+        where TTo : ITypeShapeProvider<TTo> => 
+        Mapper.Create(providerUnderTest.GetShape<TFrom>(), providerUnderTest.GetShape<TTo>());
 
-    private (Mapper<T, T>, IEqualityComparer<T>, ITypeShape<T>) GetMapperAndEqualityComparer<T>()
+    private (Mapper<T, T>, IEqualityComparer<T>, ITypeShape<T>) GetMapperAndEqualityComparer<T>(TestCase<T> testCase)
     {
-        ITypeShape<T> shape = Provider.Resolve<T>();
+        ITypeShape<T> shape = testCase.GetShape(providerUnderTest);
         return (Mapper.Create(shape, shape), StructuralEqualityComparer.Create(shape), shape);
     }
 }
 
-public sealed class MapperTests_Reflection : ObjectMapperTests
-{
-    protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: false);
-}
-
-public sealed class MapperTests_ReflectionEmit : ObjectMapperTests
-{
-    protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: true);
-}
-
-public sealed class MapperTests_SourceGen : ObjectMapperTests
-{
-    protected override ITypeShapeProvider Provider { get; } = SourceGenProvider.Default;
-}
+public sealed class MapperTests_Reflection() : ObjectMapperTests(RefectionProviderUnderTest.Default);
+public sealed class MapperTests_ReflectionEmit() : ObjectMapperTests(RefectionProviderUnderTest.NoEmit);
+public sealed class MapperTests_SourceGen() : ObjectMapperTests(SourceGenProviderUnderTest.Default);

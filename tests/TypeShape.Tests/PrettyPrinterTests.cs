@@ -6,113 +6,90 @@ using Xunit;
 
 namespace TypeShape.Tests;
 
-public abstract class PrettyPrinterTests
+public abstract class PrettyPrinterTests(IProviderUnderTest providerUnderTest)
 {
-    protected abstract ITypeShapeProvider Provider { get; }
-
     [Theory]
     [MemberData(nameof(GetValues))]
-    public void TestValue<T>(T value, string expected)
+    public void TestValue<T>(TestCase<T> testCase)
     {
-        PrettyPrinter<T> prettyPrinter = GetPrettyPrinterUnderTest<T>();
-        Assert.Equal(expected, prettyPrinter.Print(value));
+        PrettyPrinter<T> prettyPrinter = GetPrettyPrinterUnderTest(testCase);
+        Assert.Equal(testCase.ExpectedEncoding?.ReplaceLineEndings(), prettyPrinter.Print(testCase.Value));
     }
 
     public static IEnumerable<object?[]> GetValues()
     {
-        yield return GetPair(1, "1");
-        yield return GetPair((string?)null, "null");
-        yield return GetPair("str", "\"str\"");
-        yield return GetPair(false, "false");
-        yield return GetPair(true, "true");
-        yield return GetPair((int?)null, "null");
-        yield return GetPair((int?)42, "42");
-        yield return GetPair(MyEnum.A, "\"A\"");
-        yield return GetPair<int[]>([], "[]");
-        yield return GetPair<int[]>([1, 2, 3], "[1, 2, 3]");
-        yield return GetPair<int[][]>([[1, 0, 0], [0, 1, 0], [0, 0, 1]], 
+        SourceGenProvider p = SourceGenProvider.Default;
+        yield return [TestCase.Create(p, 1, "1")];
+        yield return [TestCase.Create(p, (string?)null, "null")];
+        yield return [TestCase.Create(p, "str", "\"str\"")];
+        yield return [TestCase.Create(p, false, "false")];
+        yield return [TestCase.Create(p, true, "true")];
+        yield return [TestCase.Create(p, (int?)null, "null")];
+        yield return [TestCase.Create(p, (int?)42, "42")];
+        yield return [TestCase.Create(p, MyEnum.A, "\"A\"")];
+        yield return [TestCase.Create(p, (int[])[], "[]")];
+        yield return [TestCase.Create(p, (int[])[1, 2, 3], "[1, 2, 3]")];
+        yield return [TestCase.Create(p, (int[][])[[1, 0, 0], [0, 1, 0], [0, 0, 1]], 
             """
             [
               [1, 0, 0],
               [0, 1, 0],
               [0, 0, 1]
             ]
-            """);
-        yield return GetPair(new object(), "new Object()");
-        yield return GetPair(new SimpleRecord(42), 
+            """)];
+        
+        yield return [TestCase.Create(p, new object(), "new Object()")];
+        yield return [TestCase.Create(new SimpleRecord(42), 
             """
             new SimpleRecord
             {
               value = 42
             }
-            """);
-        yield return GetPair(new DerivedClass { X = 1, Y = 2 }, 
+            """)];
+        yield return [TestCase.Create(new DerivedClass { X = 1, Y = 2 }, 
             """
             new DerivedClass
             {
               Y = 2,
               X = 1
             }
-            """);
-        yield return GetPair(new Dictionary<string, string>(), "new Dictionary`2()");
-        yield return GetPair(
+            """)];
+        yield return [TestCase.Create(p, new Dictionary<string, string>(), "new Dictionary`2()")];
+        yield return [TestCase.Create(p,
             new Dictionary<string, string> { ["key"] = "value" }, 
             """
             new Dictionary`2
             {
               ["key"] = "value"
             }
-            """);
+            """)];
         
-        yield return GetPair(ImmutableArray.Create(1,2,3), """[1, 2, 3]""");
-        yield return GetPair(ImmutableList.Create("1", "2", "3"), """["1", "2", "3"]""");
-        yield return GetPair(ImmutableQueue.Create(1, 2, 3), """[1, 2, 3]""");
-        yield return GetPair(
+        yield return [TestCase.Create(p, ImmutableArray.Create(1,2,3), """[1, 2, 3]""")];
+        yield return [TestCase.Create(p, ImmutableList.Create("1", "2", "3"), """["1", "2", "3"]""")];
+        yield return [TestCase.Create(p, ImmutableQueue.Create(1, 2, 3), """[1, 2, 3]""")];
+        yield return [TestCase.Create(p,
             ImmutableDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }),
             """
             new ImmutableDictionary`2
             {
               ["key"] = "value"
             }
-            """);
+            """)];
 
-        yield return GetPair(
+        yield return [TestCase.Create(p,
             ImmutableSortedDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }), 
             """
             new ImmutableSortedDictionary`2
             {
               ["key"] = "value"
             }
-            """);
-
-        static object?[] GetPair<T>(T? value, string expected) => [value, expected.ReplaceLineEndings()];
+            """)];
     }
 
-    private PrettyPrinter<T> GetPrettyPrinterUnderTest<T>() => PrettyPrinter.Create<T>(Provider);
+    protected PrettyPrinter<T> GetPrettyPrinterUnderTest<T>(TestCase<T> testCase) =>
+        PrettyPrinter.Create(testCase.GetShape(providerUnderTest));
 }
 
-public class PrettyPrinterTests_Reflection : PrettyPrinterTests
-{
-    protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: false);
-}
-
-public class PrettyPrinterTests_ReflectionEmit : PrettyPrinterTests
-{
-    protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: true);
-}
-
-public class PrettyPrinterTests_SourceGen : PrettyPrinterTests
-{
-    [Theory]
-    [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
-    public void TypeShapeProvider_ReturnsExpectedResult<T, TProvider>(TestCase<T, TProvider> value) where TProvider : ITypeShapeProvider<T>
-    {
-        string expectedResult = PrettyPrinter.Create(SourceGenProvider.Default.GetShape<T>()!).Print(value.Value);
-
-        string result = PrettyPrinter.Print<T, TProvider>(value.Value);
-
-        Assert.Equal(expectedResult, result);
-    }
-
-    protected override ITypeShapeProvider Provider { get; } = SourceGenProvider.Default;
-}
+public sealed class PrettyPrinterTests_Reflection() : PrettyPrinterTests(RefectionProviderUnderTest.Default);
+public sealed class PrettyPrinterTests_ReflectionEmit() : PrettyPrinterTests(RefectionProviderUnderTest.NoEmit);
+public sealed class PrettyPrinterTests_SourceGen() : PrettyPrinterTests(SourceGenProviderUnderTest.Default);
