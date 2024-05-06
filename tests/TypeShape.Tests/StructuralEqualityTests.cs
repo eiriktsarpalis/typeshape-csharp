@@ -1,14 +1,10 @@
-﻿using TypeShape.Abstractions;
-using TypeShape.Applications.StructuralEquality;
-using TypeShape.ReflectionProvider;
+﻿using TypeShape.Applications.StructuralEquality;
 using Xunit;
 
 namespace TypeShape.Tests;
 
-public abstract class StructuralEqualityTests
+public abstract class StructuralEqualityTests(IProviderUnderTest providerUnderTest)
 {
-    protected abstract ITypeShapeProvider Provider { get; }
-
     [Theory]
     [MemberData(nameof(TestTypes.GetEqualValuePairs), MemberType = typeof(TestTypes))]
     public void EqualityComparer_EqualValues<T>(TestCase<T> left, TestCase<T> right)
@@ -26,7 +22,7 @@ public abstract class StructuralEqualityTests
             }
         }
 
-        IEqualityComparer<T> cmp = GetEqualityComparerUnderTest<T>();
+        IEqualityComparer<T> cmp = GetEqualityComparerUnderTest(left);
 
         if (left.Value is not null)
         {
@@ -39,39 +35,41 @@ public abstract class StructuralEqualityTests
 
     [Theory]
     [MemberData(nameof(GetNotEqualValues))]
-    public void EqualityComparer_NotEqualValues<T>(T left, T right)
+    public void EqualityComparer_NotEqualValues<T>(TestCase<T> left, TestCase<T> right)
     {
-        IEqualityComparer<T> cmp = GetEqualityComparerUnderTest<T>();
-        Assert.NotEqual(left, right, cmp);
-        Assert.NotEqual(right, left, cmp);
+        IEqualityComparer<T> cmp = GetEqualityComparerUnderTest(left);
+        
+        Assert.NotEqual(left.Value, right.Value, cmp!);
+        Assert.NotEqual(right.Value, left.Value, cmp!);
     }
 
     public static IEnumerable<object[]> GetNotEqualValues()
     {
-        yield return NotEqual(false, true);
-        yield return NotEqual(null, "");
-        yield return NotEqual(-1, 4);
-        yield return NotEqual(3.14, -7.5);
-        yield return NotEqual(DateTime.MinValue, DateTime.MaxValue);
-        yield return NotEqual<int[]>([1, 2, 3], []);
-        yield return NotEqual<int[]>([1, 2, 3], [1, 2, 0]);
-        yield return NotEqual<int[][]>(
-            [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+        SourceGenProvider p = SourceGenProvider.Default;
+        yield return NotEqual(p, false, true);
+        yield return NotEqual(p, null, "");
+        yield return NotEqual(p, -1, 4);
+        yield return NotEqual(p, 3.14, -7.5);
+        yield return NotEqual(p, DateTime.MinValue, DateTime.MaxValue);
+        yield return NotEqual(p, (int[])[1, 2, 3], []);
+        yield return NotEqual(p, (int[])[1, 2, 3], [1, 2, 0]);
+        yield return NotEqual(p,
+            (int[][])[[1, 0, 0], [0, 1, 0], [0, 0, 1]],
             [[1, 0, 0], [0, 0, 0], [0, 0, 1]]);
 
-        yield return NotEqual(
+        yield return NotEqual(p,
             new Dictionary<string, int> { ["key1"] = 42, ["key2"] = -1 },
             new Dictionary<string, int> { ["key1"] = 42, ["key2"] = 1 });
 
-        yield return NotEqual(
+        yield return NotEqual(p,
             new Dictionary<string, int> { ["key1"] = 42, ["key5"] = -1 },
             new Dictionary<string, int> { ["key1"] = 42, ["key2"] = -1 });
 
-        yield return NotEqual(
+        yield return NotEqual(default(DerivedClass),
             new DerivedClass { X = 1, Y = 2 },
             new DerivedClass { X = 1, Y = -1 });
 
-        yield return NotEqual(
+        yield return NotEqual(p,
             new MyLinkedList<int>
             {
                 Value = 1,
@@ -95,52 +93,14 @@ public abstract class StructuralEqualityTests
                 }
             });
 
-        static object[] NotEqual<T>(T left, T right) => [left!, right!];
+        static object[] NotEqual<TProvider, T>(TProvider? provider, T left, T right) where TProvider : ITypeShapeProvider<T> =>
+            [TestCase.Create(provider, left), TestCase.Create(provider, right)];
     }
 
-    private IEqualityComparer<T> GetEqualityComparerUnderTest<T>() => StructuralEqualityComparer.Create<T>(Provider);
+    private IEqualityComparer<T> GetEqualityComparerUnderTest<T>(TestCase<T> testCase) =>
+        StructuralEqualityComparer.Create(testCase.GetShape(providerUnderTest));
 }
 
-public class StructuralEqualityTests_Reflection : StructuralEqualityTests
-{
-    protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: false);
-}
-
-public class StructuralEqualityTests_ReflectionEmit : StructuralEqualityTests
-{
-    protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: true);
-}
-
-public class StructuralEqualityTests_SourceGen : StructuralEqualityTests
-{
-    [Theory]
-    [MemberData(nameof(TestTypes.GetEqualValuePairs), MemberType = typeof(TestTypes))]
-    public void EqualityComparer_TypeShapeProvider_EqualValues<T, TProvider>(TestCase<T, TProvider> left, TestCase<T, TProvider> right)
-        where TProvider : ITypeShapeProvider<T>
-    {
-        if (!typeof(T).IsValueType && typeof(T) != typeof(string))
-        {
-            // ensure we're not using reference equality
-            if (left.Value is null)
-            {
-                Assert.Null(right.Value);
-            }
-            else
-            {
-                Assert.NotSame((object?)left.Value, (object?)right.Value);
-            }
-        }
-
-        IEqualityComparer<T> cmp = StructuralEqualityComparer.Create<T, TProvider>();
-
-        if (left.Value is not null)
-        {
-            Assert.Equal(cmp.GetHashCode(left.Value!), cmp.GetHashCode(right.Value!));
-        }
-        
-        Assert.Equal(left.Value, right.Value, cmp!);
-        Assert.Equal(right.Value, left.Value, cmp!);
-    }
-
-    protected override ITypeShapeProvider Provider { get; } = SourceGenProvider.Default;
-}
+public sealed class StructuralEqualityTests_Reflection() : StructuralEqualityTests(RefectionProviderUnderTest.Default);
+public sealed class StructuralEqualityTests_ReflectionEmit() : StructuralEqualityTests(RefectionProviderUnderTest.NoEmit);
+public sealed class StructuralEqualityTests_SourceGen() : StructuralEqualityTests(SourceGenProviderUnderTest.Default);

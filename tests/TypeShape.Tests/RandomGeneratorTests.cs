@@ -1,25 +1,22 @@
 ﻿using TypeShape.Abstractions;
 using TypeShape.Applications.RandomGenerator;
 using TypeShape.Applications.StructuralEquality;
-using TypeShape.ReflectionProvider;
 using Xunit;
 
 namespace TypeShape.Tests;
 
-public abstract class RandomGeneratorTests
+public abstract class RandomGeneratorTests(IProviderUnderTest providerUnderTest)
 {
-    protected abstract ITypeShapeProvider Provider { get; }
-
     [Theory]
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void ProducesDeterministicRandomValues<T>(TestCase<T> testCase)
     {
-        if (!testCase.HasConstructors(Provider))
+        if (!testCase.HasConstructors(providerUnderTest))
         {
             return; // Random value generation not supported
         }
 
-        (RandomGenerator<T> generator, IEqualityComparer<T> comparer) = GetGeneratorAndEqualityComparer<T>();
+        (RandomGenerator<T> generator, IEqualityComparer<T> comparer) = GetGeneratorAndEqualityComparer<T>(testCase);
 
         const int Seed = 42;
         IEnumerable<T> firstRandomSequence = generator.GenerateValues(Seed).Take(10);
@@ -27,41 +24,13 @@ public abstract class RandomGeneratorTests
         Assert.Equal(firstRandomSequence, secondRandomSequence, comparer);
     }
 
-    private (RandomGenerator<T>, IEqualityComparer<T>) GetGeneratorAndEqualityComparer<T>()
+    private (RandomGenerator<T>, IEqualityComparer<T>) GetGeneratorAndEqualityComparer<T>(TestCase<T> testCase)
     {
-        ITypeShape<T> shape = Provider.Resolve<T>();
+        ITypeShape<T> shape = testCase.GetShape(providerUnderTest);
         return (RandomGenerator.Create(shape), StructuralEqualityComparer.Create(shape));
     }
 }
 
-public sealed class RandomGeneratorTests_Reflection : RandomGeneratorTests
-{
-    protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: false);
-}
-
-public sealed class RandomGeneratorTests_ReflectionEmit : RandomGeneratorTests
-{
-    protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: true);
-}
-
-public sealed class RandomGeneratorTests_SourceGen : RandomGeneratorTests
-{
-    [Theory]
-    [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
-    public void TypeShapeProvider_ProducesDeterministicRandomValues<T, TProvider>(TestCase<T, TProvider> testCase) where TProvider : ITypeShapeProvider<T>
-    {
-        if (!testCase.HasConstructors(Provider))
-        {
-            return; // Random value generation not supported
-        }
-
-        IEqualityComparer<T> comparer = StructuralEqualityComparer.Create<T, TProvider>();
-
-        const int Seed = 42;
-        IEnumerable<T> firstRandomSequence = RandomGenerator.GenerateValues<T, TProvider>(Seed).Take(10);
-        IEnumerable<T> secondRandomSequence = RandomGenerator.GenerateValues<T, TProvider>(Seed).Take(10);
-        Assert.Equal(firstRandomSequence, secondRandomSequence, comparer);
-    }
-
-    protected override ITypeShapeProvider Provider { get; } = SourceGenProvider.Default;
-}
+public sealed class RandomGeneratorTests_Reflection() : RandomGeneratorTests(RefectionProviderUnderTest.Default);
+public sealed class RandomGeneratorTests_ReflectionEmit() : RandomGeneratorTests(RefectionProviderUnderTest.NoEmit);
+public sealed class RandomGeneratorTests_SourceGen() : RandomGeneratorTests(SourceGenProviderUnderTest.Default);

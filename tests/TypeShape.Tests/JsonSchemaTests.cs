@@ -5,23 +5,18 @@ using System.Text.Json.Nodes;
 using TypeShape.Abstractions;
 using TypeShape.Applications.JsonSchema;
 using TypeShape.Applications.JsonSerializer;
-using TypeShape.ReflectionProvider;
 using Xunit;
 using Xunit.Sdk;
 
 namespace TypeShape.Tests;
 
-public abstract class JsonSchemaTests
+public abstract class JsonSchemaTests(IProviderUnderTest providerUnderTest)
 {
-    protected abstract ITypeShapeProvider Provider { get; }
-
     [Theory]
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void GeneratesExpectedSchema(ITestCase testCase)
     {
-        ITypeShape? shape = Provider.GetShape(testCase.Type);
-        Assert.NotNull(shape);
-
+        ITypeShape shape = testCase.GetShape(providerUnderTest);
         JsonObject schema = JsonSchemaGenerator.Generate(shape);
 
         switch (shape)
@@ -106,8 +101,7 @@ public abstract class JsonSchemaTests
             return; // Not supported by JsonSchema.NET
         }
 
-        ITypeShape<T> shape = Provider.Resolve<T>();
-
+        ITypeShape<T> shape = testCase.GetShape(providerUnderTest);
         JsonObject schema = JsonSchemaGenerator.Generate(shape);
         string json = TypeShapeJsonSerializer.CreateConverter(shape).Serialize(testCase.Value);
 
@@ -133,17 +127,6 @@ public abstract class JsonSchemaTests
     }
 }
 
-public sealed class JsonSchemaTests_Reflection : JsonSchemaTests
-{
-    protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: false);
-}
-
-public sealed class JsonSchemaTests_ReflectionEmit : JsonSchemaTests
-{
-    protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: true);
-}
-
-public sealed class JsonSchemaTests_SourceGen : JsonSchemaTests
-{
-    protected override ITypeShapeProvider Provider { get; } = SourceGenProvider.Default;
-}
+public sealed class JsonSchemaTests_Reflection() : JsonSchemaTests(RefectionProviderUnderTest.Default);
+public sealed class JsonSchemaTests_ReflectionEmit() : JsonSchemaTests(RefectionProviderUnderTest.NoEmit);
+public sealed class JsonSchemaTests_SourceGen() : JsonSchemaTests(SourceGenProviderUnderTest.Default);

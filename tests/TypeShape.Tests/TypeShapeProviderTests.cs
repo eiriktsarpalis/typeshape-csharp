@@ -10,22 +10,25 @@ using Xunit;
 
 namespace TypeShape.Tests;
 
-public abstract class TypeShapeProviderTests
+public abstract class TypeShapeProviderTests(IProviderUnderTest providerUnderTest)
 {
-    protected abstract ITypeShapeProvider Provider { get; }
-
     [Theory]
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void TypeShapeReportsExpectedInfo<T>(TestCase<T> testCase)
     {
-        _ = testCase; // not used here
-        ITypeShape<T> shape = Provider.Resolve<T>();
-
-        Assert.Same(Provider, shape.Provider);
+        ITypeShape<T> shape = testCase.GetShape(providerUnderTest);
+        
         Assert.Equal(typeof(T), shape.Type);
         Assert.Equal(typeof(T), shape.AttributeProvider);
         Assert.Equal(typeof(T).IsRecordType(), shape is IObjectTypeShape { IsRecordType: true});
         Assert.Equal(typeof(T).IsTupleType(), shape is IObjectTypeShape { IsTupleType: true });
+        
+        Assert.NotNull(shape.Provider);
+        Assert.Same(shape, shape.Provider.GetShape(shape.Type));
+        if (providerUnderTest.Provider != null)
+        {
+            Assert.Same(providerUnderTest.Provider, shape.Provider);
+        }
 
         TypeShapeKind expectedKind = GetExpectedTypeKind();
         Assert.Equal(expectedKind, shape.Kind);
@@ -61,8 +64,7 @@ public abstract class TypeShapeProviderTests
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void GetProperties<T>(TestCase<T> testCase)
     {
-        _ = testCase; // not used here
-        ITypeShape<T> shape = Provider.Resolve<T>();
+        ITypeShape<T> shape = testCase.GetShape(providerUnderTest);
 
         if (shape is not IObjectTypeShape objectShape || testCase.Value is null)
         {
@@ -116,8 +118,7 @@ public abstract class TypeShapeProviderTests
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void GetConstructors<T>(TestCase<T> testCase)
     {
-        _ = testCase; // not used here
-        ITypeShape<T> shape = Provider.Resolve<T>();
+        ITypeShape<T> shape = testCase.GetShape(providerUnderTest);
 
         if (shape is not IObjectTypeShape objectShape)
         {
@@ -196,8 +197,7 @@ public abstract class TypeShapeProviderTests
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void GetEnumType<T>(TestCase<T> testCase)
     {
-        _ = testCase; // not used here
-        ITypeShape<T> shape = Provider.Resolve<T>();
+        ITypeShape<T> shape = testCase.GetShape(providerUnderTest);
 
         if (shape.Kind is TypeShapeKind.Enum)
         {
@@ -228,8 +228,7 @@ public abstract class TypeShapeProviderTests
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void GetNullableType<T>(TestCase<T> testCase)
     {
-        _ = testCase; // not used here
-        ITypeShape<T> shape = Provider.Resolve<T>();
+        ITypeShape<T> shape = testCase.GetShape(providerUnderTest);
 
         if (shape.Kind is TypeShapeKind.Nullable)
         {
@@ -259,8 +258,7 @@ public abstract class TypeShapeProviderTests
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void GetDictionaryType<T>(TestCase<T> testCase)
     {
-        _ = testCase; // not used here
-        ITypeShape<T> shape = Provider.Resolve<T>();
+        ITypeShape<T> shape = testCase.GetShape(providerUnderTest);
 
         if (shape.Kind is TypeShapeKind.Dictionary)
         {
@@ -346,8 +344,7 @@ public abstract class TypeShapeProviderTests
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void GetEnumerableType<T>(TestCase<T> testCase)
     {
-        _ = testCase; // not used here
-        ITypeShape<T> shape = Provider.Resolve<T>();
+        ITypeShape<T> shape = testCase.GetShape(providerUnderTest);
 
         if (shape.Kind is TypeShapeKind.Enumerable)
         {
@@ -453,7 +450,7 @@ public abstract class TypeShapeProviderTests
             return; // tuples don't report attribute metadata.
         }
 
-        ITypeShape<T> shape = Provider.Resolve<T>();
+        ITypeShape<T> shape = testCase.GetShape(providerUnderTest);
         Assert.Equal(typeof(T), shape.AttributeProvider);
 
         if (shape is not IObjectTypeShape objectShape)
@@ -584,7 +581,7 @@ public abstract class TypeShapeProviderTests
             return; // tuples don't report attribute metadata.
         }
 
-        ITypeShape<T> shape = Provider.Resolve<T>();
+        ITypeShape<T> shape = testCase.GetShape(providerUnderTest);
 
         if (shape is not IObjectTypeShape objectShape)
         {
@@ -674,17 +671,6 @@ public static class ReflectionHelpers
         => type.IsValueType && type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ImmutableArray<>);
 }
 
-public sealed class TypeShapeProviderTests_Reflection : TypeShapeProviderTests
-{
-    protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: false);
-}
-
-public sealed class TypeShapeProviderTests_ReflectionEmit : TypeShapeProviderTests
-{
-    protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: true);
-}
-
-public sealed class TypeShapeProviderTests_SourceGen : TypeShapeProviderTests
-{
-    protected override ITypeShapeProvider Provider { get; } = SourceGenProvider.Default;
-}
+public sealed class TypeShapeProviderTests_Reflection() : TypeShapeProviderTests(RefectionProviderUnderTest.Default);
+public sealed class TypeShapeProviderTests_ReflectionEmit() : TypeShapeProviderTests(RefectionProviderUnderTest.NoEmit);
+public sealed class TypeShapeProviderTests_SourceGen() : TypeShapeProviderTests(SourceGenProviderUnderTest.Default);

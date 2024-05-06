@@ -1,87 +1,80 @@
 ﻿using System.Numerics;
-using TypeShape.Abstractions;
 using TypeShape.Applications.CborSerializer;
-using TypeShape.ReflectionProvider;
 using Xunit;
 
 namespace TypeShape.Tests;
 
-public abstract class CborTests
+public abstract class CborTests(IProviderUnderTest providerUnderTest)
 {
-    protected abstract ITypeShapeProvider Provider { get; }
-
-    public bool IsReflectionProvider => Provider is ReflectionTypeShapeProvider;
-
     [Theory]
     [MemberData(nameof(GetValuesAndExpectedEncoding))]
-    public void ReturnsExpectedEncoding<T>(T value, string expectedHexEncoding)
+    public void ReturnsExpectedEncoding<T>(TestCase<T> testCase)
     {
-        CborConverter<T> converter = GetConverterUnderTest<T>();
-
-        string hexEncoding = converter.EncodeToHex(value);
-        Assert.Equal(expectedHexEncoding, hexEncoding);
+        CborConverter<T> converter = GetConverterUnderTest(testCase);
+        
+        string hexEncoding = converter.EncodeToHex(testCase.Value);
+        Assert.Equal(testCase.ExpectedEncoding, hexEncoding);
     }
 
     [Theory]
     [MemberData(nameof(GetValuesAndExpectedEncoding))]
-    public void ExpectedEncodingDeserializedToValue<T>(T value, string expectedHexEncoding)
+    public void ExpectedEncodingDeserializedToValue<T>(TestCase<T> testCase)
     {
-        CborConverter<T> converter = GetConverterUnderTest<T>();
+        CborConverter<T> converter = GetConverterUnderTest(testCase);
 
-        T? result = converter.DecodeFromHex(expectedHexEncoding);
-        if (value is IEquatable<T>)
+        T? result = converter.DecodeFromHex(testCase.ExpectedEncoding!);
+        if (testCase.IsEquatable)
         {
-            Assert.Equal(value, result);
+            Assert.Equal(testCase.Value, result);
         }
         else
         {
-            Assert.Equal(expectedHexEncoding, converter.EncodeToHex(result));
+            Assert.Equal(testCase.ExpectedEncoding, converter.EncodeToHex(result));
         }
     }
 
     public static IEnumerable<object?[]> GetValuesAndExpectedEncoding()
     {
-        yield return Wrap<object?>(null, "F6");
-        yield return Wrap(false, "F4");
-        yield return Wrap(true, "F5");
-        yield return Wrap(42, "182A");
-        yield return Wrap(-7001, "391B58");
-        yield return Wrap((byte)255, "18FF");
-        yield return Wrap(int.MaxValue, "1A7FFFFFFF");
-        yield return Wrap(int.MinValue, "3A7FFFFFFF");
-        yield return Wrap(long.MaxValue, "1B7FFFFFFFFFFFFFFF");
-        yield return Wrap(long.MinValue, "3B7FFFFFFFFFFFFFFF");
-        yield return Wrap(Int128.MaxValue, "C2507FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
-        yield return Wrap((BigInteger)Int128.MaxValue, "C2507FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
-        yield return Wrap((Half)3.14, "F94248");
-        yield return Wrap((float)3.1415926, "FA40490FDA");
-        yield return Wrap(decimal.MaxValue, "C48200C24CFFFFFFFFFFFFFFFFFFFFFFFF");
-        yield return Wrap<byte[]>([1, 2, 3], "43010203");
-        yield return Wrap('c', "6163");
-        yield return Wrap("Hello, World!", "6D48656C6C6F2C20576F726C6421");
-        yield return Wrap(Guid.Empty, "D903EA5000000000000000000000000000000000");
-        yield return Wrap(TimeSpan.MinValue, "D825FBC26AD7F29ABCAF48");
-        yield return Wrap(DateTimeOffset.MinValue, "C074303030312D30312D30315430303A30303A30305A");
-        yield return Wrap(DateOnly.MaxValue, "C074393939392D31322D33315430303A30303A30305A");
-        yield return Wrap(TimeOnly.MaxValue, "D825FB40F517FFFFFFE528");
-        yield return Wrap<int[]>([1, 2, 3], "83010203");
-        yield return Wrap<int[][]>([[1, 0, 0], [0, 1, 0], [0, 0, 1]], "83830100008300010083000001");
-        yield return Wrap(new Dictionary<string, int> { ["key0"] = 0, ["key1"] = 1 }, "A2646B65793000646B65793101");
-        yield return Wrap(new SimpleRecord(42), "A16576616C7565182A");
-        yield return Wrap((42, "str"), "A2654974656D31182A654974656D3263737472");
-
-        static object?[] Wrap<T>(T value, string expectedHexEncoding) => [value, expectedHexEncoding];
+        SourceGenProvider p = SourceGenProvider.Default;
+        yield return [TestCase.Create(p, (object)null!, "F6")];
+        yield return [TestCase.Create(p, false, "F4")];
+        yield return [TestCase.Create(p, true, "F5")];
+        yield return [TestCase.Create(p, 42, "182A")];
+        yield return [TestCase.Create(p, -7001, "391B58")];
+        yield return [TestCase.Create(p, (byte)255, "18FF")];
+        yield return [TestCase.Create(p, int.MaxValue, "1A7FFFFFFF")];
+        yield return [TestCase.Create(p, int.MinValue, "3A7FFFFFFF")];
+        yield return [TestCase.Create(p, long.MaxValue, "1B7FFFFFFFFFFFFFFF")];
+        yield return [TestCase.Create(p, long.MinValue, "3B7FFFFFFFFFFFFFFF")];
+        yield return [TestCase.Create(p, Int128.MaxValue, "C2507FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")];
+        yield return [TestCase.Create(p, (BigInteger)Int128.MaxValue, "C2507FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")];
+        yield return [TestCase.Create(p, (Half)3.14, "F94248")];
+        yield return [TestCase.Create(p, (float)3.1415926, "FA40490FDA")];
+        yield return [TestCase.Create(p, decimal.MaxValue, "C48200C24CFFFFFFFFFFFFFFFFFFFFFFFF")];
+        yield return [TestCase.Create(p, (byte[])[1, 2, 3], "43010203")];
+        yield return [TestCase.Create(p, 'c', "6163")];
+        yield return [TestCase.Create(p, "Hello, World!", "6D48656C6C6F2C20576F726C6421")];
+        yield return [TestCase.Create(p, Guid.Empty, "D903EA5000000000000000000000000000000000")];
+        yield return [TestCase.Create(p, TimeSpan.MinValue, "D825FBC26AD7F29ABCAF48")];
+        yield return [TestCase.Create(p, DateTimeOffset.MinValue, "C074303030312D30312D30315430303A30303A30305A")];
+        yield return [TestCase.Create(p, DateOnly.MaxValue, "C074393939392D31322D33315430303A30303A30305A")];
+        yield return [TestCase.Create(p, TimeOnly.MaxValue, "D825FB40F517FFFFFFE528")];
+        yield return [TestCase.Create(p, (int[])[1, 2, 3], "83010203")];
+        yield return [TestCase.Create(p, (int[][])[[1, 0, 0], [0, 1, 0], [0, 0, 1]], "83830100008300010083000001")];
+        yield return [TestCase.Create(p, new Dictionary<string, int> { ["key0"] = 0, ["key1"] = 1 }, "A2646B65793000646B65793101")];
+        yield return [TestCase.Create(new SimpleRecord(42), "A16576616C7565182A")];
+        yield return [TestCase.Create(p, (42, "str"), "A2654974656D31182A654974656D3263737472")];
     }
 
     [Theory]
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void Roundtrip_Value<T>(TestCase<T> testCase)
     {
-        CborConverter<T> converter = GetConverterUnderTest<T>();
+        CborConverter<T> converter = GetConverterUnderTest<T>(testCase);
 
         string cborHex = converter.EncodeToHex(testCase.Value);
 
-        if (!testCase.HasConstructors(Provider))
+        if (!testCase.HasConstructors(providerUnderTest))
         {
             Assert.Throws<NotSupportedException>(() => converter.DecodeFromHex(cborHex));
         }
@@ -89,13 +82,13 @@ public abstract class CborTests
         {
             T? deserializedValue = converter.DecodeFromHex(cborHex);
 
+            if (testCase.IsLossyRoundtrip)
+            {
+                return;
+            }
             if (testCase.IsEquatable)
             {
                 Assert.Equal(testCase.Value, deserializedValue);
-            }
-            else if (testCase.DoesNotRoundtrip)
-            {
-                return;
             }
             else
             {
@@ -109,54 +102,10 @@ public abstract class CborTests
         }
     }
 
-    protected CborConverter<T> GetConverterUnderTest<T>() => CborSerializer.CreateConverter<T>(Provider);
+    private CborConverter<T> GetConverterUnderTest<T>(TestCase<T> testCase) =>
+        CborSerializer.CreateConverter(testCase.GetShape(providerUnderTest));
 }
 
-public sealed class CborTests_Reflection : CborTests
-{
-    protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: false);
-}
-
-public sealed class CborTests_ReflectionEmit : CborTests
-{
-    protected override ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: true);
-}
-
-public sealed class CborTests_SourceGen : CborTests
-{
-    [Theory]
-    [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
-    public void Roundtrip_TypeShapeProvider<T, TProvider>(TestCase<T, TProvider> testCase) where TProvider : ITypeShapeProvider<T>
-    {
-        string cborHex = CborSerializer.EncodeToHex<T, TProvider>(testCase.Value);
-
-        if (!testCase.HasConstructors(Provider))
-        {
-            Assert.Throws<NotSupportedException>(() => CborSerializer.DecodeFromHex<T, TProvider>(cborHex));
-        }
-        else
-        {
-            T? deserializedValue = CborSerializer.DecodeFromHex<T, TProvider>(cborHex);
-
-            if (testCase.IsEquatable)
-            {
-                Assert.Equal(testCase.Value, deserializedValue);
-            }
-            else if (testCase.DoesNotRoundtrip)
-            {
-                return;
-            }
-            else
-            {
-                if (testCase.IsStack)
-                {
-                    deserializedValue = CborSerializer.DecodeFromHex<T, TProvider>(CborSerializer.EncodeToHex<T, TProvider>(deserializedValue));
-                }
-
-                Assert.Equal(cborHex, CborSerializer.EncodeToHex<T, TProvider>(deserializedValue));
-            }
-        }
-    }
-
-    protected override ITypeShapeProvider Provider { get; } = SourceGenProvider.Default;
-}
+public sealed class CborTests_Reflection() : CborTests(RefectionProviderUnderTest.Default);
+public sealed class CborTests_ReflectionEmit() : CborTests(RefectionProviderUnderTest.NoEmit);
+public sealed class CborTests_SourceGen() : CborTests(SourceGenProviderUnderTest.Default);

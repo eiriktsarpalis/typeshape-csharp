@@ -8,61 +8,8 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json.Serialization;
-using TypeShape.ReflectionProvider;
-using static TypeShape.Tests.ValidationTests;
 
 namespace TypeShape.Tests;
-
-public sealed record TestCase<T, TProvider>(T? Value) : TestCase<T>(Value)
-    where TProvider : ITypeShapeProvider<T>;
-
-public abstract record TestCase<T>(T? Value) : ITestCase
-{
-    public T?[] AdditionalValues { get; init; } = [];
-    public bool IsStack { get; init; }
-    public bool DoesNotRoundtrip { get; init; }
-    public bool UsesSpanConstructor { get; init; }
-    
-    Type ITestCase.Type => typeof(T);
-    object? ITestCase.Value => Value;
-    public bool HasConstructors(ITypeShapeProvider provider) =>
-        !(IsAbstract && !typeof(IEnumerable).IsAssignableFrom(typeof(T))) &&
-        !IsMultiDimensionalArray &&
-        (!UsesSpanConstructor || provider is not ReflectionTypeShapeProvider { UseReflectionEmit: false });
-
-    public bool IsNullable => default(T) is null;
-    public bool IsEquatable => Value is IEquatable<T> &&
-        !typeof(T).IsImmutableArray() &&
-        !typeof(T).IsMemoryType(out _, out _) &&
-        !typeof(T).IsRecordType();
-    
-    public bool IsTuple => typeof(ITuple).IsAssignableFrom(typeof(T));
-    public bool IsLongTuple => IsTuple && typeof(T).GetMember("Rest").Any();
-    public bool IsMultiDimensionalArray => typeof(T).IsArray && typeof(T).GetArrayRank() != 1;
-    public bool IsAbstract => typeof(T).IsAbstract || typeof(T).IsInterface;
-
-    IEnumerable<ITestCase> ITestCase.ExpandCases()
-    {
-        yield return this;
-        
-        if (default(T) is null && Value is not null)
-        {
-            yield return this with { Value = default };
-        }
-        
-        foreach (T? additionalValue in AdditionalValues)
-        {
-            yield return this with { Value = additionalValue, AdditionalValues = [] };
-        }
-    }
-}
-
-public interface ITestCase
-{
-    public Type Type { get; }
-    public object? Value { get; }
-    public IEnumerable<ITestCase> ExpandCases();
-}
 
 public static class TestTypes
 {
@@ -80,202 +27,200 @@ public static class TestTypes
     public static IEnumerable<ITestCase> GetTestCasesCore()
     {
         SourceGenProvider p = SourceGenProvider.Default;
-        yield return Create(new object(), p);
-        yield return Create(false, p);
-        yield return Create("stringValue", p, additionalValues: [""]);
-        yield return Create(Rune.GetRuneAt("🤯", 0), p);
-        yield return Create(sbyte.MinValue, p);
-        yield return Create(short.MinValue, p);
-        yield return Create(int.MinValue, p);
-        yield return Create(long.MinValue, p);
-        yield return Create(byte.MaxValue, p);
-        yield return Create(ushort.MaxValue, p);
-        yield return Create(uint.MaxValue, p);
-        yield return Create(ulong.MaxValue, p);
-        yield return Create(Int128.MaxValue, p);
-        yield return Create(UInt128.MaxValue, p);
-        yield return Create(BigInteger.Parse("-170141183460469231731687303715884105728"), p);
-        yield return Create(3.14f, p);
-        yield return Create(3.14d, p);
-        yield return Create(3.14M, p);
-        yield return Create((Half)3.14, p);
-        yield return Create(Guid.Empty, p);
-        yield return Create(DateTime.MaxValue, p);
-        yield return Create(DateTimeOffset.MaxValue, p);
-        yield return Create(TimeSpan.MaxValue, p);
-        yield return Create(DateOnly.MaxValue, p);
-        yield return Create(TimeOnly.MaxValue, p);
-        yield return Create(new Uri("https://github.com"), p);
-        yield return Create(new Version("1.0.0.0"), p);
-        yield return Create(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, p);
+        yield return TestCase.Create(p, new object());
+        yield return TestCase.Create(p, false);
+        yield return TestCase.Create(p, "stringValue", additionalValues: [""]);
+        yield return TestCase.Create(p, Rune.GetRuneAt("🤯", 0));
+        yield return TestCase.Create(p, sbyte.MinValue);
+        yield return TestCase.Create(p, short.MinValue);
+        yield return TestCase.Create(p, int.MinValue);
+        yield return TestCase.Create(p, long.MinValue);
+        yield return TestCase.Create(p, byte.MaxValue);
+        yield return TestCase.Create(p, ushort.MaxValue);
+        yield return TestCase.Create(p, uint.MaxValue);
+        yield return TestCase.Create(p, ulong.MaxValue);
+        yield return TestCase.Create(p, Int128.MaxValue);
+        yield return TestCase.Create(p, UInt128.MaxValue);
+        yield return TestCase.Create(p, BigInteger.Parse("-170141183460469231731687303715884105728"));
+        yield return TestCase.Create(p, 3.14f);
+        yield return TestCase.Create(p, 3.14d);
+        yield return TestCase.Create(p, 3.14M);
+        yield return TestCase.Create(p, (Half)3.14);
+        yield return TestCase.Create(p, Guid.Empty);
+        yield return TestCase.Create(p, DateTime.MaxValue);
+        yield return TestCase.Create(p, DateTimeOffset.MaxValue);
+        yield return TestCase.Create(p, TimeSpan.MaxValue);
+        yield return TestCase.Create(p, DateOnly.MaxValue);
+        yield return TestCase.Create(p, TimeOnly.MaxValue);
+        yield return TestCase.Create(p, new Uri("https://github.com"));
+        yield return TestCase.Create(p, new Version("1.0.0.0"));
+        yield return TestCase.Create(p, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
         
-        yield return Create((bool?)false, p, additionalValues: [null]);
-        yield return Create((Rune?)Rune.GetRuneAt("🤯", 0), p, additionalValues: [null]);
-        yield return Create((sbyte?)sbyte.MinValue, p, additionalValues: [null]);
-        yield return Create((short?)short.MinValue, p, additionalValues: [null]);
-        yield return Create((int?)int.MinValue, p, additionalValues: [null]);
-        yield return Create((long?)long.MinValue, p, additionalValues: [null]);
-        yield return Create((byte?)byte.MaxValue, p, additionalValues: [null]);
-        yield return Create((ushort?)ushort.MaxValue, p, additionalValues: [null]);
-        yield return Create((uint?)uint.MaxValue, p, additionalValues: [null]);
-        yield return Create((ulong?)ulong.MaxValue, p, additionalValues: [null]);
-        yield return Create((Int128?)Int128.MaxValue, p, additionalValues: [null]);
-        yield return Create((UInt128?)UInt128.MaxValue, p, additionalValues: [null]);
-        yield return Create((BigInteger?)BigInteger.Parse("-170141183460469231731687303715884105728"), p, additionalValues: [null]);
-        yield return Create((float?)3.14f, p, additionalValues: [null]);
-        yield return Create((double?)3.14d, p, additionalValues: [null]);
-        yield return Create((decimal?)3.14M, p, additionalValues: [null]);
-        yield return Create((Half?)3.14, p, additionalValues: [null]);
-        yield return Create((Guid?)Guid.Empty, p, additionalValues: [null]);
-        yield return Create((DateTime?)DateTime.MaxValue, p, additionalValues: [null]);
-        yield return Create((DateTimeOffset?)DateTimeOffset.MaxValue, p, additionalValues: [null]);
-        yield return Create((TimeSpan?)TimeSpan.MaxValue, p, additionalValues: [null]);
-        yield return Create((DateOnly?)DateOnly.MaxValue, p, additionalValues: [null]);
-        yield return Create((TimeOnly?)TimeOnly.MaxValue, p, additionalValues: [null]);
-        yield return Create((BindingFlags?)BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, p, additionalValues: [null]);
+        yield return TestCase.Create(p, (bool?)false);
+        yield return TestCase.Create(p, (Rune?)Rune.GetRuneAt("🤯", 0));
+        yield return TestCase.Create(p, (sbyte?)sbyte.MinValue);
+        yield return TestCase.Create(p, (short?)short.MinValue);
+        yield return TestCase.Create(p, (int?)int.MinValue);
+        yield return TestCase.Create(p, (long?)long.MinValue);
+        yield return TestCase.Create(p, (byte?)byte.MaxValue);
+        yield return TestCase.Create(p, (ushort?)ushort.MaxValue);
+        yield return TestCase.Create(p, (uint?)uint.MaxValue);
+        yield return TestCase.Create(p, (ulong?)ulong.MaxValue);
+        yield return TestCase.Create(p, (Int128?)Int128.MaxValue);
+        yield return TestCase.Create(p, (UInt128?)UInt128.MaxValue);
+        yield return TestCase.Create(p, (BigInteger?)BigInteger.Parse("-170141183460469231731687303715884105728"));
+        yield return TestCase.Create(p, (float?)3.14f);
+        yield return TestCase.Create(p, (double?)3.14d);
+        yield return TestCase.Create(p, (decimal?)3.14M);
+        yield return TestCase.Create(p, (Half?)3.14);
+        yield return TestCase.Create(p, (Guid?)Guid.Empty);
+        yield return TestCase.Create(p, (DateTime?)DateTime.MaxValue);
+        yield return TestCase.Create(p, (DateTimeOffset?)DateTimeOffset.MaxValue);
+        yield return TestCase.Create(p, (TimeSpan?)TimeSpan.MaxValue);
+        yield return TestCase.Create(p, (DateOnly?)DateOnly.MaxValue);
+        yield return TestCase.Create(p, (TimeOnly?)TimeOnly.MaxValue);
+        yield return TestCase.Create(p, (BindingFlags?)BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
         
-        yield return Create<int[], SourceGenProvider>([1, 2, 3], p, additionalValues: [new int[0]]);
-        yield return Create<int[][], SourceGenProvider>([[1, 0, 0], [0, 1, 0], [0, 0, 1]], p, additionalValues: [[new int[0]]]);
-        yield return Create<byte[], SourceGenProvider>([1, 2, 3], p);
-        yield return Create<Memory<int>, SourceGenProvider>(new int[] { 1, 2, 3 }, p);
-        yield return Create<ReadOnlyMemory<int>, SourceGenProvider>(new[] { 1, 2, 3 }, p);
-        yield return Create<List<string>, SourceGenProvider>(["1", "2", "3"], p);
-        yield return Create<List<byte>, SourceGenProvider>([1, 2, 3], p, additionalValues: [[]]);
-        yield return Create<LinkedList<byte>, SourceGenProvider>(new([1, 2, 3]), p, additionalValues: [[]]);
-        yield return Create(new Queue<int>([1, 2, 3]), p);
-        yield return Create(new Stack<int>([1, 2, 3]), p, isStack: true);
-        yield return Create(new Dictionary<string, int> { ["key1"] = 42, ["key2"] = -1 }, p);
-        yield return Create<HashSet<string>, SourceGenProvider>(["apple", "orange", "banana"], p);
-        yield return Create<HashSet<string>, SourceGenProvider>(["apple", "orange", "banana"], p);
-        yield return Create<SortedSet<string>, SourceGenProvider>(["apple", "orange", "banana"], p);
-        yield return Create(new SortedDictionary<string, int> { ["key1"] = 42, ["key2"] = -1 }, p);
+        yield return TestCase.Create(p, (int[])[1, 2, 3], additionalValues: [new int[0]]);
+        yield return TestCase.Create(p, (int[][])[[1, 0, 0], [0, 1, 0], [0, 0, 1]], additionalValues: [[new int[0]]]);
+        yield return TestCase.Create(p, (byte[])[1, 2, 3]);
+        yield return TestCase.Create(p, (Memory<int>)new int[] { 1, 2, 3 });
+        yield return TestCase.Create(p, (ReadOnlyMemory<int>)new[] { 1, 2, 3 });
+        yield return TestCase.Create(p, (List<string>)["1", "2", "3"]);
+        yield return TestCase.Create(p, (List<byte>)[1, 2, 3], additionalValues: [[]]);
+        yield return TestCase.Create(p, new LinkedList<byte>([1, 2, 3]), additionalValues: [[]]);
+        yield return TestCase.Create(p, new Queue<int>([1, 2, 3]));
+        yield return TestCase.Create(p, new Stack<int>([1, 2, 3]), isStack: true);
+        yield return TestCase.Create(p, new Dictionary<string, int> { ["key1"] = 42, ["key2"] = -1 });
+        yield return TestCase.Create(p, (HashSet<string>)["apple", "orange", "banana"]);
+        yield return TestCase.Create(p, (SortedSet<string>)["apple", "orange", "banana"]);
+        yield return TestCase.Create(p, new SortedDictionary<string, int> { ["key1"] = 42, ["key2"] = -1 });
 
-        yield return Create(new Hashtable { ["key1"] = 42 }, p, additionalValues: [[]]);
-        yield return Create<ArrayList, SourceGenProvider>([1, 2, 3], p, additionalValues: [[]]);
+        yield return TestCase.Create(p, new Hashtable { ["key1"] = 42 }, additionalValues: [[]]);
+        yield return TestCase.Create(p, new ArrayList { 1, 2, 3 }, additionalValues: [[]]);
 
-        yield return Create(new int[,] { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } }, p);
-        yield return Create(new int[,,] { { { 1 } } }, p);
+        yield return TestCase.Create(p, new int[,] { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } });
+        yield return TestCase.Create(p, new int[,,] { { { 1 } } });
 
-        yield return Create(new ConcurrentQueue<int>([1, 2, 3]), p);
-        yield return Create(new ConcurrentStack<int>([1, 2, 3]), p, isStack: true);
-        yield return Create(new ConcurrentDictionary<string, string> { ["key"] = "value" }, p);
+        yield return TestCase.Create(p, new ConcurrentQueue<int>([1, 2, 3]));
+        yield return TestCase.Create(p, new ConcurrentStack<int>([1, 2, 3]), isStack: true);
+        yield return TestCase.Create(p, new ConcurrentDictionary<string, string> { ["key"] = "value" });
 
-        yield return Create<IEnumerable, SourceGenProvider>(new List<object> { 1, 2, 3 }, p);
-        yield return Create<IList, SourceGenProvider>(new List<object> { 1, 2, 3 }, p);
-        yield return Create<ICollection, SourceGenProvider>(new List<object> { 1, 2, 3 }, p);
-        yield return Create<IDictionary, SourceGenProvider>(new Dictionary<object, object> { [42] = 42 }, p);
-        yield return Create<IEnumerable<int>, SourceGenProvider>([1, 2, 3], p);
-        yield return Create<ICollection<int>, SourceGenProvider>([1, 2, 3], p);
-        yield return Create<IList<int>, SourceGenProvider>([1, 2, 3], p);
-        yield return Create<IReadOnlyCollection<int>, SourceGenProvider>([1, 2, 3], p);
-        yield return Create<IReadOnlyList<int>, SourceGenProvider>([1, 2, 3], p);
-        yield return Create<ISet<int>, SourceGenProvider>(new HashSet<int> { 1, 2, 3 }, p);
-        yield return Create<IReadOnlySet<int>, SourceGenProvider>(new HashSet<int> { 1, 2, 3 }, p);
-        yield return Create<IDictionary<int, int>, SourceGenProvider>(new Dictionary<int, int> { [42] = 42 }, p);
-        yield return Create<IReadOnlyDictionary<int, int>, SourceGenProvider>(new Dictionary<int, int> { [42] = 42 }, p);
+        yield return TestCase.Create(p, (IEnumerable)new List<object> { 1, 2, 3 });
+        yield return TestCase.Create(p, (IList)new List<object> { 1, 2, 3 });
+        yield return TestCase.Create(p, (ICollection)new List<object> { 1, 2, 3 });
+        yield return TestCase.Create(p, (IDictionary)new Dictionary<object, object> { [42] = 42 });
+        yield return TestCase.Create(p, (IEnumerable<int>)[1, 2, 3]);
+        yield return TestCase.Create(p, (ICollection<int>)[1, 2, 3]);
+        yield return TestCase.Create(p, (IList<int>)[1, 2, 3]);
+        yield return TestCase.Create(p, (IReadOnlyCollection<int>)[1, 2, 3]);
+        yield return TestCase.Create(p, (IReadOnlyList<int>)[1, 2, 3]);
+        yield return TestCase.Create(p, (ISet<int>)new HashSet<int> { 1, 2, 3 });
+        yield return TestCase.Create(p, (IReadOnlySet<int>)new HashSet<int> { 1, 2, 3 });
+        yield return TestCase.Create(p, (IDictionary<int, int>)new Dictionary<int, int> { [42] = 42 });
+        yield return TestCase.Create(p, (IReadOnlyDictionary<int, int>)new Dictionary<int, int> { [42] = 42 });
 
-        yield return Create<DerivedList, SourceGenProvider>([1, 2, 3], p);
-        yield return Create(new DerivedDictionary { ["key"] = "value" }, p);
+        yield return TestCase.Create(new DerivedList { 1, 2, 3 });
+        yield return TestCase.Create(new DerivedDictionary { ["key"] = "value" });
 
-        yield return Create<StructList<int>, SourceGenProvider>([1, 2, 3], p);
-        yield return Create(new StructDictionary<string, string> { ["key"] = "value" }, p);
-        yield return Create<CollectionWithBuilderAttribute, SourceGenProvider>([1, 2, 3], p);
-        yield return Create<GenericCollectionWithBuilderAttribute<int>, SourceGenProvider>([1, 2, 3], p);
-        yield return Create(new CollectionWithEnumerableCtor([1, 2, 3]), p);
-        yield return Create(new DictionaryWithEnumerableCtor([new("key", 42)]), p);
-        yield return Create(new CollectionWithSpanCtor([1, 2, 3]), p, usesSpanCtor: true);
-        yield return Create(new DictionaryWithSpanCtor([new("key", 42)]), p, usesSpanCtor: true);
+        yield return TestCase.Create(p, new StructList<int> { 1, 2, 3 });
+        yield return TestCase.Create(p, new StructDictionary<string, string> { ["key"] = "value" });
+        yield return TestCase.Create<CollectionWithBuilderAttribute>([1, 2, 3]);
+        yield return TestCase.Create(p, (GenericCollectionWithBuilderAttribute<int>)[1, 2, 3]);
+        yield return TestCase.Create(new CollectionWithEnumerableCtor([1, 2, 3]));
+        yield return TestCase.Create(new DictionaryWithEnumerableCtor([new("key", 42)]));
+        yield return TestCase.Create(new CollectionWithSpanCtor([1, 2, 3]), usesSpanCtor: true);
+        yield return TestCase.Create(new DictionaryWithSpanCtor([new("key", 42)]), usesSpanCtor: true);
 
-        yield return Create(new Collection<int> { 1, 2, 3 }, p);
-        yield return Create(new ObservableCollection<int> { 1, 2, 3 }, p);
-        yield return Create(new MyKeyedCollection<int> { 1, 2, 3 }, p);
-        yield return Create(new MyKeyedCollection<string> { "1", "2", "3" }, p);
-        yield return Create(new ReadOnlyCollection<int>([1, 2, 3]), p);
-        yield return Create(new ReadOnlyDictionary<int, int>(new Dictionary<int, int> { [1] = 1, [2] = 2 }), p);
+        yield return TestCase.Create(p, new Collection<int> { 1, 2, 3 });
+        yield return TestCase.Create(p, new ObservableCollection<int> { 1, 2, 3 });
+        yield return TestCase.Create(p, new MyKeyedCollection<int> { 1, 2, 3 });
+        yield return TestCase.Create(p, new MyKeyedCollection<string> { "1", "2", "3" });
+        yield return TestCase.Create(p, new ReadOnlyCollection<int>([1, 2, 3]));
+        yield return TestCase.Create(p, new ReadOnlyDictionary<int, int>(new Dictionary<int, int> { [1] = 1, [2] = 2 }));
 
-        yield return Create<ImmutableArray<int>, SourceGenProvider>([1, 2, 3], p);
-        yield return Create<ImmutableList<string>, SourceGenProvider>(["1", "2", "3"], p);
-        yield return Create<ImmutableList<string?>, SourceGenProvider>(["1", "2", null], p);
-        yield return Create<ImmutableQueue<int>, SourceGenProvider>([1, 2, 3], p);
-        yield return Create<ImmutableStack<int>, SourceGenProvider>([1, 2, 3], p, isStack: true);
-        yield return Create<ImmutableHashSet<int>, SourceGenProvider>([1, 2, 3], p);
-        yield return Create<ImmutableSortedSet<int>, SourceGenProvider>([1, 2, 3], p);
-        yield return Create(ImmutableDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }), p);
-        yield return Create(ImmutableDictionary.CreateRange(new Dictionary<string, string?> { ["key"] = null }), p);
-        yield return Create(ImmutableSortedDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }), p);
+        yield return TestCase.Create(p, (ImmutableArray<int>)[1, 2, 3]);
+        yield return TestCase.Create(p, (ImmutableList<string>)["1", "2", "3"]);
+        yield return TestCase.Create(p, (ImmutableList<string?>)["1", "2", null]);
+        yield return TestCase.Create(p, (ImmutableQueue<int>)[1, 2, 3]);
+        yield return TestCase.Create(p, (ImmutableStack<int>)[1, 2, 3], isStack: true);
+        yield return TestCase.Create(p, (ImmutableHashSet<int>)[1, 2, 3]);
+        yield return TestCase.Create(p, (ImmutableSortedSet<int>)[1, 2, 3]);
+        yield return TestCase.Create(p, ImmutableDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }));
+        yield return TestCase.Create(p, ImmutableDictionary.CreateRange(new Dictionary<string, string?> { ["key"] = null }));
+        yield return TestCase.Create(p, ImmutableSortedDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }));
 
-        yield return Create(new PocoWithListAndDictionaryProps(@string: "myString")
+        yield return TestCase.Create(new PocoWithListAndDictionaryProps(@string: "myString")
         {
             List = [1, 2, 3],
             Dict = new() { ["key1"] = 42, ["key2"] = -1 },
-        }, p);
+        });
 
-        yield return Create(new BaseClass { X = 1 }, p);
-        yield return Create(new DerivedClass { X = 1, Y = 2 }, p);
-
-        yield return Create(new DerivedClassWithVirtualProperties(), p);
+        yield return TestCase.Create(new BaseClass { X = 1 });
+        yield return TestCase.Create(new DerivedClass { X = 1, Y = 2 });
+        yield return TestCase.Create(new DerivedClassWithVirtualProperties());
 
         var value = new DiamondImplementation { X = 1, Y = 2, Z = 3, W = 4, T = 5 };
-        yield return Create<IBaseInterface, SourceGenProvider>(value, p);
-        yield return Create<IDerivedInterface, SourceGenProvider>(value, p);
-        yield return Create<IDerived2Interface, SourceGenProvider>(value, p);
-        yield return Create<IDerived3Interface, SourceGenProvider>(value, p);
-        yield return Create<IDiamondInterface, SourceGenProvider>(value, p);
+        yield return TestCase.Create<IBaseInterface>(value);
+        yield return TestCase.Create<IDerivedInterface>(value);
+        yield return TestCase.Create<IDerived2Interface>(value);
+        yield return TestCase.Create<IDerived3Interface>(value);
+        yield return TestCase.Create<IDiamondInterface>(value);
 
-        yield return Create(new ParameterlessRecord(), p);
-        yield return Create(new ParameterlessStructRecord(), p);
+        yield return TestCase.Create(new ParameterlessRecord());
+        yield return TestCase.Create(new ParameterlessStructRecord());
 
-        yield return Create(new ClassWithNullabilityAttributes(), p);
-        yield return Create(new ClassWithStructNullabilityAttributes(), p);
-        yield return Create(new ClassWithInternalConstructor(42), p);
-        yield return Create(new NonNullStringRecord("str"), p);
-        yield return Create(new NullableStringRecord(null), p);
-        yield return Create(new NotNullGenericRecord<string>("str"), p);
-        yield return Create(new NotNullClassGenericRecord<string>("str"), p);
-        yield return Create(new NullClassGenericRecord<string>("str"), p);
-        yield return Create(new NullObliviousGenericRecord<string>("str"), p);
+        yield return TestCase.Create(new ClassWithNullabilityAttributes());
+        yield return TestCase.Create(new ClassWithStructNullabilityAttributes());
+        yield return TestCase.Create(new ClassWithInternalConstructor(42));
+        yield return TestCase.Create(new NonNullStringRecord("str"));
+        yield return TestCase.Create(new NullableStringRecord(null));
+        yield return TestCase.Create(p, new NotNullGenericRecord<string>("str"));
+        yield return TestCase.Create(p, new NotNullClassGenericRecord<string>("str"));
+        yield return TestCase.Create(p, new NullClassGenericRecord<string>("str"));
+        yield return TestCase.Create(p, new NullObliviousGenericRecord<string>("str"));
 
-        yield return Create(new SimpleRecord(42), p);
-        yield return Create(new GenericRecord<int>(42), p);
-        yield return Create(new GenericRecord<string>("str"), p);
-        yield return Create(new GenericRecord<GenericRecord<bool>>(new GenericRecord<bool>(true)), p);
+        yield return TestCase.Create(new SimpleRecord(42));
+        yield return TestCase.Create(p, new GenericRecord<int>(42));
+        yield return TestCase.Create(p, new GenericRecord<string>("str"));
+        yield return TestCase.Create(p, new GenericRecord<GenericRecord<bool>>(new GenericRecord<bool>(true)));
 
-        yield return Create(new ComplexStruct { real = 0, im = 1 }, p);
-        yield return Create(new ComplexStructWithProperties { Real = 0, Im = 1 }, p);
-        yield return Create(new StructWithDefaultCtor(), p);
+        yield return TestCase.Create(new ComplexStruct { real = 0, im = 1 });
+        yield return TestCase.Create(new ComplexStructWithProperties { Real = 0, Im = 1 });
+        yield return TestCase.Create(new StructWithDefaultCtor());
 
-        yield return Create(new ValueTuple(), p);
-        yield return Create(new ValueTuple<int>(42), p);
-        yield return Create((42, "string"), p);
-        yield return Create((1, 2, 3, 4, 5, 6, 7), p);
-        yield return Create((IntValue: 42, StringValue: "string", BoolValue: true), p);
-        yield return Create((IntValue: 42, StringValue: "string", (1, 0)), p);
-        yield return Create((x1: 1, x2: 2, x3: 3, x4: 4, x5: 5, x6: 6, x7: 7, x8: 8, x9: 9), p);
-        yield return Create((x01: 01, x02: 02, x03: 03, x04: 04, x05: 05, x06: 06, x07: 07, x08: 08, x09: 09, x10: 10,
+        yield return TestCase.Create(p, new ValueTuple());
+        yield return TestCase.Create(p, new ValueTuple<int>(42));
+        yield return TestCase.Create(p, (42, "string"));
+        yield return TestCase.Create(p, (1, 2, 3, 4, 5, 6, 7));
+        yield return TestCase.Create(p, (IntValue: 42, StringValue: "string", BoolValue: true));
+        yield return TestCase.Create(p, (IntValue: 42, StringValue: "string", (1, 0)));
+        yield return TestCase.Create(p, (x1: 1, x2: 2, x3: 3, x4: 4, x5: 5, x6: 6, x7: 7, x8: 8, x9: 9));
+        yield return TestCase.Create(p, (x01: 01, x02: 02, x03: 03, x04: 04, x05: 05, x06: 06, x07: 07, x08: 08, x09: 09, x10: 10,
                              x11: 11, x12: 12, x13: 13, x14: 14, x15: 15, x16: 16, x17: 17, x18: 18, x19: 19, x20: 20,
-                             x21: 21, x22: 22, x23: 23, x24: 24, x25: 25, x26: 26, x27: 27, x28: 28, x29: 29, x30: 30), p);
+                             x21: 21, x22: 22, x23: 23, x24: 24, x25: 25, x26: 26, x27: 27, x28: 28, x29: 29, x30: 30));
 
-        yield return Create(new Dictionary<int, (int, int)> { [0] = (1, 1) }, p);
+        yield return TestCase.Create(p, new Dictionary<int, (int, int)> { [0] = (1, 1) });
 
-        yield return Create<Tuple<int>, SourceGenProvider>(new(1), p);
-        yield return Create<Tuple<int, int>, SourceGenProvider>(new(1, 2), p);
-        yield return Create<Tuple<int, string, bool>, SourceGenProvider>(new(1, "str", true), p);
-        yield return Create<Tuple<int, int, int, int, int, int, int>, SourceGenProvider>(new(1, 2, 3, 4, 5, 6, 7), p);
-        yield return Create<Tuple<int, int, int, int, int, int, int, Tuple<int, int, int>>, SourceGenProvider>(new(1, 2, 3, 4, 5, 6, 7, new(8, 9, 10)), p);
-        yield return Create<Tuple<int, int, int, int, int, int, int, Tuple<int, int, int, int, int, int, int, Tuple<int>>>, SourceGenProvider>(new(1, 2, 3, 4, 5, 6, 7, new(8, 9, 10, 11, 12, 13, 14, new(15))), p);
+        yield return TestCase.Create(p, new Tuple<int>(1));
+        yield return TestCase.Create(p, new Tuple<int, int>(1, 2));
+        yield return TestCase.Create(p, new Tuple<int, string, bool>(1, "str", true));
+        yield return TestCase.Create(p, new Tuple<int, int, int, int, int, int, int>(1, 2, 3, 4, 5, 6, 7));
+        yield return TestCase.Create(p, new Tuple<int, int, int, int, int, int, int, Tuple<int, int, int>>(1, 2, 3, 4, 5, 6, 7, new(8, 9, 10)));
+        yield return TestCase.Create(p, new Tuple<int, int, int, int, int, int, int, Tuple<int, int, int, int, int, int, int, Tuple<int>>>(1, 2, 3, 4, 5, 6, 7, new(8, 9, 10, 11, 12, 13, 14, new(15))));
 
-        yield return Create(new ClassWithReadOnlyField(), p);
-        yield return Create(new ClassWithRequiredField { x = 42 }, p);
-        yield return Create(new StructWithRequiredField { x = 42 }, p);
-        yield return Create(new ClassWithRequiredProperty { X = 42 }, p);
-        yield return Create(new StructWithRequiredProperty { X = 42 }, p);
-        yield return Create(new StructWithRequiredPropertyAndDefaultCtor { y = 2 }, p);
-        yield return Create(new StructWithRequiredFieldAndDefaultCtor { y = 2 }, p);
+        yield return TestCase.Create(new ClassWithReadOnlyField());
+        yield return TestCase.Create(new ClassWithRequiredField { x = 42 });
+        yield return TestCase.Create(new StructWithRequiredField { x = 42 });
+        yield return TestCase.Create(new ClassWithRequiredProperty { X = 42 });
+        yield return TestCase.Create(new StructWithRequiredProperty { X = 42 });
+        yield return TestCase.Create(new StructWithRequiredPropertyAndDefaultCtor { y = 2 });
+        yield return TestCase.Create(new StructWithRequiredFieldAndDefaultCtor { y = 2 });
 
-        yield return Create(new ClassWithSetsRequiredMembersCtor(42), p);
-        yield return Create(new StructWithSetsRequiredMembersCtor(42), p);
+        yield return TestCase.Create(new ClassWithSetsRequiredMembersCtor(42));
+        yield return TestCase.Create(new StructWithSetsRequiredMembersCtor(42));
 
-        yield return Create(new ClassWithRequiredAndInitOnlyProperties
+        yield return TestCase.Create(new ClassWithRequiredAndInitOnlyProperties
         {
             RequiredAndInitOnlyString = "str1",
             RequiredString = "str2",
@@ -286,9 +231,9 @@ public static class TestTypes
             InitOnlyInt = 3,
 
             requiredField = true,
-        }, p);
+        });
 
-        yield return Create(new StructWithRequiredAndInitOnlyProperties
+        yield return TestCase.Create(new StructWithRequiredAndInitOnlyProperties
         {
             RequiredAndInitOnlyString = "str1",
             RequiredString = "str2",
@@ -299,9 +244,9 @@ public static class TestTypes
             InitOnlyInt = 3,
 
             requiredField = true,
-        }, p);
+        });
 
-        yield return Create(new ClassRecordWithRequiredAndInitOnlyProperties(1, 2, 3)
+        yield return TestCase.Create(new ClassRecordWithRequiredAndInitOnlyProperties(1, 2, 3)
         {
             RequiredAndInitOnlyString = "str1",
             RequiredString = "str2",
@@ -312,9 +257,9 @@ public static class TestTypes
             InitOnlyInt = 3,
 
             requiredField = true,
-        }, p);
+        });
 
-        yield return Create(new StructRecordWithRequiredAndInitOnlyProperties(1, 2, 3)
+        yield return TestCase.Create(new StructRecordWithRequiredAndInitOnlyProperties(1, 2, 3)
         {
             RequiredAndInitOnlyString = "str1",
             RequiredString = "str2",
@@ -325,34 +270,34 @@ public static class TestTypes
             InitOnlyInt = 3,
 
             requiredField = true,
-        }, p);
+        });
 
-        yield return Create(new ClassWithDefaultConstructorAndSingleRequiredProperty { Value = 42 }, p);
-        yield return Create(new ClassWithParameterizedConstructorAnd2OptionalSetters(42), p);
-        yield return Create(new ClassWithParameterizedConstructorAnd10OptionalSetters(42), p);
-        yield return Create(new ClassWithParameterizedConstructorAnd70OptionalSetters(42), p);
+        yield return TestCase.Create(new ClassWithDefaultConstructorAndSingleRequiredProperty { Value = 42 });
+        yield return TestCase.Create(new ClassWithParameterizedConstructorAnd2OptionalSetters(42));
+        yield return TestCase.Create(new ClassWithParameterizedConstructorAnd10OptionalSetters(42));
+        yield return TestCase.Create(new ClassWithParameterizedConstructorAnd70OptionalSetters(42));
 
-        yield return Create(new ClassRecord(0, 1, 2, 3), p);
-        yield return Create(new StructRecord(0, 1, 2, 3), p);
-        yield return Create(new LargeClassRecord(), p);
+        yield return TestCase.Create(new ClassRecord(0, 1, 2, 3));
+        yield return TestCase.Create(new StructRecord(0, 1, 2, 3));
+        yield return TestCase.Create(new LargeClassRecord());
 
-        yield return Create(new ClassWithIndexer(), p);
+        yield return TestCase.Create(new ClassWithIndexer());
 
-        yield return Create(new RecordWithDefaultParams(), p);
-        yield return Create(new RecordWithDefaultParams2(), p);
+        yield return TestCase.Create(new RecordWithDefaultParams());
+        yield return TestCase.Create(new RecordWithDefaultParams2());
 
-        yield return Create(new RecordWithNullableDefaultParams(), p);
-        yield return Create(new RecordWithNullableDefaultParams2(), p);
+        yield return TestCase.Create(new RecordWithNullableDefaultParams());
+        yield return TestCase.Create(new RecordWithNullableDefaultParams2());
 
-        yield return Create(new RecordWithSpecialValueDefaultParams(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), p);
+        yield return TestCase.Create(new RecordWithSpecialValueDefaultParams(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
 
-        yield return Create(new RecordWithEnumAndNullableParams(MyEnum.A, MyEnum.C), p);
-        yield return Create(new RecordWithNullableDefaultEnum(), p);
+        yield return TestCase.Create(new RecordWithEnumAndNullableParams(MyEnum.A, MyEnum.C));
+        yield return TestCase.Create(new RecordWithNullableDefaultEnum());
 
-        yield return Create(new GenericContainer<string>.Inner { Value = "str" }, p);
-        yield return Create(new GenericContainer<string>.Inner<string> { Value1 = "str", Value2 = "str2" }, p);
+        yield return TestCase.Create(p, new GenericContainer<string>.Inner { Value = "str" });
+        yield return TestCase.Create(p, new GenericContainer<string>.Inner<string> { Value1 = "str", Value2 = "str2" });
 
-        yield return Create(new MyLinkedList<int>
+        yield return TestCase.Create(p, new MyLinkedList<int>
         {
             Value = 1,
             Next = new()
@@ -364,36 +309,36 @@ public static class TestTypes
                     Next = null,
                 }
             }
-        }, p);
+        });
         
-        yield return Create<RecursiveClassWithNonNullableOccurrence, SourceGenProvider>(null!, p);
-        yield return Create(new RecursiveClassWithNonNullableOccurrences
+        yield return TestCase.Create<RecursiveClassWithNonNullableOccurrence>(null!);
+        yield return TestCase.Create(new RecursiveClassWithNonNullableOccurrences
         {
             Values = [],
-        }, p);
+        });
 
         DateOnly today = DateOnly.Parse("2023-12-07");
-        yield return Create(new Todos(
+        yield return TestCase.Create(new Todos(
             [ new (Id: 0, "Wash the dishes.", today, Status.Done),
               new (Id: 1, "Dry the dishes.", today, Status.Done),
               new (Id: 2, "Turn the dishes over.", today, Status.InProgress),
               new (Id: 3, "Walk the kangaroo.", today.AddDays(1), Status.NotStarted),
-              new (Id: 4, "Call Grandma.", today.AddDays(1), Status.NotStarted)]), p);
+              new (Id: 4, "Call Grandma.", today.AddDays(1), Status.NotStarted)]));
 
-        yield return Create(new RecordWith21ConstructorParameters(
+        yield return TestCase.Create(new RecordWith21ConstructorParameters(
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
-            "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2"), p);
+            "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2"));
 
-        yield return Create(new RecordWith42ConstructorParameters(
+        yield return TestCase.Create(new RecordWith42ConstructorParameters(
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
-            "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2"), p);
+            "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2"));
 
-        yield return Create(new RecordWith42ConstructorParametersAndRequiredProperties(
+        yield return TestCase.Create(new RecordWith42ConstructorParametersAndRequiredProperties(
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
@@ -403,9 +348,9 @@ public static class TestTypes
         {
             requiredField = 42,
             RequiredProperty = "str"
-        }, p);
+        });
 
-        yield return Create(new StructRecordWith42ConstructorParametersAndRequiredProperties(
+        yield return TestCase.Create(new StructRecordWith42ConstructorParametersAndRequiredProperties(
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
             "str", 2, true, TimeSpan.MinValue, DateTime.MaxValue, 42, "str2",
@@ -415,38 +360,38 @@ public static class TestTypes
         {
             requiredField = 42,
             RequiredProperty = "str"
-        }, p);
+        });
 
-        yield return Create(new ClassWith40RequiredMembers
+        yield return TestCase.Create(new ClassWith40RequiredMembers
         {
             r00 = 00, r01 = 01, r02 = 02, r03 = 03, r04 = 04, r05 = 05, r06 = 06, r07 = 07, r08 = 08, r09 = 09, 
             r10 = 10, r11 = 11, r12 = 12, r13 = 13, r14 = 14, r15 = 15, r16 = 16, r17 = 17, r18 = 18, r19 = 19,
             r20 = 20, r21 = 21, r22 = 22, r23 = 23, r24 = 24, r25 = 25, r26 = 26, r27 = 27, r28 = 28, r29 = 29, 
             r30 = 30, r31 = 31, r32 = 32, r33 = 33, r34 = 34, r35 = 35, r36 = 36, r37 = 37, r38 = 38, r39 = 39,
-        }, p);
+        });
 
-        yield return Create(new StructWith40RequiredMembers
+        yield return TestCase.Create(new StructWith40RequiredMembers
         {
             r00 = 00, r01 = 01, r02 = 02, r03 = 03, r04 = 04, r05 = 05, r06 = 06, r07 = 07, r08 = 08, r09 = 09, 
             r10 = 10, r11 = 11, r12 = 12, r13 = 13, r14 = 14, r15 = 15, r16 = 16, r17 = 17, r18 = 18, r19 = 19,
             r20 = 20, r21 = 21, r22 = 22, r23 = 23, r24 = 24, r25 = 25, r26 = 26, r27 = 27, r28 = 28, r29 = 29, 
             r30 = 30, r31 = 31, r32 = 32, r33 = 33, r34 = 34, r35 = 35, r36 = 36, r37 = 37, r38 = 38, r39 = 39,
-        }, p);
+        });
 
-        yield return Create(new StructWith40RequiredMembersAndDefaultCtor
+        yield return TestCase.Create(new StructWith40RequiredMembersAndDefaultCtor
         {
             r00 = 00, r01 = 01, r02 = 02, r03 = 03, r04 = 04, r05 = 05, r06 = 06, r07 = 07, r08 = 08, r09 = 09, 
             r10 = 10, r11 = 11, r12 = 12, r13 = 13, r14 = 14, r15 = 15, r16 = 16, r17 = 17, r18 = 18, r19 = 19,
             r20 = 20, r21 = 21, r22 = 22, r23 = 23, r24 = 24, r25 = 25, r26 = 26, r27 = 27, r28 = 28, r29 = 29, 
             r30 = 30, r31 = 31, r32 = 32, r33 = 33, r34 = 34, r35 = 35, r36 = 36, r37 = 37, r38 = 38, r39 = 39,
-        }, p);
+        });
 
-        yield return Create(new ClassWithInternalMembers { X = 1, Y = 2, Z = 3, W = 4, internalField = 5 }, p, doesNotRoundtrip: true);
-        yield return Create(new ClassWithPropertyAnnotations { X = 1, Y = 2, Z = true }, p);
-        yield return Create(new ClassWithConstructorAndAnnotations(1, 2, true), p);
-        yield return Create(new DerivedClassWithPropertyShapeAnnotations(), p);
+        yield return TestCase.Create(new ClassWithInternalMembers { X = 1, Y = 2, Z = 3, W = 4, internalField = 5 }, isLossyRoundtrip: true);
+        yield return TestCase.Create(new ClassWithPropertyAnnotations { X = 1, Y = 2, Z = true });
+        yield return TestCase.Create(new ClassWithConstructorAndAnnotations(1, 2, true));
+        yield return TestCase.Create(new DerivedClassWithPropertyShapeAnnotations());
 
-        yield return Create(new WeatherForecastDTO
+        yield return TestCase.Create(new WeatherForecastDTO
         {
             Id = "id",
             Date = DateTime.Parse("1975-01-01"),
@@ -460,50 +405,40 @@ public static class TestTypes
                 ["Range1"] = new() { Low = 1, High = 2 },
                 ["Range2"] = new() { Low = 3, High = 4 },
             }
-        }, p);
+        });
+        
+        yield return TestCase.Create(new DerivedClassWithShadowingMember { PropA = "propA", PropB = 2, FieldA = 1, FieldB = "fieldB" });
+        yield return TestCase.Create(new ClassWithMultipleSelfReferences { First = new ClassWithMultipleSelfReferences() });
+        yield return TestCase.Create(new ClassWithNullableTypeParameters());
+        yield return TestCase.Create(p, new ClassWithNullableTypeParameters<int>());
+        yield return TestCase.Create(p, new ClassWithNullableTypeParameters<int?>());
+        yield return TestCase.Create(p, new ClassWithNullableTypeParameters<string>());
+        yield return TestCase.Create(p, new CollectionWithNullableElement<int>([(1, 1)]));
+        yield return TestCase.Create(p, new CollectionWithNullableElement<int?>([(null, 1), (42, 1)]));
+        yield return TestCase.Create(p, new CollectionWithNullableElement<string?>([(null, 1), ("str", 2)]));
+        yield return TestCase.Create(p, new DictionaryWithNullableEntries<int>([new("key1", (1, 1))]));
+        yield return TestCase.Create(p, new DictionaryWithNullableEntries<int?>([new("key1", (null, 1)), new("key2", (42, 1))]));
+        yield return TestCase.Create(p, new DictionaryWithNullableEntries<string>([new("key1", (null, 1)), new("key2", ("str", 1))]));
+        yield return TestCase.Create(p, new ClassWithNullableProperty<int>());
+        yield return TestCase.Create(p, new ClassWithNullableProperty<int?>());
+        yield return TestCase.Create(p, new ClassWithNullableProperty<string>());
 
-        yield return Create(new DerivedClassWithShadowingMember { PropA = "propA", PropB = 2, FieldA = 1, FieldB = "fieldB" }, p);
-        yield return Create(new ClassWithMultipleSelfReferences { First = new ClassWithMultipleSelfReferences() }, p);
-        yield return Create(new ClassWithNullableTypeParameters(), p);
-        yield return Create(new ClassWithNullableTypeParameters<int>(), p);
-        yield return Create(new ClassWithNullableTypeParameters<int?>(), p);
-        yield return Create(new ClassWithNullableTypeParameters<string>(), p);
-        yield return Create(new CollectionWithNullableElement<int>([(1, 1)]), p);
-        yield return Create(new CollectionWithNullableElement<int?>([(null, 1), (42, 1)]), p);
-        yield return Create(new CollectionWithNullableElement<string?>([(null, 1), ("str", 2)]), p);
-        yield return Create(new DictionaryWithNullableEntries<int>([new("key1", (1, 1))]), p);
-        yield return Create(new DictionaryWithNullableEntries<int?>([new("key1", (null, 1)), new("key2", (42, 1))]), p);
-        yield return Create(new DictionaryWithNullableEntries<string>([new("key1", (null, 1)), new("key2", ("str", 1))]), p);
-        yield return Create(new ClassWithNullableProperty<int>(), p);
-        yield return Create(new ClassWithNullableProperty<int?>(), p);
-        yield return Create(new ClassWithNullableProperty<string>(), p);
-
-        yield return CreateSelfProvided(new PersonClass("John", 40));
-        yield return CreateSelfProvided(new PersonStruct("John", 40));
-        yield return Create((PersonStruct?)new PersonStruct("John", 40), p, additionalValues: [null]);
-        yield return CreateSelfProvided<IPersonInterface>(new IPersonInterface.Impl("John", 40));
-        yield return CreateSelfProvided<PersonAbstractClass>(new PersonAbstractClass.Impl("John", 40));
-        yield return CreateSelfProvided(new PersonRecord("John", 40));
-        yield return CreateSelfProvided(new PersonRecordStruct("John", 40));
-        yield return Create((PersonRecordStruct?)new PersonRecordStruct("John", 40), p, additionalValues: [null]);
-
-        static TestCase<T, TProvider> Create<T, TProvider>(T? value, TProvider provider, T?[]? additionalValues = null, bool isStack = false, bool doesNotRoundtrip = false, bool usesSpanCtor = false) 
-            where TProvider : ITypeShapeProvider<T> 
-            => new(value) { 
-                AdditionalValues = additionalValues ?? [], 
-                IsStack = isStack,
-                DoesNotRoundtrip = doesNotRoundtrip, 
-                UsesSpanConstructor = usesSpanCtor };
-
-        static TestCase<T, T> CreateSelfProvided<T>(T? value, T?[]? additionalValues = null) where T : ITypeShapeProvider<T>
-            => new(value) {
-                AdditionalValues = additionalValues ?? [],
-            };
+        yield return TestCase.Create(new PersonClass("John", 40));
+        yield return TestCase.Create(new PersonStruct("John", 40));
+        yield return TestCase.Create(p, (PersonStruct?)new PersonStruct("John", 40));
+        yield return TestCase.Create<IPersonInterface>(new IPersonInterface.Impl("John", 40));
+        yield return TestCase.Create<PersonAbstractClass>(new PersonAbstractClass.Impl("John", 40));
+        yield return TestCase.Create(new PersonRecord("John", 40));
+        yield return TestCase.Create(new PersonRecordStruct("John", 40));
+        yield return TestCase.Create(p, (PersonRecordStruct?)new PersonRecordStruct("John", 40));
     }
 }
 
-public class DerivedList : List<int> { }
-public class DerivedDictionary : Dictionary<string, string> { }
+[GenerateShape]
+public partial class DerivedList : List<int>;
+
+[GenerateShape]
+public partial class DerivedDictionary : Dictionary<string, string>;
 
 public readonly struct StructList<T> : IList<T>
 {
@@ -524,7 +459,7 @@ public readonly struct StructList<T> : IList<T>
     IEnumerator IEnumerable.GetEnumerator() => _values.GetEnumerator();
 }
 
-public readonly struct StructDictionary<TKey, TValue> : IDictionary<TKey, TValue>
+public readonly partial struct StructDictionary<TKey, TValue> : IDictionary<TKey, TValue>
     where TKey : notnull
 {
     private readonly Dictionary<TKey, TValue> _dictionary;
@@ -547,7 +482,8 @@ public readonly struct StructDictionary<TKey, TValue> : IDictionary<TKey, TValue
     IEnumerator IEnumerable.GetEnumerator() => _dictionary.GetEnumerator();
 }
 
-public class PocoWithListAndDictionaryProps
+[GenerateShape]
+public partial class PocoWithListAndDictionaryProps
 {
     public PocoWithListAndDictionaryProps(bool @bool = true, string @string = "str")
     {
@@ -561,35 +497,40 @@ public class PocoWithListAndDictionaryProps
     public Dictionary<string, int>? Dict { get; set; }
 }
 
-internal class MyLinkedList<T>
+internal partial class MyLinkedList<T>
 {
     public T? Value { get; set; }
     public MyLinkedList<T>? Next { get; set; }
 }
 
-internal class RecursiveClassWithNonNullableOccurrence
+[GenerateShape]
+internal partial class RecursiveClassWithNonNullableOccurrence
 {
     public required RecursiveClassWithNonNullableOccurrence Value { get; init; }
 }
 
-internal class RecursiveClassWithNonNullableOccurrences
+[GenerateShape]
+internal partial class RecursiveClassWithNonNullableOccurrences
 {
     public required RecursiveClassWithNonNullableOccurrences[] Values { get; init; }
 }
 
-public struct ComplexStruct
+[GenerateShape]
+public partial struct ComplexStruct
 {
     public double real;
     public double im;
 }
 
-public struct ComplexStructWithProperties
+[GenerateShape]
+public partial struct ComplexStructWithProperties
 {
     public double Real { get; set; }
     public double Im { get; set; }
 }
 
-public struct StructWithDefaultCtor
+[GenerateShape]
+public partial struct StructWithDefaultCtor
 {
     public int Value;
     public StructWithDefaultCtor()
@@ -598,17 +539,20 @@ public struct StructWithDefaultCtor
     }
 }
 
-public class BaseClass
+[GenerateShape]
+public partial class BaseClass
 {
     public int X { get; set; }
 }
 
-public class DerivedClass : BaseClass
+[GenerateShape]
+public partial class DerivedClass : BaseClass
 {
     public int Y { get; set; }
 }
 
-public abstract class BaseClassWithVirtualProperties
+[GenerateShape]
+public abstract partial class BaseClassWithVirtualProperties
 {
     public virtual int X { get; set; }
     public abstract string Y { get; set; }
@@ -616,7 +560,8 @@ public abstract class BaseClassWithVirtualProperties
     public virtual int W { get; set; }
 }
 
-public class DerivedClassWithVirtualProperties : BaseClassWithVirtualProperties
+[GenerateShape]
+public partial class DerivedClassWithVirtualProperties : BaseClassWithVirtualProperties
 {
     private int? _x;
     private string? _y;
@@ -653,32 +598,38 @@ public class DerivedClassWithVirtualProperties : BaseClassWithVirtualProperties
     public override int W { set => base.W = value; }
 }
 
-public interface IBaseInterface
+[GenerateShape]
+public partial interface IBaseInterface
 {
     public int X { get; set; }
 }
 
-public interface IDerivedInterface : IBaseInterface
+[GenerateShape]
+public partial interface IDerivedInterface : IBaseInterface
 {
     public int Y { get; set; }
 }
 
-public interface IDerived2Interface : IBaseInterface
+[GenerateShape]
+public partial interface IDerived2Interface : IBaseInterface
 { 
     public int Z { get; set; }
 }
 
-public interface IDerived3Interface : IBaseInterface
+[GenerateShape]
+public partial interface IDerived3Interface : IBaseInterface
 {
     public int W { get; set; }
 }
 
-public interface IDiamondInterface : IDerivedInterface, IDerived2Interface, IDerived3Interface
+[GenerateShape]
+public partial interface IDiamondInterface : IDerivedInterface, IDerived2Interface, IDerived3Interface
 {
     public int T { get; set; }
 }
 
-public class DiamondImplementation : IDiamondInterface
+[GenerateShape]
+public partial class DiamondImplementation : IDiamondInterface
 {
     public int X { get; set; }
     public int Y { get; set; }
@@ -687,44 +638,52 @@ public class DiamondImplementation : IDiamondInterface
     public int T { get; set; }
 }
 
-public class ClassWithRequiredField
+[GenerateShape]
+public partial class ClassWithRequiredField
 {
     public required int x;
 }
 
-public struct StructWithRequiredField
+[GenerateShape]
+public partial struct StructWithRequiredField
 {
     public required int x;
 }
 
-public class ClassWithRequiredProperty
+[GenerateShape]
+public partial class ClassWithRequiredProperty
 {
     public required int X { get; set; }
 }
 
-public struct StructWithRequiredProperty
+[GenerateShape]
+public partial struct StructWithRequiredProperty
 {
     public required int X { get; set; }
 }
 
-public class ClassWithReadOnlyField
+[GenerateShape]
+public partial class ClassWithReadOnlyField
 {
     public readonly int field = 42;
 }
 
-public struct StructWithRequiredPropertyAndDefaultCtor
+[GenerateShape]
+public partial struct StructWithRequiredPropertyAndDefaultCtor
 {
     public StructWithRequiredPropertyAndDefaultCtor() { }
     public required int y { get; set; }
 }
 
-public struct StructWithRequiredFieldAndDefaultCtor
+[GenerateShape]
+public partial struct StructWithRequiredFieldAndDefaultCtor
 {
     public StructWithRequiredFieldAndDefaultCtor() { }
     public required int y;
 }
 
-public class ClassWithRequiredAndInitOnlyProperties
+[GenerateShape]
+public partial class ClassWithRequiredAndInitOnlyProperties
 {
     public required string RequiredAndInitOnlyString { get; init; }
     public required string RequiredString { get; set; }
@@ -738,7 +697,8 @@ public class ClassWithRequiredAndInitOnlyProperties
 
 }
 
-public struct StructWithRequiredAndInitOnlyProperties
+[GenerateShape]
+public partial struct StructWithRequiredAndInitOnlyProperties
 {
     public required string RequiredAndInitOnlyString { get; init; }
     public required string RequiredString { get; set; }
@@ -751,7 +711,8 @@ public struct StructWithRequiredAndInitOnlyProperties
     public required bool requiredField;
 }
 
-public class ClassWithSetsRequiredMembersCtor
+[GenerateShape]
+public partial class ClassWithSetsRequiredMembersCtor
 {
     private int _value;
 
@@ -768,7 +729,8 @@ public class ClassWithSetsRequiredMembersCtor
     }
 }
 
-public struct StructWithSetsRequiredMembersCtor
+[GenerateShape]
+public partial struct StructWithSetsRequiredMembersCtor
 {
     private int _value;
 
@@ -785,7 +747,8 @@ public struct StructWithSetsRequiredMembersCtor
     }
 }
 
-public class ClassWithIndexer
+[GenerateShape]
+public partial class ClassWithIndexer
 {
     public string this[int i]
     {
@@ -794,7 +757,8 @@ public class ClassWithIndexer
     }
 }
 
-public record ClassRecordWithRequiredAndInitOnlyProperties(int x, int y, int z)
+[GenerateShape]
+public partial record ClassRecordWithRequiredAndInitOnlyProperties(int x, int y, int z)
 {
     public required string RequiredAndInitOnlyString { get; init; }
     public required string RequiredString { get; set; }
@@ -807,7 +771,8 @@ public record ClassRecordWithRequiredAndInitOnlyProperties(int x, int y, int z)
     public required bool requiredField;
 }
 
-public record struct StructRecordWithRequiredAndInitOnlyProperties(int x, int y, int z)
+[GenerateShape]
+public partial record struct StructRecordWithRequiredAndInitOnlyProperties(int x, int y, int z)
 {
     public required string RequiredAndInitOnlyString { get; init; }
     public required string RequiredString { get; set; }
@@ -820,18 +785,21 @@ public record struct StructRecordWithRequiredAndInitOnlyProperties(int x, int y,
     public required bool requiredField;
 }
 
-public class  ClassWithDefaultConstructorAndSingleRequiredProperty
+[GenerateShape]
+public partial class ClassWithDefaultConstructorAndSingleRequiredProperty
 {
     public required int Value { get; set; }
 }
 
-public class ClassWithParameterizedConstructorAnd2OptionalSetters(int x1)
+[GenerateShape]
+public partial class ClassWithParameterizedConstructorAnd2OptionalSetters(int x1)
 {
     public int X1 { get; set; } = x1;
     public int X2 { get; set; }
 }
 
-public class ClassWithParameterizedConstructorAnd10OptionalSetters(int x01)
+[GenerateShape]
+public partial class ClassWithParameterizedConstructorAnd10OptionalSetters(int x01)
 {
     public int X01 { get; set; } = x01;
     public int X02 { get; set; } = x01;
@@ -845,7 +813,8 @@ public class ClassWithParameterizedConstructorAnd10OptionalSetters(int x01)
     public int X10 { get; set; } = x01;
 }
 
-public class ClassWithParameterizedConstructorAnd70OptionalSetters(int x01)
+[GenerateShape]
+public partial class ClassWithParameterizedConstructorAnd70OptionalSetters(int x01)
 {
     public int X01 { get; set; } = x01;
     public int X02 { get; set; } = x01;
@@ -933,7 +902,8 @@ public class GenericContainer<T>
     }
 }
 
-public class ClassWithNullabilityAttributes
+[GenerateShape]
+public partial class ClassWithNullabilityAttributes
 {
     private string? _maybeNull = "";
     private string? _allowNull = "";
@@ -986,7 +956,8 @@ public class ClassWithNullabilityAttributes
     public string? DisallowNullField = "";
 }
 
-public class ClassWithStructNullabilityAttributes
+[GenerateShape]
+public partial class ClassWithStructNullabilityAttributes
 {
     private int? _maybeNull = 0;
     private int? _allowNull = 0;
@@ -1039,7 +1010,8 @@ public class ClassWithStructNullabilityAttributes
     public int? DisallowNullField = 0;
 }
 
-public class ClassWithInternalConstructor
+[GenerateShape]
+public partial class ClassWithInternalConstructor
 {
     [JsonConstructor, ConstructorShape]
     internal ClassWithInternalConstructor(int value) => Value = value;
@@ -1047,11 +1019,16 @@ public class ClassWithInternalConstructor
     public int Value { get; }
 }
 
-public record ParameterlessRecord();
-public record struct ParameterlessStructRecord();
-public record SimpleRecord(int value);
-public record NonNullStringRecord(string value);
-public record NullableStringRecord(string? value);
+[GenerateShape]
+public partial record ParameterlessRecord();
+[GenerateShape]
+public partial record struct ParameterlessStructRecord();
+[GenerateShape]
+public partial record SimpleRecord(int value);
+[GenerateShape]
+public partial record NonNullStringRecord(string value);
+[GenerateShape]
+public partial record NullableStringRecord(string? value);
 public record GenericRecord<T>(T value);
 public record NotNullGenericRecord<T>(T value) where T : notnull;
 public record NotNullClassGenericRecord<T>(T value) where T : class;
@@ -1060,16 +1037,25 @@ public record NullClassGenericRecord<T>(T value) where T : class?;
 public record NullObliviousGenericRecord<T>(T value);
 #nullable restore
 
-public record ClassRecord(int x, int? y, int z, int w);
-public record struct StructRecord(int x, int y, int z, int w);
+[GenerateShape]
+public partial record ClassRecord(int x, int? y, int z, int w);
+[GenerateShape]
+public partial record struct StructRecord(int x, int y, int z, int w);
 
-public record RecordWithDefaultParams(bool x1 = true, byte x2 = 10, sbyte x3 = 10, char x4 = 'x', ushort x5 = 10, short x6 = 10, long x7 = 10);
-public record RecordWithDefaultParams2(ulong x1 = 10, float x2 = 3.1f, double x3 = 3.1d, decimal x4 = -3.1415926m, string x5 = "str", string? x6 = null, object? x7 = null);
+[GenerateShape]
+public partial record RecordWithDefaultParams(bool x1 = true, byte x2 = 10, sbyte x3 = 10, char x4 = 'x', ushort x5 = 10, short x6 = 10, long x7 = 10);
 
-public record RecordWithNullableDefaultParams(bool? x1 = true, byte? x2 = 10, sbyte? x3 = 10, char? x4 = 'x', ushort? x5 = 10, short? x6 = 10, long? x7 = 10);
-public record RecordWithNullableDefaultParams2(ulong? x1 = 10, float? x2 = 3.1f, double? x3 = 3.1d, decimal? x4 = -3.1415926m, string? x5 = "str", string? x6 = null, object? x7 = null);
+[GenerateShape]
+public partial record RecordWithDefaultParams2(ulong x1 = 10, float x2 = 3.1f, double x3 = 3.1d, decimal x4 = -3.1415926m, string x5 = "str", string? x6 = null, object? x7 = null);
 
-public record RecordWithSpecialValueDefaultParams(
+[GenerateShape]
+public partial record RecordWithNullableDefaultParams(bool? x1 = true, byte? x2 = 10, sbyte? x3 = 10, char? x4 = 'x', ushort? x5 = 10, short? x6 = 10, long? x7 = 10);
+
+[GenerateShape]
+public partial record RecordWithNullableDefaultParams2(ulong? x1 = 10, float? x2 = 3.1f, double? x3 = 3.1d, decimal? x4 = -3.1415926m, string? x5 = "str", string? x6 = null, object? x7 = null);
+
+[GenerateShape]
+public partial record RecordWithSpecialValueDefaultParams(
     double d1 = double.PositiveInfinity, double d2 = double.NegativeInfinity, double d3 = double.NaN,
     double? dn1 = double.PositiveInfinity, double? dn2 = double.NegativeInfinity, double? dn3 = double.NaN,
     float f1 = float.PositiveInfinity, float f2 = float.NegativeInfinity, float f3 = float.NaN,
@@ -1078,20 +1064,26 @@ public record RecordWithSpecialValueDefaultParams(
 
 [Flags]
 public enum MyEnum { A = 1, B = 2, C = 4, D = 8, E = 16, F = 32, G = 64, H = 128 }
-public record RecordWithEnumAndNullableParams(MyEnum flags1, MyEnum? flags2, MyEnum flags3 = MyEnum.A, MyEnum? flags4 = null);
 
-public record RecordWithNullableDefaultEnum(MyEnum? flags = MyEnum.A | MyEnum.B);
+[GenerateShape]
+public partial record RecordWithEnumAndNullableParams(MyEnum flags1, MyEnum? flags2, MyEnum flags3 = MyEnum.A, MyEnum? flags4 = null);
 
-public record LargeClassRecord(
+[GenerateShape]
+public partial record RecordWithNullableDefaultEnum(MyEnum? flags = MyEnum.A | MyEnum.B);
+
+[GenerateShape]
+public partial record LargeClassRecord(
     int x0 = 0, int x1 = 1, int x2 = 2, int x3 = 3, int x4 = 4, int x5 = 5, int x6 = 5, 
     int x7 = 7, int x8 = 8, string x9 = "str", LargeClassRecord? nested = null);
 
-public record RecordWith21ConstructorParameters(
+[GenerateShape]
+public partial record RecordWith21ConstructorParameters(
     string x01, int x02, bool x03, TimeSpan x04, DateTime x05, int x06, string x07,
     string x08, int x09, bool x10, TimeSpan x11, DateTime x12, int x13, string x14,
     string x15, int x16, bool x17, TimeSpan x18, DateTime x19, int x20, string x21);
 
-public record RecordWith42ConstructorParameters(
+[GenerateShape]
+public partial record RecordWith42ConstructorParameters(
     string x01, int x02, bool x03, TimeSpan x04, DateTime x05, int x06, string x07,
     string x08, int x09, bool x10, TimeSpan x11, DateTime x12, int x13, string x14,
     string x15, int x16, bool x17, TimeSpan x18, DateTime x19, int x20, string x21,
@@ -1099,7 +1091,8 @@ public record RecordWith42ConstructorParameters(
     string x29, int x30, bool x31, TimeSpan x32, DateTime x33, int x34, string x35,
     string x36, int x37, bool x38, TimeSpan x39, DateTime x40, int x41, string x42);
 
-public record RecordWith42ConstructorParametersAndRequiredProperties(
+[GenerateShape]
+public partial record RecordWith42ConstructorParametersAndRequiredProperties(
     string x01, int x02, bool x03, TimeSpan x04, DateTime x05, int x06, string x07,
     string x08, int x09, bool x10, TimeSpan x11, DateTime x12, int x13, string x14,
     string x15, int x16, bool x17, TimeSpan x18, DateTime x19, int x20, string x21,
@@ -1111,7 +1104,8 @@ public record RecordWith42ConstructorParametersAndRequiredProperties(
     public required string RequiredProperty { get; set; }
 }
 
-public record StructRecordWith42ConstructorParametersAndRequiredProperties(
+[GenerateShape]
+public partial record StructRecordWith42ConstructorParametersAndRequiredProperties(
     string x01, int x02, bool x03, TimeSpan x04, DateTime x05, int x06, string x07,
     string x08, int x09, bool x10, TimeSpan x11, DateTime x12, int x13, string x14,
     string x15, int x16, bool x17, TimeSpan x18, DateTime x19, int x20, string x21,
@@ -1123,7 +1117,8 @@ public record StructRecordWith42ConstructorParametersAndRequiredProperties(
     public required string RequiredProperty { get; set; }
 }
 
-public struct ClassWith40RequiredMembers
+[GenerateShape]
+public partial struct ClassWith40RequiredMembers
 {
     public required int r00; public required int r01; public required int r02; public required int r03; public required int r04; public required int r05; public required int r06; public required int r07; public required int r08; public required int r09;
     public required int r10; public required int r11; public required int r12; public required int r13; public required int r14; public required int r15; public required int r16; public required int r17; public required int r18; public required int r19;
@@ -1131,7 +1126,8 @@ public struct ClassWith40RequiredMembers
     public required int r30; public required int r31; public required int r32; public required int r33; public required int r34; public required int r35; public required int r36; public required int r37; public required int r38; public required int r39;
 }
 
-public struct StructWith40RequiredMembers
+[GenerateShape]
+public partial struct StructWith40RequiredMembers
 {
     public required int r00; public required int r01; public required int r02; public required int r03; public required int r04; public required int r05; public required int r06; public required int r07; public required int r08; public required int r09;
     public required int r10; public required int r11; public required int r12; public required int r13; public required int r14; public required int r15; public required int r16; public required int r17; public required int r18; public required int r19;
@@ -1139,7 +1135,8 @@ public struct StructWith40RequiredMembers
     public required int r30; public required int r31; public required int r32; public required int r33; public required int r34; public required int r35; public required int r36; public required int r37; public required int r38; public required int r39;
 }
 
-public struct StructWith40RequiredMembersAndDefaultCtor
+[GenerateShape]
+public partial struct StructWith40RequiredMembersAndDefaultCtor
 {
     public StructWith40RequiredMembersAndDefaultCtor() { }
     public required int r00; public required int r01; public required int r02; public required int r03; public required int r04; public required int r05; public required int r06; public required int r07; public required int r08; public required int r09;
@@ -1148,7 +1145,8 @@ public struct StructWith40RequiredMembersAndDefaultCtor
     public required int r30; public required int r31; public required int r32; public required int r33; public required int r34; public required int r35; public required int r36; public required int r37; public required int r38; public required int r39;
 }
 
-public class ClassWithInternalMembers
+[GenerateShape]
+public partial class ClassWithInternalMembers
 {
     public int X { get; set; }
 
@@ -1163,7 +1161,8 @@ public class ClassWithInternalMembers
     internal int internalField;
 }
 
-public class ClassWithPropertyAnnotations
+[GenerateShape]
+public partial class ClassWithPropertyAnnotations
 {
     [PropertyShape(Name = "AltName", Order = 5)]
     [JsonPropertyName("AltName"), JsonPropertyOrder(5)]
@@ -1178,7 +1177,8 @@ public class ClassWithPropertyAnnotations
     public bool Z;
 }
 
-public class ClassWithConstructorAndAnnotations
+[GenerateShape]
+public partial class ClassWithConstructorAndAnnotations
 {
     public ClassWithConstructorAndAnnotations(int x, [ParameterShape(Name = "AltName2")] int y, bool z)
     {
@@ -1200,7 +1200,8 @@ public class ClassWithConstructorAndAnnotations
     public bool Z { get; }
 }
 
-public abstract class BaseClassWithPropertyShapeAnnotations
+[GenerateShape]
+public abstract partial class BaseClassWithPropertyShapeAnnotations
 {
     // JsonIgnore added because of a bug in the STJ baseline
     // cf. https://github.com/dotnet/runtime/issues/92780
@@ -1218,7 +1219,8 @@ public abstract class BaseClassWithPropertyShapeAnnotations
     public int Z { get; }
 }
 
-public class DerivedClassWithPropertyShapeAnnotations : BaseClassWithPropertyShapeAnnotations
+[GenerateShape]
+public partial class DerivedClassWithPropertyShapeAnnotations : BaseClassWithPropertyShapeAnnotations
 {
     [PropertyShape(Name = "DerivedX")]
     [JsonPropertyName("DerivedX")] // Expected name
@@ -1274,6 +1276,7 @@ public partial record PersonRecord(string name, int age);
 [GenerateShape]
 public partial record struct PersonRecordStruct(string name, int age);
 
+[GenerateShape]
 [CollectionBuilder(typeof(CollectionWithBuilderAttribute), nameof(Create))]
 public partial class CollectionWithBuilderAttribute : List<int>
 {
@@ -1312,7 +1315,8 @@ public static class GenericCollectionWithBuilderAttribute
     }
 }
 
-public class CollectionWithEnumerableCtor : List<int>
+[GenerateShape]
+public partial class CollectionWithEnumerableCtor : List<int>
 {
     public CollectionWithEnumerableCtor(IEnumerable<int> values)
     {
@@ -1323,7 +1327,8 @@ public class CollectionWithEnumerableCtor : List<int>
     }
 }
 
-public class DictionaryWithEnumerableCtor : Dictionary<string, int>
+[GenerateShape]
+public partial class DictionaryWithEnumerableCtor : Dictionary<string, int>
 {
     public DictionaryWithEnumerableCtor(IEnumerable<KeyValuePair<string, int>> values)
     {
@@ -1334,7 +1339,8 @@ public class DictionaryWithEnumerableCtor : Dictionary<string, int>
     }
 }
 
-public class CollectionWithSpanCtor : List<int>
+[GenerateShape]
+public partial class CollectionWithSpanCtor : List<int>
 {
     public CollectionWithSpanCtor(ReadOnlySpan<int> values)
     {
@@ -1345,7 +1351,8 @@ public class CollectionWithSpanCtor : List<int>
     }
 }
 
-public class DictionaryWithSpanCtor : Dictionary<string, int>
+[GenerateShape]
+public partial class DictionaryWithSpanCtor : Dictionary<string, int>
 {
     public DictionaryWithSpanCtor(ReadOnlySpan<KeyValuePair<string, int>> values)
     {
@@ -1362,13 +1369,16 @@ public class MyKeyedCollection<T> : KeyedCollection<int, T>
     protected override int GetKeyForItem(T key) => _count++;
 }
 
-public record Todos(Todo[] Items);
+[GenerateShape]
+public partial record Todos(Todo[] Items);
 
-public record Todo(int Id, string? Title, DateOnly? DueBy, Status Status);
+[GenerateShape]
+public partial record Todo(int Id, string? Title, DateOnly? DueBy, Status Status);
 
 public enum Status { NotStarted, InProgress, Done }
 
-public class WeatherForecastDTO
+[GenerateShape]
+public partial class WeatherForecastDTO
 {
     public required string Id { get; set; }
     public DateTimeOffset Date { get; set; }
@@ -1386,7 +1396,8 @@ public class HighLowTempsDTO
     public int Low { get; set; }
 }
 
-public class WeatherForecast
+[GenerateShape]
+public partial class WeatherForecast
 {
     public DateTimeOffset Date { get; init; }
     public int TemperatureCelsius { get; init; }
@@ -1401,14 +1412,17 @@ public record HighLowTemps
     public int High { get; init; }
 }
 
-public record BaseClassWithShadowingMembers
+[GenerateShape]
+public partial record BaseClassWithShadowingMembers
 {
     public string? PropA { get; init; }
     public string? PropB { get; init; }
     public int FieldA;
     public int FieldB;
 }
-public record DerivedClassWithShadowingMember : BaseClassWithShadowingMembers
+
+[GenerateShape]
+public partial record DerivedClassWithShadowingMember : BaseClassWithShadowingMembers
 {
     public new string? PropA { get; init; }
     public required new int PropB { get; init; }
@@ -1416,14 +1430,16 @@ public record DerivedClassWithShadowingMember : BaseClassWithShadowingMembers
     public required new string FieldB;
 }
 
-public class ClassWithMultipleSelfReferences
+[GenerateShape]
+public partial class ClassWithMultipleSelfReferences
 {
     public long Id { get; set; }
     public ClassWithMultipleSelfReferences? First { get; set; }
     public ClassWithMultipleSelfReferences[] FirstArray { get; set; } = [];
 }
 
-public class ClassWithNullableTypeParameters
+[GenerateShape]
+public partial class ClassWithNullableTypeParameters
 {
     public string?[] DataArray { get; set; } = [null, "str"];
     public List<string?> DataList { get; set; } = [null, "str"];
@@ -1466,6 +1482,7 @@ public class ClassWithNullableProperty<T>
 
 [GenerateShape<object>]
 [GenerateShape<bool>]
+[GenerateShape<char>]
 [GenerateShape<string>]
 [GenerateShape<sbyte>]
 [GenerateShape<short>]
@@ -1490,6 +1507,7 @@ public class ClassWithNullableProperty<T>
 [GenerateShape<TimeOnly>]
 [GenerateShape<BigInteger>]
 [GenerateShape<BindingFlags>]
+[GenerateShape<MyEnum>]
 [GenerateShape<bool?>]
 [GenerateShape<sbyte?>]
 [GenerateShape<short?>]
@@ -1516,6 +1534,7 @@ public class ClassWithNullableProperty<T>
 [GenerateShape<BindingFlags?>]
 [GenerateShape<Uri>]
 [GenerateShape<Version>]
+[GenerateShape<string[]>]
 [GenerateShape<byte[]>]
 [GenerateShape<int[]>]
 [GenerateShape<int[][]>]
@@ -1526,6 +1545,7 @@ public class ClassWithNullableProperty<T>
 [GenerateShape<ReadOnlyMemory<int>>]
 [GenerateShape<List<string>>]
 [GenerateShape<List<byte>>]
+[GenerateShape<List<int>>]
 [GenerateShape<LinkedList<byte>>]
 [GenerateShape<Stack<int>>]
 [GenerateShape<Queue<int>>]
@@ -1541,24 +1561,8 @@ public class ClassWithNullableProperty<T>
 [GenerateShape<HashSet<string>>]
 [GenerateShape<Hashtable>]
 [GenerateShape<ArrayList>]
-[GenerateShape<DerivedList>]
-[GenerateShape<DerivedDictionary>]
 [GenerateShape<StructList<int>>]
 [GenerateShape<StructDictionary<string, string>>]
-[GenerateShape<PocoWithListAndDictionaryProps>]
-[GenerateShape<BaseClass>]
-[GenerateShape<DerivedClass>]
-[GenerateShape<DerivedClassWithVirtualProperties>]
-[GenerateShape<IBaseInterface>]
-[GenerateShape<IDerivedInterface>]
-[GenerateShape<IDerived2Interface>]
-[GenerateShape<IDerived3Interface>]
-[GenerateShape<IDiamondInterface>]
-[GenerateShape<ParameterlessRecord>]
-[GenerateShape<ParameterlessStructRecord>]
-[GenerateShape<SimpleRecord>]
-[GenerateShape<NonNullStringRecord>]
-[GenerateShape<NullableStringRecord>]
 [GenerateShape<GenericRecord<int>>]
 [GenerateShape<GenericRecord<string>>]
 [GenerateShape<GenericRecord<GenericRecord<bool>>>]
@@ -1584,39 +1588,6 @@ public class ClassWithNullableProperty<T>
 [GenerateShape<IReadOnlySet<int>>]
 [GenerateShape<IDictionary<int, int>>]
 [GenerateShape<IReadOnlyDictionary<int, int>>]
-[GenerateShape<ComplexStruct>]
-[GenerateShape<ComplexStructWithProperties>]
-[GenerateShape<StructWithDefaultCtor>]
-[GenerateShape<ClassWithReadOnlyField>]
-[GenerateShape<ClassWithRequiredField>]
-[GenerateShape<StructWithRequiredField>]
-[GenerateShape<ClassWithRequiredProperty>]
-[GenerateShape<StructWithRequiredProperty>]
-[GenerateShape<ClassWithRequiredAndInitOnlyProperties>]
-[GenerateShape<ClassWithIndexer>]
-[GenerateShape<StructWithRequiredAndInitOnlyProperties>]
-[GenerateShape<ClassRecordWithRequiredAndInitOnlyProperties>]
-[GenerateShape<StructRecordWithRequiredAndInitOnlyProperties>]
-[GenerateShape<ClassWithDefaultConstructorAndSingleRequiredProperty>]
-[GenerateShape<ClassWithParameterizedConstructorAnd2OptionalSetters>]
-[GenerateShape<ClassWithParameterizedConstructorAnd10OptionalSetters>]
-[GenerateShape<ClassWithParameterizedConstructorAnd70OptionalSetters>]
-[GenerateShape<StructWithRequiredPropertyAndDefaultCtor>]
-[GenerateShape<StructWithRequiredFieldAndDefaultCtor>]
-[GenerateShape<ClassWithSetsRequiredMembersCtor>]
-[GenerateShape<StructWithSetsRequiredMembersCtor>]
-[GenerateShape<ClassRecord>]
-[GenerateShape<StructRecord>]
-[GenerateShape<LargeClassRecord>]
-[GenerateShape<RecordWithDefaultParams>]
-[GenerateShape<RecordWithDefaultParams2>]
-[GenerateShape<RecordWithNullableDefaultParams>]
-[GenerateShape<RecordWithNullableDefaultParams2>]
-[GenerateShape<RecordWithSpecialValueDefaultParams>]
-[GenerateShape<RecordWithEnumAndNullableParams>]
-[GenerateShape<ClassWithNullabilityAttributes>]
-[GenerateShape<ClassWithStructNullabilityAttributes>]
-[GenerateShape<ClassWithInternalConstructor>]
 [GenerateShape<NotNullGenericRecord<string>>]
 [GenerateShape<NotNullClassGenericRecord<string>>]
 [GenerateShape<NullClassGenericRecord<string>>]
@@ -1635,9 +1606,9 @@ public class ClassWithNullableProperty<T>
 [GenerateShape<(int, string, (int, int))>]
 [GenerateShape<(int, int, int, int, int, int, int)>]
 [GenerateShape<(int, int, int, int, int, int, int, int, int)>]
-[GenerateShape<(int, int, int, int, int, int, int, int, int, int, 
-                int, int, int, int, int, int, int, int, int, int,
-                int, int, int, int, int, int, int, int, int, int)>]
+[GenerateShape<(int, int, int, int, int, int, int, int, int, int,
+    int, int, int, int, int, int, int, int, int, int,
+    int, int, int, int, int, int, int, int, int, int)>]
 [GenerateShape<Dictionary<int, (int, int)>>]
 [GenerateShape<Tuple<int>>]
 [GenerateShape<Tuple<int, int>>]
@@ -1647,32 +1618,9 @@ public class ClassWithNullableProperty<T>
 [GenerateShape<Tuple<int, int, int, int, int, int, int, Tuple<int, int, int>>>]
 [GenerateShape<Tuple<int, int, int, int, int, int, int, Tuple<int, int, int, int, int, int, int, Tuple<int>>>>]
 [GenerateShape<MyLinkedList<SimpleRecord>>]
-[GenerateShape<RecordWith21ConstructorParameters>]
-[GenerateShape<RecordWith42ConstructorParameters>]
-[GenerateShape<RecordWith42ConstructorParametersAndRequiredProperties>]
-[GenerateShape<StructRecordWith42ConstructorParametersAndRequiredProperties>]
-[GenerateShape<ClassWith40RequiredMembers>]
-[GenerateShape<StructWith40RequiredMembers>]
-[GenerateShape<StructWith40RequiredMembersAndDefaultCtor>]
-[GenerateShape<RecordWithNullableDefaultEnum>]
-[GenerateShape<BindingModel>]
-[GenerateShape<List<BindingModel>>]
-[GenerateShape<GenericRecord<BindingModel>>]
-[GenerateShape<Dictionary<string, BindingModel>>]
-[GenerateShape<PersonClass>]
-[GenerateShape<PersonStruct>]
 [GenerateShape<PersonStruct?>]
-[GenerateShape<PersonAbstractClass>]
-[GenerateShape<IPersonInterface>]
-[GenerateShape<PersonRecord>]
-[GenerateShape<PersonRecordStruct>]
 [GenerateShape<PersonRecordStruct?>]
-[GenerateShape<CollectionWithBuilderAttribute>]
 [GenerateShape<GenericCollectionWithBuilderAttribute<int>>]
-[GenerateShape<CollectionWithEnumerableCtor>]
-[GenerateShape<DictionaryWithEnumerableCtor>]
-[GenerateShape<CollectionWithSpanCtor>]
-[GenerateShape<DictionaryWithSpanCtor>]
 [GenerateShape<ReadOnlyCollection<int>>]
 [GenerateShape<Collection<int>>]
 [GenerateShape<ReadOnlyCollection<int>>]
@@ -1680,16 +1628,6 @@ public class ClassWithNullableProperty<T>
 [GenerateShape<ObservableCollection<int>>]
 [GenerateShape<MyKeyedCollection<int>>]
 [GenerateShape<MyKeyedCollection<string>>]
-[GenerateShape<ClassWithInternalMembers>]
-[GenerateShape<ClassWithPropertyAnnotations>]
-[GenerateShape<ClassWithConstructorAndAnnotations>]
-[GenerateShape<DerivedClassWithPropertyShapeAnnotations>]
-[GenerateShape<Todos>]
-[GenerateShape<WeatherForecast>]
-[GenerateShape<WeatherForecastDTO>]
-[GenerateShape<DerivedClassWithShadowingMember>]
-[GenerateShape<ClassWithMultipleSelfReferences>]
-[GenerateShape<ClassWithNullableTypeParameters>]
 [GenerateShape<ClassWithNullableTypeParameters<int>>]
 [GenerateShape<ClassWithNullableTypeParameters<int?>>]
 [GenerateShape<ClassWithNullableTypeParameters<string>>]
