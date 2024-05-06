@@ -109,6 +109,31 @@ public static class TestTypes
         yield return Create(new Version("1.0.0.0"), p);
         yield return Create(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, p);
         
+        yield return Create((bool?)false, p, additionalValues: [null]);
+        yield return Create((Rune?)Rune.GetRuneAt("🤯", 0), p, additionalValues: [null]);
+        yield return Create((sbyte?)sbyte.MinValue, p, additionalValues: [null]);
+        yield return Create((short?)short.MinValue, p, additionalValues: [null]);
+        yield return Create((int?)int.MinValue, p, additionalValues: [null]);
+        yield return Create((long?)long.MinValue, p, additionalValues: [null]);
+        yield return Create((byte?)byte.MaxValue, p, additionalValues: [null]);
+        yield return Create((ushort?)ushort.MaxValue, p, additionalValues: [null]);
+        yield return Create((uint?)uint.MaxValue, p, additionalValues: [null]);
+        yield return Create((ulong?)ulong.MaxValue, p, additionalValues: [null]);
+        yield return Create((Int128?)Int128.MaxValue, p, additionalValues: [null]);
+        yield return Create((UInt128?)UInt128.MaxValue, p, additionalValues: [null]);
+        yield return Create((BigInteger?)BigInteger.Parse("-170141183460469231731687303715884105728"), p, additionalValues: [null]);
+        yield return Create((float?)3.14f, p, additionalValues: [null]);
+        yield return Create((double?)3.14d, p, additionalValues: [null]);
+        yield return Create((decimal?)3.14M, p, additionalValues: [null]);
+        yield return Create((Half?)3.14, p, additionalValues: [null]);
+        yield return Create((Guid?)Guid.Empty, p, additionalValues: [null]);
+        yield return Create((DateTime?)DateTime.MaxValue, p, additionalValues: [null]);
+        yield return Create((DateTimeOffset?)DateTimeOffset.MaxValue, p, additionalValues: [null]);
+        yield return Create((TimeSpan?)TimeSpan.MaxValue, p, additionalValues: [null]);
+        yield return Create((DateOnly?)DateOnly.MaxValue, p, additionalValues: [null]);
+        yield return Create((TimeOnly?)TimeOnly.MaxValue, p, additionalValues: [null]);
+        yield return Create((BindingFlags?)BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, p, additionalValues: [null]);
+        
         yield return Create<int[], SourceGenProvider>([1, 2, 3], p, additionalValues: [new int[0]]);
         yield return Create<int[][], SourceGenProvider>([[1, 0, 0], [0, 1, 0], [0, 0, 1]], p, additionalValues: [[new int[0]]]);
         yield return Create<byte[], SourceGenProvider>([1, 2, 3], p);
@@ -439,15 +464,30 @@ public static class TestTypes
 
         yield return Create(new DerivedClassWithShadowingMember { PropA = "propA", PropB = 2, FieldA = 1, FieldB = "fieldB" }, p);
         yield return Create(new ClassWithMultipleSelfReferences { First = new ClassWithMultipleSelfReferences() }, p);
+        yield return Create(new ClassWithNullableTypeParameters(), p);
+        yield return Create(new ClassWithNullableTypeParameters<int>(), p);
+        yield return Create(new ClassWithNullableTypeParameters<int?>(), p);
+        yield return Create(new ClassWithNullableTypeParameters<string>(), p);
+        yield return Create(new CollectionWithNullableElement<int>([(1, 1)]), p);
+        yield return Create(new CollectionWithNullableElement<int?>([(null, 1), (42, 1)]), p);
+        yield return Create(new CollectionWithNullableElement<string?>([(null, 1), ("str", 2)]), p);
+        yield return Create(new DictionaryWithNullableEntries<int>([new("key1", (1, 1))]), p);
+        yield return Create(new DictionaryWithNullableEntries<int?>([new("key1", (null, 1)), new("key2", (42, 1))]), p);
+        yield return Create(new DictionaryWithNullableEntries<string>([new("key1", (null, 1)), new("key2", ("str", 1))]), p);
+        yield return Create(new ClassWithNullableProperty<int>(), p);
+        yield return Create(new ClassWithNullableProperty<int?>(), p);
+        yield return Create(new ClassWithNullableProperty<string>(), p);
 
         yield return CreateSelfProvided(new PersonClass("John", 40));
         yield return CreateSelfProvided(new PersonStruct("John", 40));
+        yield return Create((PersonStruct?)new PersonStruct("John", 40), p, additionalValues: [null]);
         yield return CreateSelfProvided<IPersonInterface>(new IPersonInterface.Impl("John", 40));
         yield return CreateSelfProvided<PersonAbstractClass>(new PersonAbstractClass.Impl("John", 40));
         yield return CreateSelfProvided(new PersonRecord("John", 40));
         yield return CreateSelfProvided(new PersonRecordStruct("John", 40));
+        yield return Create((PersonRecordStruct?)new PersonRecordStruct("John", 40), p, additionalValues: [null]);
 
-        static TestCase<T, TProvider> Create<T, TProvider>(T value, TProvider provider, T?[]? additionalValues = null, bool isStack = false, bool doesNotRoundtrip = false, bool usesSpanCtor = false) 
+        static TestCase<T, TProvider> Create<T, TProvider>(T? value, TProvider provider, T?[]? additionalValues = null, bool isStack = false, bool doesNotRoundtrip = false, bool usesSpanCtor = false) 
             where TProvider : ITypeShapeProvider<T> 
             => new(value) { 
                 AdditionalValues = additionalValues ?? [], 
@@ -455,8 +495,10 @@ public static class TestTypes
                 DoesNotRoundtrip = doesNotRoundtrip, 
                 UsesSpanConstructor = usesSpanCtor };
 
-        static TestCase<T, T> CreateSelfProvided<T>(T value) where T : ITypeShapeProvider<T>
-            => new(value);
+        static TestCase<T, T> CreateSelfProvided<T>(T? value, T?[]? additionalValues = null) where T : ITypeShapeProvider<T>
+            => new(value) {
+                AdditionalValues = additionalValues ?? [],
+            };
     }
 }
 
@@ -1381,6 +1423,47 @@ public class ClassWithMultipleSelfReferences
     public ClassWithMultipleSelfReferences[] FirstArray { get; set; } = [];
 }
 
+public class ClassWithNullableTypeParameters
+{
+    public string?[] DataArray { get; set; } = [null, "str"];
+    public List<string?> DataList { get; set; } = [null, "str"];
+    public List<string?> InitOnlyDataList { get; init; } = [null, "str"];
+    public Dictionary<int, string?[]> DataDict { get; set; } = new() { [0] = [null, "str"] };
+}
+
+public class ClassWithNullableTypeParameters<T>
+{
+    public T?[] DataArray { get; set; } = [default];
+    public List<T?> DataList { get; set; } = [default];
+    public List<T?> InitOnlyDataList { get; init; } = [default];
+    public Dictionary<int, T?[]> DataDict { get; set; } = new() { [0] = [default] };
+}
+
+public class CollectionWithNullableElement<T>(IEnumerable<(T?, int)> values) : IEnumerable<(T?, int)>
+{
+    private readonly (T?, int)[] _values = values.ToArray();
+    public IEnumerator<(T?, int)> GetEnumerator() => ((IEnumerable<(T?, int)>)_values).GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => _values.GetEnumerator();
+}
+
+public class DictionaryWithNullableEntries<T>(IEnumerable<KeyValuePair<string, (T?, int)>> values) : IReadOnlyDictionary<string, (T?, int)>
+{
+    private readonly Dictionary<string, (T?, int)> _source = new(values);
+    public IEnumerator<KeyValuePair<string, (T?, int)>> GetEnumerator() => _source.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => _source.GetEnumerator();
+    public int Count => _source.Count;
+    public bool ContainsKey(string key) => _source.ContainsKey(key);
+    public bool TryGetValue(string key, out (T?, int) value) => _source.TryGetValue(key, out value);
+    public (T?, int) this[string key] => _source[key];
+    public IEnumerable<string> Keys => _source.Keys;
+    public IEnumerable<(T?, int)> Values => _source.Values;
+}
+
+public class ClassWithNullableProperty<T>
+{
+    public (int, T?)? Value { get; set; }
+}
+
 [GenerateShape<object>]
 [GenerateShape<bool>]
 [GenerateShape<string>]
@@ -1407,6 +1490,30 @@ public class ClassWithMultipleSelfReferences
 [GenerateShape<TimeOnly>]
 [GenerateShape<BigInteger>]
 [GenerateShape<BindingFlags>]
+[GenerateShape<bool?>]
+[GenerateShape<sbyte?>]
+[GenerateShape<short?>]
+[GenerateShape<int?>]
+[GenerateShape<long?>]
+[GenerateShape<byte?>]
+[GenerateShape<ushort?>]
+[GenerateShape<uint?>]
+[GenerateShape<ulong?>]
+[GenerateShape<float?>]
+[GenerateShape<double?>]
+[GenerateShape<decimal?>]
+[GenerateShape<Half?>]
+[GenerateShape<Int128?>]
+[GenerateShape<UInt128?>]
+[GenerateShape<Rune?>]
+[GenerateShape<Guid?>]
+[GenerateShape<DateTime?>]
+[GenerateShape<DateTimeOffset?>]
+[GenerateShape<TimeSpan?>]
+[GenerateShape<DateOnly?>]
+[GenerateShape<TimeOnly?>]
+[GenerateShape<BigInteger?>]
+[GenerateShape<BindingFlags?>]
 [GenerateShape<Uri>]
 [GenerateShape<Version>]
 [GenerateShape<byte[]>]
@@ -1554,10 +1661,12 @@ public class ClassWithMultipleSelfReferences
 [GenerateShape<Dictionary<string, BindingModel>>]
 [GenerateShape<PersonClass>]
 [GenerateShape<PersonStruct>]
+[GenerateShape<PersonStruct?>]
 [GenerateShape<PersonAbstractClass>]
 [GenerateShape<IPersonInterface>]
 [GenerateShape<PersonRecord>]
 [GenerateShape<PersonRecordStruct>]
+[GenerateShape<PersonRecordStruct?>]
 [GenerateShape<CollectionWithBuilderAttribute>]
 [GenerateShape<GenericCollectionWithBuilderAttribute<int>>]
 [GenerateShape<CollectionWithEnumerableCtor>]
@@ -1580,6 +1689,19 @@ public class ClassWithMultipleSelfReferences
 [GenerateShape<WeatherForecastDTO>]
 [GenerateShape<DerivedClassWithShadowingMember>]
 [GenerateShape<ClassWithMultipleSelfReferences>]
+[GenerateShape<ClassWithNullableTypeParameters>]
+[GenerateShape<ClassWithNullableTypeParameters<int>>]
+[GenerateShape<ClassWithNullableTypeParameters<int?>>]
+[GenerateShape<ClassWithNullableTypeParameters<string>>]
+[GenerateShape<CollectionWithNullableElement<int>>]
+[GenerateShape<CollectionWithNullableElement<int?>>]
+[GenerateShape<CollectionWithNullableElement<string>>]
+[GenerateShape<DictionaryWithNullableEntries<int>>]
+[GenerateShape<DictionaryWithNullableEntries<int?>>]
+[GenerateShape<DictionaryWithNullableEntries<string>>]
+[GenerateShape<ClassWithNullableProperty<int>>]
+[GenerateShape<ClassWithNullableProperty<int?>>]
+[GenerateShape<ClassWithNullableProperty<string>>]
 internal partial class SourceGenProvider;
 
 internal partial class Outer1

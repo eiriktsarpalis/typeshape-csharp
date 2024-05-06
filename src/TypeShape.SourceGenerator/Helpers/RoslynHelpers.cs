@@ -20,6 +20,12 @@ internal static partial class RoslynHelpers
             type = type.WithNullableAnnotation(NullableAnnotation.None);
         }
 
+        if (type is IArrayTypeSymbol arrayType)
+        {
+            ITypeSymbol elementType = compilation.EraseCompilerMetadata(arrayType.ElementType);
+            return compilation.CreateArrayTypeSymbol(elementType, arrayType.Rank);
+        }
+
         if (type is INamedTypeSymbol namedType)
         {
             if (namedType.IsTupleType)
@@ -58,6 +64,34 @@ internal static partial class RoslynHelpers
         }
 
         return type;
+    }
+
+    public static bool ContainsNullabilityAnnotations(this ITypeSymbol type)
+    {
+        if (type.NullableAnnotation is NullableAnnotation.Annotated)
+        {
+            return true;
+        }
+
+        if (type is IArrayTypeSymbol arrayType)
+        {
+            return arrayType.ElementType.ContainsNullabilityAnnotations();
+        }
+        
+        if (type is INamedTypeSymbol namedType)
+        {
+            if (namedType.ContainingType?.ContainsNullabilityAnnotations() is true)
+            {
+                return true;
+            }
+
+            if (namedType.TypeArguments.Length > 0)
+            {
+                return namedType.TypeArguments.Any(t => t.ContainsNullabilityAnnotations());
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
