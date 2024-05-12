@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
 using TypeShape.Abstractions;
 
 namespace TypeShape.ReflectionProvider.MemberAccessors;
@@ -256,6 +257,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         else
         {
             Debug.Assert(typeof(TArgumentState).IsValueTupleType());
+            int arity = ((ITuple)default(TArgumentState)!).Length;
 
             Type? memberFlagType = GetMemberFlagType(ctorInfo, out int totalFlags);
             if (memberFlagType != typeof(BitArray) && ctorInfo.Parameters.All(p => !p.HasDefaultValue))
@@ -297,7 +299,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
             }
 
             // Emit the ValueTuple constructor opcodes
-            EmitTupleCtor(typeof(TArgumentState), ctorInfo.Parameters.Length);
+            EmitTupleCtor(typeof(TArgumentState), arity);
             void EmitTupleCtor(Type tupleType, int arity)
             {
                 if (arity > 7)

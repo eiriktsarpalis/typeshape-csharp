@@ -245,13 +245,6 @@ internal static class RoslynHelpers
             SymbolEqualityComparer.Default.Equals(type.ContainingAssembly, coreLibAssembly);
     }
 
-    public static bool IsAutoProperty(this ISymbol property)
-    {
-        return property.ContainingType.GetMembers()
-            .OfType<IFieldSymbol>()
-            .Any(field => SymbolEqualityComparer.Default.Equals(field.AssociatedSymbol, property));
-    }
-
     public static bool HasSetsRequiredMembersAttribute(this IMethodSymbol constructor)
     {
         return constructor.MethodKind is MethodKind.Constructor &&

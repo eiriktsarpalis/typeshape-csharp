@@ -12,6 +12,11 @@ namespace TypeShape.SourceGenerator;
 
 public sealed partial class Parser : TypeDataModelGenerator
 {
+    private static readonly IEqualityComparer<(ITypeSymbol Type, string Name)> s_ctorParamComparer =
+        CommonHelpers.CreateTupleComparer<ITypeSymbol, string>(
+            SymbolEqualityComparer.Default,
+            CommonHelpers.CamelCaseInvariantComparer.Instance);
+    
     private readonly TypeShapeKnownSymbols _knownSymbols;
 
     // We want to flatten System.Tuple types for consistency with
@@ -43,14 +48,42 @@ public sealed partial class Parser : TypeDataModelGenerator
     }
 
     // Resolve constructors with the [ConstructorShape] attribute.
-    protected override IEnumerable<IMethodSymbol> ResolveConstructors(ITypeSymbol type)
+    protected override IEnumerable<IMethodSymbol> ResolveConstructors(ITypeSymbol type, ImmutableArray<PropertyDataModel> properties)
     {
-        IEnumerable<IMethodSymbol> constructors = base.ResolveConstructors(type);
+        IMethodSymbol[] constructors = [..base.ResolveConstructors(type, properties)];
         bool hasConstructorShapeAttribute = constructors.Any(ctor => ctor.HasAttribute(_knownSymbols.ConstructorShapeAttribute));
+        
         // If there are no constructors with the attribute, we only want public constructors.
-        return hasConstructorShapeAttribute 
-            ? constructors.Where(ctor => ctor.HasAttribute(_knownSymbols.ConstructorShapeAttribute))
-            : constructors.Where(ctor => ctor.DeclaredAccessibility is Accessibility.Public);
+        constructors = hasConstructorShapeAttribute
+            ? [..constructors.Where(ctor => ctor.HasAttribute(_knownSymbols.ConstructorShapeAttribute))]
+            : [..constructors.Where(ctor => ctor.DeclaredAccessibility is Accessibility.Public)];
+
+        if (constructors.Length < 2)
+        {
+            return constructors;
+        }
+
+        if (hasConstructorShapeAttribute)
+        {
+            ReportDiagnostic(DuplicateConstructorShape, constructors[^1].Locations.FirstOrDefault(), type.ToDisplayString());
+        }
+
+        // In case of ambiguity, return the constructor that maximizes
+        // the number of parameters corresponding to read-only properties.
+        HashSet<(ITypeSymbol, string)> readOnlyProperties = new(
+            properties
+                .Where(p => p is { CanWrite: false, IsInitOnly: false })
+                .Select(p => (p.PropertyType, p.Name)), 
+            s_ctorParamComparer);
+            
+        return constructors
+            .OrderByDescending(ctor =>
+            {
+                int paramsMatchingReadOnlyMembers = ctor.Parameters.Count(p => readOnlyProperties.Contains((p.Type, p.Name)));
+                // In case of a tie, pick the ctor with the smallest arity.
+                return (paramsMatchingReadOnlyMembers, -ctor.Parameters.Length);
+            })
+            .Take(1);
     }
 
     private Parser(ISymbol generationScope, TypeShapeKnownSymbols knownSymbols, CancellationToken cancellationToken) 
@@ -242,7 +275,7 @@ public sealed partial class Parser : TypeDataModelGenerator
         return null;
     }
 
-    private readonly static TypeDeclarationModel s_globalImplicitProviderDeclaration = new()
+    private static readonly TypeDeclarationModel s_globalImplicitProviderDeclaration = new()
     {
         Id = new()
         {

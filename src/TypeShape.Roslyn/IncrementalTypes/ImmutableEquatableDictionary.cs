@@ -67,7 +67,7 @@ public sealed class ImmutableEquatableDictionary<TKey, TValue> :
         {
             int keyHash = entry.Key.GetHashCode();
             int valueHash = entry.Value?.GetHashCode() ?? 0;
-            hash ^= HashHelpers.Combine(keyHash, valueHash);
+            hash ^= CommonHelpers.CombineHashCodes(keyHash, valueHash);
         }
 
         return hash;

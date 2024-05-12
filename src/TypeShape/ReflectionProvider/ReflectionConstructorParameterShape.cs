@@ -62,13 +62,14 @@ internal interface IParameterShapeInfo
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
 internal sealed class MethodParameterShapeInfo : IParameterShapeInfo
 {
-    public MethodParameterShapeInfo(ParameterInfo parameterInfo, string? logicalName = null)
+    public MethodParameterShapeInfo(ParameterInfo parameterInfo, MemberInfo? matchingMember = null, string? logicalName = null)
     {
         string? name = logicalName ?? parameterInfo.Name;
         Debug.Assert(name != null);
         Name = name;
 
         ParameterInfo = parameterInfo;
+        MatchingMember = matchingMember;
         IsNonNullable = parameterInfo.IsNonNullableAnnotation();
 
         if (parameterInfo.TryGetDefaultValueNormalized(out object? defaultValue))
@@ -79,6 +80,7 @@ internal sealed class MethodParameterShapeInfo : IParameterShapeInfo
     }
 
     public ParameterInfo ParameterInfo { get; }
+    public MemberInfo? MatchingMember { get; }
 
     public Type Type => ParameterInfo.ParameterType;
     public string Name { get; }

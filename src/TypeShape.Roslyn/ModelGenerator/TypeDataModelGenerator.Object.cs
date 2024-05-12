@@ -26,7 +26,7 @@ public partial class TypeDataModelGenerator
     /// <summary>
     /// Resolves the constructor symbols that should be included for the given type.
     /// </summary>
-    protected virtual IEnumerable<IMethodSymbol> ResolveConstructors(ITypeSymbol type)
+    protected virtual IEnumerable<IMethodSymbol> ResolveConstructors(ITypeSymbol type, ImmutableArray<PropertyDataModel> properties)
     {
         IMethodSymbol[] foundConstructors = type.GetMembers()
             .OfType<IMethodSymbol>()
@@ -147,9 +147,9 @@ public partial class TypeDataModelGenerator
     private ImmutableArray<ConstructorDataModel> MapConstructors(INamedTypeSymbol type, ImmutableArray<PropertyDataModel> properties, ref TypeDataModelGenerationContext ctx)
     {
         List<ConstructorDataModel> results = [];
-        foreach (IMethodSymbol constructor in ResolveConstructors(type))
+        foreach (IMethodSymbol constructor in ResolveConstructors(type, properties))
         {
-            ConstructorDataModel? constructorModel = MapConstructor(type, constructor, properties, ref ctx);
+            ConstructorDataModel? constructorModel = MapConstructor(constructor, properties, ref ctx);
             if (constructorModel is not null)
             {
                 results.Add(constructorModel.Value);
@@ -159,7 +159,7 @@ public partial class TypeDataModelGenerator
         return results.ToImmutableArray();
     }
 
-    private ConstructorDataModel? MapConstructor(ITypeSymbol type, IMethodSymbol constructor, ImmutableArray<PropertyDataModel> properties, ref TypeDataModelGenerationContext ctx)
+    private ConstructorDataModel? MapConstructor(IMethodSymbol constructor, ImmutableArray<PropertyDataModel> properties, ref TypeDataModelGenerationContext ctx)
     {
         Debug.Assert(constructor.MethodKind is MethodKind.Constructor || constructor.IsStatic);
         Debug.Assert(IsAccessibleSymbol(constructor));
@@ -180,7 +180,6 @@ public partial class TypeDataModelGenerator
 
         ctx = scopedCtx; // Commit constructor parameter resolution to parent context
         bool setsRequiredMembers = constructor.HasSetsRequiredMembersAttribute();
-        Dictionary<string, IParameterSymbol>? parameterIndex = null;
         List<PropertyDataModel>? memberInitializers = null;
 
         foreach (PropertyDataModel property in properties)
@@ -197,9 +196,9 @@ public partial class TypeDataModelGenerator
                 continue;
             }
 
-            if (!property.IsRequired && property.PropertySymbol.IsAutoProperty() && MatchesConstructorParameter(property))
+            if (!property.IsRequired && MatchesConstructorParameter(property))
             {
-                // Deduplicate any auto properties whose signature matches a constructor parameter.
+                // Deduplicate any optional properties whose signature matches a constructor parameter.
                 continue;
             }
 
@@ -207,9 +206,16 @@ public partial class TypeDataModelGenerator
 
             bool MatchesConstructorParameter(PropertyDataModel settableProperty)
             {
-                parameterIndex ??= constructor.Parameters.ToDictionary(p => p.Name, p => p, StringComparer.Ordinal);
-                return parameterIndex.TryGetValue(settableProperty.Name, out IParameterSymbol? matchingParameter) &&
-                    SymbolEqualityComparer.Default.Equals(settableProperty.PropertyType, matchingParameter.Type);
+                foreach (IParameterSymbol p in constructor.Parameters)
+                {
+                    if (SymbolEqualityComparer.Default.Equals(p.Type, settableProperty.PropertyType) &&
+                        CommonHelpers.CamelCaseInvariantComparer.Instance.Equals(p.Name, settableProperty.Name))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
             }
         }
 

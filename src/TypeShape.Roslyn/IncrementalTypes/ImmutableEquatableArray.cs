@@ -37,7 +37,7 @@ public sealed class ImmutableEquatableArray<T> :
         int hash = 0;
         foreach (T value in _values)
         {
-            hash = HashHelpers.Combine(hash, value is null ? 0 : value.GetHashCode());
+            hash = CommonHelpers.CombineHashCodes(hash, value is null ? 0 : value.GetHashCode());
         }
 
         return hash;

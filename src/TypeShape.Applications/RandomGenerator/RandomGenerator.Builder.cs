@@ -35,11 +35,8 @@ public partial class RandomGenerator
             {
                 return CreateObjectGenerator();
             }
-
-            // Prefer the default constructor, if available.
-            IConstructorShape? constructor = type.GetConstructors()
-                .MinBy(ctor => ctor.ParameterCount);
-
+            
+            IConstructorShape? constructor = type.GetConstructor();
             return constructor is null
                 ? throw new NotSupportedException($"Type '{typeof(T)}' does not support random generation.")
                 : constructor.Accept(this);

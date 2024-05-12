@@ -293,9 +293,9 @@ struct MyPoco
 While property setters should suffice when mutating existing objects, constructing a new instance from scratch is somewhat more complicated, particularly for types that only expose parameterized constructors or are immutable. TypeShape models constructors using the `IConstructorShape` abstraction which can be obtained as follows:
 
 ```C#
-public partial interface ITypeShape<T>
+public partial interface IObjectTypeShape<T>
 {
-    IEnumerable<IConstructorShape> GetConstructors();
+    IConstructorShape? GetConstructor();
 }
 
 public partial interface IConstructorShape<TDeclaringType, TArgumentState> : IConstructorShape
@@ -353,8 +353,7 @@ class EmptyConstructorVisitor : TypeShapeVisitor
 
     public override object? VisitObject<T>(ITypeShape<T> objectShape, object? _)
     {
-        // Pick the ctor with the smallest arity
-        IConstructorShape? ctor = objectShape.GetConstructors().MinBy(ctor => ctor.ParameterCount);
+        IConstructorShape? ctor = objectShape.GetConstructor();
         return ctor is null
             ? new Func<T>(() => default) // Just return the default if no ctor is found
             : ctor.Accept(this);

@@ -25,12 +25,8 @@ public static partial class CborSerializer
                 .GetProperties()
                 .Select(prop => (CborPropertyConverter<T>)prop.Accept(this)!)
                 .ToArray();
-
-            // Prefer the default constructor if available.
-            IConstructorShape? ctor = objectShape
-                .GetConstructors()
-                .MinBy(ctor => ctor.ParameterCount);
-
+            
+            IConstructorShape? ctor = objectShape.GetConstructor();
             return ctor != null
                 ? (CborObjectConverter<T>)ctor.Accept(this, state: properties)!
                 : new CborObjectConverter<T>(properties);

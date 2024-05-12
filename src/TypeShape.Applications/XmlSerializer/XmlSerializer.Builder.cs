@@ -26,9 +26,7 @@ public static partial class XmlSerializer
                 .ToArray();
 
             // Prefer the default constructor if available.
-            IConstructorShape? ctor = type.GetConstructors()
-                .MinBy(ctor => ctor.ParameterCount);
-
+            IConstructorShape? ctor = type.GetConstructor();
             return ctor != null
                 ? (XmlObjectConverter<T>)ctor.Accept(this, state: properties)!
                 : new XmlObjectConverter<T>(properties);

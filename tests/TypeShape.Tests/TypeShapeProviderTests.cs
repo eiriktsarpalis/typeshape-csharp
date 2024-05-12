@@ -124,17 +124,18 @@ public abstract class TypeShapeProviderTests(IProviderUnderTest providerUnderTes
         {
             return;
         }
-
-        int ctorCount = 0;
+        
         var visitor = new ConstructorTestVisitor();
-        foreach (IConstructorShape ctor in objectShape.GetConstructors())
+        if (objectShape.GetConstructor() is IConstructorShape ctor)
         {
+            Assert.True(objectShape.HasConstructor);
             Assert.Equal(typeof(T), ctor.DeclaringType.Type);
             ctor.Accept(visitor, typeof(T));
-            ctorCount++;
         }
-
-        Assert.Equal(ctorCount > 0, objectShape.HasConstructors);
+        else
+        {
+            Assert.False(objectShape.HasConstructor);
+        }
     }
 
     private sealed class ConstructorTestVisitor : TypeShapeVisitor
@@ -488,15 +489,9 @@ public abstract class TypeShapeProviderTests(IProviderUnderTest providerUnderTes
             }
         }
 
-        foreach (IConstructorShape constructor in objectShape.GetConstructors())
+        if (objectShape.GetConstructor() is { AttributeProvider: not null } constructor)
         {
-            ICustomAttributeProvider? attributeProvider = constructor.AttributeProvider;
-            if (attributeProvider is null)
-            {
-                continue;
-            }
-
-            MethodBase ctorInfo = Assert.IsAssignableFrom<MethodBase>(attributeProvider);
+            MethodBase ctorInfo = Assert.IsAssignableFrom<MethodBase>(constructor.AttributeProvider);
             Assert.True(ctorInfo is MethodInfo { IsStatic: true } or ConstructorInfo);
             Assert.True(typeof(T).IsAssignableFrom(ctorInfo is MethodInfo m ? m.ReturnType : ctorInfo.DeclaringType));
             ParameterInfo[] parameters = ctorInfo.GetParameters();
@@ -597,15 +592,9 @@ public abstract class TypeShapeProviderTests(IProviderUnderTest providerUnderTes
             Assert.Equal(property.HasSetter && isSetterNonNullable, property.IsSetterNonNullable);
         }
 
-        foreach (IConstructorShape constructor in objectShape.GetConstructors())
+        if (objectShape.GetConstructor() is { AttributeProvider: not null } constructor)
         {
-            ICustomAttributeProvider? attributeProvider = constructor.AttributeProvider;
-            if (attributeProvider is null)
-            {
-                continue;
-            }
-
-            MethodBase ctorInfo = Assert.IsAssignableFrom<MethodBase>(attributeProvider);
+            MethodBase ctorInfo = Assert.IsAssignableFrom<MethodBase>(constructor.AttributeProvider);
             ParameterInfo[] parameters = ctorInfo.GetParameters();
             Assert.True(parameters.Length <= constructor.ParameterCount);
 

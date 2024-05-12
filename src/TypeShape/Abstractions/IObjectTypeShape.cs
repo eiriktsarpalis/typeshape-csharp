@@ -21,9 +21,9 @@ public interface IObjectTypeShape : ITypeShape
     bool HasProperties { get; }
 
     /// <summary>
-    /// Determines whether the current type defines any constructor shapes.
+    /// Determines whether the current type includes a constructor shape.
     /// </summary>
-    bool HasConstructors { get; }
+    bool HasConstructor { get; }
 
     /// <summary>
     /// Gets all available property/field shapes for the given type.
@@ -32,10 +32,10 @@ public interface IObjectTypeShape : ITypeShape
     IEnumerable<IPropertyShape> GetProperties();
 
     /// <summary>
-    /// Gets all available constructor shapes for the given type.
+    /// Gets the constructor shape for the given type, if available.
     /// </summary>
-    /// <returns>An enumeration of all available constructor shapes.</returns>
-    IEnumerable<IConstructorShape> GetConstructors();
+    /// <returns>A <see cref="IConstructorShape"/> representation of the constructor.</returns>
+    IConstructorShape? GetConstructor();
 
     /// <inheritdoc/>
     TypeShapeKind ITypeShape.Kind => TypeShapeKind.Object;

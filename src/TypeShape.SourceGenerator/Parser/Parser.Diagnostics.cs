@@ -43,4 +43,12 @@ public sealed partial class Parser
         category: "TypeShape.SourceGenerator",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
+
+    private static DiagnosticDescriptor DuplicateConstructorShape { get; } = new DiagnosticDescriptor(
+        id: "TS0006",
+        title: "Duplicate ConstructorShapeAttribute annotation.",
+        messageFormat: "The type '{0}' contains multiple constructors with a ConstructorShapeAttribute.",
+        category: "TypeShape.SourceGenerator",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
 }

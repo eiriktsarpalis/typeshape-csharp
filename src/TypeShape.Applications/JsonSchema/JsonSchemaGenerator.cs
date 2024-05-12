@@ -109,9 +109,7 @@ public static class JsonSchemaGenerator
 
                     if (objectShape.HasProperties)
                     {
-                        IConstructorShape? ctor = objectShape.GetConstructors()
-                            .MinBy(c => c.ParameterCount);
-
+                        IConstructorShape? ctor = objectShape.GetConstructor();
                         Dictionary<string, IConstructorParameterShape>? ctorParams = ctor?.GetParameters()
                             .Where(p => p.Kind is ConstructorParameterKind.ConstructorParameter || p.IsRequired)
                             .ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);

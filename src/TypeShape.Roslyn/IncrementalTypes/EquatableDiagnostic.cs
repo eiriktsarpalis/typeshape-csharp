@@ -32,10 +32,10 @@ public readonly struct EquatableDiagnostic(
         int hashCode = Descriptor.GetHashCode();
         foreach (object? messageArg in MessageArgs)
         {
-            hashCode = HashHelpers.Combine(hashCode, messageArg?.GetHashCode() ?? 0);
+            hashCode = CommonHelpers.CombineHashCodes(hashCode, messageArg?.GetHashCode() ?? 0);
         }
 
-        hashCode = HashHelpers.Combine(hashCode, Location?.GetHashCode() ?? 0);
+        hashCode = CommonHelpers.CombineHashCodes(hashCode, Location?.GetHashCode() ?? 0);
         return hashCode;
     }
 

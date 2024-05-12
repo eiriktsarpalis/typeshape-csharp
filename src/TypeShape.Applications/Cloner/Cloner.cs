@@ -41,14 +41,12 @@ public static class Cloner
                 return CreatePolymorphicCloner(typeShape.Provider);
             }
             
-            if (!typeShape.HasProperties && !typeShape.HasConstructors)
+            if (!typeShape.HasProperties && !typeShape.HasConstructor)
             {
                 return new Func<T?, T?>(t => t);
             }
-            
-            IConstructorShape? ctor = typeShape.GetConstructors()
-                .MinBy(ctor => ctor.ParameterCount);
 
+            IConstructorShape? ctor = typeShape.GetConstructor();
             return ctor != null ? ctor.Accept(this) : throw TypeNotCloneable<T>();
         }
         

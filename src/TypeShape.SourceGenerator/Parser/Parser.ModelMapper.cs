@@ -104,9 +104,9 @@ public sealed partial class Parser
             ObjectDataModel objectModel => new ObjectShapeModel
             {
                 Type = typeId,
-                Constructors = objectModel.Constructors
+                Constructor = objectModel.Constructors
                     .Select(c => MapConstructor(objectModel, typeId, c))
-                    .ToImmutableEquatableArray(),
+                    .FirstOrDefault(),
 
                 Properties = objectModel.Properties
                     .Select(p => MapProperty(model.Type, typeId, p))
@@ -122,9 +122,7 @@ public sealed partial class Parser
             TupleDataModel tupleModel => new ObjectShapeModel
             {
                 Type = typeId,
-                Constructors = MapTupleConstructors(typeId, tupleModel)
-                    .ToImmutableEquatableArray(),
-
+                Constructor = MapTupleConstructor(typeId, tupleModel),
                 Properties = tupleModel.Elements
                     .Select((e, i) => MapProperty(model.Type, typeId, e, tupleElementIndex: i, isClassTupleType: !tupleModel.IsValueTuple))
                     .ToImmutableEquatableArray(),
@@ -138,7 +136,7 @@ public sealed partial class Parser
             _ => new ObjectShapeModel
             { 
                 Type = typeId,
-                Constructors = [],
+                Constructor = null,
                 Properties = [],
                 IsValueTupleType = false,
                 IsTupleType = false,
@@ -271,19 +269,14 @@ public sealed partial class Parser
             foreach (PropertyDataModel property in objectModel.Properties)
             {
                 if (SymbolEqualityComparer.Default.Equals(property.PropertyType, parameter.Parameter.Type) &&
-                    IsMatchingPropertyName(parameter.Parameter.Name, property.Name) &&
+                    // Match property names to parameters up to Pascal/camel case conversion.
+                    CommonHelpers.CamelCaseInvariantComparer.Instance.Equals(parameter.Parameter.Name, property.Name) &&
                     property.PropertySymbol.GetAttribute(_knownSymbols.PropertyShapeAttribute) is AttributeData attributeData &&
                     attributeData.TryGetNamedArgument("Name", out string? result) && result != null)
                 {
                     // We have a matching property with a name override, use it in the parameter as well.
                     name = result;
                 }
-
-                // Match property names to parameters up to Pascal/camel case conversion.
-                static bool IsMatchingPropertyName(string parameterName, string propertyName) =>
-                    parameterName.Length == propertyName.Length &&
-                    char.ToLowerInvariant(parameterName[0]) == char.ToLowerInvariant(propertyName[0]) &&
-                    parameterName.AsSpan(start: 1).SequenceEqual(propertyName.AsSpan(start: 1));
             }
         }
 
@@ -305,12 +298,12 @@ public sealed partial class Parser
         };
     }
 
-    private static IEnumerable<ConstructorShapeModel> MapTupleConstructors(TypeId typeId, TupleDataModel tupleModel)
+    private static ConstructorShapeModel MapTupleConstructor(TypeId typeId, TupleDataModel tupleModel)
     {
         if (tupleModel.IsValueTuple)
         {
             // Return the default constructor for value tuples
-            yield return new ConstructorShapeModel
+            return new ConstructorShapeModel
             {
                 DeclaringType = typeId,
                 Parameters = [],
@@ -321,17 +314,20 @@ public sealed partial class Parser
                 IsPublic = true,
             };
         }
-
-        yield return new ConstructorShapeModel
+        else
         {
-            DeclaringType = typeId,
-            Parameters = tupleModel.Elements.Select((p, i) => MapTupleConstructorParameter(typeId, p, i)).ToImmutableEquatableArray(),
-            RequiredOrInitMembers = [],
-            OptionalMembers = [],
-            OptionalMemberFlagsType = OptionalMemberFlagsType.None,
-            StaticFactoryName = null,
-            IsPublic = true,
-        };
+            // Return the parameterized constructor for object tuples
+            return new ConstructorShapeModel
+            {
+                DeclaringType = typeId,
+                Parameters = tupleModel.Elements.Select((p, i) => MapTupleConstructorParameter(typeId, p, i)).ToImmutableEquatableArray(),
+                RequiredOrInitMembers = [],
+                OptionalMembers = [],
+                OptionalMemberFlagsType = OptionalMemberFlagsType.None,
+                StaticFactoryName = null,
+                IsPublic = true,
+            };   
+        }
 
         static ConstructorParameterShapeModel MapTupleConstructorParameter(TypeId typeId, PropertyDataModel tupleElement, int position)
         {

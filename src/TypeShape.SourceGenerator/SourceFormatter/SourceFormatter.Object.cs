@@ -8,7 +8,7 @@ internal static partial class SourceFormatter
     private static void FormatObjectTypeShapeFactory(SourceWriter writer, string methodName, ObjectShapeModel objectShapeModel)
     {
         string? propertiesFactoryMethodName = objectShapeModel.Properties.Length > 0 ? $"CreateProperties_{objectShapeModel.Type.GeneratedPropertyName}" : null;
-        string? constructorFactoryMethodName = objectShapeModel.Constructors.Length > 0 ? $"CreateConstructors_{objectShapeModel.Type.GeneratedPropertyName}" : null;
+        string? constructorFactoryMethodName = objectShapeModel.Constructor != null ? $"CreateConstructor_{objectShapeModel.Type.GeneratedPropertyName}" : null;
 
         writer.WriteLine($$"""
             private ITypeShape<{{objectShapeModel.Type.FullyQualifiedName}}> {{methodName}}()
@@ -19,7 +19,7 @@ internal static partial class SourceFormatter
                     IsRecordType = {{FormatBool(objectShapeModel.IsRecordType)}},
                     IsTupleType = {{FormatBool(objectShapeModel.IsTupleType)}},
                     CreatePropertiesFunc = {{FormatNull(propertiesFactoryMethodName)}},
-                    CreateConstructorsFunc = {{FormatNull(constructorFactoryMethodName)}},
+                    CreateConstructorFunc = {{FormatNull(constructorFactoryMethodName)}},
                 };
             }
             """, trimNullAssignmentLines: true);
@@ -33,7 +33,7 @@ internal static partial class SourceFormatter
         if (constructorFactoryMethodName != null)
         {
             writer.WriteLine();
-            FormatConstructorFactory(writer, constructorFactoryMethodName, objectShapeModel);
+            FormatConstructorFactory(writer, constructorFactoryMethodName, objectShapeModel, objectShapeModel.Constructor!);
         }
     }
 }

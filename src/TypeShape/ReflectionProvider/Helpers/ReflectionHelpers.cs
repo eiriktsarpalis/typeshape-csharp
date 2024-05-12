@@ -225,12 +225,6 @@ internal static class ReflectionHelpers
         }
     }
 
-    public static bool IsCompilerGenerated(this MemberInfo memberInfo)
-        => memberInfo.CustomAttributes.Any(static attr => attr.AttributeType.FullName == "System.Runtime.CompilerServices.CompilerGeneratedAttribute");
-
-    public static bool IsAutoPropertyWithSetter(this MemberInfo memberInfo)
-        => memberInfo is PropertyInfo { SetMethod: { } setter } && setter.IsCompilerGenerated();
-
     public static bool TryGetCollectionBuilderAttribute(this Type type, Type elementType, [NotNullWhen(true)] out MethodInfo? builderMethod)
     {
         builderMethod = null;

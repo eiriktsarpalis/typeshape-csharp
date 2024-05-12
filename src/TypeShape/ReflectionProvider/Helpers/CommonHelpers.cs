@@ -96,4 +96,81 @@ internal static class CommonHelpers
         Debug.Assert(idx == 0, "should have populated the entire sortedNodes array.");
         return sortedNodes;
     }
+
+    public static int CombineHashCodes(int h1, int h2)
+    {
+        // RyuJIT optimizes this to use the ROL instruction
+        // Related GitHub pull request: https://github.com/dotnet/coreclr/pull/1830
+        uint rol5 = ((uint)h1 << 5) | ((uint)h1 >> 27);
+        return ((int)rol5 + h1) ^ h2;
+    }
+
+    /// <summary>
+    /// A string comparer that equates "SomeIdentifier" with "someIdentifier"
+    /// </summary>
+    public sealed class CamelCaseInvariantComparer : EqualityComparer<string>
+    {
+        public static CamelCaseInvariantComparer Instance { get; } = new();
+
+        public override bool Equals(string? left, string? right)
+        {
+            if (left is null || right is null)
+            {
+                return left == right;
+            }
+
+            if (left.Length != right.Length)
+            {
+                return false;
+            }
+
+            if (left.Length == 0)
+            {
+                return true;
+            }
+
+            // NB this ignores surrogate pairs that are letters
+            return char.ToLowerInvariant(left[0]) == char.ToLowerInvariant(right[0]) &&
+                   left.AsSpan(start: 1).SequenceEqual(right.AsSpan(start: 1));
+        }
+
+        public override int GetHashCode(string text)
+        {
+            return text is [] ? 0 :
+                CombineHashCodes(
+                    char.ToLowerInvariant(text[0]).GetHashCode(),
+                    GetOrdinalHashCode(text.AsSpan(start: 1)));
+
+            static int GetOrdinalHashCode(ReadOnlySpan<char> span)
+            {
+#if NETCOREAPP
+                return string.GetHashCode(span, StringComparison.Ordinal);
+#else
+                const int prime = 31;
+                int hash = 17;
+
+                for (int i = 0; i < span.Length; i++)
+                {
+                    hash = unchecked((hash * prime) + span[i]);
+                }
+
+                return hash;
+#endif
+            }
+        }
+    }
+
+    public static EqualityComparer<(T1, T2)> CreateTupleComparer<T1, T2>(IEqualityComparer<T1> left, IEqualityComparer<T2> right)
+        => new TupleComparer<T1, T2>(left, right);
+
+    private sealed class TupleComparer<T1, T2>(IEqualityComparer<T1> left, IEqualityComparer<T2> right) : EqualityComparer<(T1, T2)>
+    {
+        public override bool Equals((T1, T2) x, (T1, T2) y)
+            => left.Equals(x.Item1, y.Item1) && right.Equals(y.Item2, y.Item2);
+
+        public override int GetHashCode((T1, T2) obj)
+            => CombineHashCodes(
+                obj.Item1 is { } item1 ? left.GetHashCode(item1) : 0,
+                obj.Item2 is { } item2 ? right.GetHashCode(item2) : 0);
+    }
 }

@@ -9,6 +9,11 @@ namespace TypeShape.ReflectionProvider;
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
 internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider provider) : IObjectTypeShape<T>
 {
+    private static readonly EqualityComparer<(Type Type, string Name)> s_ctorParameterEqualityComparer =
+        CommonHelpers.CreateTupleComparer(
+            EqualityComparer<Type>.Default,
+            CommonHelpers.CamelCaseInvariantComparer.Instance);
+
     ITypeShapeProvider ITypeShape.Provider => provider;
 
     public TypeShapeKind Kind => TypeShapeKind.Object;
@@ -23,30 +28,27 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
     private bool? _isSimpleType;
 
     public bool HasProperties => !IsSimpleType && GetMembers().Any();
-    public bool HasConstructors => !IsSimpleType && GetConstructors().Any();
+    public bool HasConstructor => GetConstructor() is not null;
 
-    public IEnumerable<IConstructorShape> GetConstructors()
+    public IConstructorShape? GetConstructor()
     {
         if (typeof(T).IsAbstract || IsSimpleType)
         {
-            yield break;
+            return null;
         }
 
         if (IsTupleType)
         {
-            if (typeof(T) != typeof(ValueTuple))
-            {
-                IConstructorShapeInfo ctorInfo = ReflectionTypeShapeProvider.CreateTupleConstructorShapeInfo(typeof(T));
-                yield return provider.CreateConstructor(ctorInfo);
-            }
-
             if (typeof(T).IsValueType)
             {
                 IConstructorShapeInfo ctorInfo = CreateDefaultConstructor(memberInitializers: null);
-                yield return provider.CreateConstructor(ctorInfo);
+                return provider.CreateConstructor(ctorInfo);
             }
-
-            yield break;
+            else
+            {
+                IConstructorShapeInfo ctorInfo = ReflectionTypeShapeProvider.CreateTupleConstructorShapeInfo(typeof(T));
+                return provider.CreateConstructor(ctorInfo);
+            }
         }
 
         var allMembers = GetMembers().ToArray();
@@ -56,124 +58,139 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
             .OrderByDescending(m => m.IsRequired || m.IsInitOnly) // Shift required or init members first
             .ToArray();
 
-        ConstructorInfo[] constructors = typeof(T).GetConstructors(AllInstanceMembers);
-        bool hasConstructorShapeAttribute = constructors.Any(ctor => ctor.GetCustomAttribute<ConstructorShapeAttribute>() != null);
-        bool isConstructorFound = false;
-
-        foreach (ConstructorInfo constructorInfo in constructors)
+        (ConstructorInfo Ctor, ParameterInfo[] Parameters)[] ctorCandidates = [..GetCandidateConstructors()];
+        if (ctorCandidates.Length == 0)
         {
-            if (hasConstructorShapeAttribute)
+            if (typeof(T).IsValueType)
             {
-                // For types that contain the [ConstructorShape] attribute, only consider constructors with the attribute.
-                if (constructorInfo.GetCustomAttribute<ConstructorShapeAttribute>() is null)
-                {
-                    continue;
-                }
-            }
-            else
-            {
-                // For types that don't contain the [ConstructorShape] attribute, only consider public constructors.
-                if (!constructorInfo.IsPublic)
-                {
-                    continue;
-                }
+                // If no explicit ctor has been defined, use the implicit default constructor for structs.
+                // Do not include member initializers if no required or init-only members are present.
+                bool hasRequiredOrInitOnlyMembers = settableMembers.Any(m => m.IsRequired || m.IsInitOnly);
+                MethodConstructorShapeInfo defaultCtorInfo = CreateDefaultConstructor(hasRequiredOrInitOnlyMembers ? settableMembers : []);
+                return provider.CreateConstructor(defaultCtorInfo);
             }
 
-            ParameterInfo[] parameters = constructorInfo.GetParameters();
-            if (parameters.Any(param => !param.ParameterType.CanBeGenericArgument()))
+            return null;
+        }
+
+        ConstructorInfo? constructorInfo;
+        ParameterInfo[] parameters;
+
+        if (ctorCandidates.Length == 1)
+        {
+            (constructorInfo, parameters) = ctorCandidates[0];
+        }
+        else
+        {
+            // In case of ambiguity, pick the constructor that maximizes
+            // the number of parameters matching read-only members.
+
+            HashSet<(Type, string)> readonlyMembers = allMembers
+                .Where(m => m.MemberInfo is PropertyInfo { CanWrite: false } or FieldInfo { IsInitOnly: true })
+                .Select(m => (m.MemberInfo.GetMemberType(), m.MemberInfo.Name))
+                .ToHashSet(s_ctorParameterEqualityComparer);
+
+            (constructorInfo, parameters) = ctorCandidates
+                .MaxBy(ctor =>
+                {
+                    int paramsMatchingReadOnlyMembers = ctor.Parameters.Count(p => readonlyMembers.Contains((p.ParameterType, p.Name!)));
+
+                    // In the event of a tie, favor the ctor with the smallest arity.
+                    return (paramsMatchingReadOnlyMembers, -ctor.Parameters.Length);
+                });
+        }
+
+        var parameterShapeInfos = parameters.Select(parameter =>
+        {
+            var matchingMember = allMembers.FirstOrDefault(member =>
+                member.MemberInfo.GetMemberType() == parameter.ParameterType &&
+                CommonHelpers.CamelCaseInvariantComparer.Instance.Equals(parameter.Name, member.MemberInfo.Name));
+
+            ParameterShapeAttribute? parameterAttr = parameter.GetCustomAttribute<ParameterShapeAttribute>();
+            string? logicalName = parameterAttr?.Name;
+            if (logicalName is null)
             {
-                // Skip constructors with unsupported parameter types
+                if (string.IsNullOrEmpty(parameter.Name))
+                {
+                    throw new NotSupportedException($"The constructor for type '{parameter.Member.DeclaringType}' has had its parameter names trimmed.");
+                }
+
+                // If no custom name is specified, attempt to use the custom name from a matching property.
+                logicalName = matchingMember.LogicalName;
+            }
+
+            return new MethodParameterShapeInfo(parameter, matchingMember.MemberInfo, logicalName);
+        }).ToArray();
+
+        bool setsRequiredMembers = constructorInfo.SetsRequiredMembers();
+        bool isDefaultCtorWithoutRequiredOrInitMembers =
+            parameters.Length == 0 && !settableMembers.Any(m => (m.IsRequired && !setsRequiredMembers) || m.IsInitOnly);
+
+        // Do not include member initializers in default constructors that don't have required members or init-only properties.
+        var settableMembersToInclude = isDefaultCtorWithoutRequiredOrInitMembers ? [] : settableMembers;
+
+        List<MemberInitializerShapeInfo>? memberInitializers = null;
+        foreach (MemberInitializerShapeInfo memberInitializer in settableMembersToInclude)
+        {
+            if (setsRequiredMembers && memberInitializer.IsRequired)
+            {
+                // Skip required members if set by the constructor.
                 continue;
             }
 
-            if (IsRecordType && parameters is [ParameterInfo singleParam] &&
-                singleParam.ParameterType == typeof(T))
+            if (!memberInitializer.IsRequired && parameterShapeInfos.Any(p => p.MatchingMember == memberInitializer.MemberInfo))
             {
-                // Skip the copy constructor in record types
+                // Deduplicate any auto-properties whose signature matches a constructor parameter.
                 continue;
             }
 
-            var parameterShapeInfos = parameters.Select(parameter =>
-            {
-                ParameterShapeAttribute? parameterAttr = parameter.GetCustomAttribute<ParameterShapeAttribute>();
-                string? logicalName = parameterAttr?.Name;
-                if (logicalName is null)
-                {
-                    if (string.IsNullOrEmpty(parameter.Name))
-                    {
-                        throw new NotSupportedException($"The constructor for type '{parameter.Member.DeclaringType}' has had its parameter names trimmed.");
-                    }
-
-                    // If no custom name is specified, attempt to use the custom name from a matching property.
-                    logicalName =
-                        allMembers.FirstOrDefault(member =>
-                            member.LogicalName != null &&
-                            member.MemberInfo.GetMemberType() == parameter.ParameterType &&
-                            ParameterNameMatchesPropertyName(parameter.Name, member.MemberInfo.Name))
-                        .LogicalName;
-
-                    // Match parameter to property names up to camelCase/PascalCase conversion
-                    static bool ParameterNameMatchesPropertyName(string parameterName, string propertyName) =>
-                        parameterName.Length == propertyName.Length &&
-                        char.ToLowerInvariant(parameterName[0]) == char.ToLowerInvariant(propertyName[0]) &&
-                        parameterName.AsSpan(start: 1).Equals(propertyName.AsSpan(start: 1), StringComparison.Ordinal);
-                }
-
-                return new MethodParameterShapeInfo(parameter, logicalName);
-            }).ToArray();
-
-            bool setsRequiredMembers = constructorInfo.SetsRequiredMembers();
-            bool isDefaultCtorWithoutRequiredOrInitMembers =
-                parameters.Length == 0 && !settableMembers.Any(m => (m.IsRequired && !setsRequiredMembers) || m.IsInitOnly);
-
-            // Do not include member initializers in default constructors that don't have required members or init-only properties.
-            var settableMembersToInclude = isDefaultCtorWithoutRequiredOrInitMembers ? [] : settableMembers;
-
-            var memberInitializers = new List<MemberInitializerShapeInfo>();
-            Dictionary<string, Type>? parameterIndex = null;
-
-            foreach (MemberInitializerShapeInfo memberInitializer in settableMembersToInclude)
-            {
-                if (setsRequiredMembers && memberInitializer.IsRequired)
-                {
-                    // Skip required members if set by the constructor.
-                    continue;
-                }
-
-                if (!memberInitializer.IsRequired && memberInitializer.MemberInfo.IsAutoPropertyWithSetter() &&
-                    MatchesConstructorParameter(memberInitializer))
-                {
-                    // Deduplicate any auto-properties whose signature matches a constructor parameter.
-                    continue;
-                }
-
-                memberInitializers.Add(memberInitializer);
-
-                bool MatchesConstructorParameter(MemberInitializerShapeInfo memberInitializer)
-                {
-                    parameterIndex ??= parameterShapeInfos.ToDictionary(p => p.Name, p => p.ParameterInfo.ParameterType, StringComparer.Ordinal);
-                    return parameterIndex.TryGetValue(memberInitializer.Name, out Type? matchingParameterType) &&
-                        matchingParameterType == memberInitializer.Type;
-                }
-            }
-
-            var ctorShapeInfo = new MethodConstructorShapeInfo(typeof(T), constructorInfo, parameterShapeInfos, memberInitializers.ToArray());
-            yield return provider.CreateConstructor(ctorShapeInfo);
-            isConstructorFound = true;
+            (memberInitializers ??= []).Add(memberInitializer);
         }
 
-        if (typeof(T).IsValueType && !isConstructorFound)
-        {
-            // Only emit a default constructor for value types if no explicitly declared constructors were found.
-            bool hasRequiredOrInitOnlyMembers = settableMembers.Any(m => m.IsRequired || m.IsInitOnly);
-
-            // Do not include member initializers if no required or init-only members are present.
-            MethodConstructorShapeInfo ctorShapeInfo = CreateDefaultConstructor(hasRequiredOrInitOnlyMembers ? settableMembers : []);
-            yield return provider.CreateConstructor(ctorShapeInfo);
-        }
+        var ctorShapeInfo = new MethodConstructorShapeInfo(typeof(T), constructorInfo, parameterShapeInfos, memberInitializers?.ToArray() ?? []);
+        return provider.CreateConstructor(ctorShapeInfo);
 
         static MethodConstructorShapeInfo CreateDefaultConstructor(MemberInitializerShapeInfo[]? memberInitializers)
             => new(typeof(T), constructorMethod: null, parameters: [], memberInitializers: memberInitializers);
+
+        IEnumerable<(ConstructorInfo, ParameterInfo[])> GetCandidateConstructors()
+        {
+            bool foundCtorWithShapeAttribute = false;
+            foreach (ConstructorInfo constructorInfo in typeof(T).GetConstructors(AllInstanceMembers))
+            {
+                if (constructorInfo.GetCustomAttribute<ConstructorShapeAttribute>() != null)
+                {
+                    if (foundCtorWithShapeAttribute)
+                    {
+                        throw new InvalidOperationException(
+                            $"The type '{typeof(T)}' has duplicate {nameof(ConstructorShapeAttribute)} annotations.");
+                    }
+
+                    foundCtorWithShapeAttribute = true;
+                }
+                else if (!constructorInfo.IsPublic)
+                {
+                    // Skip unannotated constructors that aren't public.
+                    continue;
+                }
+
+                ParameterInfo[] parameters = constructorInfo.GetParameters();
+                if (parameters.Any(param => !param.ParameterType.CanBeGenericArgument()))
+                {
+                    // Skip constructors with unsupported parameter types
+                    continue;
+                }
+
+                if (IsRecordType && parameters is [ParameterInfo singleParam] &&
+                    singleParam.ParameterType == typeof(T))
+                {
+                    // Skip the copy constructor in record types
+                    continue;
+                }
+
+                yield return (constructorInfo, parameters);
+            }
+        }
     }
 
     public IEnumerable<IPropertyShape> GetProperties()

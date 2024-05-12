@@ -431,6 +431,7 @@ public static class TestTypes
         yield return TestCase.Create(new PersonRecord("John", 40));
         yield return TestCase.Create(new PersonRecordStruct("John", 40));
         yield return TestCase.Create(p, (PersonRecordStruct?)new PersonRecordStruct("John", 40));
+        yield return TestCase.Create(new ClassWithMultipleConstructors(z: 3) { X = 1, Y = 2 });
     }
 }
 
@@ -1478,6 +1479,29 @@ public class DictionaryWithNullableEntries<T>(IEnumerable<KeyValuePair<string, (
 public class ClassWithNullableProperty<T>
 {
     public (int, T?)? Value { get; set; }
+}
+
+[GenerateShape]
+partial class ClassWithMultipleConstructors
+{
+    public ClassWithMultipleConstructors(int x, int y)
+    {
+        X = x;
+        Y = y;
+    }
+
+    [JsonConstructor]
+    public ClassWithMultipleConstructors(int z)
+    {
+        // TypeShape should automatically pick this ctor
+        // as it maximizes the possible properties that get initialized.
+
+        Z = z;
+    }
+    
+    public int X { get; set; }
+    public int Y { get; set; }
+    public int Z { get; }
 }
 
 [GenerateShape<object>]

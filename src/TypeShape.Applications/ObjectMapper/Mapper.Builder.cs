@@ -39,9 +39,8 @@ public static partial class Mapper
                 case TypeShapeKind.Object:
                     var sourceObjectShape = (IObjectTypeShape<TSource>)sourceShape;
                     var targetObjectShape = (IObjectTypeShape<TTarget>)targetShape;
-                    
-                    IConstructorShape? ctor = targetObjectShape.GetConstructors()
-                        .MinBy(ctor => ctor.ParameterCount);
+
+                    IConstructorShape? ctor = targetObjectShape.GetConstructor();
 
                     if (ctor is null)
                     {

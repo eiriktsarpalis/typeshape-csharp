@@ -112,4 +112,31 @@ public static class DiagnosticTests
         Assert.Equal((4, 4), diagnostic.Location.GetStartPosition());
         Assert.Equal((5, 41), diagnostic.Location.GetEndPosition());
     }
+    
+    [Fact]
+    public static void DuplicateConstructorShapeAttribute_ProducesWarnings()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+           using TypeShape;
+
+           [GenerateShape]
+           partial class MyPoco
+           {
+               [ConstructorShape]
+               public MyPoco() { }
+               
+               [ConstructorShape]
+               public MyPoco(int value) { }
+           }
+           """);
+
+        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation, disableDiagnosticValidation: true);
+
+        Diagnostic diagnostic = Assert.Single(result.Diagnostics);
+
+        Assert.Equal("TS0006", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
+        Assert.Equal((9, 11), diagnostic.Location.GetStartPosition());
+        Assert.Equal((9, 17), diagnostic.Location.GetEndPosition());
+    }
 }

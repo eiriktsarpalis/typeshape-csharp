@@ -41,11 +41,7 @@ public static partial class TypeShapeJsonSerializer
                 .Select(prop => (JsonPropertyConverter<T>)prop.Accept(this)!)
                 .ToArray();
 
-            // Prefer the default constructor if available.
-            IConstructorShape? ctor = type
-                .GetConstructors()
-                .MinBy(ctor => ctor.ParameterCount);
-
+            IConstructorShape? ctor = type.GetConstructor();
             return ctor != null
                 ? (JsonObjectConverter<T>)ctor.Accept(this, state: properties)!
                 : new JsonObjectConverter<T>(properties);
