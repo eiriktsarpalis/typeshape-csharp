@@ -184,6 +184,16 @@ public static class TestTypes
         yield return TestCase.Create(p, new GenericRecord<int>(42));
         yield return TestCase.Create(p, new GenericRecord<string>("str"));
         yield return TestCase.Create(p, new GenericRecord<GenericRecord<bool>>(new GenericRecord<bool>(true)));
+        yield return TestCase.Create(p, new GenericRecordStruct<int>(42));
+        yield return TestCase.Create(p, new GenericRecordStruct<string>("str"));
+        yield return TestCase.Create(p, new GenericRecordStruct<GenericRecordStruct<bool>>(new GenericRecordStruct<bool>(true)));
+        yield return TestCase.Create(p, new GenericRecordStruct<string>("str"));
+        yield return TestCase.Create(p, new GenericRecordStruct<GenericRecordStruct<bool>>(new GenericRecordStruct<bool>(true)));
+
+        yield return TestCase.Create(new ClassWithInitOnlyProperty { Value = 42 });
+        yield return TestCase.Create(p, new GenericStructWithInitOnlyProperty<int> { Value = 42 });
+        yield return TestCase.Create(p, new GenericStructWithInitOnlyProperty<string> { Value = "str" });
+        yield return TestCase.Create(p, new GenericStructWithInitOnlyProperty<GenericStructWithInitOnlyProperty<string>> { Value = new() { Value = "str" } });
 
         yield return TestCase.Create(new ComplexStruct { real = 0, im = 1 });
         yield return TestCase.Create(new ComplexStructWithProperties { Real = 0, Im = 1 });
@@ -748,6 +758,17 @@ public partial struct StructWithSetsRequiredMembersCtor
     }
 }
 
+public readonly struct GenericStructWithInitOnlyProperty<T>
+{
+    public T Value { get; init; } 
+}
+
+[GenerateShape]
+public partial class ClassWithInitOnlyProperty
+{
+    public int Value { get; init; } = 42;
+}
+
 [GenerateShape]
 public partial class ClassWithIndexer
 {
@@ -1031,6 +1052,7 @@ public partial record NonNullStringRecord(string value);
 [GenerateShape]
 public partial record NullableStringRecord(string? value);
 public record GenericRecord<T>(T value);
+public readonly record struct GenericRecordStruct<T>(T value);
 public record NotNullGenericRecord<T>(T value) where T : notnull;
 public record NotNullClassGenericRecord<T>(T value) where T : class;
 public record NullClassGenericRecord<T>(T value) where T : class?;
@@ -1591,6 +1613,13 @@ partial class ClassWithMultipleConstructors
 [GenerateShape<GenericRecord<string>>]
 [GenerateShape<GenericRecord<GenericRecord<bool>>>]
 [GenerateShape<GenericRecord<GenericRecord<int>>>]
+[GenerateShape<GenericRecordStruct<int>>]
+[GenerateShape<GenericRecordStruct<string>>]
+[GenerateShape<GenericRecordStruct<GenericRecordStruct<bool>>>]
+[GenerateShape<GenericRecordStruct<GenericRecordStruct<int>>>]
+[GenerateShape<GenericStructWithInitOnlyProperty<int>>]
+[GenerateShape<GenericStructWithInitOnlyProperty<string>>]
+[GenerateShape<GenericStructWithInitOnlyProperty<GenericStructWithInitOnlyProperty<string>>>]
 [GenerateShape<ImmutableArray<int>>]
 [GenerateShape<ImmutableList<string>>]
 [GenerateShape<ImmutableQueue<int>>]

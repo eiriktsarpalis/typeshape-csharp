@@ -34,6 +34,7 @@ internal static partial class SourceFormatter
         {
             writer.WriteLine();
             FormatConstructorFactory(writer, constructorFactoryMethodName, objectShapeModel, objectShapeModel.Constructor!);
+            FormatInitPropertySetterAccessors(writer, objectShapeModel.Constructor!);
         }
     }
 }

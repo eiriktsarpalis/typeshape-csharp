@@ -63,21 +63,21 @@ internal static partial class SourceFormatter
                 return "null";
             }
             
-            string argumentCtorExpr = (constructor.Parameters.Length, constructor.RequiredOrInitMembers.Length, constructor.OptionalMemberFlagsType) switch
+            string argumentCtorExpr = (constructor.Parameters.Length, constructor.RequiredMembers.Length, constructor.OptionalMemberFlagsType) switch
             {
                 (0, 0, OptionalMemberFlagsType.None) => "null!",
                 (1, 0, OptionalMemberFlagsType.None) => FormatDefaultValueExpr(constructor.Parameters[0]),
-                (0, 1, OptionalMemberFlagsType.None) => FormatDefaultValueExpr(constructor.RequiredOrInitMembers[0]),
+                (0, 1, OptionalMemberFlagsType.None) => FormatDefaultValueExpr(constructor.RequiredMembers[0]),
                 (_, _, not OptionalMemberFlagsType.BitArray) when (!constructor.Parameters.Any(p => p.HasDefaultValue)) => $"default({constructorArgumentStateFQN})",
                 (_, _, OptionalMemberFlagsType.None) => 
                     FormatTupleConstructor(
                         constructor.Parameters
-                        .Concat(constructor.RequiredOrInitMembers)
+                        .Concat(constructor.RequiredMembers)
                         .Select(FormatDefaultValueExpr)),
                 (_, _, OptionalMemberFlagsType flagType) =>
                     FormatTupleConstructor(
                         constructor.Parameters
-                        .Concat(constructor.RequiredOrInitMembers)
+                        .Concat(constructor.RequiredMembers)
                         .Concat(constructor.OptionalMembers)
                         .Select(FormatDefaultValueExpr)
                         .Append(
@@ -114,7 +114,7 @@ internal static partial class SourceFormatter
                 if (type.IsTupleType)
                 {
                     Debug.Assert(constructor.Parameters.Length > 0);
-                    Debug.Assert(constructor.RequiredOrInitMembers.Length == 0);
+                    Debug.Assert(constructor.RequiredMembers.Length == 0);
 
                     if (constructor.Parameters.Length == 1)
                     {
@@ -139,11 +139,11 @@ internal static partial class SourceFormatter
                     return sb.ToString();
                 }
 
-                string objectInitializerExpr = (constructor.Parameters.Length, constructor.RequiredOrInitMembers.Length) switch
+                string objectInitializerExpr = (constructor.Parameters.Length, constructor.RequiredMembers.Length) switch
                 {
                     (0, 0) => $$"""{{FormatConstructorName(constructor)}}()""",
                     (1, 0) when constructor.OptionalMembers is [] => $$"""{{FormatConstructorName(constructor)}}({{stateVar}})""",
-                    (0, 1) when constructor.OptionalMembers is [] => $$"""{{FormatConstructorName(constructor)}} { {{constructor.RequiredOrInitMembers[0].UnderlyingMemberName}} = {{stateVar}} }""",
+                    (0, 1) when constructor.OptionalMembers is [] => $$"""{{FormatConstructorName(constructor)}} { {{constructor.RequiredMembers[0].UnderlyingMemberName}} = {{stateVar}} }""",
                     (_, 0) => $$"""{{FormatConstructorName(constructor)}}({{FormatCtorArgumentsBody()}})""",
                     (0, _) => $$"""{{FormatConstructorName(constructor)}} { {{FormatInitializerBody()}} }""",
                     (_, _) => $$"""{{FormatConstructorName(constructor)}}({{FormatCtorArgumentsBody()}}) { {{FormatInitializerBody()}} }""",
@@ -154,18 +154,30 @@ internal static partial class SourceFormatter
                     : $$"""{ var obj = {{objectInitializerExpr}}; {{FormatOptionalMemberAssignments()}}; return obj; }""";
 
                 string FormatCtorArgumentsBody() => string.Join(", ", constructor.Parameters.Select(p => FormatCtorParameterExpr(p)));
-                string FormatInitializerBody() => string.Join(", ", constructor.RequiredOrInitMembers.Select(p => $"{p.UnderlyingMemberName} = {FormatCtorParameterExpr(p)}"));
+                string FormatInitializerBody() => string.Join(", ", constructor.RequiredMembers.Select(p => $"{p.UnderlyingMemberName} = {FormatCtorParameterExpr(p)}"));
                 string FormatOptionalMemberAssignments() => string.Join("; ", constructor.OptionalMembers.Select(FormatOptionalMemberAssignment));
                 string FormatOptionalMemberAssignment(ConstructorParameterShapeModel parameter)
                 {
                     Debug.Assert(parameter.Kind is ParameterKind.OptionalMember);
-                    int flagOffset = parameter.Position - constructor.Parameters.Length - constructor.RequiredOrInitMembers.Length;
+                    int flagOffset = parameter.Position - constructor.Parameters.Length - constructor.RequiredMembers.Length;
                     Debug.Assert(flagOffset >= 0);
                     string conditionalExpr = constructor.OptionalMemberFlagsType is OptionalMemberFlagsType.BitArray
                         ? $"{stateVar}.Item{constructor.TotalArity + 1}[{flagOffset}]"
                         : $"({stateVar}.Item{constructor.TotalArity + 1} & (1 << {flagOffset})) != 0";
-
-                    return $"if ({conditionalExpr}) obj.{parameter.UnderlyingMemberName} = {FormatCtorParameterExpr(parameter)}";
+                    
+                    string assignmentBody;
+                    if (parameter.IsInitOnlyProperty)
+                    {
+                        string accessorName = GetMemberAccessorName(parameter);
+                        string refPrefix = parameter.DeclaringType.IsValueType ? "ref " : "";
+                        assignmentBody = $"{accessorName}({refPrefix}obj, {FormatCtorParameterExpr(parameter)})";
+                    }
+                    else
+                    {
+                        assignmentBody = $"obj.{parameter.UnderlyingMemberName} = {FormatCtorParameterExpr(parameter)}";
+                    }
+                        
+                    return $"if ({conditionalExpr}) {assignmentBody}";
                 }
 
                 string FormatCtorParameterExpr(ConstructorParameterShapeModel parameter)
@@ -205,7 +217,7 @@ internal static partial class SourceFormatter
 
         int i = 0;
         foreach (ConstructorParameterShapeModel parameter in constructor.Parameters
-                                                            .Concat(constructor.RequiredOrInitMembers)
+                                                            .Concat(constructor.RequiredMembers)
                                                             .Concat(constructor.OptionalMembers))
         {
             if (i > 0)
@@ -266,7 +278,7 @@ internal static partial class SourceFormatter
 
                 if (parameter.Kind is ParameterKind.OptionalMember)
                 {
-                    int flagOffset = parameter.Position - constructor.Parameters.Length - constructor.RequiredOrInitMembers.Length;
+                    int flagOffset = parameter.Position - constructor.Parameters.Length - constructor.RequiredMembers.Length;
                     Debug.Assert(flagOffset >= 0);
                     string setFlagExpr = constructor.OptionalMemberFlagsType is OptionalMemberFlagsType.BitArray
                         ? $"state.Item{constructor.TotalArity + 1}[{flagOffset}] = true"
@@ -283,7 +295,7 @@ internal static partial class SourceFormatter
                 string identifier = parameter.Kind switch
                 {
                     ParameterKind.ConstructorParameter => "ConstructorParameter",
-                    ParameterKind.RequiredOrInitOnlyMember or
+                    ParameterKind.RequiredMember or
                     ParameterKind.OptionalMember => parameter.IsField ? "FieldInitializer" : "PropertyInitializer",
                     _ => throw new InvalidOperationException($"Unsupported parameter kind: {parameter.Kind}"),
                 };
@@ -324,20 +336,20 @@ internal static partial class SourceFormatter
             _ => null,
         };
 
-        return (constructorModel.Parameters.Length, constructorModel.RequiredOrInitMembers.Length, optionalParameterFlagTypeFQN) switch
+        return (constructorModel.Parameters.Length, constructorModel.RequiredMembers.Length, optionalParameterFlagTypeFQN) switch
         {
             (0, 0, null) => "object?",
             (1, 0, null) => constructorModel.Parameters[0].ParameterType.FullyQualifiedName,
-            (0, 1, null) => constructorModel.RequiredOrInitMembers[0].ParameterType.FullyQualifiedName,
+            (0, 1, null) => constructorModel.RequiredMembers[0].ParameterType.FullyQualifiedName,
             (_, _, null) => FormatTupleType(
                 constructorModel.Parameters
-                .Concat(constructorModel.RequiredOrInitMembers)
+                .Concat(constructorModel.RequiredMembers)
                 .Select(p => p.ParameterType.FullyQualifiedName)),
 
             (_, _, { }) =>
                 FormatTupleType(
                     constructorModel.Parameters
-                    .Concat(constructorModel.RequiredOrInitMembers)
+                    .Concat(constructorModel.RequiredMembers)
                     .Concat(constructorModel.OptionalMembers)
                     .Select(p => p.ParameterType.FullyQualifiedName)
                     .Append(optionalParameterFlagTypeFQN))
@@ -345,5 +357,59 @@ internal static partial class SourceFormatter
 
         static string FormatTupleType(IEnumerable<string> parameterTypes)
             => $"({string.Join(", ", parameterTypes)})";
+    }
+    
+    private static string GetMemberAccessorName(ConstructorParameterShapeModel parameterShapeModel)
+    {
+        return $"{parameterShapeModel.DeclaringType.GeneratedPropertyName}_set_{parameterShapeModel.UnderlyingMemberName}";
+    }
+
+    private static void FormatInitPropertySetterAccessors(SourceWriter writer, ConstructorShapeModel constructor)
+    {
+        foreach (ConstructorParameterShapeModel parameter in constructor.OptionalMembers)
+        {
+            if (!parameter.IsInitOnlyProperty)
+            {
+                continue;
+            }
+            
+            writer.WriteLine();
+            string accessorName = GetMemberAccessorName(parameter);
+            string refPrefix = parameter.DeclaringType.IsValueType ? "ref " : "";
+
+            if (parameter.PropertyTypeIsGenericInstantiation)
+            {
+                writer.WriteLine($$"""
+                    // Workaround for https://github.com/dotnet/runtime/issues/89439
+                    private static global::System.Reflection.MethodInfo? s_{{accessorName}}_MethodInfo;
+                    private static void {{accessorName}}({{refPrefix}}{{parameter.DeclaringType.FullyQualifiedName}} obj, {{parameter.ParameterType.FullyQualifiedName}} value)
+                    {
+                    """);
+                
+                writer.Indentation++;
+                writer.WriteLine($"global::System.Reflection.MethodInfo setter = s_{accessorName}_MethodInfo ??= typeof({parameter.DeclaringType.FullyQualifiedName}).GetMethod({FormatStringLiteral("set_" + parameter.UnderlyingMemberName)}, {InstanceBindingFlagsConstMember})!;");
+                if (parameter.DeclaringType.IsValueType)
+                {
+                    writer.WriteLine($$"""
+                       object boxed = obj;
+                       setter.Invoke(boxed, new object[] { value });
+                       obj = ({{parameter.DeclaringType.FullyQualifiedName}})boxed;
+                       """);
+                }
+                else
+                {
+                    writer.WriteLine("setter.Invoke(obj, new object[] { value });");
+                }
+
+                writer.Indentation--;
+                writer.WriteLine('}');
+                continue;
+            }
+            
+            writer.WriteLine($"""
+              [global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Method, Name = {FormatStringLiteral("set_" + parameter.UnderlyingMemberName)})]
+              private static extern void {accessorName}({refPrefix}{parameter.DeclaringType.FullyQualifiedName} obj, {parameter.ParameterType.FullyQualifiedName} value);
+              """);
+        }
     }
 }

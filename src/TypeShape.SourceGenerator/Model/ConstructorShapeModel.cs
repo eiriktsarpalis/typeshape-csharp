@@ -7,12 +7,12 @@ public sealed record ConstructorShapeModel
     public required TypeId DeclaringType { get; init; }
     public required bool IsPublic { get; init; }
     public required ImmutableEquatableArray<ConstructorParameterShapeModel> Parameters { get; init; }
-    public required ImmutableEquatableArray<ConstructorParameterShapeModel> RequiredOrInitMembers { get; init; }
+    public required ImmutableEquatableArray<ConstructorParameterShapeModel> RequiredMembers { get; init; }
     public required ImmutableEquatableArray<ConstructorParameterShapeModel> OptionalMembers { get; init; }
     public required OptionalMemberFlagsType OptionalMemberFlagsType { get; init; }
     public required string? StaticFactoryName { get; init; }
 
-    public int TotalArity => Parameters.Length + RequiredOrInitMembers.Length + OptionalMembers.Length;
+    public int TotalArity => Parameters.Length + RequiredMembers.Length + OptionalMembers.Length;
     public bool IsStaticFactory => StaticFactoryName != null;
 }
 

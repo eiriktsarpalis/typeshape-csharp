@@ -72,7 +72,7 @@ public sealed partial class Parser : TypeDataModelGenerator
         // the number of parameters corresponding to read-only properties.
         HashSet<(ITypeSymbol, string)> readOnlyProperties = new(
             properties
-                .Where(p => p is { CanWrite: false, IsInitOnly: false })
+                .Where(p => !p.CanWrite)
                 .Select(p => (p.PropertyType, p.Name)), 
             s_ctorParamComparer);
             

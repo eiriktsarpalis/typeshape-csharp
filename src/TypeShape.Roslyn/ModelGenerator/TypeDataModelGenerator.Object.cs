@@ -125,7 +125,7 @@ public partial class TypeDataModelGenerator
         return new PropertyDataModel(property)
         {
             CanRead = baseProperty.GetMethod is { } getter && IsAccessibleSymbol(getter),
-            CanWrite = baseProperty.SetMethod is IMethodSymbol { IsInitOnly: false } setter && IsAccessibleSymbol(setter),
+            CanWrite = baseProperty.SetMethod is { } setter && IsAccessibleSymbol(setter),
             IsGetterNonNullable = isGetterNonNullable,
             IsSetterNonNullable = isSetterNonNullable,
         };

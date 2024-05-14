@@ -335,6 +335,16 @@ public abstract class JsonTests(IProviderUnderTest providerUnderTest)
         Assert.Equal(ExpectedJson, json);
     }
 
+    [Fact]
+    public void ClassWithInitOnlyProperty_MissingPayloadPreservesDefaultValue()
+    {
+        var serializer = TypeShapeJsonSerializer.CreateConverter(providerUnderTest.GetShape<ClassWithInitOnlyProperty>());
+        int expectedValue = new ClassWithInitOnlyProperty().Value;
+
+        ClassWithInitOnlyProperty? result = serializer.Deserialize("{}");
+        Assert.Equal(expectedValue, result?.Value);
+    }
+
     public class PocoWithGenericProperty<T>
     { 
         public T? Value { get; set; }

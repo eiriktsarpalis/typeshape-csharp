@@ -10,6 +10,16 @@ namespace TypeShape.SourceGenerator.Helpers;
 
 internal static partial class RoslynHelpers
 {
+    public static ITypeSymbol GetMemberType(this ISymbol memberSymbol)
+    {
+        Debug.Assert(memberSymbol is IPropertySymbol or IFieldSymbol);
+        return memberSymbol switch
+        {
+            IPropertySymbol p => p.Type,
+            _ => ((IFieldSymbol)memberSymbol).Type,
+        };
+    }
+    
     /// <summary>
     /// Removes erased compiler metadata such as tuple names and nullable annotations.
     /// </summary>

@@ -412,7 +412,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
 
                 // return new TDeclaringType(state);
                 generator.Emit(OpCodes.Ldarg_0);
-                LdRef(generator, argumentStateType);
+                LdRef(generator, argumentStateType, copyValueTypes: true);
                 EmitCall(generator, methodCtor.ConstructorMethod);
                 generator.Emit(OpCodes.Ret);
             }

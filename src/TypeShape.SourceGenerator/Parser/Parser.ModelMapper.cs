@@ -154,6 +154,10 @@ public sealed partial class Parser
     private PropertyShapeModel MapProperty(ITypeSymbol parentType, TypeId parentTypeId, PropertyDataModel property, bool isClassTupleType = false, int tupleElementIndex = -1)
     {
         ParsePropertyShapeAttribute(property.PropertySymbol, out string propertyName, out int order);
+        
+        bool emitGetter = property.CanRead;
+        bool emitSetter = property.CanWrite && !property.IsInitOnly;
+        
         return new PropertyShapeModel
         {
             Name = isClassTupleType ? $"Item{tupleElementIndex + 1}" : propertyName ?? property.Name,
@@ -163,13 +167,13 @@ public sealed partial class Parser
 
             DeclaringType = SymbolEqualityComparer.Default.Equals(parentType, property.DeclaringType) ? parentTypeId : CreateTypeId(property.DeclaringType),
             PropertyType = CreateTypeId(property.PropertyType),
-            IsGetterNonNullable = property.CanRead && property.IsGetterNonNullable,
-            IsSetterNonNullable = property.CanWrite && property.IsSetterNonNullable,
+            IsGetterNonNullable = emitGetter && property.IsGetterNonNullable,
+            IsSetterNonNullable = emitSetter && property.IsSetterNonNullable,
             PropertyTypeContainsNullabilityAnnotations = property.PropertyType.ContainsNullabilityAnnotations(),
-            EmitGetter = property.CanRead,
-            EmitSetter = property.CanWrite,
-            IsGetterPublic = property.CanRead && property.BaseSymbol is IPropertySymbol { GetMethod.DeclaredAccessibility: Accessibility.Public } or IFieldSymbol { DeclaredAccessibility: Accessibility.Public },
-            IsSetterPublic = property.CanWrite && property.BaseSymbol is IPropertySymbol { SetMethod.DeclaredAccessibility: Accessibility.Public } or IFieldSymbol { DeclaredAccessibility: Accessibility.Public },
+            EmitGetter = emitGetter,
+            EmitSetter = emitSetter,
+            IsGetterPublic = emitGetter && property.BaseSymbol is IPropertySymbol { GetMethod.DeclaredAccessibility: Accessibility.Public } or IFieldSymbol { DeclaredAccessibility: Accessibility.Public },
+            IsSetterPublic = emitSetter && property.BaseSymbol is IPropertySymbol { SetMethod.DeclaredAccessibility: Accessibility.Public } or IFieldSymbol { DeclaredAccessibility: Accessibility.Public },
             IsField = property.IsField,
             Order = order,
         };
@@ -178,17 +182,15 @@ public sealed partial class Parser
     private ConstructorShapeModel MapConstructor(ObjectDataModel objectModel, TypeId declaringTypeId, ConstructorDataModel constructor)
     {
         int position = constructor.Parameters.Length;
-        List<ConstructorParameterShapeModel>? requiredOrInitMembers = null;
-        List<ConstructorParameterShapeModel>? optionalProperties = null;
-
-        bool isDefaultCtorWithoutRequiredOrInitMembers =
-            position == 0 && !constructor.MemberInitializers.Any(p => p.IsRequired || p.IsInitOnly);
+        List<ConstructorParameterShapeModel>? requiredMembers = null;
+        List<ConstructorParameterShapeModel>? optionalMembers = null;
         
-        IEnumerable<PropertyDataModel> memberInitializers = isDefaultCtorWithoutRequiredOrInitMembers
-            // Do not include member initializers in default constructors that don't have required members or init-only properties.
-            ? []
-            // Shift required or init-only members to start of the member initializer list.
-            : constructor.MemberInitializers.OrderByDescending(p => p.IsRequired || p.IsInitOnly);
+        bool isParameterizedConstructor = position > 0 || constructor.MemberInitializers.Any(p => p.IsRequired || p.IsInitOnly);
+        IEnumerable<PropertyDataModel> memberInitializers = isParameterizedConstructor
+            // Include all settable members but process required members first.
+            ? constructor.MemberInitializers.OrderByDescending(p => p.IsRequired)
+            // Do not include any member initializers in parameterless constructors.
+            : [];
 
         foreach (PropertyDataModel propertyModel in memberInitializers)
         {
@@ -205,10 +207,9 @@ public sealed partial class Parser
                 UnderlyingMemberName = propertyModel.Name,
                 Position = position++,
                 IsRequired = propertyModel.IsRequired,
-                Kind = propertyModel.IsRequired || propertyModel.IsInitOnly
-                    ? ParameterKind.RequiredOrInitOnlyMember
-                    : ParameterKind.OptionalMember,
-
+                IsInitOnlyProperty = propertyModel.IsInitOnly,
+                PropertyTypeIsGenericInstantiation = !SymbolEqualityComparer.Default.Equals(propertyModel.PropertyType, propertyModel.PropertySymbol.OriginalDefinition.GetMemberType()),
+                Kind = propertyModel.IsRequired ? ParameterKind.RequiredMember : ParameterKind.OptionalMember,
                 IsNonNullable = propertyModel.IsSetterNonNullable,
                 ParameterTypeContainsNullabilityAnnotations = propertyModel.PropertyType.ContainsNullabilityAnnotations(),
                 IsPublic = propertyModel.PropertySymbol.DeclaredAccessibility is Accessibility.Public,
@@ -217,15 +218,15 @@ public sealed partial class Parser
                 DefaultValueExpr = null,
             };
 
-            if (memberInitializer.Kind is ParameterKind.RequiredOrInitOnlyMember)
+            if (memberInitializer.Kind is ParameterKind.RequiredMember)
             {
-                // Member must only be set as an object initializer expression
-                (requiredOrInitMembers ??= []).Add(memberInitializer);
+                // Member must be set using an object initializer expression
+                (requiredMembers ??= []).Add(memberInitializer);
             }
             else
             {
                 // Member can be set optionally post construction
-                (optionalProperties ??= []).Add(memberInitializer);
+                (optionalMembers ??= []).Add(memberInitializer);
             }
         }
 
@@ -236,9 +237,9 @@ public sealed partial class Parser
                 : CreateTypeId(constructor.DeclaringType),
 
             Parameters = constructor.Parameters.Select(p => MapConstructorParameter(objectModel, declaringTypeId, p)).ToImmutableEquatableArray(),
-            RequiredOrInitMembers = requiredOrInitMembers?.ToImmutableEquatableArray() ?? [],
-            OptionalMembers = optionalProperties?.ToImmutableEquatableArray() ?? [],
-            OptionalMemberFlagsType = (optionalProperties?.Count ?? 0) switch
+            RequiredMembers = requiredMembers?.ToImmutableEquatableArray() ?? [],
+            OptionalMembers = optionalMembers?.ToImmutableEquatableArray() ?? [],
+            OptionalMemberFlagsType = (optionalMembers?.Count ?? 0) switch
             {
                 0 => OptionalMemberFlagsType.None,
                 <= 8 => OptionalMemberFlagsType.Byte,
@@ -289,6 +290,8 @@ public sealed partial class Parser
             ParameterType = CreateTypeId(parameter.Parameter.Type),
             Kind = ParameterKind.ConstructorParameter,
             IsRequired = !parameter.HasDefaultValue,
+            IsInitOnlyProperty = false,
+            PropertyTypeIsGenericInstantiation = false,
             IsNonNullable = parameter.IsNonNullable,
             ParameterTypeContainsNullabilityAnnotations = parameter.Parameter.Type.ContainsNullabilityAnnotations(),
             IsPublic = true,
@@ -307,7 +310,7 @@ public sealed partial class Parser
             {
                 DeclaringType = typeId,
                 Parameters = [],
-                RequiredOrInitMembers = [],
+                RequiredMembers = [],
                 OptionalMembers = [],
                 OptionalMemberFlagsType = OptionalMemberFlagsType.None,
                 StaticFactoryName = null,
@@ -321,7 +324,7 @@ public sealed partial class Parser
             {
                 DeclaringType = typeId,
                 Parameters = tupleModel.Elements.Select((p, i) => MapTupleConstructorParameter(typeId, p, i)).ToImmutableEquatableArray(),
-                RequiredOrInitMembers = [],
+                RequiredMembers = [],
                 OptionalMembers = [],
                 OptionalMemberFlagsType = OptionalMemberFlagsType.None,
                 StaticFactoryName = null,
@@ -342,6 +345,8 @@ public sealed partial class Parser
                 HasDefaultValue = false,
                 Kind = ParameterKind.ConstructorParameter,
                 IsRequired = true,
+                IsInitOnlyProperty = false,
+                PropertyTypeIsGenericInstantiation = false,
                 IsPublic = true,
                 IsField = true,
                 IsNonNullable = tupleElement.IsSetterNonNullable,
