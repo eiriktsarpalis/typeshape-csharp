@@ -9,7 +9,7 @@ internal static partial class SourceFormatter
 {
     private static void FormatPropertyFactory(SourceWriter writer, string methodName, ObjectShapeModel type)
     {
-        writer.WriteLine($"private IEnumerable<IPropertyShape> {methodName}() => new IPropertyShape[]");
+        writer.WriteLine($"private global::TypeShape.Abstractions.IPropertyShape[] {methodName}() => new global::TypeShape.Abstractions.IPropertyShape[]");
         writer.WriteLine('{');
         writer.Indentation++;
 
@@ -34,10 +34,10 @@ internal static partial class SourceFormatter
             };
 
             writer.WriteLine($$"""
-                new SourceGenPropertyShape<{{type.Type.FullyQualifiedName}}, {{property.PropertyType.FullyQualifiedName}}>
+                new global::TypeShape.SourceGenModel.SourceGenPropertyShape<{{type.Type.FullyQualifiedName}}, {{property.PropertyType.FullyQualifiedName}}>
                 {
                     Name = {{FormatStringLiteral(property.Name)}},
-                    DeclaringType = (IObjectTypeShape<{{type.Type.FullyQualifiedName}}>){{type.Type.GeneratedPropertyName}},
+                    DeclaringType = (global::TypeShape.Abstractions.IObjectTypeShape<{{type.Type.FullyQualifiedName}}>){{type.Type.GeneratedPropertyName}},
                     PropertyType = {{property.PropertyType.GeneratedPropertyName}},
                     Getter = {{(property.EmitGetter ? $"static (ref {type.Type.FullyQualifiedName} obj) => obj.{property.UnderlyingMemberName}{(suppressGetter ? "!" : "")}" : "null")}},
                     Setter = {{(property.EmitSetter ? $"static (ref {type.Type.FullyQualifiedName} obj, {property.PropertyType.FullyQualifiedName} value) => obj.{property.UnderlyingMemberName} = value{(suppressSetter ? "!" : "")}" : "null")}},

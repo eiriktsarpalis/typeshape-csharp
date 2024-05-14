@@ -11,17 +11,17 @@ internal static partial class SourceFormatter
         var writer = new SourceWriter();
         StartFormatSourceFile(writer, provider.Declaration);
 
-        writer.WriteLine($"{provider.Declaration.TypeDeclarationHeader} : ITypeShapeProvider");
+        writer.WriteLine($"{provider.Declaration.TypeDeclarationHeader} : global::TypeShape.ITypeShapeProvider");
         writer.WriteLine('{');
         writer.Indentation++;
 
         writer.WriteLine("""
-            public ITypeShape<T>? GetShape<T>()
-                => (ITypeShape<T>?)GetShape(typeof(T));
+            public global::TypeShape.Abstractions.ITypeShape<T>? GetShape<T>()
+                => (global::TypeShape.Abstractions.ITypeShape<T>?)GetShape(typeof(T));
 
             """);
 
-        writer.WriteLine("public ITypeShape? GetShape(Type type)");
+        writer.WriteLine("public global::TypeShape.Abstractions.ITypeShape? GetShape(global::System.Type type)");
         writer.WriteLine('{');
         writer.Indentation++;
 
@@ -49,12 +49,12 @@ internal static partial class SourceFormatter
         var writer = new SourceWriter();
         StartFormatSourceFile(writer, typeDeclaration);
 
-        writer.WriteLine($"{typeDeclaration.TypeDeclarationHeader} : ITypeShapeProvider<{typeDeclaration.Id.FullyQualifiedName}>");
+        writer.WriteLine($"{typeDeclaration.TypeDeclarationHeader} : global::TypeShape.ITypeShapeProvider<{typeDeclaration.Id.FullyQualifiedName}>");
         writer.WriteLine('{');
         writer.Indentation++;
 
         writer.WriteLine($"""
-            static ITypeShape<{typeDeclaration.Id.FullyQualifiedName}> ITypeShapeProvider<{typeDeclaration.Id.FullyQualifiedName}>.GetShape() 
+            static global::TypeShape.Abstractions.ITypeShape<{typeDeclaration.Id.FullyQualifiedName}> global::TypeShape.ITypeShapeProvider<{typeDeclaration.Id.FullyQualifiedName}>.GetShape() 
                 => {provider.Declaration.Id.FullyQualifiedName}.Default.{typeDeclaration.Id.GeneratedPropertyName};
             """);
 

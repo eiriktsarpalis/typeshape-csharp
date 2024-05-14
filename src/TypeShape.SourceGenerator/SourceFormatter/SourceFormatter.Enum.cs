@@ -8,12 +8,12 @@ internal static partial class SourceFormatter
     private static void FormatEnumTypeShapeFactory(SourceWriter writer, string methodName, EnumShapeModel enumShapeType)
     {
         writer.WriteLine($$"""
-            private ITypeShape<{{enumShapeType.Type.FullyQualifiedName}}> {{methodName}}()
+            private global::TypeShape.Abstractions.ITypeShape<{{enumShapeType.Type.FullyQualifiedName}}> {{methodName}}()
             {
-                return new SourceGenEnumTypeShape<{{enumShapeType.Type.FullyQualifiedName}}, {{enumShapeType.UnderlyingType.FullyQualifiedName}}>
+                return new global::TypeShape.SourceGenModel.SourceGenEnumTypeShape<{{enumShapeType.Type.FullyQualifiedName}}, {{enumShapeType.UnderlyingType.FullyQualifiedName}}>
                 {
-                    Provider = this,
                     UnderlyingType = {{enumShapeType.UnderlyingType.GeneratedPropertyName}},
+                    Provider = this,
                 };
             }
             """);

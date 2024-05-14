@@ -8,11 +8,10 @@ internal static partial class SourceFormatter
     private static void FormatDictionaryTypeShapeFactory(SourceWriter writer, string methodName, DictionaryShapeModel dictionaryShapeModel)
     {
         writer.WriteLine($$"""
-            private ITypeShape<{{dictionaryShapeModel.Type.FullyQualifiedName}}> {{methodName}}()
+            private global::TypeShape.Abstractions.ITypeShape<{{dictionaryShapeModel.Type.FullyQualifiedName}}> {{methodName}}()
             {
-                return new SourceGenDictionaryTypeShape<{{dictionaryShapeModel.Type.FullyQualifiedName}}, {{dictionaryShapeModel.KeyType.FullyQualifiedName}}, {{dictionaryShapeModel.ValueType.FullyQualifiedName}}>
+                return new global::TypeShape.SourceGenModel.SourceGenDictionaryTypeShape<{{dictionaryShapeModel.Type.FullyQualifiedName}}, {{dictionaryShapeModel.KeyType.FullyQualifiedName}}, {{dictionaryShapeModel.ValueType.FullyQualifiedName}}>
                 {
-                    Provider = this,
                     KeyType = {{dictionaryShapeModel.KeyType.GeneratedPropertyName}},
                     ValueType = {{dictionaryShapeModel.ValueType.GeneratedPropertyName}},
                     GetDictionaryFunc = {{FormatGetDictionaryFunc(dictionaryShapeModel)}},
@@ -21,6 +20,7 @@ internal static partial class SourceFormatter
                     AddKeyValuePairFunc = {{FormatAddKeyValuePairFunc(dictionaryShapeModel)}},
                     EnumerableConstructorFunc = {{FormatEnumerableConstructorFunc(dictionaryShapeModel)}},
                     SpanConstructorFunc = {{FormatSpanConstructorFunc(dictionaryShapeModel)}},
+                    Provider = this,
                 };
             }
             """, trimNullAssignmentLines: true);
@@ -31,8 +31,8 @@ internal static partial class SourceFormatter
             return dictionaryType.Kind switch
             {
                 DictionaryKind.IReadOnlyDictionaryOfKV => $"static obj => obj{suppressSuffix}",
-                DictionaryKind.IDictionaryOfKV => $"static obj => CollectionHelpers.AsReadOnlyDictionary<{dictionaryType.Type.FullyQualifiedName}, {dictionaryType.KeyType.FullyQualifiedName}, {dictionaryType.ValueType.FullyQualifiedName}>(obj{suppressSuffix})",
-                DictionaryKind.IDictionary => $"static obj => CollectionHelpers.AsReadOnlyDictionary(obj{suppressSuffix})!",
+                DictionaryKind.IDictionaryOfKV => $"static obj => global::TypeShape.SourceGenModel.CollectionHelpers.AsReadOnlyDictionary<{dictionaryType.Type.FullyQualifiedName}, {dictionaryType.KeyType.FullyQualifiedName}, {dictionaryType.ValueType.FullyQualifiedName}>(obj{suppressSuffix})",
+                DictionaryKind.IDictionary => $"static obj => global::TypeShape.SourceGenModel.CollectionHelpers.AsReadOnlyDictionary(obj{suppressSuffix})!",
                 _ => throw new ArgumentException(dictionaryType.Kind.ToString()),
             };
         }
@@ -50,9 +50,9 @@ internal static partial class SourceFormatter
             return dictionaryType switch
             {
                 { ConstructionStrategy: CollectionConstructionStrategy.Mutable, ImplementationTypeFQN: null }
-                    => $"static (ref {dictionaryType.Type.FullyQualifiedName} dict, KeyValuePair<{dictionaryType.KeyType.FullyQualifiedName}, {dictionaryType.ValueType.FullyQualifiedName}> kvp) => dict[kvp.Key{suppressSuffix}] = kvp.Value{suppressSuffix}",
+                    => $"static (ref {dictionaryType.Type.FullyQualifiedName} dict, global::System.Collections.Generic.KeyValuePair<{dictionaryType.KeyType.FullyQualifiedName}, {dictionaryType.ValueType.FullyQualifiedName}> kvp) => dict[kvp.Key{suppressSuffix}] = kvp.Value{suppressSuffix}",
                 { ConstructionStrategy: CollectionConstructionStrategy.Mutable, ImplementationTypeFQN: { } implementationTypeFQN }
-                    => $"static (ref {dictionaryType.Type.FullyQualifiedName} dict, KeyValuePair<{dictionaryType.KeyType.FullyQualifiedName}, {dictionaryType.ValueType.FullyQualifiedName}> kvp) => (({implementationTypeFQN})dict)[kvp.Key{suppressSuffix}] = kvp.Value{suppressSuffix}",
+                    => $"static (ref {dictionaryType.Type.FullyQualifiedName} dict, global::System.Collections.Generic.KeyValuePair<{dictionaryType.KeyType.FullyQualifiedName}, {dictionaryType.ValueType.FullyQualifiedName}> kvp) => (({implementationTypeFQN})dict)[kvp.Key{suppressSuffix}] = kvp.Value{suppressSuffix}",
                 _ => "null",
             };
         }
@@ -80,7 +80,7 @@ internal static partial class SourceFormatter
             }
 
             string suppressSuffix = dictionaryType.KeyValueTypesContainNullableAnnotations ? "!" : "";
-            string valuesExpr = dictionaryType.CtorRequiresDictionaryConversion ? $"CollectionHelpers.CreateDictionary(values{suppressSuffix})" : $"values{suppressSuffix}";
+            string valuesExpr = dictionaryType.CtorRequiresDictionaryConversion ? $"global::TypeShape.SourceGenModel.CollectionHelpers.CreateDictionary(values{suppressSuffix})" : $"values{suppressSuffix}";
             return dictionaryType switch
             {
                 { StaticFactoryMethod: string factory } => $"static values => {factory}({valuesExpr})",

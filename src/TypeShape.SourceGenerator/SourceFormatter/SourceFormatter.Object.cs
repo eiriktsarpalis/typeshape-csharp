@@ -11,9 +11,9 @@ internal static partial class SourceFormatter
         string? constructorFactoryMethodName = objectShapeModel.Constructor != null ? $"CreateConstructor_{objectShapeModel.Type.GeneratedPropertyName}" : null;
 
         writer.WriteLine($$"""
-            private ITypeShape<{{objectShapeModel.Type.FullyQualifiedName}}> {{methodName}}()
+            private global::TypeShape.Abstractions.ITypeShape<{{objectShapeModel.Type.FullyQualifiedName}}> {{methodName}}()
             {
-                return new SourceGenObjectTypeShape<{{objectShapeModel.Type.FullyQualifiedName}}>
+                return new global::TypeShape.SourceGenModel.SourceGenObjectTypeShape<{{objectShapeModel.Type.FullyQualifiedName}}>
                 {
                     Provider = this,
                     IsRecordType = {{FormatBool(objectShapeModel.IsRecordType)}},

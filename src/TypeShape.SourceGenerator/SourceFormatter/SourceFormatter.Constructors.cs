@@ -15,14 +15,14 @@ internal static partial class SourceFormatter
         string constructorArgumentStateFQN = FormatConstructorArgumentStateFQN(type, constructor);
         string? constructorParameterFactoryName = constructor.TotalArity > 0 ? FormatConstructorParameterFactoryName(type) : null;
         
-        writer.WriteLine($"private IConstructorShape {methodName}()");
+        writer.WriteLine($"private global::TypeShape.Abstractions.IConstructorShape {methodName}()");
         writer.WriteLine('{');
         writer.Indentation++;
 
         writer.WriteLine($$"""
-            return new SourceGenConstructorShape<{{type.Type.FullyQualifiedName}}, {{constructorArgumentStateFQN}}>
+            return new global::TypeShape.SourceGenModel.SourceGenConstructorShape<{{type.Type.FullyQualifiedName}}, {{constructorArgumentStateFQN}}>
             {
-                DeclaringType = (IObjectTypeShape<{{type.Type.FullyQualifiedName}}>){{type.Type.GeneratedPropertyName}},
+                DeclaringType = (global::TypeShape.Abstractions.IObjectTypeShape<{{type.Type.FullyQualifiedName}}>){{type.Type.GeneratedPropertyName}},
                 ParameterCount = {{constructor.TotalArity}},
                 GetParametersFunc = {{FormatNull(constructorParameterFactoryName)}},
                 DefaultConstructorFunc = {{FormatDefaultCtor(type, constructor)}},
@@ -50,7 +50,7 @@ internal static partial class SourceFormatter
             }
 
             string parameterTypes = constructor.Parameters.Length == 0
-                ? "Array.Empty<Type>()"
+                ? "global::System.Array.Empty<global::System.Type>()"
                 : $$"""new[] { {{string.Join(", ", constructor.Parameters.Select(p => $"typeof({p.ParameterType.FullyQualifiedName})"))}} }""";
 
             return $"static () => typeof({constructor.DeclaringType.FullyQualifiedName}).GetConstructor({InstanceBindingFlagsConstMember}, {parameterTypes})";
@@ -199,7 +199,7 @@ internal static partial class SourceFormatter
 
     private static void FormatConstructorParameterFactory(SourceWriter writer, ObjectShapeModel type, string methodName, ConstructorShapeModel constructor, string constructorArgumentStateFQN)
     {
-        writer.WriteLine($"private IEnumerable<IConstructorParameterShape> {methodName}() => new IConstructorParameterShape[]");
+        writer.WriteLine($"private global::TypeShape.Abstractions.IConstructorParameterShape[] {methodName}() => new global::TypeShape.Abstractions.IConstructorParameterShape[]");
         writer.WriteLine('{');
         writer.Indentation++;
 
@@ -212,7 +212,7 @@ internal static partial class SourceFormatter
                 writer.WriteLine();
 
             writer.WriteLine($$"""
-                new SourceGenConstructorParameterShape<{{constructorArgumentStateFQN}}, {{parameter.ParameterType.FullyQualifiedName}}>
+                new global::TypeShape.SourceGenModel.SourceGenConstructorParameterShape<{{constructorArgumentStateFQN}}, {{parameter.ParameterType.FullyQualifiedName}}>
                 {
                     Position = {{parameter.Position}},
                     Name = {{FormatStringLiteral(parameter.Name)}},
@@ -243,7 +243,7 @@ internal static partial class SourceFormatter
                 }
 
                 string parameterTypes = constructor.Parameters.Length == 0
-                    ? "Array.Empty<Type>()"
+                    ? "global::System.Array.Empty<global::System.Type>()"
                     : $$"""new[] { {{string.Join(", ", constructor.Parameters.Select(p => $"typeof({p.ParameterType.FullyQualifiedName})"))}} }""";
 
                 return $"static () => typeof({constructor.DeclaringType.FullyQualifiedName}).GetConstructor({InstanceBindingFlagsConstMember}, {parameterTypes})?.GetParameters()[{parameter.Position}]";
@@ -288,7 +288,7 @@ internal static partial class SourceFormatter
                     _ => throw new InvalidOperationException($"Unsupported parameter kind: {parameter.Kind}"),
                 };
 
-                return $"ConstructorParameterKind.{identifier}";
+                return $"global::TypeShape.Abstractions.ConstructorParameterKind.{identifier}";
             }
         }
 

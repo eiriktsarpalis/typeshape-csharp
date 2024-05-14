@@ -8,11 +8,10 @@ internal static partial class SourceFormatter
     private static void FormatEnumerableTypeShapeFactory(SourceWriter writer, string methodName, EnumerableShapeModel enumerableShapeModel)
     {
         writer.WriteLine($$"""
-            private ITypeShape<{{enumerableShapeModel.Type.FullyQualifiedName}}> {{methodName}}()
+            private global::TypeShape.Abstractions.ITypeShape<{{enumerableShapeModel.Type.FullyQualifiedName}}> {{methodName}}()
             {
-                return new SourceGenEnumerableTypeShape<{{enumerableShapeModel.Type.FullyQualifiedName}}, {{enumerableShapeModel.ElementType.FullyQualifiedName}}>
+                return new global::TypeShape.SourceGenModel.SourceGenEnumerableTypeShape<{{enumerableShapeModel.Type.FullyQualifiedName}}, {{enumerableShapeModel.ElementType.FullyQualifiedName}}>
                 {
-                    Provider = this,
                     ElementType = {{enumerableShapeModel.ElementType.GeneratedPropertyName}},
                     ConstructionStrategy = {{FormatCollectionConstructionStrategy(enumerableShapeModel.ConstructionStrategy)}},
                     DefaultConstructorFunc = {{FormatDefaultConstructorFunc(enumerableShapeModel)}},
@@ -21,6 +20,7 @@ internal static partial class SourceFormatter
                     GetEnumerableFunc = {{FormatGetEnumerableFunc(enumerableShapeModel)}},
                     AddElementFunc = {{FormatAddElementFunc(enumerableShapeModel)}},
                     Rank = {{enumerableShapeModel.Rank}},
+                    Provider = this,
                };
             }
             """, trimNullAssignmentLines: true);
@@ -68,7 +68,7 @@ internal static partial class SourceFormatter
             }
 
             string suppressSuffix = enumerableType.ElementTypeContainsNullableAnnotations ? "!" : "";
-            string valuesExpr = enumerableType.CtorRequiresListConversion ? $"CollectionHelpers.CreateList(values{suppressSuffix})" : $"values{suppressSuffix}";
+            string valuesExpr = enumerableType.CtorRequiresListConversion ? $"global::TypeShape.SourceGenModel.CollectionHelpers.CreateList(values{suppressSuffix})" : $"values{suppressSuffix}";
             return enumerableType switch
             {
                 { Kind: EnumerableKind.ArrayOfT or EnumerableKind.ReadOnlyMemoryOfT or EnumerableKind.MemoryOfT } => $"static values => {valuesExpr}.ToArray()",
@@ -104,6 +104,6 @@ internal static partial class SourceFormatter
             _ => throw new ArgumentException(strategy.ToString()),
         };
 
-        return $"CollectionConstructionStrategy." + identifier;
+        return $"global::TypeShape.Abstractions.CollectionConstructionStrategy." + identifier;
     }
 }

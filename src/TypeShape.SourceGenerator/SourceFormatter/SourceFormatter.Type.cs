@@ -9,7 +9,7 @@ internal static partial class SourceFormatter
 {
     private static SourceText FormatType(TypeShapeProviderModel provider, TypeShapeModel type)
     {
-        string generatedPropertyType = $"ITypeShape<{type.Type.FullyQualifiedName}>";
+        string generatedPropertyType = $"global::TypeShape.Abstractions.ITypeShape<{type.Type.FullyQualifiedName}>";
         string generatedFactoryMethodName = $"Create_{type.Type.GeneratedPropertyName}";
         string generatedFieldName = "_" + type.Type.GeneratedPropertyName;
 
@@ -20,7 +20,7 @@ internal static partial class SourceFormatter
         {
             writer.WriteLine($"""
                 #nullable disable annotations // Use nullable-oblivious interface implementation
-                {provider.Declaration.TypeDeclarationHeader} : ITypeShapeProvider<{type.Type.FullyQualifiedName}>
+                {provider.Declaration.TypeDeclarationHeader} : global::TypeShape.ITypeShapeProvider<{type.Type.FullyQualifiedName}>
                 #nullable enable annotations // Use nullable-oblivious interface implementation
                 """);
         }
@@ -44,7 +44,7 @@ internal static partial class SourceFormatter
         if (type.EmitGenericTypeShapeProviderImplementation)
         {
             writer.WriteLine($"""
-                static {generatedPropertyType} ITypeShapeProvider<{type.Type.FullyQualifiedName}>.GetShape() => Default.{type.Type.GeneratedPropertyName};
+                static {generatedPropertyType} global::TypeShape.ITypeShapeProvider<{type.Type.FullyQualifiedName}>.GetShape() => Default.{type.Type.GeneratedPropertyName};
 
                 """);
         }

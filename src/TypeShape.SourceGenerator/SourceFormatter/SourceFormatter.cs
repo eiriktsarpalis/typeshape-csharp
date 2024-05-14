@@ -39,10 +39,10 @@ internal static partial class SourceFormatter
         writer.Indentation++;
 
         writer.WriteLine($$"""
-            private const System.Reflection.BindingFlags {{InstanceBindingFlagsConstMember}} = 
-                System.Reflection.BindingFlags.Public | 
-                System.Reflection.BindingFlags.NonPublic | 
-                System.Reflection.BindingFlags.Instance;
+            private const global::System.Reflection.BindingFlags {{InstanceBindingFlagsConstMember}} = 
+                global::System.Reflection.BindingFlags.Public | 
+                global::System.Reflection.BindingFlags.NonPublic | 
+                global::System.Reflection.BindingFlags.Instance;
 
             public static {{provider.Declaration.Name}} Default { get; } = new();
 
@@ -73,19 +73,7 @@ internal static partial class SourceFormatter
 
             """);
 #endif
-
-        writer.WriteLine("""
-            // Suppress warnings about [Obsolete] member usage in generated code.
-            #pragma warning disable CS0612, CS0618
-
-            using System;
-            using System.Collections.Generic;
-            using TypeShape;
-            using TypeShape.Abstractions;
-            using TypeShape.SourceGenModel;
-
-            """);
-
+        
         if (typeDeclaration.Namespace is string @namespace)
         {
             writer.WriteLine($"namespace {@namespace}");
