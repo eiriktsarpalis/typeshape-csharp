@@ -444,6 +444,11 @@ public static class TestTypes
         yield return TestCase.Create(new PersonRecordStruct("John", 40));
         yield return TestCase.Create(p, (PersonRecordStruct?)new PersonRecordStruct("John", 40));
         yield return TestCase.Create(new ClassWithMultipleConstructors(z: 3) { X = 1, Y = 2 });
+        yield return TestCase.Create(new ClassWithConflictingAnnotations
+        {
+            NonNullNullableString = new() { Value = "str" },
+            NullableString = new() { Value = null },
+        });
     }
 }
 
@@ -1545,6 +1550,18 @@ partial class ClassWithMultipleConstructors
     public int X { get; set; }
     public int Y { get; set; }
     public int Z { get; }
+}
+
+[GenerateShape]
+public partial class ClassWithConflictingAnnotations
+{
+    public required GenericClass<string?> NullableString { get; set; }
+    public required GenericClass<string> NonNullNullableString { get; set; }
+
+    public class GenericClass<T>
+    {
+        public required T Value { get; set; }
+    }
 }
 
 [GenerateShape<object>]
