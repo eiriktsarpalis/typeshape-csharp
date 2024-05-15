@@ -5,6 +5,8 @@ using TypeShape.Abstractions;
 
 namespace TypeShape.ReflectionProvider;
 
+using MemberDescriptor = (MemberInfo MemberInfo, ICustomAttributeProvider AttributeProvider, string? LogicalName, int Order, bool IncludeNonPublic);
+
 [RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
 internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider provider) : IObjectTypeShape<T>
@@ -51,12 +53,8 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
             }
         }
 
-        var allMembers = GetMembers().ToArray();
-        MemberInitializerShapeInfo[] settableMembers = allMembers
-            .Where(m => m.MemberInfo is PropertyInfo { CanWrite: true } or FieldInfo { IsInitOnly: false })
-            .Select(m => new MemberInitializerShapeInfo(m.MemberInfo, m.LogicalName))
-            .OrderByDescending(m => m.IsRequired || m.IsInitOnly) // Shift required or init members first
-            .ToArray();
+        MemberDescriptor[] allMembers;
+        MemberInitializerShapeInfo[] settableMembers;
 
         (ConstructorInfo Ctor, ParameterInfo[] Parameters)[] ctorCandidates = [..GetCandidateConstructors()];
         if (ctorCandidates.Length == 0)
@@ -64,7 +62,8 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
             if (typeof(T).IsValueType)
             {
                 // If no explicit ctor has been defined, use the implicit default constructor for structs.
-                // Do not include member initializers if no required or init-only members are present.
+                allMembers = [.. GetMembers()];
+                settableMembers = GetSettableMembers(allMembers, ctorSetsRequiredMembers: false);
                 bool hasRequiredOrInitOnlyMembers = settableMembers.Any(m => m.IsRequired || m.IsInitOnly);
                 MethodConstructorShapeInfo defaultCtorInfo = CreateDefaultConstructor(hasRequiredOrInitOnlyMembers ? settableMembers : []);
                 return provider.CreateConstructor(defaultCtorInfo);
@@ -75,6 +74,7 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
 
         ConstructorInfo? constructorInfo;
         ParameterInfo[] parameters;
+        allMembers = [.. GetMembers()];
 
         if (ctorCandidates.Length == 1)
         {
@@ -100,7 +100,7 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
                 });
         }
 
-        var parameterShapeInfos = parameters.Select(parameter =>
+        MethodParameterShapeInfo[] parameterShapeInfos = parameters.Select(parameter =>
         {
             var matchingMember = allMembers.FirstOrDefault(member =>
                 member.MemberInfo.GetMemberType() == parameter.ParameterType &&
@@ -123,35 +123,40 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
         }).ToArray();
 
         bool setsRequiredMembers = constructorInfo.SetsRequiredMembers();
-        bool isDefaultCtorWithoutRequiredOrInitMembers =
-            parameters.Length == 0 && !settableMembers.Any(m => (m.IsRequired && !setsRequiredMembers) || m.IsInitOnly);
-
-        // Do not include member initializers in default constructors that don't have required members or init-only properties.
-        var settableMembersToInclude = isDefaultCtorWithoutRequiredOrInitMembers ? [] : settableMembers;
-
+        settableMembers = GetSettableMembers(allMembers, setsRequiredMembers);
         List<MemberInitializerShapeInfo>? memberInitializers = null;
-        foreach (MemberInitializerShapeInfo memberInitializer in settableMembersToInclude)
+
+        if (parameters.Length > 0 || settableMembers.Any(m => m.IsRequired || m.IsInitOnly))
         {
-            if (setsRequiredMembers && memberInitializer.IsRequired)
+            // Constructors with parameters, or constructors with required or init-only members
+            // are deemed to be parameterized, in which case we also include *all* settable
+            // members in the shape signature.
+            foreach (MemberInitializerShapeInfo memberInitializer in settableMembers)
             {
-                // Skip required members if set by the constructor.
-                continue;
-            }
+                if (!memberInitializer.IsRequired && parameterShapeInfos.Any(p => p.MatchingMember == memberInitializer.MemberInfo))
+                {
+                    // Deduplicate any properties whose signature matches a constructor parameter.
+                    continue;
+                }
 
-            if (!memberInitializer.IsRequired && parameterShapeInfos.Any(p => p.MatchingMember == memberInitializer.MemberInfo))
-            {
-                // Deduplicate any auto-properties whose signature matches a constructor parameter.
-                continue;
+                (memberInitializers ??= []).Add(memberInitializer);
             }
-
-            (memberInitializers ??= []).Add(memberInitializer);
         }
 
-        var ctorShapeInfo = new MethodConstructorShapeInfo(typeof(T), constructorInfo, parameterShapeInfos, memberInitializers?.ToArray() ?? []);
+        var ctorShapeInfo = new MethodConstructorShapeInfo(typeof(T), constructorInfo, parameterShapeInfos, memberInitializers?.ToArray());
         return provider.CreateConstructor(ctorShapeInfo);
 
         static MethodConstructorShapeInfo CreateDefaultConstructor(MemberInitializerShapeInfo[]? memberInitializers)
             => new(typeof(T), constructorMethod: null, parameters: [], memberInitializers: memberInitializers);
+
+        static MemberInitializerShapeInfo[] GetSettableMembers(MemberDescriptor[] allMembers, bool ctorSetsRequiredMembers)
+        {
+            return allMembers
+                .Where(m => m.MemberInfo is PropertyInfo { CanWrite: true } or FieldInfo { IsInitOnly: false })
+                .Select(m => new MemberInitializerShapeInfo(m.MemberInfo, m.LogicalName, ctorSetsRequiredMembers))
+                .OrderByDescending(m => m.IsRequired || m.IsInitOnly) // Shift required or init members first
+                .ToArray();
+        }
 
         IEnumerable<(ConstructorInfo, ParameterInfo[])> GetCandidateConstructors()
         {
@@ -210,16 +215,16 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
             yield break;
         }
 
-        foreach ((MemberInfo memberInfo, ICustomAttributeProvider attributeProvider, string? logicalName, _, bool includeNonPublic) in GetMembers())
+        foreach (MemberDescriptor member in GetMembers())
         {
-            yield return provider.CreateProperty(typeof(T), memberInfo, parentMembers: null, attributeProvider, logicalName, includeNonPublic);
+            yield return provider.CreateProperty(typeof(T), member.MemberInfo, parentMembers: null, member.AttributeProvider, member.LogicalName, member.IncludeNonPublic);
         }
     }
 
-    private IEnumerable<(MemberInfo MemberInfo, ICustomAttributeProvider AttributeProvider, string? LogicalName, int Order, bool IncludeNonPublic)> GetMembers()
+    private IEnumerable<MemberDescriptor> GetMembers()
     {
         Debug.Assert(!IsSimpleType);
-        List<(MemberInfo MemberInfo, ICustomAttributeProvider AttributeProvider, string? LogicalName, int Order, bool IncludeNonPublic)> results = [];
+        List<MemberDescriptor> results = [];
         HashSet<string> membersInScope = new(StringComparer.Ordinal);
         bool isOrderSpecified = false;
 

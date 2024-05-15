@@ -11,11 +11,13 @@ public readonly struct PropertyDataModel
     public PropertyDataModel(IPropertySymbol property)
     {
         PropertySymbol = property;
+        IsRequired = property.IsRequired;
     }
 
     public PropertyDataModel(IFieldSymbol field)
     {
         PropertySymbol = field;
+        IsRequired = field.IsRequired;
     }
 
     /// <summary>
@@ -79,11 +81,7 @@ public readonly struct PropertyDataModel
     /// <summary>
     /// Whether the property or field is required.
     /// </summary>
-    public bool IsRequired => PropertySymbol switch
-    {
-        IPropertySymbol p => p.IsRequired,
-        var symbol => ((IFieldSymbol)symbol).IsRequired,
-    };
+    public bool IsRequired { get; init; }
 
     /// <summary>
     /// Whether the property is init-only.

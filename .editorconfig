@@ -95,3 +95,6 @@ dotnet_diagnostic.SA1502.severity = none
 
 # SA1508: Closing braces should not be preceded by blank line
 dotnet_diagnostic.SA1508.severity = none
+
+# SA1008: Opening parenthesis should be spaced correctly
+dotnet_diagnostic.SA1008.severity = none

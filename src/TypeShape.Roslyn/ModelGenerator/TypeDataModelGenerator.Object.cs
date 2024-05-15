@@ -182,8 +182,10 @@ public partial class TypeDataModelGenerator
         bool setsRequiredMembers = constructor.HasSetsRequiredMembersAttribute();
         List<PropertyDataModel>? memberInitializers = null;
 
-        foreach (PropertyDataModel property in properties)
+        for (int i = 0; i < properties.Length; i++)
         {
+            PropertyDataModel property = properties[i];
+
             if (!property.CanWrite && !property.IsInitOnly)
             {
                 // We're only interested in settable properties.
@@ -192,8 +194,8 @@ public partial class TypeDataModelGenerator
 
             if (setsRequiredMembers && property.IsRequired)
             {
-                // Skip required members if set by the constructor.
-                continue;
+                // Disable 'IsRequired' flag for constructors setting required members.
+                property = property with { IsRequired = false };
             }
 
             if (!property.IsRequired && MatchesConstructorParameter(property))

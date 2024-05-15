@@ -190,7 +190,7 @@ public static class TestTypes
         yield return TestCase.Create(p, new GenericRecordStruct<string>("str"));
         yield return TestCase.Create(p, new GenericRecordStruct<GenericRecordStruct<bool>>(new GenericRecordStruct<bool>(true)));
 
-        yield return TestCase.Create(new ClassWithInitOnlyProperty { Value = 42 });
+        yield return TestCase.Create(new ClassWithInitOnlyProperties { Value = 99, Values = [99] });
         yield return TestCase.Create(p, new GenericStructWithInitOnlyProperty<int> { Value = 42 });
         yield return TestCase.Create(p, new GenericStructWithInitOnlyProperty<string> { Value = "str" });
         yield return TestCase.Create(p, new GenericStructWithInitOnlyProperty<GenericStructWithInitOnlyProperty<string>> { Value = new() { Value = "str" } });
@@ -229,6 +229,8 @@ public static class TestTypes
 
         yield return TestCase.Create(new ClassWithSetsRequiredMembersCtor(42));
         yield return TestCase.Create(new StructWithSetsRequiredMembersCtor(42));
+        yield return TestCase.Create(new ClassWithSetsRequiredMembersDefaultCtor { Value = 42 });
+        yield return TestCase.Create(new StructWithSetsRequiredMembersDefaultCtor { Value = 42 });
 
         yield return TestCase.Create(new ClassWithRequiredAndInitOnlyProperties
         {
@@ -758,15 +760,34 @@ public partial struct StructWithSetsRequiredMembersCtor
     }
 }
 
+[GenerateShape]
+public partial class ClassWithSetsRequiredMembersDefaultCtor
+{
+    [SetsRequiredMembers]
+    public ClassWithSetsRequiredMembersDefaultCtor() { }
+
+    public required int Value { get; set; }
+}
+
+[GenerateShape]
+public partial struct StructWithSetsRequiredMembersDefaultCtor
+{
+    [SetsRequiredMembers]
+    public StructWithSetsRequiredMembersDefaultCtor() { }
+
+    public required int Value { get; set; }
+}
+
 public readonly struct GenericStructWithInitOnlyProperty<T>
 {
     public T Value { get; init; } 
 }
 
 [GenerateShape]
-public partial class ClassWithInitOnlyProperty
+public partial class ClassWithInitOnlyProperties
 {
     public int Value { get; init; } = 42;
+    public List<int> Values { get; init; } = [42];
 }
 
 [GenerateShape]

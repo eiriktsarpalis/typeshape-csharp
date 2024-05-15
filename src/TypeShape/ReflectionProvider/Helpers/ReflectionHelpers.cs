@@ -286,7 +286,7 @@ internal static class ReflectionHelpers
         return memberInfo.CustomAttributes.Any(static attr => attr.AttributeType.FullName == "System.Runtime.CompilerServices.RequiredMemberAttribute");
     }
 
-    public static bool SetsRequiredMembers(this ConstructorInfo ctorInfo)
+    public static bool SetsRequiredMembers(this MethodBase ctorInfo)
     {
         return ctorInfo.CustomAttributes.Any(static attr => attr.AttributeType.FullName == "System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute");
     }

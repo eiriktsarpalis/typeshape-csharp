@@ -97,14 +97,14 @@ internal sealed class MethodParameterShapeInfo : IParameterShapeInfo
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
 internal sealed class MemberInitializerShapeInfo : IParameterShapeInfo
 {
-    public MemberInitializerShapeInfo(MemberInfo memberInfo, string? logicalName)
+    public MemberInitializerShapeInfo(MemberInfo memberInfo, string? logicalName, bool ctorSetsRequiredMembers)
     {
         Debug.Assert(memberInfo is PropertyInfo or FieldInfo);
 
         Type = memberInfo.MemberType();
         Name = logicalName ?? memberInfo.Name;
         MemberInfo = memberInfo;
-        IsRequired = memberInfo.IsRequired();
+        IsRequired = !ctorSetsRequiredMembers && memberInfo.IsRequired();
         IsInitOnly = memberInfo.IsInitOnly();
         IsPublic = memberInfo is FieldInfo { IsPublic: true } or PropertyInfo { GetMethod.IsPublic: true };
 

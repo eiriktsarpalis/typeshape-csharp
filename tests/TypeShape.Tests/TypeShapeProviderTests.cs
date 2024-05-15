@@ -497,6 +497,7 @@ public abstract class TypeShapeProviderTests(IProviderUnderTest providerUnderTes
             ParameterInfo[] parameters = ctorInfo.GetParameters();
             Assert.True(parameters.Length <= constructor.ParameterCount);
             Assert.Equal(ctorInfo.IsPublic, constructor.IsPublic);
+            bool hasSetsRequiredMembersAttribute = ctorInfo.SetsRequiredMembers();
 
             int i = 0;
             foreach (IConstructorParameterShape ctorParam in constructor.GetParameters())
@@ -535,18 +536,17 @@ public abstract class TypeShapeProviderTests(IProviderUnderTest providerUnderTes
                 else
                 {
                     MemberInfo memberInfo = Assert.IsAssignableFrom<MemberInfo>(ctorParam.AttributeProvider);
-                    PropertyShapeAttribute? attr = memberInfo.GetCustomAttribute<PropertyShapeAttribute>();
+                    Assert.True(memberInfo is PropertyInfo or FieldInfo);
 
+                    PropertyShapeAttribute? attr = memberInfo.GetCustomAttribute<PropertyShapeAttribute>();
                     Assert.True(memberInfo.DeclaringType!.IsAssignableFrom(typeof(T)));
                     Assert.Equal(attr?.Name ?? memberInfo.Name, ctorParam.Name);
                     Assert.False(ctorParam.HasDefaultValue);
                     Assert.Equal(i, ctorParam.Position);
                     Assert.False(ctorParam.HasDefaultValue);
                     Assert.Null(ctorParam.DefaultValue);
-                    Assert.Equal(memberInfo.GetCustomAttribute<RequiredMemberAttribute>() != null, ctorParam.IsRequired);
+                    Assert.Equal(!hasSetsRequiredMembersAttribute && memberInfo.IsRequired(), ctorParam.IsRequired);
                     Assert.Equal(memberInfo is FieldInfo ? ConstructorParameterKind.FieldInitializer : ConstructorParameterKind.PropertyInitializer, ctorParam.Kind);
-
-                    Assert.True(memberInfo is PropertyInfo or FieldInfo);
 
                     if (memberInfo is PropertyInfo p)
                     {
