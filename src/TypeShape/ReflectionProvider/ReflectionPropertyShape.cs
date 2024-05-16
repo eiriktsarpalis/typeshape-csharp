@@ -13,20 +13,20 @@ internal sealed class ReflectionPropertyShape<TDeclaringType, TPropertyType> : I
     private readonly MemberInfo _memberInfo;
     private readonly MemberInfo[]? _parentMembers; // stack of parent members reserved for nested tuple representations
 
-    public ReflectionPropertyShape(ReflectionTypeShapeProvider provider, MemberInfo memberInfo, MemberInfo[]? parentMembers, ICustomAttributeProvider attributeProvider, string? logicalName, bool includeNonPublicAccessors)
+    public ReflectionPropertyShape(ReflectionTypeShapeProvider provider, PropertyShapeInfo shapeInfo)
     {
-        Debug.Assert(memberInfo.DeclaringType!.IsAssignableFrom(typeof(TDeclaringType)) || parentMembers is not null);
-        Debug.Assert(memberInfo is PropertyInfo or FieldInfo);
-        Debug.Assert(parentMembers is null || typeof(TDeclaringType).IsNestedTupleRepresentation());
+        Debug.Assert(shapeInfo.MemberInfo.DeclaringType!.IsAssignableFrom(typeof(TDeclaringType)) || shapeInfo.ParentMembers is not null);
+        Debug.Assert(shapeInfo.MemberInfo is PropertyInfo or FieldInfo);
+        Debug.Assert(shapeInfo.ParentMembers is null || typeof(TDeclaringType).IsNestedTupleRepresentation());
 
         _provider = provider;
-        _memberInfo = memberInfo;
-        _parentMembers = parentMembers;
-        AttributeProvider = attributeProvider;
+        _memberInfo = shapeInfo.MemberInfo;
+        _parentMembers = shapeInfo.ParentMembers;
+        AttributeProvider = shapeInfo.AttributeProvider;
 
-        Name = logicalName ?? memberInfo.Name;
+        Name = shapeInfo.LogicalName ?? shapeInfo.MemberInfo.Name;
 
-        if (memberInfo is FieldInfo f)
+        if (shapeInfo.MemberInfo is FieldInfo f)
         {
             HasGetter = true;
             HasSetter = !f.IsInitOnly;
@@ -34,17 +34,17 @@ internal sealed class ReflectionPropertyShape<TDeclaringType, TPropertyType> : I
             IsGetterPublic = f.IsPublic;
             IsSetterPublic = !f.IsInitOnly && f.IsPublic;
         }
-        else if (memberInfo is PropertyInfo p)
+        else
         {
-            HasGetter = p.CanRead && (includeNonPublicAccessors || p.GetMethod!.IsPublic);
-            HasSetter = p.CanWrite && (includeNonPublicAccessors || p.SetMethod!.IsPublic) && !p.IsInitOnly();
+            PropertyInfo p = (PropertyInfo)shapeInfo.MemberInfo;
+            HasGetter = p.CanRead && (shapeInfo.IncludeNonPublicAccessors || p.GetMethod!.IsPublic);
+            HasSetter = p.CanWrite && (shapeInfo.IncludeNonPublicAccessors || p.SetMethod!.IsPublic) && !p.IsInitOnly();
             IsGetterPublic = HasGetter && p.GetMethod!.IsPublic;
             IsSetterPublic = HasSetter && p.SetMethod!.IsPublic;
         }
 
-        memberInfo.ResolveNullableAnnotation(out bool isGetterNonNullable, out bool isSetterNonNullable);
-        IsGetterNonNullable = HasGetter && isGetterNonNullable;
-        IsSetterNonNullable = HasSetter && isSetterNonNullable;
+        IsGetterNonNullable = HasGetter && shapeInfo.IsGetterNonNullable;
+        IsSetterNonNullable = HasSetter && shapeInfo.IsSetterNonNullable;
     }
 
     public string Name { get; }
@@ -81,3 +81,14 @@ internal sealed class ReflectionPropertyShape<TDeclaringType, TPropertyType> : I
         return _provider.MemberAccessor.CreateSetter<TDeclaringType, TPropertyType>(_memberInfo, _parentMembers);
     }
 }
+
+internal sealed record PropertyShapeInfo(
+    Type DeclaringType,
+    MemberInfo MemberInfo,
+    ICustomAttributeProvider AttributeProvider,
+    MemberInfo[]? ParentMembers = null,
+    string? LogicalName = null,
+    int Order = 0,
+    bool IncludeNonPublicAccessors = false,
+    bool IsGetterNonNullable = false,
+    bool IsSetterNonNullable = false);

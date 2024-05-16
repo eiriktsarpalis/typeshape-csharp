@@ -62,7 +62,7 @@ internal interface IParameterShapeInfo
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
 internal sealed class MethodParameterShapeInfo : IParameterShapeInfo
 {
-    public MethodParameterShapeInfo(ParameterInfo parameterInfo, MemberInfo? matchingMember = null, string? logicalName = null)
+    public MethodParameterShapeInfo(ParameterInfo parameterInfo, bool isNonNullable, MemberInfo? matchingMember = null, string? logicalName = null)
     {
         string? name = logicalName ?? parameterInfo.Name;
         Debug.Assert(name != null);
@@ -70,7 +70,7 @@ internal sealed class MethodParameterShapeInfo : IParameterShapeInfo
 
         ParameterInfo = parameterInfo;
         MatchingMember = matchingMember;
-        IsNonNullable = parameterInfo.IsNonNullableAnnotation();
+        IsNonNullable = isNonNullable;
 
         if (parameterInfo.TryGetDefaultValueNormalized(out object? defaultValue))
         {
@@ -97,7 +97,7 @@ internal sealed class MethodParameterShapeInfo : IParameterShapeInfo
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
 internal sealed class MemberInitializerShapeInfo : IParameterShapeInfo
 {
-    public MemberInitializerShapeInfo(MemberInfo memberInfo, string? logicalName, bool ctorSetsRequiredMembers)
+    public MemberInitializerShapeInfo(MemberInfo memberInfo, string? logicalName, bool ctorSetsRequiredMembers, bool isSetterNonNullable)
     {
         Debug.Assert(memberInfo is PropertyInfo or FieldInfo);
 
@@ -107,8 +107,6 @@ internal sealed class MemberInitializerShapeInfo : IParameterShapeInfo
         IsRequired = !ctorSetsRequiredMembers && memberInfo.IsRequired();
         IsInitOnly = memberInfo.IsInitOnly();
         IsPublic = memberInfo is FieldInfo { IsPublic: true } or PropertyInfo { GetMethod.IsPublic: true };
-
-        memberInfo.ResolveNullableAnnotation(out _, out bool isSetterNonNullable);
         IsNonNullable = isSetterNonNullable;
     }
 

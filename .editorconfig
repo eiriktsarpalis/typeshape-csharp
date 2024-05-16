@@ -98,3 +98,6 @@ dotnet_diagnostic.SA1508.severity = none
 
 # SA1008: Opening parenthesis should be spaced correctly
 dotnet_diagnostic.SA1008.severity = none
+
+# Default severity for all analyzer diagnostics
+dotnet_analyzer_diagnostic.severity = none

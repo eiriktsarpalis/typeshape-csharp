@@ -27,9 +27,9 @@ internal static class ReflectionHelpers
         return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>);
     }
 
-    public static void ResolveNullableAnnotation(this MemberInfo memberInfo, out bool isGetterNonNullable, out bool isSetterNonNullable)
+    public static void ResolveNullableAnnotation(this MemberInfo memberInfo, ref NullabilityInfoContext? ctx, out bool isGetterNonNullable, out bool isSetterNonNullable)
     {
-        if (GetNullabilityInfo(memberInfo) is NullabilityInfo info)
+        if (GetNullabilityInfo(memberInfo, ref ctx) is NullabilityInfo info)
         {
             isGetterNonNullable = info.ReadState is NullabilityState.NotNull;
             isSetterNonNullable = info.WriteState is NullabilityState.NotNull;
@@ -42,9 +42,9 @@ internal static class ReflectionHelpers
         }
     }
 
-    public static bool IsNonNullableAnnotation(this ParameterInfo parameterInfo)
+    public static bool IsNonNullableAnnotation(this ParameterInfo parameterInfo, ref NullabilityInfoContext? ctx)
     {
-        if (GetNullabilityInfo(parameterInfo) is NullabilityInfo info)
+        if (GetNullabilityInfo(parameterInfo, ref ctx) is NullabilityInfo info)
         {
             // Workaround for https://github.com/dotnet/runtime/issues/92487
             if (parameterInfo.GetGenericParameterDefinition() is { ParameterType: { IsGenericTypeParameter: true } typeParam })
@@ -102,20 +102,20 @@ internal static class ReflectionHelpers
         }
     }
 
-    private static NullabilityInfo? GetNullabilityInfo(ICustomAttributeProvider memberInfo)
+    private static NullabilityInfo? GetNullabilityInfo(ICustomAttributeProvider memberInfo, ref NullabilityInfoContext? context)
     {
         Debug.Assert(memberInfo is PropertyInfo or FieldInfo or ParameterInfo);
 
         switch (memberInfo)
         {
             case PropertyInfo prop when prop.PropertyType.IsNullable():
-                return new NullabilityInfoContext().Create(prop);
+                return (context ??= new()).Create(prop);
 
             case FieldInfo field when field.FieldType.IsNullable():
-                return new NullabilityInfoContext().Create(field);
+                return (context ??= new()).Create(field);
 
             case ParameterInfo parameter when parameter.ParameterType.IsNullable():
-                return new NullabilityInfoContext().Create(parameter);
+                return (context ??= new()).Create(parameter);
         }
 
         return null;

@@ -171,6 +171,15 @@ public static class TestTypes
         yield return TestCase.Create(new ParameterlessStructRecord());
 
         yield return TestCase.Create(new ClassWithNullabilityAttributes());
+        yield return TestCase.Create(p, new ClassWithNullabilityAttributes<string> 
+        { 
+            NotNullField = "str", 
+            DisallowNullField = "str", 
+            DisallowNullProperty = "str", 
+            NotNullProperty = "str" 
+        });
+
+        yield return TestCase.Create(p, new ClassWithNotNullProperty<string> { Property = "Value" });
         yield return TestCase.Create(new ClassWithStructNullabilityAttributes());
         yield return TestCase.Create(new ClassWithInternalConstructor(42));
         yield return TestCase.Create(new NonNullStringRecord("str"));
@@ -1004,6 +1013,26 @@ public partial class ClassWithNullabilityAttributes
     public string? DisallowNullField = "";
 }
 
+public class ClassWithNullabilityAttributes<T>
+{
+    [NotNull]
+    public T? NotNullProperty { get; set; }
+
+    [DisallowNull]
+    public T? DisallowNullProperty { get; set; }
+
+    [NotNull]
+    public required T NotNullField;
+
+    [DisallowNull]
+    public T? DisallowNullField;
+}
+
+public class ClassWithNotNullProperty<T> where T : notnull
+{
+    public required T Property { get; set; }
+}
+
 [GenerateShape]
 public partial class ClassWithStructNullabilityAttributes
 {
@@ -1731,6 +1760,8 @@ public partial class ClassWithConflictingAnnotations
 [GenerateShape<ClassWithNullableProperty<int>>]
 [GenerateShape<ClassWithNullableProperty<int?>>]
 [GenerateShape<ClassWithNullableProperty<string>>]
+[GenerateShape<ClassWithNullabilityAttributes<string>>]
+[GenerateShape<ClassWithNotNullProperty<string>>]
 internal partial class SourceGenProvider;
 
 internal partial class Outer1

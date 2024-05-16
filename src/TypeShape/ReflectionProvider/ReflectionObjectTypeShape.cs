@@ -5,8 +5,6 @@ using TypeShape.Abstractions;
 
 namespace TypeShape.ReflectionProvider;
 
-using MemberDescriptor = (MemberInfo MemberInfo, ICustomAttributeProvider AttributeProvider, string? LogicalName, int Order, bool IncludeNonPublic);
-
 [RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
 internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider provider) : IObjectTypeShape<T>
@@ -29,8 +27,11 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
     public bool IsSimpleType => _isSimpleType ??= DetermineIsSimpleType(typeof(T));
     private bool? _isSimpleType;
 
-    public bool HasProperties => !IsSimpleType && GetMembers().Any();
-    public bool HasConstructor => GetConstructor() is not null;
+    public bool HasProperties => _hasProperties ??= GetProperties().Any();
+    private bool? _hasProperties;
+
+    public bool HasConstructor => _hasConstructor ??= GetConstructor() is not null;
+    private bool? _hasConstructor;
 
     public IConstructorShape? GetConstructor()
     {
@@ -53,8 +54,9 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
             }
         }
 
-        MemberDescriptor[] allMembers;
+        PropertyShapeInfo[] allMembers;
         MemberInitializerShapeInfo[] settableMembers;
+        NullabilityInfoContext? nullabilityCtx = null;
 
         (ConstructorInfo Ctor, ParameterInfo[] Parameters)[] ctorCandidates = [..GetCandidateConstructors()];
         if (ctorCandidates.Length == 0)
@@ -62,7 +64,7 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
             if (typeof(T).IsValueType)
             {
                 // If no explicit ctor has been defined, use the implicit default constructor for structs.
-                allMembers = [.. GetMembers()];
+                allMembers = [.. GetMembers(ref nullabilityCtx)];
                 settableMembers = GetSettableMembers(allMembers, ctorSetsRequiredMembers: false);
                 bool hasRequiredOrInitOnlyMembers = settableMembers.Any(m => m.IsRequired || m.IsInitOnly);
                 MethodConstructorShapeInfo defaultCtorInfo = CreateDefaultConstructor(hasRequiredOrInitOnlyMembers ? settableMembers : []);
@@ -74,7 +76,7 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
 
         ConstructorInfo? constructorInfo;
         ParameterInfo[] parameters;
-        allMembers = [.. GetMembers()];
+        allMembers = [.. GetMembers(ref nullabilityCtx)];
 
         if (ctorCandidates.Length == 1)
         {
@@ -100,9 +102,14 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
                 });
         }
 
-        MethodParameterShapeInfo[] parameterShapeInfos = parameters.Select(parameter =>
+        var parameterShapeInfos = new MethodParameterShapeInfo[parameters.Length];
+        NullabilityInfoContext? nullabilityInfoContext = null;
+        int i = 0;
+
+        foreach (ParameterInfo parameter in parameters)
         {
-            var matchingMember = allMembers.FirstOrDefault(member =>
+            bool isNonNullable = parameter.IsNonNullableAnnotation(ref nullabilityInfoContext);
+            PropertyShapeInfo? matchingMember = allMembers.FirstOrDefault(member =>
                 member.MemberInfo.GetMemberType() == parameter.ParameterType &&
                 CommonHelpers.CamelCaseInvariantComparer.Instance.Equals(parameter.Name, member.MemberInfo.Name));
 
@@ -116,11 +123,11 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
                 }
 
                 // If no custom name is specified, attempt to use the custom name from a matching property.
-                logicalName = matchingMember.LogicalName;
+                logicalName = matchingMember?.LogicalName;
             }
 
-            return new MethodParameterShapeInfo(parameter, matchingMember.MemberInfo, logicalName);
-        }).ToArray();
+            parameterShapeInfos[i++] = new(parameter, isNonNullable, matchingMember?.MemberInfo, logicalName);
+        }
 
         bool setsRequiredMembers = constructorInfo.SetsRequiredMembers();
         settableMembers = GetSettableMembers(allMembers, setsRequiredMembers);
@@ -149,11 +156,11 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
         static MethodConstructorShapeInfo CreateDefaultConstructor(MemberInitializerShapeInfo[]? memberInitializers)
             => new(typeof(T), constructorMethod: null, parameters: [], memberInitializers: memberInitializers);
 
-        static MemberInitializerShapeInfo[] GetSettableMembers(MemberDescriptor[] allMembers, bool ctorSetsRequiredMembers)
+        static MemberInitializerShapeInfo[] GetSettableMembers(PropertyShapeInfo[] allMembers, bool ctorSetsRequiredMembers)
         {
             return allMembers
                 .Where(m => m.MemberInfo is PropertyInfo { CanWrite: true } or FieldInfo { IsInitOnly: false })
-                .Select(m => new MemberInitializerShapeInfo(m.MemberInfo, m.LogicalName, ctorSetsRequiredMembers))
+                .Select(m => new MemberInitializerShapeInfo(m.MemberInfo, m.LogicalName, ctorSetsRequiredMembers, m.IsSetterNonNullable))
                 .OrderByDescending(m => m.IsRequired || m.IsInitOnly) // Shift required or init members first
                 .ToArray();
         }
@@ -209,22 +216,24 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
         {
             foreach (var field in ReflectionHelpers.EnumerateTupleMemberPaths(typeof(T)))
             {
-                yield return provider.CreateProperty(typeof(T), field.Member, field.ParentMembers, field.Member, field.LogicalName, includeNonPublicAccessors: false);
+                PropertyShapeInfo propertyShapeInfo = new(typeof(T), field.Member, field.Member, field.ParentMembers, field.LogicalName);
+                yield return provider.CreateProperty(propertyShapeInfo);
             }
 
             yield break;
         }
 
-        foreach (MemberDescriptor member in GetMembers())
+        NullabilityInfoContext? nullabilityCtx = null;
+        foreach (PropertyShapeInfo member in GetMembers(ref nullabilityCtx))
         {
-            yield return provider.CreateProperty(typeof(T), member.MemberInfo, parentMembers: null, member.AttributeProvider, member.LogicalName, member.IncludeNonPublic);
+            yield return provider.CreateProperty(member);
         }
     }
 
-    private IEnumerable<MemberDescriptor> GetMembers()
+    private IEnumerable<PropertyShapeInfo> GetMembers(ref NullabilityInfoContext? nullabilityCtx)
     {
         Debug.Assert(!IsSimpleType);
-        List<MemberDescriptor> results = [];
+        List<PropertyShapeInfo> results = [];
         HashSet<string> membersInScope = new(StringComparer.Ordinal);
         bool isOrderSpecified = false;
 
@@ -237,7 +246,7 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
                     !propertyInfo.IsExplicitInterfaceImplementation() &&
                     !IsOverriddenOrShadowed(propertyInfo))
                 {
-                    HandleMember(propertyInfo);
+                    HandleMember(propertyInfo, ref nullabilityCtx);
                 }
             }
 
@@ -246,7 +255,7 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
                 if (fieldInfo.FieldType.CanBeGenericArgument() &&
                     !IsOverriddenOrShadowed(fieldInfo))
                 {
-                    HandleMember(fieldInfo);
+                    HandleMember(fieldInfo, ref nullabilityCtx);
                 }
             }
         }
@@ -255,7 +264,7 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
 
         bool IsOverriddenOrShadowed(MemberInfo memberInfo) => !membersInScope.Add(memberInfo.Name);
 
-        void HandleMember(MemberInfo memberInfo)
+        void HandleMember(MemberInfo memberInfo, ref NullabilityInfoContext? nullabilityCtx)
         {
             // Use the most derived member for attribute resolution but
             // use the base definition to determine the member signatures
@@ -295,7 +304,16 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
                 }
             }
 
-            results.Add((memberInfo, attributeProvider, logicalName, order, includeNonPublic));
+            memberInfo.ResolveNullableAnnotation(ref nullabilityCtx, out bool isGetterNonNullable, out bool isSetterNonNullable);
+            results.Add(new(
+                typeof(T),
+                memberInfo,
+                attributeProvider,
+                LogicalName: logicalName,
+                Order: order,
+                IncludeNonPublicAccessors: includeNonPublic,
+                IsGetterNonNullable: isGetterNonNullable,
+                IsSetterNonNullable: isSetterNonNullable));
         }
     }
 

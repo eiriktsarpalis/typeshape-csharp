@@ -237,19 +237,11 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
         return TypeShapeKind.Object;
     }
 
-    internal IPropertyShape CreateProperty(Type declaringType, MemberInfo memberInfo, MemberInfo[]? parentMembers, ICustomAttributeProvider attributeProvider, string? logicalName, bool includeNonPublicAccessors)
+    internal IPropertyShape CreateProperty(PropertyShapeInfo propertyShapeInfo)
     {
-        Debug.Assert(memberInfo is FieldInfo or PropertyInfo);
-
-        Type memberType = memberInfo switch
-        {
-            FieldInfo f => f.FieldType,
-            PropertyInfo p => p.PropertyType,
-            _ => default!,
-        };
-
-        Type reflectionPropertyType = typeof(ReflectionPropertyShape<,>).MakeGenericType(declaringType, memberType);
-        return (IPropertyShape)Activator.CreateInstance(reflectionPropertyType, this, memberInfo, parentMembers, attributeProvider, logicalName, includeNonPublicAccessors)!;
+        Type memberType = propertyShapeInfo.MemberInfo.GetMemberType();
+        Type reflectionPropertyType = typeof(ReflectionPropertyShape<,>).MakeGenericType(propertyShapeInfo.DeclaringType, memberType);
+        return (IPropertyShape)Activator.CreateInstance(reflectionPropertyType, this, propertyShapeInfo)!;
     }
 
     internal IConstructorShape CreateConstructor(IConstructorShapeInfo ctorInfo)
@@ -274,7 +266,7 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
         {
             // Treat non-nested tuples as regular types.
             ConstructorInfo ctorInfo = tupleType.GetConstructors()[0];
-            MethodParameterShapeInfo[] parameters = ctorInfo.GetParameters().Select(p => new MethodParameterShapeInfo(p)).ToArray();
+            MethodParameterShapeInfo[] parameters = ctorInfo.GetParameters().Select(p => new MethodParameterShapeInfo(p, isNonNullable: false)).ToArray();
             return new MethodConstructorShapeInfo(tupleType, ctorInfo, parameters);
         }
 
@@ -302,7 +294,7 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
             return new TupleConstructorShapeInfo(tupleType, ctorInfo, ctorParameterInfo, nestedCtor);
 
             MethodParameterShapeInfo[] MapParameterInfo(IEnumerable<ParameterInfo> parameters)
-                => parameters.Select(p => new MethodParameterShapeInfo(p, logicalName: $"Item{++offset}")).ToArray();
+                => parameters.Select(p => new MethodParameterShapeInfo(p, isNonNullable: false, logicalName: $"Item{++offset}")).ToArray();
         }
     }
 }
