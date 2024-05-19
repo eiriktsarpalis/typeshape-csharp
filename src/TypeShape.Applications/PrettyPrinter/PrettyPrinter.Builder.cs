@@ -28,6 +28,7 @@ public static partial class PrettyPrinter
 
         public override object? VisitObject<T>(IObjectTypeShape<T> type, object? state)
         {
+            string typeName = FormatTypeName(typeof(T));
             PrettyPrinter<T>[] propertyPrinters = type
                 .GetProperties()
                 .Where(prop => prop.HasGetter)
@@ -44,7 +45,7 @@ public static partial class PrettyPrinter
                 }
 
                 sb.Append("new ");
-                sb.Append(typeof(T).Name);
+                sb.Append(typeName);
 
                 if (propertyPrinters.Length == 0)
                 {
@@ -130,6 +131,7 @@ public static partial class PrettyPrinter
 
         public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
         {
+            string typeName = FormatTypeName(typeof(TDictionary));
             Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> dictionaryGetter = dictionaryShape.GetGetDictionary();
             PrettyPrinter<TKey> keyPrinter = BuildPrettyPrinter(dictionaryShape.KeyType);
             PrettyPrinter<TValue> valuePrinter = BuildPrettyPrinter(dictionaryShape.ValueType);
@@ -143,7 +145,7 @@ public static partial class PrettyPrinter
                 }
 
                 sb.Append("new ");
-                sb.Append(typeof(TDictionary).Name);
+                sb.Append(typeName);
 
                 IReadOnlyDictionary<TKey, TValue> dictionary = dictionaryGetter(value);
 
@@ -199,6 +201,18 @@ public static partial class PrettyPrinter
 
         private static void WriteStringLiteral(StringBuilder builder, object value)
             => builder.Append('\"').Append(value).Append('\"');
+
+        private static string FormatTypeName(Type type)
+        {
+            Debug.Assert(!type.IsArray || type.IsPointer || type.IsGenericTypeDefinition);
+            if (type.IsGenericType)
+            {
+                string paramNames = string.Join(", ", type.GetGenericArguments().Select(FormatTypeName));
+                return $"{type.Name.Split('`')[0]}<{paramNames}>";
+            }
+
+            return type.Name;
+        }
 
         private static IEnumerable<KeyValuePair<Type, object>> CreateDefaultPrinters()
         {

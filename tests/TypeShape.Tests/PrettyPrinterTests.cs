@@ -54,11 +54,11 @@ public abstract class PrettyPrinterTests(IProviderUnderTest providerUnderTest)
               X = 1
             }
             """)];
-        yield return [TestCase.Create(p, new Dictionary<string, string>(), "new Dictionary`2()")];
+        yield return [TestCase.Create(p, new Dictionary<string, string>(), "new Dictionary<String, String>()")];
         yield return [TestCase.Create(p,
             new Dictionary<string, string> { ["key"] = "value" }, 
             """
-            new Dictionary`2
+            new Dictionary<String, String>
             {
               ["key"] = "value"
             }
@@ -70,7 +70,7 @@ public abstract class PrettyPrinterTests(IProviderUnderTest providerUnderTest)
         yield return [TestCase.Create(p,
             ImmutableDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }),
             """
-            new ImmutableDictionary`2
+            new ImmutableDictionary<String, String>
             {
               ["key"] = "value"
             }
@@ -79,7 +79,7 @@ public abstract class PrettyPrinterTests(IProviderUnderTest providerUnderTest)
         yield return [TestCase.Create(p,
             ImmutableSortedDictionary.CreateRange(new Dictionary<string, string> { ["key"] = "value" }), 
             """
-            new ImmutableSortedDictionary`2
+            new ImmutableSortedDictionary<String, String>
             {
               ["key"] = "value"
             }

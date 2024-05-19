@@ -57,6 +57,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ObjectMapper.AOT", "samples
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TypeShape.Roslyn", "src\TypeShape.Roslyn\TypeShape.Roslyn.csproj", "{8C343F3B-72FD-4389-87E9-C3744B53595A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConfigurationBinder.AOT", "samples\ConfigurationBinder.AOT\ConfigurationBinder.AOT.csproj", "{47FC7BBC-16B5-4D62-B1EA-25E60D91D7EF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -113,6 +115,10 @@ Global
 		{8C343F3B-72FD-4389-87E9-C3744B53595A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8C343F3B-72FD-4389-87E9-C3744B53595A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8C343F3B-72FD-4389-87E9-C3744B53595A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{47FC7BBC-16B5-4D62-B1EA-25E60D91D7EF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{47FC7BBC-16B5-4D62-B1EA-25E60D91D7EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{47FC7BBC-16B5-4D62-B1EA-25E60D91D7EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{47FC7BBC-16B5-4D62-B1EA-25E60D91D7EF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -132,6 +138,7 @@ Global
 		{C1AA52D2-1556-42FF-BA14-76F3C1E44C4D} = {959A1616-B61C-4157-893E-07848BA22BCC}
 		{046C4ADD-E0B5-4337-94EA-608EFC49FABA} = {959A1616-B61C-4157-893E-07848BA22BCC}
 		{8C343F3B-72FD-4389-87E9-C3744B53595A} = {2668091C-3A5E-4089-AD2A-2070EF35F481}
+		{47FC7BBC-16B5-4D62-B1EA-25E60D91D7EF} = {959A1616-B61C-4157-893E-07848BA22BCC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {FC08FADA-DFAB-4FB0-BE7C-582825962AD6}

@@ -962,10 +962,10 @@ public class GenericContainer<T>
 [GenerateShape]
 public partial class ClassWithNullabilityAttributes
 {
-    private string? _maybeNull = "";
-    private string? _allowNull = "";
-    private string? _notNull = "";
-    private string? _disallowNull = "";
+    private string? _maybeNull = "str";
+    private string? _allowNull = "str";
+    private string? _notNull = "str";
+    private string? _disallowNull = "str";
 
     public ClassWithNullabilityAttributes() { }
 
@@ -985,14 +985,14 @@ public partial class ClassWithNullabilityAttributes
     [AllowNull]
     public string AllowNullProperty
     {
-        get => _allowNull ?? "";
+        get => _allowNull ?? "str";
         set => _allowNull = value;
     }
 
     [NotNull]
     public string? NotNullProperty
     {
-        get => _notNull ?? "";
+        get => _notNull ?? "str";
         set => _notNull = value;
     }
 
@@ -1004,13 +1004,13 @@ public partial class ClassWithNullabilityAttributes
     }
 
     [MaybeNull]
-    public string MaybeNullField = "";
+    public string MaybeNullField = "str";
     [AllowNull]
-    public string AllowNullField = "";
+    public string AllowNullField = "str";
     [NotNull]
-    public string? NotNullField = "";
+    public string? NotNullField = "str";
     [DisallowNull]
-    public string? DisallowNullField = "";
+    public string? DisallowNullField = "str";
 }
 
 public class ClassWithNullabilityAttributes<T>
