@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json.Serialization;
+using TypeShape.Tests.FSharp;
 
 namespace TypeShape.Tests;
 
@@ -458,6 +459,16 @@ public static class TestTypes
             NonNullNullableString = new() { Value = "str" },
             NullableString = new() { Value = null },
         });
+
+        // F# types
+        yield return TestCase.Create(p, new FSharpRecord(42, "str", true));
+        yield return TestCase.Create(p, new FSharpStructRecord(42, "str", true));
+        yield return TestCase.Create(p, new GenericFSharpRecord<string>("str"));
+        yield return TestCase.Create(p, new GenericFSharpStructRecord<string>("str"));
+        yield return TestCase.Create(p, new FSharpClass("str", 42));
+        yield return TestCase.Create(p, new FSharpStruct("str", 42));
+        yield return TestCase.Create(p, new GenericFSharpClass<string>("str"));
+        yield return TestCase.Create(p, new GenericFSharpStruct<string>("str"));
     }
 }
 
@@ -1762,6 +1773,14 @@ public partial class ClassWithConflictingAnnotations
 [GenerateShape<ClassWithNullableProperty<string>>]
 [GenerateShape<ClassWithNullabilityAttributes<string>>]
 [GenerateShape<ClassWithNotNullProperty<string>>]
+[GenerateShape<FSharpRecord>]
+[GenerateShape<FSharpStructRecord>]
+[GenerateShape<GenericFSharpRecord<string>>]
+[GenerateShape<GenericFSharpStructRecord<string>>]
+[GenerateShape<FSharpClass>]
+[GenerateShape<FSharpStruct>]
+[GenerateShape<GenericFSharpClass<string>>]
+[GenerateShape<GenericFSharpStruct<string>>]
 internal partial class SourceGenProvider;
 
 internal partial class Outer1
