@@ -121,7 +121,7 @@ internal abstract class ReflectionEnumerableTypeShape<TEnumerable, TElement>(Ref
         }
 
         if (typeof(TEnumerable).GetConstructors()
-                .FirstOrDefault(ctor => ctor.GetParameters() is [{ ParameterType: Type { IsGenericType: true } paramTy }] && paramTy.IsAssignableFrom(typeof(List<TElement>)))
+                .FirstOrDefault(ctor => ctor.GetParameters() is [{ ParameterType: { IsGenericType: true } paramTy }] && paramTy.IsAssignableFrom(typeof(List<TElement>)))
                 is ConstructorInfo listCtor)
         {
             // Handle types accepting IList<T> or IReadOnlyList<T> such as ReadOnlyCollection<T>
@@ -154,6 +154,18 @@ internal abstract class ReflectionEnumerableTypeShape<TEnumerable, TElement>(Ref
                 _spanCtor = gm?.MakeGenericMethod(typeof(object));
                 return _spanCtor != null ? CollectionConstructionStrategy.Span : CollectionConstructionStrategy.None;
             }
+        }
+
+        if (typeof(TEnumerable) is { Name: "FSharpList`1", Namespace: "Microsoft.FSharp.Collections" })
+        {
+            Type? module = typeof(TEnumerable).Assembly.GetType("Microsoft.FSharp.Collections.ListModule");
+            _enumerableCtor = module?.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(m => m.Name is "OfSeq")
+                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                .Select(m => m.MakeGenericMethod(typeof(TElement)))
+                .FirstOrDefault();
+
+            return _enumerableCtor != null ? CollectionConstructionStrategy.Enumerable : CollectionConstructionStrategy.None;
         }
 
         return CollectionConstructionStrategy.None;

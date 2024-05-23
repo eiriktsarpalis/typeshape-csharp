@@ -116,9 +116,9 @@ public partial class TypeDataModelGenerator
                 factoryMethod = dictOfObject.Constructors.FirstOrDefault(ctor => ctor.Parameters.IsEmpty);
             }
         }
-        else if (GetImmutableDictionaryFactory(namedType) is IMethodSymbol factory)
+        else if (GetImmutableDictionaryFactory(namedType, out bool isFSharpMap) is IMethodSymbol factory)
         {
-            constructionStrategy = CollectionModelConstructionStrategy.Dictionary;
+            constructionStrategy = isFSharpMap ? CollectionModelConstructionStrategy.TupleEnumerable : CollectionModelConstructionStrategy.Dictionary;
             factoryMethod = factory;
         }
 
@@ -152,8 +152,10 @@ public partial class TypeDataModelGenerator
                     IsAccessibleSymbol(prop));
         }
 
-        IMethodSymbol? GetImmutableDictionaryFactory(INamedTypeSymbol namedType)
+        IMethodSymbol? GetImmutableDictionaryFactory(INamedTypeSymbol namedType, out bool isFSharpMap)
         {
+            isFSharpMap = false;
+            
             if (SymbolEqualityComparer.Default.Equals(namedType.ConstructedFrom, KnownSymbols.ImmutableDictionary))
             {
                 return KnownSymbols.Compilation.GetTypeByMetadataName("System.Collections.Immutable.ImmutableDictionary")
@@ -170,6 +172,18 @@ public partial class TypeDataModelGenerator
                         method is { IsStatic: true, IsGenericMethod: true, Name: "CreateRange", Parameters: [var param] } && 
                         param.Type.Name is "IEnumerable")
                     .MakeGenericMethod(namedType.TypeArguments[0], namedType.TypeArguments[1]);
+            }
+            
+            if (SymbolEqualityComparer.Default.Equals(namedType.ConstructedFrom, KnownSymbols.FSharpMap))
+            {
+                IMethodSymbol? ofSeqMethod = KnownSymbols.Compilation.GetTypeByMetadataName("Microsoft.FSharp.Collections.MapModule")
+                    .GetMethodSymbol(method =>
+                        method is { IsStatic: true, IsGenericMethod: true, Name: "OfSeq", Parameters: [var param] } && 
+                        param.Type.Name is "IEnumerable")
+                    .MakeGenericMethod(namedType.TypeArguments[0], namedType.TypeArguments[1]);
+
+                isFSharpMap = ofSeqMethod != null;
+                return ofSeqMethod;
             }
 
             return null;

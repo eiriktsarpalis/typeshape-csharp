@@ -79,6 +79,7 @@ public sealed partial class Parser
                         ? CollectionConstructionStrategy.Enumerable
                         : CollectionConstructionStrategy.Span,
 
+                    CollectionModelConstructionStrategy.TupleEnumerable => CollectionConstructionStrategy.Enumerable,
                     _ => CollectionConstructionStrategy.None,
                 },
 
@@ -91,6 +92,7 @@ public sealed partial class Parser
                     : null,
 
                 StaticFactoryMethod = dictionaryModel.FactoryMethod is { IsStatic: true } m ? m.GetFullyQualifiedName() : null,
+                IsTupleEnumerableFactory = dictionaryModel.ConstructionStrategy is CollectionModelConstructionStrategy.TupleEnumerable,
                 Kind = dictionaryModel.DictionaryKind,
                 EmitGenericTypeShapeProviderImplementation = emitGenericProviderImplementation,
                 CtorRequiresDictionaryConversion =

@@ -251,6 +251,15 @@ public partial class TypeDataModelGenerator
                         param.Type.Name is "IEnumerable")
                     .MakeGenericMethod(namedType.TypeArguments[0]);
             }
+            
+            if (SymbolEqualityComparer.Default.Equals(namedType.ConstructedFrom, KnownSymbols.FSharpList))
+            {
+                return KnownSymbols.Compilation.GetTypeByMetadataName("Microsoft.FSharp.Collections.ListModule")
+                    .GetMethodSymbol(method =>
+                        method is { IsStatic: true, IsGenericMethod: true, Name: "OfSeq", Parameters: [var param] } && 
+                        param.Type.Name is "IEnumerable")
+                    .MakeGenericMethod(namedType.TypeArguments[0]);
+            }
 
             return null;
         }

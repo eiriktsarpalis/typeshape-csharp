@@ -81,6 +81,12 @@ public class KnownSymbols(Compilation compilation)
 
     public INamedTypeSymbol? ImmutableSortedDictionary => GetOrResolveType("System.Collections.Immutable.ImmutableSortedDictionary`2", ref _ImmutableSortedDictionary);
     private Option<INamedTypeSymbol?> _ImmutableSortedDictionary;
+    
+    public INamedTypeSymbol? FSharpList => GetOrResolveType("Microsoft.FSharp.Collections.FSharpList`1", ref _FSharpList);
+    private Option<INamedTypeSymbol?> _FSharpList;
+    
+    public INamedTypeSymbol? FSharpMap => GetOrResolveType("Microsoft.FSharp.Collections.FSharpMap`2", ref _FSharpMap);
+    private Option<INamedTypeSymbol?> _FSharpMap;
 
 
     /// <summary>

@@ -10,6 +10,7 @@ public sealed record DictionaryShapeModel : TypeShapeModel
     public required CollectionConstructionStrategy ConstructionStrategy { get; init; }
     public required string? ImplementationTypeFQN { get; init; }
     public required string? StaticFactoryMethod { get; init; }
+    public required bool IsTupleEnumerableFactory { get; init; }
     public required bool CtorRequiresDictionaryConversion { get; init; }
     public required bool KeyValueTypesContainNullableAnnotations { get; init; }
 }

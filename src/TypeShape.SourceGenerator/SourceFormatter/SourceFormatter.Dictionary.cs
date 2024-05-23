@@ -67,7 +67,8 @@ internal static partial class SourceFormatter
             string suppressSuffix = dictionaryType.KeyValueTypesContainNullableAnnotations ? "!" : "";
             return dictionaryType switch
             {
-                { StaticFactoryMethod: string factory } => $"static values => {factory}(values{suppressSuffix})",
+                { StaticFactoryMethod: string factory, IsTupleEnumerableFactory: false } => $"static values => {factory}(values{suppressSuffix})",
+                { StaticFactoryMethod: string factory } => $"static values => {factory}(global::System.Linq.Enumerable.Select(values, kvp => new global::System.Tuple<{dictionaryType.KeyType.FullyQualifiedName},{dictionaryType.ValueType.FullyQualifiedName}>(kvp.Key, kvp.Value)))",
                 _ => $"static values => new {dictionaryType.Type.FullyQualifiedName}(values{suppressSuffix})",
             };
         }

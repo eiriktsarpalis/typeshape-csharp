@@ -10,7 +10,7 @@ namespace TypeShape.ReflectionProvider;
 
 [RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
-internal abstract class ReflectionDictionaryShape<TDictionary, TKey, TValue>(ReflectionTypeShapeProvider provider) : IDictionaryShape<TDictionary, TKey, TValue>
+internal abstract class ReflectionDictionaryTypeShape<TDictionary, TKey, TValue>(ReflectionTypeShapeProvider provider) : IDictionaryShape<TDictionary, TKey, TValue>
     where TKey : notnull
 {
     private CollectionConstructionStrategy? _constructionStrategy;
@@ -19,6 +19,7 @@ internal abstract class ReflectionDictionaryShape<TDictionary, TKey, TValue>(Ref
     private MethodBase? _enumerableCtor;
     private MethodBase? _spanCtor;
     private ConstructorInfo? _dictionaryCtor;
+    private bool _isFSharpMap;
 
     public CollectionConstructionStrategy ConstructionStrategy => _constructionStrategy ??= DetermineConstructionStrategy();
     public ITypeShape<TKey> KeyType => provider.GetShape<TKey>();
@@ -57,6 +58,13 @@ internal abstract class ReflectionDictionaryShape<TDictionary, TKey, TValue>(Ref
         }
 
         Debug.Assert(_enumerableCtor != null);
+
+        if (_isFSharpMap)
+        {
+            var mapOfSeqDelegate = ((MethodInfo)_enumerableCtor).CreateDelegate<Func<IEnumerable<Tuple<TKey, TValue>>, TDictionary>>();
+            return kvps => mapOfSeqDelegate(kvps.Select(kvp => new Tuple<TKey, TValue>(kvp.Key, kvp.Value)));
+        }
+        
         return _enumerableCtor switch
         {
             ConstructorInfo ctorInfo => provider.MemberAccessor.CreateFuncDelegate<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary>(ctorInfo),
@@ -171,6 +179,19 @@ internal abstract class ReflectionDictionaryShape<TDictionary, TKey, TValue>(Ref
 
             return _enumerableCtor != null ? CollectionConstructionStrategy.Enumerable : CollectionConstructionStrategy.None;
         }
+        
+        if (typeof(TDictionary) is { Name: "FSharpMap`2", Namespace: "Microsoft.FSharp.Collections" })
+        {
+            Type? module = typeof(TDictionary).Assembly.GetType("Microsoft.FSharp.Collections.MapModule");
+            _enumerableCtor = module?.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(m => m.Name is "OfSeq")
+                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                .Select(m => m.MakeGenericMethod(typeof(TKey), typeof(TValue)))
+                .FirstOrDefault();
+
+            _isFSharpMap = _enumerableCtor != null;
+            return _enumerableCtor != null ? CollectionConstructionStrategy.Enumerable : CollectionConstructionStrategy.None;
+        }
 
         return CollectionConstructionStrategy.None;
     }
@@ -178,7 +199,7 @@ internal abstract class ReflectionDictionaryShape<TDictionary, TKey, TValue>(Ref
 
 [RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
-internal sealed class ReflectionDictionaryOfTShape<TDictionary, TKey, TValue>(ReflectionTypeShapeProvider provider) : ReflectionDictionaryShape<TDictionary, TKey, TValue>(provider)
+internal sealed class ReflectionDictionaryOfTShape<TDictionary, TKey, TValue>(ReflectionTypeShapeProvider provider) : ReflectionDictionaryTypeShape<TDictionary, TKey, TValue>(provider)
     where TDictionary : IDictionary<TKey, TValue>
     where TKey : notnull
 {
@@ -190,7 +211,7 @@ internal sealed class ReflectionDictionaryOfTShape<TDictionary, TKey, TValue>(Re
 
 [RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
-internal sealed class ReflectionReadOnlyDictionaryShape<TDictionary, TKey, TValue>(ReflectionTypeShapeProvider provider) : ReflectionDictionaryShape<TDictionary, TKey, TValue>(provider)
+internal sealed class ReflectionReadOnlyDictionaryShape<TDictionary, TKey, TValue>(ReflectionTypeShapeProvider provider) : ReflectionDictionaryTypeShape<TDictionary, TKey, TValue>(provider)
     where TDictionary : IReadOnlyDictionary<TKey, TValue>
     where TKey : notnull
 {
@@ -202,7 +223,7 @@ internal sealed class ReflectionReadOnlyDictionaryShape<TDictionary, TKey, TValu
 
 [RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
-internal sealed class ReflectionNonGenericDictionaryShape<TDictionary>(ReflectionTypeShapeProvider provider) : ReflectionDictionaryShape<TDictionary, object, object?>(provider)
+internal sealed class ReflectionNonGenericDictionaryShape<TDictionary>(ReflectionTypeShapeProvider provider) : ReflectionDictionaryTypeShape<TDictionary, object, object?>(provider)
     where TDictionary : IDictionary
 {
     public override Func<TDictionary, IReadOnlyDictionary<object, object?>> GetGetDictionary()

@@ -26,6 +26,23 @@ type GenericFSharpStructRecord<'T> =
         GenericProperty: 'T
     }
 
+type FSharpRecordWithCollections =
+    {
+        IntArray: int[]
+        StringList: string list
+        BoolSet: Set<bool>
+        IntMap: Map<string, int>
+    }
+with
+    static member Create() =
+        {
+            IntArray = [|1; 2; 3|]
+            StringList = ["a"; "b"; "c"]
+            BoolSet = Set.ofList [true; false]
+            IntMap = Map.ofList [("a", 1); ("b", 2); ("c", 3)]
+        }
+
+
 type FSharpClass(stringProperty: string, intProperty : int) =
     member _.StringProperty = stringProperty
     member _.IntProperty = intProperty

@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json.Serialization;
+using Microsoft.FSharp.Collections;
 using TypeShape.Tests.FSharp;
 
 namespace TypeShape.Tests;
@@ -469,6 +470,10 @@ public static class TestTypes
         yield return TestCase.Create(p, new FSharpStruct("str", 42));
         yield return TestCase.Create(p, new GenericFSharpClass<string>("str"));
         yield return TestCase.Create(p, new GenericFSharpStruct<string>("str"));
+        yield return TestCase.Create(p, ListModule.OfSeq([1, 2, 3]));
+        yield return TestCase.Create(p, SetModule.OfSeq([1, 2, 3]));
+        yield return TestCase.Create(p, MapModule.OfSeq<string, int>([new("key1", 1), new("key2", 2)]));
+        yield return TestCase.Create(p, FSharpRecordWithCollections.Create());
     }
 }
 
@@ -1781,6 +1786,10 @@ public partial class ClassWithConflictingAnnotations
 [GenerateShape<FSharpStruct>]
 [GenerateShape<GenericFSharpClass<string>>]
 [GenerateShape<GenericFSharpStruct<string>>]
+[GenerateShape<FSharpList<int>>]
+[GenerateShape<FSharpMap<string, int>>]
+[GenerateShape<FSharpSet<int>>]
+[GenerateShape<FSharpRecordWithCollections>]
 internal partial class SourceGenProvider;
 
 internal partial class Outer1

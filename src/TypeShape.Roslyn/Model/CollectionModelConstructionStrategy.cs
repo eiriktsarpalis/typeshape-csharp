@@ -33,4 +33,11 @@ public enum CollectionModelConstructionStrategy
     /// typically declared via CollectionBuilderAttribute annotations.
     /// </summary>
     Span,
+    
+    /// <summary>
+    /// Type defines a constructor or factory method accepting enumerable of
+    /// <see cref="Tuple{T1, T2}"/> instead of <see cref="KeyValuePair{TKey,TValue}"/>,
+    /// typically used by factories of the F# map type. 
+    /// </summary>
+    TupleEnumerable,
 }
