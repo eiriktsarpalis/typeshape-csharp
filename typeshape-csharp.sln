@@ -59,7 +59,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TypeShape.Roslyn", "src\Typ
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConfigurationBinder.AOT", "samples\ConfigurationBinder.AOT\ConfigurationBinder.AOT.csproj", "{47FC7BBC-16B5-4D62-B1EA-25E60D91D7EF}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TypeShape.Tests.FSharp", "TypeShape.Tests.FSharp\TypeShape.Tests.FSharp.fsproj", "{BD01C18C-C545-40E9-A227-9AED53D048A9}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TypeShape.Tests.FSharp", "tests\TypeShape.Tests.FSharp\TypeShape.Tests.FSharp.fsproj", "{BD01C18C-C545-40E9-A227-9AED53D048A9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
