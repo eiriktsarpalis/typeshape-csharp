@@ -502,7 +502,7 @@ public readonly struct StructList<T> : IList<T>
     IEnumerator IEnumerable.GetEnumerator() => _values.GetEnumerator();
 }
 
-public readonly partial struct StructDictionary<TKey, TValue> : IDictionary<TKey, TValue>
+public readonly struct StructDictionary<TKey, TValue> : IDictionary<TKey, TValue>
     where TKey : notnull
 {
     private readonly Dictionary<TKey, TValue> _dictionary;
@@ -540,7 +540,7 @@ public partial class PocoWithListAndDictionaryProps
     public Dictionary<string, int>? Dict { get; set; }
 }
 
-internal partial class MyLinkedList<T>
+internal class MyLinkedList<T>
 {
     public T? Value { get; set; }
     public MyLinkedList<T>? Next { get; set; }

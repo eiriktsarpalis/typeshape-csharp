@@ -32,6 +32,8 @@ type FSharpRecordWithCollections =
         StringList: string list
         BoolSet: Set<bool>
         IntMap: Map<string, int>
+        Tuple : int * string * bool
+        StructTuple : struct(int * string * bool)
     }
 with
     static member Create() =
@@ -40,6 +42,8 @@ with
             StringList = ["a"; "b"; "c"]
             BoolSet = Set.ofList [true; false]
             IntMap = Map.ofList [("a", 1); ("b", 2); ("c", 3)]
+            Tuple = (42, "str", true)
+            StructTuple = struct(42, "str", true) 
         }
 
 
