@@ -64,6 +64,6 @@ partial record Person(string name, int age, List<Person> children);
 
 For more information see:
 
-1. The [core abstractions](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/docs/core-abstractions.md) document for an overview of the core programming model.
-2. The [typeshape providers](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/docs/typeshape-providers.md) document for an overview of the built-in shape providers and their APIs.
+1. The [core abstractions](https://eiriktsarpalis.github.io/typeshape-csharp/core-abstractions.html) document for an overview of the core programming model.
+2. The [typeshape providers](https://eiriktsarpalis.github.io/typeshape-csharp/typeshape-providers.html) document for an overview of the built-in shape providers and their APIs.
 3. The [`TypeShape.Applications`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Applications) project for advanced examples of libraries built on top of TypeShape.

@@ -1,6 +1,6 @@
 # typeshape-csharp [![Build & Tests](https://github.com/eiriktsarpalis/typeshape-csharp/actions/workflows/build.yml/badge.svg)](https://github.com/eiriktsarpalis/typeshape-csharp/actions/workflows/build.yml) [![NuGet Badge](https://buildstats.info/nuget/typeshape-csharp)](https://www.nuget.org/packages/typeshape-csharp/)
 
-This repo contains a port of the [TypeShape](https://github.com/eiriktsarpalis/TypeShape) F# library, adapted to patterns and idioms available in C#.
+This repo contains a port of the [TypeShape](https://github.com/eiriktsarpalis/TypeShape) F# library, adapted to patterns and idioms available in C#. See also [this page](https://eiriktsarpalis.github.io/typeshape-csharp) for additional guides and API documentation.
 
 ## Background & Motivation
 
@@ -64,9 +64,10 @@ partial record Person(string name, int age, List<Person> children);
 
 For more information see:
 
-1. The [core abstractions](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/docs/core-abstractions.md) document for an overview of the core programming model.
-2. The [typeshape providers](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/docs/typeshape-providers.md) document for an overview of the built-in shape providers and their APIs.
-3. The [`TypeShape.Applications`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Applications) project for advanced examples of libraries built on top of TypeShape.
+* The [core abstractions](https://eiriktsarpalis.github.io/typeshape-csharp/core-abstractions.html) document for an overview of the core programming model.
+* The [typeshape providers](https://eiriktsarpalis.github.io/typeshape-csharp/typeshape-providers.html) document for an overview of the built-in shape providers and their APIs.
+* The generated [API documentation](https://eiriktsarpalis.github.io/typeshape-csharp/api/TypeShape.html) for the project.
+* The [`TypeShape.Applications`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Applications) project for advanced examples of libraries built on top of TypeShape.
 
 ## Case Study: Writing a JSON serializer
 
