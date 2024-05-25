@@ -373,3 +373,7 @@ artifacts/
 
 # macOS files
 .DS_Store
+
+# docfx files
+_site
+docs/api

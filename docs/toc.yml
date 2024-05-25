@@ -1,0 +1,6 @@
+- name: Abstractions
+  href: core-abstractions.md
+- name: Providers
+  href: typeshape-providers.md
+- name: API Documentation
+  href: api/TypeShape.yml

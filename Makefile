@@ -1,5 +1,6 @@
 SOURCE_DIRECTORY := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 ARTIFACT_PATH := $(SOURCE_DIRECTORY)artifacts
+DOCS_PATH := $(SOURCE_DIRECTORY)docs
 CONFIGURATION ?= Release
 NUGET_SOURCE ?= "https://api.nuget.org/v3/index.json"
 NUGET_API_KEY ?= ""
@@ -10,6 +11,7 @@ DOCKER_CMD ?= make CONFIGURATION=$(CONFIGURATION)
 
 clean:
 	rm -rf $(ARTIFACT_PATH)/*
+	rm -rf $(DOCS_PATH)/api
 
 build: clean
 	dotnet build -c $(CONFIGURATION) $(ADDITIONAL_ARGS)
@@ -20,6 +22,10 @@ test: build
 pack: test
 	dotnet pack -c $(CONFIGURATION) $(ADDITIONAL_ARGS) src/TypeShape.Packaging
 	dotnet pack -c $(CONFIGURATION) $(ADDITIONAL_ARGS) src/TypeShape.Roslyn
+
+generate-docs: clean
+	dotnet tool update -g docfx
+	docfx $(DOCS_PATH)/docfx.json
 
 push:
 	for nupkg in `ls $(ARTIFACT_PATH)/*.nupkg`; do \
