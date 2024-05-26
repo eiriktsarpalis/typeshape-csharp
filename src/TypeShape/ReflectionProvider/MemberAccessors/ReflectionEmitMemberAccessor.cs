@@ -412,7 +412,12 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
 
                 // return new TDeclaringType(state);
                 generator.Emit(OpCodes.Ldarg_0);
-                LdRef(generator, argumentStateType, copyValueTypes: true);
+
+                if (!parameter.IsByRef)
+                {
+                    LdRef(generator, argumentStateType, copyValueTypes: true);    
+                }
+
                 EmitCall(generator, methodCtor.ConstructorMethod);
                 generator.Emit(OpCodes.Ret);
             }
@@ -426,9 +431,11 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
                     Debug.Assert(methodCtor.ConstructorMethod != null);
 
                     // return new TDeclaringType(state.Item1, state.Item2, ...);
+                    int i = 0;
                     foreach (var elementPath in ReflectionHelpers.EnumerateTupleMemberPaths(argumentStateType))
                     {
-                        LdTupleElement(elementPath);
+                        bool isByRefParam = methodCtor.Parameters[i++].IsByRef;
+                        LdTupleElement(elementPath, isByRefParameter: isByRefParam);
                     }
 
                     EmitCall(generator, methodCtor.ConstructorMethod);
@@ -453,7 +460,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
                     int i = 0;
                     for (; i < methodCtor.ConstructorParameters.Length; i++)
                     {
-                        LdTupleElement(fieldPaths[i]);
+                        LdTupleElement(fieldPaths[i], isByRefParameter: methodCtor.ConstructorParameters[i].IsByRef);
                     }
 
                     if (methodCtor.ConstructorMethod is null)
@@ -475,7 +482,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
                         Label label = EmitMemberFlagCheck(generator, flagType, i);
 
                         generator.Emit(declaringType.IsValueType ? OpCodes.Ldloca_S : OpCodes.Ldloc, local);
-                        LdTupleElement(fieldPaths[i++]);
+                        LdTupleElement(fieldPaths[i++], isByRefParameter: false);
                         StMember(member);
 
                         generator.MarkLabel(label);
@@ -522,7 +529,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
             // return new Tuple<..,Tuple<..,Tuple<..>>>(state.Item1, state.Item2, ...);
             foreach (var elementPath in ReflectionHelpers.EnumerateTupleMemberPaths(argumentStateType))
             {
-                LdTupleElement(elementPath);
+                LdTupleElement(elementPath, isByRefParameter: false);
             }
 
             var constructors = new Stack<ConstructorInfo>();
@@ -561,7 +568,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
             }
         }
 
-        void LdTupleElement((string LogicalName, MemberInfo Member, MemberInfo[]? ParentMembers) element)
+        void LdTupleElement((string LogicalName, MemberInfo Member, MemberInfo[]? ParentMembers) element, bool isByRefParameter)
         {
             Debug.Assert(element.Member is FieldInfo);
             Debug.Assert(element.ParentMembers is null or FieldInfo[]);
@@ -576,7 +583,11 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
                 }
             }
 
-            generator.Emit(OpCodes.Ldfld, (FieldInfo)element.Member);
+            OpCode ldfldOpCode = isByRefParameter
+                ? OpCodes.Ldflda
+                : OpCodes.Ldfld;
+            
+            generator.Emit(ldfldOpCode, (FieldInfo)element.Member);
         }
     }
 

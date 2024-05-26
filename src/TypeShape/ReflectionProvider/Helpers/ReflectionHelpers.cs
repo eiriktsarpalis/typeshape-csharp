@@ -133,6 +133,12 @@ internal static class ReflectionHelpers
         return parameter;
     }
 
+    public static Type GetEffectiveParameterType(this ParameterInfo type)
+    {
+        Type parameterType = type.ParameterType;
+        return parameterType.IsByRef ? parameterType.GetElementType()! : parameterType;
+    }
+
     public static MemberInfo GetGenericMemberDefinition(this MemberInfo member)
     {
         if (member is Type type)

@@ -370,6 +370,7 @@ public abstract class JsonTests(IProviderUnderTest providerUnderTest)
     private protected static bool IsUnsupportedBySTJ<T>(TestCase<T> value) => 
         value.IsMultiDimensionalArray ||
         value.IsLongTuple ||
+        value.HasRefConstructorParameters ||
         value.Value is DerivedClassWithVirtualProperties; // https://github.com/dotnet/runtime/issues/96996
 }
 

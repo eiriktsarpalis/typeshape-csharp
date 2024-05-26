@@ -168,6 +168,12 @@ public partial class TypeDataModelGenerator
         TypeDataModelGenerationContext scopedCtx = ctx;
         foreach (IParameterSymbol parameter in constructor.Parameters)
         {
+            if (parameter.RefKind is RefKind.Out)
+            {
+                // Skip constructors with out parameters
+                return null;
+            }
+            
             if (IncludeNestedType(parameter.Type, ref scopedCtx) != TypeDataModelGenerationStatus.Success)
             {
                 // Skip constructors with unsupported parameter types

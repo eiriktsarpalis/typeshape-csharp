@@ -108,9 +108,12 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
 
         foreach (ParameterInfo parameter in parameters)
         {
+            Debug.Assert(!parameter.IsOut, "must have been filtered earlier");
+
+            Type parameterType = parameter.GetEffectiveParameterType();
             bool isNonNullable = parameter.IsNonNullableAnnotation(ref nullabilityInfoContext);
             PropertyShapeInfo? matchingMember = allMembers.FirstOrDefault(member =>
-                member.MemberInfo.GetMemberType() == parameter.ParameterType &&
+                member.MemberInfo.GetMemberType() == parameterType &&
                 CommonHelpers.CamelCaseInvariantComparer.Instance.Equals(parameter.Name, member.MemberInfo.Name));
 
             ParameterShapeAttribute? parameterAttr = parameter.GetCustomAttribute<ParameterShapeAttribute>();
@@ -187,9 +190,9 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
                 }
 
                 ParameterInfo[] parameters = constructorInfo.GetParameters();
-                if (parameters.Any(param => !param.ParameterType.CanBeGenericArgument()))
+                if (parameters.Any(param => param.IsOut || !param.GetEffectiveParameterType().CanBeGenericArgument()))
                 {
-                    // Skip constructors with unsupported parameter types
+                    // Skip constructors with unsupported parameter types or out parameters
                     continue;
                 }
 

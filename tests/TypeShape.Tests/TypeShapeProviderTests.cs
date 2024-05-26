@@ -518,7 +518,7 @@ public abstract class TypeShapeProviderTests(IProviderUnderTest providerUnderTes
                         ?? actualParameter.Name!;
 
                     Assert.Equal(actualParameter.Position, ctorParam.Position);
-                    Assert.Equal(actualParameter.ParameterType, ctorParam.ParameterType.Type);
+                    Assert.Equal(actualParameter.GetEffectiveParameterType(), ctorParam.ParameterType.Type);
                     Assert.Equal(expectedName, ctorParam.Name);
 
                     bool hasDefaultValue = actualParameter.TryGetDefaultValueNormalized(out object? defaultValue);

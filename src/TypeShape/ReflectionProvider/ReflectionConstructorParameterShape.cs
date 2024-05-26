@@ -51,6 +51,7 @@ internal interface IParameterShapeInfo
     string Name { get; }
     ConstructorParameterKind Kind { get; }
     ICustomAttributeProvider? AttributeProvider { get; }
+    bool IsByRef { get; }
     bool IsRequired { get; }
     bool IsNonNullable { get; }
     bool IsPublic { get; }
@@ -68,6 +69,7 @@ internal sealed class MethodParameterShapeInfo : IParameterShapeInfo
         Debug.Assert(name != null);
         Name = name;
 
+        Type = parameterInfo.GetEffectiveParameterType();
         ParameterInfo = parameterInfo;
         MatchingMember = matchingMember;
         IsNonNullable = isNonNullable;
@@ -82,10 +84,11 @@ internal sealed class MethodParameterShapeInfo : IParameterShapeInfo
     public ParameterInfo ParameterInfo { get; }
     public MemberInfo? MatchingMember { get; }
 
-    public Type Type => ParameterInfo.ParameterType;
+    public Type Type { get; }
     public string Name { get; }
     public ConstructorParameterKind Kind => ConstructorParameterKind.ConstructorParameter;
     public ICustomAttributeProvider? AttributeProvider => ParameterInfo;
+    public bool IsByRef => ParameterInfo.ParameterType.IsByRef;
     public bool IsRequired => !ParameterInfo.HasDefaultValue;
     public bool IsNonNullable { get; }
     public bool IsPublic => true;
@@ -112,6 +115,7 @@ internal sealed class MemberInitializerShapeInfo : IParameterShapeInfo
 
     public Type Type { get; }
     public MemberInfo MemberInfo { get; }
+    public bool IsByRef => false;
     public bool IsRequired { get; }
     public bool IsInitOnly { get; }
     public bool IsNonNullable { get; }

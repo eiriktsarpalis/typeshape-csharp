@@ -142,7 +142,7 @@ internal static partial class SourceFormatter
                 string objectInitializerExpr = (constructor.Parameters.Length, constructor.RequiredMembers.Length) switch
                 {
                     (0, 0) => $$"""{{FormatConstructorName(constructor)}}()""",
-                    (1, 0) when constructor.OptionalMembers is [] => $$"""{{FormatConstructorName(constructor)}}({{stateVar}})""",
+                    (1, 0) when constructor.OptionalMembers is [] => $$"""{{FormatConstructorName(constructor)}}({{FormatCtorParameterExpr(constructor.Parameters[0], isSingleParameter: true)}})""",
                     (0, 1) when constructor.OptionalMembers is [] => $$"""{{FormatConstructorName(constructor)}} { {{constructor.RequiredMembers[0].UnderlyingMemberName}} = {{stateVar}} }""",
                     (_, 0) => $$"""{{FormatConstructorName(constructor)}}({{FormatCtorArgumentsBody()}})""",
                     (0, _) => $$"""{{FormatConstructorName(constructor)}} { {{FormatInitializerBody()}} }""",
@@ -180,7 +180,7 @@ internal static partial class SourceFormatter
                     return $"if ({conditionalExpr}) {assignmentBody}";
                 }
 
-                string FormatCtorParameterExpr(ConstructorParameterShapeModel parameter)
+                string FormatCtorParameterExpr(ConstructorParameterShapeModel parameter, bool isSingleParameter = false)
                 {
                     // Reserved for cases where we have Nullable<T> ctor parameters with [DisallowNull] annotation.
                     bool requiresSuppression = parameter.ParameterTypeContainsNullabilityAnnotations || parameter is
@@ -189,7 +189,18 @@ internal static partial class SourceFormatter
                         IsNonNullable: true
                     };
 
-                    return $"{stateVar}.Item{parameter.Position + 1}{(requiresSuppression ? "!" : "")}";
+                    string refPrefix = parameter.RefKind switch
+                    {
+                        RefKind.Ref or
+                        RefKind.RefReadOnlyParameter => "ref ",
+                        RefKind.In => "in ",
+                        RefKind.Out => "out ",
+                        _ => ""
+                    };
+                    
+                    return isSingleParameter
+                        ? $"{refPrefix}{stateVar}{(requiresSuppression ? "!" : "")}"
+                        : $"{refPrefix}{stateVar}.Item{parameter.Position + 1}{(requiresSuppression ? "!" : "")}";
                 }
             }
         }

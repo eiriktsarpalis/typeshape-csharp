@@ -11,6 +11,8 @@ public static class TestCase
         T? value,
         string? expectedEncoding = null,
         T?[]? additionalValues = null,
+        bool hasRefConstructorParameters = false,
+        bool hasOutConstructorParameters = false,
         bool isLossyRoundtrip = false,
         bool usesSpanCtor = false,
         bool isStack = false)
@@ -20,6 +22,8 @@ public static class TestCase
         { 
             ExpectedEncoding = expectedEncoding,
             AdditionalValues = additionalValues, 
+            HasRefConstructorParameters = hasRefConstructorParameters,
+            HasOutConstructorParameters = hasOutConstructorParameters,
             IsLossyRoundtrip = isLossyRoundtrip, 
             UsesSpanConstructor = usesSpanCtor,
             IsStack = isStack,
@@ -31,6 +35,8 @@ public static class TestCase
         string? expectedEncoding = null,
         T?[]? additionalValues = null,
         bool isLossyRoundtrip = false,
+        bool hasRefConstructorParameters = false,
+        bool hasOutConstructorParameters = false,
         bool usesSpanCtor = false,
         bool isStack = false)
         where TProvider : ITypeShapeProvider<T> =>
@@ -38,7 +44,9 @@ public static class TestCase
         new TestCase<T, TProvider>(value) 
         {
             ExpectedEncoding = expectedEncoding,
-            AdditionalValues = additionalValues, 
+            AdditionalValues = additionalValues,
+            HasRefConstructorParameters = hasRefConstructorParameters,
+            HasOutConstructorParameters = hasOutConstructorParameters,
             IsLossyRoundtrip = isLossyRoundtrip, 
             UsesSpanConstructor = usesSpanCtor,
             IsStack = isStack,
@@ -58,6 +66,8 @@ public abstract record TestCase<T>(T? Value) : ITestCase
     public string? ExpectedEncoding { get; init; }
     public bool IsStack { get; init; }
     public bool IsLossyRoundtrip { get; init; }
+    public bool HasRefConstructorParameters { get; init; }
+    public bool HasOutConstructorParameters { get; init; }
     public bool UsesSpanConstructor { get; init; }
 
     public abstract ITypeShape<T> GetShape(IProviderUnderTest provider);
@@ -69,6 +79,7 @@ public abstract record TestCase<T>(T? Value) : ITestCase
     public bool HasConstructors(IProviderUnderTest provider) =>
         !(IsAbstract && !typeof(IEnumerable).IsAssignableFrom(typeof(T))) &&
         !IsMultiDimensionalArray &&
+        !HasOutConstructorParameters &&
         (!UsesSpanConstructor || provider.Kind is not ProviderKind.Reflection);
 
     public bool IsNullable => default(T) is null;

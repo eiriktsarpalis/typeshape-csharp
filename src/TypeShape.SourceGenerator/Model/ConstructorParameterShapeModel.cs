@@ -1,4 +1,6 @@
-﻿namespace TypeShape.SourceGenerator.Model;
+﻿using Microsoft.CodeAnalysis;
+
+namespace TypeShape.SourceGenerator.Model;
 
 public sealed record ConstructorParameterShapeModel
 {
@@ -7,6 +9,7 @@ public sealed record ConstructorParameterShapeModel
     public required TypeId ParameterType { get; init; }
     public required TypeId DeclaringType { get; init; }
     public required ParameterKind Kind { get; init; }
+    public required RefKind RefKind { get; init; }
     public required int Position { get; init; }
     public required bool IsRequired { get; init; }
     public required bool IsInitOnlyProperty { get; init; }

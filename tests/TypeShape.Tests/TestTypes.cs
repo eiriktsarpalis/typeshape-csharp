@@ -461,6 +461,10 @@ public static class TestTypes
             NullableString = new() { Value = null },
         });
 
+        yield return TestCase.Create(ClassWithRefConstructorParameter.Create(), hasRefConstructorParameters: true);
+        yield return TestCase.Create(new ClassWithOutConstructorParameter(out _), hasRefConstructorParameters: true, hasOutConstructorParameters: true);
+        yield return TestCase.Create(ClassWithMultipleRefConstructorParameters.Create(), hasRefConstructorParameters: true);
+
         // F# types
         yield return TestCase.Create(p, new FSharpRecord(42, "str", true));
         yield return TestCase.Create(p, new FSharpStructRecord(42, "str", true));
@@ -1606,6 +1610,52 @@ public partial class ClassWithConflictingAnnotations
     public class GenericClass<T>
     {
         public required T Value { get; set; }
+    }
+}
+
+[GenerateShape]
+public partial class ClassWithRefConstructorParameter(ref int value)
+{
+    public int Value { get; } = value;
+
+    public static ClassWithRefConstructorParameter Create()
+    {
+        int value = 42;
+        return new ClassWithRefConstructorParameter(ref value);
+    }
+}
+
+[GenerateShape]
+public partial class ClassWithOutConstructorParameter
+{
+    public ClassWithOutConstructorParameter(out int value)
+    {
+        Value = value = 42;
+    }
+    
+    public int Value { get; }
+}
+
+[GenerateShape]
+public partial class ClassWithMultipleRefConstructorParameters
+{
+    public ClassWithMultipleRefConstructorParameters(ref int intValue, in bool boolValue, ref readonly DateTime dateValue)
+    {
+        IntValue = intValue;
+        BoolValue = boolValue;
+        DateValue = dateValue;
+    }
+    
+    public int IntValue { get; }
+    public bool BoolValue { get; }
+    public DateTime DateValue { get; }
+
+    public static ClassWithMultipleRefConstructorParameters Create()
+    {
+        int intValue = 42;
+        bool boolValue = true;
+        DateTime dateValue = DateTime.MaxValue;
+        return new ClassWithMultipleRefConstructorParameters(ref intValue, in boolValue, ref dateValue);
     }
 }
 
