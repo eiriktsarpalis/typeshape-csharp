@@ -7,14 +7,17 @@ namespace TypeShape.Benchmarks;
 [MemoryDiagnoser]
 public partial class CounterBenchmark
 {
+    private static readonly ReflectionTypeShapeProvider EmitProvider = new(new() { UseReflectionEmit = true });
+    private static readonly ReflectionTypeShapeProvider NoEmitProvider = new(new() { UseReflectionEmit = false });
+
     private readonly MyPoco _value = new MyPoco(@string: "myString")
     {
         List = [1, 2, 3],
         Dict = new() { ["key1"] = 42, ["key2"] = -1 },
     };
 
-    private readonly Func<MyPoco, long> _reflectionEmitCounter = Counter.Create(new ReflectionTypeShapeProvider(useReflectionEmit: true).GetShape<MyPoco>());
-    private readonly Func<MyPoco, long> _reflectionCounter = Counter.Create(new ReflectionTypeShapeProvider(useReflectionEmit: false).GetShape<MyPoco>());
+    private readonly Func<MyPoco, long> _reflectionEmitCounter = Counter.Create(EmitProvider.GetShape<MyPoco>());
+    private readonly Func<MyPoco, long> _reflectionCounter = Counter.Create(NoEmitProvider.GetShape<MyPoco>());
 
     [Benchmark(Baseline = true)]
     public long Baseline()

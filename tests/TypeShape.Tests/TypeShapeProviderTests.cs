@@ -583,12 +583,13 @@ public abstract class TypeShapeProviderTests(IProviderUnderTest providerUnderTes
             return;
         }
 
-        NullabilityInfoContext? nullabilityCtx = null;
+        NullabilityInfoContext? nullabilityCtx = providerUnderTest.ResolvesNullableAnnotations ? new() : null;
+
         foreach (IPropertyShape property in objectShape.GetProperties())
         {
             MemberInfo memberInfo = Assert.IsAssignableFrom<MemberInfo>(property.AttributeProvider);
 
-            memberInfo.ResolveNullableAnnotation(ref nullabilityCtx, out bool isGetterNonNullable, out bool isSetterNonNullable);
+            memberInfo.ResolveNullableAnnotation(nullabilityCtx, out bool isGetterNonNullable, out bool isSetterNonNullable);
             Assert.Equal(property.HasGetter && isGetterNonNullable, property.IsGetterNonNullable);
             Assert.Equal(property.HasSetter && isSetterNonNullable, property.IsSetterNonNullable);
         }
@@ -603,13 +604,13 @@ public abstract class TypeShapeProviderTests(IProviderUnderTest providerUnderTes
             {
                 if (ctorParam.AttributeProvider is ParameterInfo pInfo)
                 {
-                    bool isNonNullableReferenceType = pInfo.IsNonNullableAnnotation(ref nullabilityCtx);
+                    bool isNonNullableReferenceType = pInfo.IsNonNullableAnnotation(nullabilityCtx);
                     Assert.Equal(isNonNullableReferenceType, ctorParam.IsNonNullable);
                 }
                 else
                 {
                     MemberInfo memberInfo = Assert.IsAssignableFrom<MemberInfo>(ctorParam.AttributeProvider);
-                    memberInfo.ResolveNullableAnnotation(ref nullabilityCtx, out _, out bool isSetterNonNullable);
+                    memberInfo.ResolveNullableAnnotation(nullabilityCtx, out _, out bool isSetterNonNullable);
                     Assert.Equal(isSetterNonNullable, ctorParam.IsNonNullable);
                 }
             }
@@ -663,4 +664,5 @@ public static class ReflectionHelpers
 
 public sealed class TypeShapeProviderTests_Reflection() : TypeShapeProviderTests(RefectionProviderUnderTest.Default);
 public sealed class TypeShapeProviderTests_ReflectionEmit() : TypeShapeProviderTests(RefectionProviderUnderTest.NoEmit);
+public sealed class TypeShapeProviderTests_NoNullableAnnotations() : TypeShapeProviderTests(RefectionProviderUnderTest.NoNullableAnnotations);
 public sealed class TypeShapeProviderTests_SourceGen() : TypeShapeProviderTests(SourceGenProviderUnderTest.Default);

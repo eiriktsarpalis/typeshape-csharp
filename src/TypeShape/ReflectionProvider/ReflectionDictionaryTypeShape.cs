@@ -114,7 +114,7 @@ internal abstract class ReflectionDictionaryTypeShape<TDictionary, TKey, TValue>
             }
         }
 
-        if (provider.UseReflectionEmit && typeof(TDictionary).GetConstructor([typeof(ReadOnlySpan<KeyValuePair<TKey, TValue>>)]) is ConstructorInfo spanCtor)
+        if (provider.Options.UseReflectionEmit && typeof(TDictionary).GetConstructor([typeof(ReadOnlySpan<KeyValuePair<TKey, TValue>>)]) is ConstructorInfo spanCtor)
         {
             // Cannot invoke constructors with ROS parameters without Ref.Emit
             _spanCtor = spanCtor;

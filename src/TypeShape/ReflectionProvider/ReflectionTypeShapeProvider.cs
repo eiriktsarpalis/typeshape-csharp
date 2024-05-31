@@ -22,27 +22,26 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
     /// <summary>
     /// Gets the default provider instance using configuration supported by the current platform.
     /// </summary>
-    public static ReflectionTypeShapeProvider Default { get; } = new ReflectionTypeShapeProvider(useReflectionEmit: RuntimeFeature.IsDynamicCodeSupported);
+    public static ReflectionTypeShapeProvider Default { get; } = new ReflectionTypeShapeProvider();
 
     private readonly ConcurrentDictionary<Type, ITypeShape> _cache = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ReflectionTypeShapeProvider"/> class.
     /// </summary>
-    /// <param name="useReflectionEmit">Specifies whether System.Reflection.Emit should be used when generating member accessors.</param>
-    public ReflectionTypeShapeProvider(bool useReflectionEmit)
+    /// <param name="options">Specifies configuration to be used by the provider.</param>
+    public ReflectionTypeShapeProvider(ReflectionTypeShapeProviderOptions? options = null)
     {
-        MemberAccessor = useReflectionEmit
+        Options = options ??= ReflectionTypeShapeProviderOptions.Default;
+        MemberAccessor = options.UseReflectionEmit
             ? new ReflectionEmitMemberAccessor()
             : new ReflectionMemberAccessor();
-
-        UseReflectionEmit = useReflectionEmit;
     }
 
     /// <summary>
-    /// Whether System.Reflection.Emit is used when generating member accessors.
+    /// Gets the configuration used by the provider.
     /// </summary>
-    public bool UseReflectionEmit { get; }
+    public ReflectionTypeShapeProviderOptions Options { get; }
 
     internal IReflectionMemberAccessor MemberAccessor { get; }
 
@@ -296,5 +295,10 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
             MethodParameterShapeInfo[] MapParameterInfo(IEnumerable<ParameterInfo> parameters)
                 => parameters.Select(p => new MethodParameterShapeInfo(p, isNonNullable: false, logicalName: $"Item{++offset}")).ToArray();
         }
+    }
+
+    internal NullabilityInfoContext? CreateNullabilityInfoContext()
+    {
+        return Options.ResolveNullableAnnotations ? new() : null;
     }
 }
