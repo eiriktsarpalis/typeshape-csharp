@@ -17,7 +17,7 @@
         <Copyright>2023</Copyright>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <RepositoryUrl>https://github.com/eiriktsarpalis/typeshape-csharp</RepositoryUrl>
-        <PackageProjectUrl>https://github.com/eiriktsarpalis/typeshape-csharp</PackageProjectUrl>
+        <PackageProjectUrl>https://eiriktsarpalis.github.io/typeshape-csharp/</PackageProjectUrl>
         <PackageTags>generic programming, source generator, polytypic</PackageTags>
         <PackageOutputPath>$(RepoRoot)artifacts/</PackageOutputPath>
     </PropertyGroup>
