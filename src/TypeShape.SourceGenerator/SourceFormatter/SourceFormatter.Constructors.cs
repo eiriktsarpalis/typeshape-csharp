@@ -9,6 +9,7 @@ namespace TypeShape.SourceGenerator;
 internal static partial class SourceFormatter
 {
     private const string BitArrayFQN = "global::System.Collections.BitArray";
+    private const string FlagsArgumentStateLabel = "Flags";
 
     private static void FormatConstructorFactory(SourceWriter writer, string methodName, ObjectShapeModel type, ConstructorShapeModel constructor)
     {
@@ -162,8 +163,8 @@ internal static partial class SourceFormatter
                     int flagOffset = parameter.Position - constructor.Parameters.Length - constructor.RequiredMembers.Length;
                     Debug.Assert(flagOffset >= 0);
                     string conditionalExpr = constructor.OptionalMemberFlagsType is OptionalMemberFlagsType.BitArray
-                        ? $"{stateVar}.Item{constructor.TotalArity + 1}[{flagOffset}]"
-                        : $"({stateVar}.Item{constructor.TotalArity + 1} & (1 << {flagOffset})) != 0";
+                        ? $"{stateVar}.{FlagsArgumentStateLabel}[{flagOffset}]"
+                        : $"({stateVar}.{FlagsArgumentStateLabel} & {1 << flagOffset}) != 0";
                     
                     string assignmentBody;
                     if (parameter.IsInitOnlyProperty)
@@ -262,7 +263,7 @@ internal static partial class SourceFormatter
 
                 if (parameter.Kind is not ParameterKind.ConstructorParameter)
                 {
-                    return $"static () => typeof({parameter.DeclaringType.FullyQualifiedName}).GetMember({FormatStringLiteral(parameter.UnderlyingMemberName)}, {InstanceBindingFlagsConstMember})[0]";
+                    return $$"""static () => typeof({{parameter.DeclaringType.FullyQualifiedName}}).GetMember({{FormatStringLiteral(parameter.UnderlyingMemberName)}}, {{InstanceBindingFlagsConstMember}}) is { Length: > 0 } results ? results[0] : null""";
                 }
 
                 string parameterTypes = constructor.Parameters.Length == 0
@@ -292,8 +293,8 @@ internal static partial class SourceFormatter
                     int flagOffset = parameter.Position - constructor.Parameters.Length - constructor.RequiredMembers.Length;
                     Debug.Assert(flagOffset >= 0);
                     string setFlagExpr = constructor.OptionalMemberFlagsType is OptionalMemberFlagsType.BitArray
-                        ? $"state.Item{constructor.TotalArity + 1}[{flagOffset}] = true"
-                        : $"state.Item{constructor.TotalArity + 1} |= 1 << {flagOffset}";
+                        ? $"state.{FlagsArgumentStateLabel}[{flagOffset}] = true"
+                        : $"state.{FlagsArgumentStateLabel} |= {1 << flagOffset}";
 
                     return $$"""{ {{assignValueExpr}}; {{setFlagExpr}}; }""";
                 }
@@ -363,7 +364,7 @@ internal static partial class SourceFormatter
                     .Concat(constructorModel.RequiredMembers)
                     .Concat(constructorModel.OptionalMembers)
                     .Select(p => p.ParameterType.FullyQualifiedName)
-                    .Append(optionalParameterFlagTypeFQN))
+                    .Append($"{optionalParameterFlagTypeFQN} {FlagsArgumentStateLabel}"))
         };
 
         static string FormatTupleType(IEnumerable<string> parameterTypes)

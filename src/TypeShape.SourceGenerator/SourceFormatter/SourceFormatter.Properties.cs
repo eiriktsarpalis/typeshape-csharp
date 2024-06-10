@@ -57,7 +57,7 @@ internal static partial class SourceFormatter
                     return "null";
                 }
 
-                return $"static () => typeof({property.DeclaringType.FullyQualifiedName}).GetMember({FormatStringLiteral(property.UnderlyingMemberName)}, {InstanceBindingFlagsConstMember})[0]";
+                return $$"""static () => typeof({{property.DeclaringType.FullyQualifiedName}}).GetMember({{FormatStringLiteral(property.UnderlyingMemberName)}}, {{InstanceBindingFlagsConstMember}}) is { Length: > 0 } results ? results[0] : null""";
             }
         }
 
