@@ -263,7 +263,9 @@ internal static partial class SourceFormatter
 
                 if (parameter.Kind is not ParameterKind.ConstructorParameter)
                 {
-                    return $$"""static () => typeof({{parameter.DeclaringType.FullyQualifiedName}}).GetMember({{FormatStringLiteral(parameter.UnderlyingMemberName)}}, {{InstanceBindingFlagsConstMember}}) is { Length: > 0 } results ? results[0] : null""";
+                    return parameter.IsField
+                        ? $$"""static () => typeof({{parameter.DeclaringType.FullyQualifiedName}}).GetField({{FormatStringLiteral(parameter.UnderlyingMemberName)}}, {{InstanceBindingFlagsConstMember}})"""
+                        : $$"""static () => typeof({{parameter.DeclaringType.FullyQualifiedName}}).GetProperty({{FormatStringLiteral(parameter.UnderlyingMemberName)}}, {{InstanceBindingFlagsConstMember}}, null, typeof({{parameter.ParameterType}}), [], null)""";
                 }
 
                 string parameterTypes = constructor.Parameters.Length == 0

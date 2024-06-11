@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using System.Diagnostics;
+using System.Reflection;
 using TypeShape.Roslyn;
 using TypeShape.SourceGenerator.Model;
 
@@ -57,7 +58,9 @@ internal static partial class SourceFormatter
                     return "null";
                 }
 
-                return $$"""static () => typeof({{property.DeclaringType.FullyQualifiedName}}).GetMember({{FormatStringLiteral(property.UnderlyingMemberName)}}, {{InstanceBindingFlagsConstMember}}) is { Length: > 0 } results ? results[0] : null""";
+                return property.IsField
+                    ? $$"""static () => typeof({{property.DeclaringType.FullyQualifiedName}}).GetField({{FormatStringLiteral(property.UnderlyingMemberName)}}, {{InstanceBindingFlagsConstMember}})"""
+                    : $$"""static () => typeof({{property.DeclaringType.FullyQualifiedName}}).GetProperty({{FormatStringLiteral(property.UnderlyingMemberName)}}, {{InstanceBindingFlagsConstMember}}, null, typeof({{property.PropertyType.FullyQualifiedName}}), [], null)""";
             }
         }
 
