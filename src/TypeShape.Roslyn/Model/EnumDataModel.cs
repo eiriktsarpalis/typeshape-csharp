@@ -7,6 +7,7 @@ namespace TypeShape.Roslyn;
 /// </summary>
 public sealed class EnumDataModel : TypeDataModel
 {
+    /// <inheritdoc/>
     public override TypeDataKind Kind => TypeDataKind.Enum;
 
     /// <summary>

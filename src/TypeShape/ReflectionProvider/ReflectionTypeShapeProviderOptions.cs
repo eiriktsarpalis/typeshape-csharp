@@ -25,7 +25,7 @@ public sealed class ReflectionTypeShapeProviderOptions
     /// Whether the resolver should use <see cref="NullabilityInfoContext"/> to resolve nullable annotations.
     /// </summary>
     /// <remarks>
-    /// Should be turned off in applications that disable <see cref="NullabilityInfoContext"/> 
+    /// Should be turned off in applications that disable <see cref="NullabilityInfoContext"/>
     /// via the NullabilityInfoContext.IsSupported feature switch (e.g. Blazor WebAssembly).
     /// </remarks>
     public bool ResolveNullableAnnotations { get; init; } = true;

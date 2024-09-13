@@ -5,6 +5,7 @@
         <PackageId>TypeShape.Roslyn</PackageId>
         <IsPackable>true</IsPackable>
         <PackageReadmeFile>README.md</PackageReadmeFile>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
     
     <ItemGroup>

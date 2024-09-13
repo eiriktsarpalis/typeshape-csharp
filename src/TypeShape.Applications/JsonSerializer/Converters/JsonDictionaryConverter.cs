@@ -1,9 +1,9 @@
-﻿namespace TypeShape.Applications.JsonSerializer.Converters;
-
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeShape.Abstractions;
+
+namespace TypeShape.Applications.JsonSerializer.Converters;
 
 internal class JsonDictionaryConverter<TDictionary, TKey, TValue>(JsonConverter<TKey> keyConverter, JsonConverter<TValue> valueConverter, IDictionaryShape<TDictionary, TKey, TValue> shape) : JsonConverter<TDictionary>
     where TKey : notnull

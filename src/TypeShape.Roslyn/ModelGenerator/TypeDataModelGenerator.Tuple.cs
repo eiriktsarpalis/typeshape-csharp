@@ -57,7 +57,7 @@ public partial class TypeDataModelGenerator
         }
 
         if (FlattenSystemTupleTypes && 
-            KnownSymbols.Compilation.GetClassTupleProperties(KnownSymbols.CoreLibAssembly, namedType) 
+            RoslynHelpers.GetClassTupleProperties(KnownSymbols.CoreLibAssembly, namedType) 
             is IPropertySymbol[] classTupleProperties)
         {
             var elements = new List<PropertyDataModel>();

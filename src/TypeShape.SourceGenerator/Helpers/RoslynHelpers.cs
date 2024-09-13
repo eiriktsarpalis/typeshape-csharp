@@ -150,7 +150,7 @@ internal static partial class RoslynHelpers
                 string suffix = rank == 1 ? "_Array" : $"_Array{rank}D"; // Array, Array2D, Array3D, ...
                 return arrayType.ElementType.GetGeneratedPropertyName() + suffix;
 
-            case INamedTypeSymbol namedType when (namedType.IsTupleType):
+            case INamedTypeSymbol namedType when namedType.IsTupleType:
                 {
                     StringBuilder sb = new();
 
@@ -168,7 +168,9 @@ internal static partial class RoslynHelpers
             case INamedTypeSymbol namedType:
                 {
                     if (namedType.TypeArguments.Length == 0 && namedType.ContainingType is null)
+                    {
                         return namedType.Name;
+                    }
 
                     StringBuilder sb = new();
 

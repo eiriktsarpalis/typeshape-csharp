@@ -123,7 +123,7 @@ internal static class RoslynHelpers
                 string suffix = rank == 1 ? "_Array" : $"_Array{rank}D"; // Array, Array2D, Array3D, ...
                 return arrayTypeSymbol.ElementType.GetGeneratedPropertyName() + suffix;
 
-            case INamedTypeSymbol namedType when (namedType.IsTupleType):
+            case INamedTypeSymbol namedType when namedType.IsTupleType:
                 {
                     StringBuilder sb = new();
 
@@ -141,7 +141,9 @@ internal static class RoslynHelpers
             case INamedTypeSymbol namedType:
                 {
                     if (namedType.TypeArguments.Length == 0 && namedType.ContainingType is null)
+                    {
                         return namedType.Name;
+                    }
 
                     StringBuilder sb = new();
 
@@ -177,7 +179,9 @@ internal static class RoslynHelpers
     public static bool ContainsGenericParameters(this ITypeSymbol typeSymbol)
     {
         if (typeSymbol.TypeKind is TypeKind.TypeParameter or TypeKind.Error)
+        {
             return true;
+        }
 
         if (typeSymbol is INamedTypeSymbol namedTypeSymbol)
         {
@@ -199,7 +203,7 @@ internal static class RoslynHelpers
     }
 
 
-    public static IPropertySymbol[]? GetClassTupleProperties(this Compilation compilation, IAssemblySymbol coreLibAssembly, INamedTypeSymbol typeSymbol)
+    public static IPropertySymbol[]? GetClassTupleProperties(IAssemblySymbol coreLibAssembly, INamedTypeSymbol typeSymbol)
     {
         if (!IsClassTupleType(typeSymbol))
         {

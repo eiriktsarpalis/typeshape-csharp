@@ -323,6 +323,6 @@ public static class Cloner
             return new Func<object?, object?>(source => cloner((T)source!));
         }
 
-        private static NotSupportedException TypeNotCloneable<T>() => new NotSupportedException($"The type '{typeof(T)}' is not cloneable.");
+        private static NotSupportedException TypeNotCloneable<T>() => new($"The type '{typeof(T)}' is not cloneable.");
     }
 }

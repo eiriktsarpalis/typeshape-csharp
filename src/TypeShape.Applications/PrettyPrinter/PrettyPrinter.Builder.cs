@@ -1,10 +1,9 @@
-﻿namespace TypeShape.Applications.PrettyPrinter;
-
-using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Numerics;
 using System.Text;
 using TypeShape.Abstractions;
+
+namespace TypeShape.Applications.PrettyPrinter;
 
 public static partial class PrettyPrinter
 {
@@ -107,7 +106,9 @@ public static partial class PrettyPrinter
                     }
 
                     if (containsElements)
+                    {
                         sb.Length -= 2;
+                    }
                 }
                 else
                 {
@@ -120,7 +121,9 @@ public static partial class PrettyPrinter
                     }
 
                     if (containsElements)
+                    {
                         sb.Length--;
+                    }
 
                     WriteLine(sb, indentation);
                 }
@@ -184,9 +187,13 @@ public static partial class PrettyPrinter
             return new PrettyPrinter<T?>((sb, indentation, value) =>
             {
                 if (value is null)
+                {
                     sb.Append("null");
+                }
                 else
+                {
                     elementPrinter(sb, indentation, value.Value);
+                }
             });
         }
 
@@ -237,9 +244,13 @@ public static partial class PrettyPrinter
             yield return Create<string>((builder, _, s) =>
             {
                 if (s is null)
+                {
                     builder.Append("null");
+                }
                 else
+                {
                     WriteStringLiteral(builder, s);
+                }
             });
 
             yield return Create<DateTime>((builder, _, d) => WriteStringLiteral(builder, d));

@@ -1,11 +1,11 @@
-﻿namespace TypeShape.Applications.JsonSerializer;
-
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using TypeShape.Abstractions;
 using TypeShape.Applications.JsonSerializer.Converters;
+
+namespace TypeShape.Applications.JsonSerializer;
 
 public static partial class TypeShapeJsonSerializer
 {

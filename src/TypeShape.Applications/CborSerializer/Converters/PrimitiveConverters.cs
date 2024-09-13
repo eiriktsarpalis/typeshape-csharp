@@ -368,7 +368,7 @@ internal sealed class DateOnlyConverter : CborConverter<DateOnly>
 
 internal sealed class TimeOnlyConverter : CborConverter<TimeOnly>
 {
-    private readonly static TimeSpanConverter s_timeSpanConverter = new();
+    private static readonly TimeSpanConverter s_timeSpanConverter = new();
 
     public override TimeOnly Read(CborReader reader)
         => TimeOnly.FromTimeSpan(s_timeSpanConverter.Read(reader));

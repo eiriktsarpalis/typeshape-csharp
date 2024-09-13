@@ -205,7 +205,7 @@ public static class CompilationHelpers
 
     public static void AssertMaxSeverity(this IEnumerable<Diagnostic> diagnostics, DiagnosticSeverity maxSeverity)
     {
-        Assert.Empty(diagnostics.Where(diagnostic => diagnostic.Severity > maxSeverity));
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Severity > maxSeverity);
     }
 
     public static (int startLine, int startColumn) GetStartPosition(this Location location)

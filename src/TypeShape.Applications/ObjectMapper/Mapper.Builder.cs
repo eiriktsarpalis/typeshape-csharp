@@ -46,7 +46,7 @@ public static partial class Mapper
                     {
                         // If TTarget is not constructible, only map if TSource is a subtype of TTarget and has no properties.
                         return typeof(TTarget).IsAssignableFrom(typeof(TSource)) && !targetObjectShape.HasProperties
-                            ? (Mapper<TSource, TTarget>)(object)(new Mapper<TSource, TSource>(source => source))
+                            ? (Mapper<TSource, TTarget>)(object)new Mapper<TSource, TSource>(source => source)
                             : null;
                     }
 
@@ -186,7 +186,9 @@ public static partial class Mapper
                 IPropertyShape<TSource, TSourceProperty> sourceProperty = (IPropertyShape<TSource, TSourceProperty>)state!;
                 var propertyTypeMapper = baseVisitor.BuildMapper(sourceProperty.PropertyType, targetProperty.PropertyType);
                 if (propertyTypeMapper is null)
+                {
                     return null;
+                }
 
                 Getter<TSource, TSourceProperty> sourceGetter = sourceProperty.GetGetter();
                 Setter<TTarget, TTargetProperty> targetSetter = targetProperty.GetSetter();
@@ -203,7 +205,9 @@ public static partial class Mapper
                 var sourceProperty = (IPropertyShape<TSource, TSourceProperty>)state!;
                 var propertyTypeMapper = baseVisitor.BuildMapper(sourceProperty.PropertyType, targetParameter.ParameterType);
                 if (propertyTypeMapper is null)
+                {
                     return null;
+                }
 
                 Getter<TSource, TSourceProperty> sourceGetter = sourceProperty.GetGetter();
                 Setter<TArgumentState, TTargetParameter> parameterSetter = targetParameter.GetSetter();
@@ -225,7 +229,9 @@ public static partial class Mapper
                 var sourceNullable = (INullableTypeShape<TSourceElement>)state!;
                 var elementMapper = baseVisitor.BuildMapper(sourceNullable.ElementType, nullableShape.ElementType);
                 if (elementMapper is null)
+                {
                     return null;
+                }
 
                 return new Mapper<TSourceElement?, TTargetElement?>(source => source is null ? null : elementMapper(source.Value));
             }
@@ -240,7 +246,9 @@ public static partial class Mapper
 
                 var elementMapper = baseVisitor.BuildMapper(sourceEnumerable.ElementType, enumerableShape.ElementType);
                 if (elementMapper is null)
+                {
                     return null;
+                }
 
                 switch (enumerableShape.ConstructionStrategy)
                 {
@@ -304,7 +312,9 @@ public static partial class Mapper
                 var keyMapper = baseVisitor.BuildMapper(sourceDictionary.KeyType, targetDictionary.KeyType);
                 var valueMapper = baseVisitor.BuildMapper(sourceDictionary.ValueType, targetDictionary.ValueType);
                 if (keyMapper is null || valueMapper is null)
+                {
                     return null;
+                }
 
                 switch (targetDictionary.ConstructionStrategy)
                 {

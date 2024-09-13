@@ -5,6 +5,10 @@ using System.Runtime.CompilerServices;
 
 namespace TypeShape.Roslyn;
 
+/// <summary>
+/// Defines an immutable set that defines structural equality semantics.
+/// </summary>
+/// <typeparam name="T">The element type of the set.</typeparam>
 [DebuggerDisplay("Count = {Count}")]
 [DebuggerTypeProxy(typeof(ImmutableEquatableSet<>.DebugView))]
 [CollectionBuilder(typeof(ImmutableEquatableSet), nameof(ImmutableEquatableSet.Create))]
@@ -16,6 +20,9 @@ public sealed class ImmutableEquatableSet<T> :
 
     where T : IEquatable<T>
 {
+    /// <summary>
+    /// An empty <see cref="ImmutableEquatableSet{T}"/> instance.
+    /// </summary>
     public static ImmutableEquatableSet<T> Empty { get; } = new([]);
 
     private readonly HashSet<T> _values;
@@ -26,10 +33,18 @@ public sealed class ImmutableEquatableSet<T> :
         _values = values;
     }
 
+    /// <summary>
+    /// Gets an enumerator that iterates through the set.
+    /// </summary>
     public int Count => _values.Count;
+
+    /// <summary>
+    /// Checks if the set contains the specified item.
+    /// </summary>
     public bool Contains(T item)
         => _values.Contains(item);
 
+    /// <inheritdoc/>
     public bool Equals(ImmutableEquatableSet<T> other)
     {
         if (ReferenceEquals(this, other))
@@ -55,9 +70,11 @@ public sealed class ImmutableEquatableSet<T> :
         return true;
     }
 
+    /// <inheritdoc/>
     public override bool Equals(object? obj)
         => obj is ImmutableEquatableSet<T> other && Equals(other);
 
+    /// <inheritdoc/>
     public override int GetHashCode()
     {
         int hash = 0;
@@ -69,6 +86,9 @@ public sealed class ImmutableEquatableSet<T> :
         return hash;
     }
 
+    /// <summary>
+    /// Gets an enumerator that iterates through the set.
+    /// </summary>
     public HashSet<T>.Enumerator GetEnumerator() => _values.GetEnumerator();
 
 
@@ -110,11 +130,26 @@ public sealed class ImmutableEquatableSet<T> :
     }
 }
 
+/// <summary>
+/// Defines extension methods for creating <see cref="ImmutableEquatableSet{T}"/> instances.
+/// </summary>
 public static class ImmutableEquatableSet
 {
+    /// <summary>
+    /// Creates a new <see cref="ImmutableEquatableSet{T}"/> instance from the specified values.
+    /// </summary>
+    /// <typeparam name="T">The element type of the set.</typeparam>
+    /// <param name="values">The source enumerable with which to populate the set.</param>
+    /// <returns>A new <see cref="ImmutableEquatableSet{T}"/> instance containing the specified values.</returns>
     public static ImmutableEquatableSet<T> ToImmutableEquatableSet<T>(this IEnumerable<T> values) where T : IEquatable<T>
         => values is ICollection<T> { Count: 0 } ? ImmutableEquatableSet<T>.Empty : ImmutableEquatableSet<T>.UnsafeCreateFromHashSet(new(values));
 
+    /// <summary>
+    /// Creates a new <see cref="ImmutableEquatableSet{T}"/> instance from the specified values.
+    /// </summary>
+    /// <typeparam name="T">The element type of the set.</typeparam>
+    /// <param name="values">The source span with which to populate the set.</param>
+    /// <returns>A new <see cref="ImmutableEquatableSet{T}"/> instance containing the specified values.</returns>
     public static ImmutableEquatableSet<T> Create<T>(ReadOnlySpan<T> values) where T : IEquatable<T>
     {
         if (values.IsEmpty)
@@ -122,7 +157,7 @@ public static class ImmutableEquatableSet
             return ImmutableEquatableSet<T>.Empty;
         }
 
-        HashSet<T> hashSet = new();
+        HashSet<T> hashSet = [];
         for (int i = 0; i < values.Length; i++)
         {
             hashSet.Add(values[i]);

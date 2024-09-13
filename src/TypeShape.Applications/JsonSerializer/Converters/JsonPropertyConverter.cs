@@ -1,9 +1,9 @@
-﻿namespace TypeShape.Applications.JsonSerializer.Converters;
-
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeShape.Abstractions;
+
+namespace TypeShape.Applications.JsonSerializer.Converters;
 
 internal abstract class JsonPropertyConverter<TDeclaringType>(string name)
 {

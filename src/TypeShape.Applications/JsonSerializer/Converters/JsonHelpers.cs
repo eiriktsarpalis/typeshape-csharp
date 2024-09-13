@@ -1,8 +1,8 @@
-﻿namespace TypeShape.Applications.JsonSerializer.Converters;
-
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+
+namespace TypeShape.Applications.JsonSerializer.Converters;
 
 internal static class JsonHelpers
 {

@@ -1,14 +1,12 @@
 ﻿using System.Diagnostics;
-
-namespace TypeShape.Applications.JsonSerializer.Converters;
-
-using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeShape.Abstractions;
+
+namespace TypeShape.Applications.JsonSerializer.Converters;
 
 internal class JsonEnumerableConverter<TEnumerable, TElement>(JsonConverter<TElement> elementConverter, IEnumerableTypeShape<TEnumerable, TElement> typeShape) : JsonConverter<TEnumerable>
 {
@@ -159,7 +157,11 @@ internal sealed class JsonMDArrayConverter<TArray, TElement>(JsonConverter<TElem
         Debug.Assert(rank == array.Rank);
 
         int[] dimensions = _dimensions ??= new int[rank];
-        for (int i = 0; i < rank; i++) dimensions[i] = array.GetLength(i);
+        for (int i = 0; i < rank; i++) 
+        { 
+            dimensions[i] = array.GetLength(i); 
+        }
+
         WriteSubArray(writer, dimensions, AsSpan(array), options);
     }
 

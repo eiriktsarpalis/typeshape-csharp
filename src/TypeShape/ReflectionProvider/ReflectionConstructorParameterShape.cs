@@ -12,7 +12,6 @@ internal sealed class ReflectionConstructorParameterShape<TArgumentState, TParam
     private readonly ReflectionTypeShapeProvider _provider;
     private readonly IConstructorShapeInfo _ctorInfo;
     private readonly IParameterShapeInfo _parameterInfo;
-    private readonly int _position;
 
     public ReflectionConstructorParameterShape(
         ReflectionTypeShapeProvider provider,
@@ -24,13 +23,13 @@ internal sealed class ReflectionConstructorParameterShape<TArgumentState, TParam
 
         _ctorInfo = ctorInfo;
         _parameterInfo = parameterInfo;
-        _position = position;
+        Position = position;
         _provider = provider;
     }
 
     public ITypeShape<TParameter> ParameterType => _provider.GetShape<TParameter>();
 
-    public int Position => _position;
+    public int Position { get; }
     public string Name => _parameterInfo.Name;
     public ConstructorParameterKind Kind => _parameterInfo.Kind;
     public bool HasDefaultValue => _parameterInfo.HasDefaultValue;
@@ -42,7 +41,7 @@ internal sealed class ReflectionConstructorParameterShape<TArgumentState, TParam
     public ICustomAttributeProvider? AttributeProvider => _parameterInfo.AttributeProvider;
 
     public Setter<TArgumentState, TParameter> GetSetter()
-        => _provider.MemberAccessor.CreateConstructorArgumentStateSetter<TArgumentState, TParameter>(_ctorInfo, _position);
+        => _provider.MemberAccessor.CreateConstructorArgumentStateSetter<TArgumentState, TParameter>(_ctorInfo, Position);
 }
 
 internal interface IParameterShapeInfo

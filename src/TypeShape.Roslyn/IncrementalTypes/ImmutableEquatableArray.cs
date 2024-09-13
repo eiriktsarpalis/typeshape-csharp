@@ -2,10 +2,13 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using TypeShape.Roslyn.Helpers;
 
 namespace TypeShape.Roslyn;
 
+/// <summary>
+/// Defines an immutable array that defines structural equality semantics.
+/// </summary>
+/// <typeparam name="T">The type of the array elements.</typeparam>
 [DebuggerDisplay("Length = {Length}")]
 [DebuggerTypeProxy(typeof(ImmutableEquatableArray<>.DebugView))]
 [CollectionBuilder(typeof(ImmutableEquatableArray), nameof(ImmutableEquatableArray.Create))]
@@ -17,21 +20,37 @@ public sealed class ImmutableEquatableArray<T> :
 
     where T : IEquatable<T>
 {
+    /// <summary>
+    /// An empty <see cref="ImmutableEquatableArray{T}"/> instance.
+    /// </summary>
     public static ImmutableEquatableArray<T> Empty { get; } = new([]);
 
     private readonly T[] _values;
+
+    /// <summary>
+    /// Gets the element at the specified index.
+    /// </summary>
     public ref readonly T this[int index] => ref _values[index];
+
+    /// <summary>
+    /// Gets the number of elements in the array.
+    /// </summary>
     public int Length => _values.Length;
 
     private ImmutableEquatableArray(T[] values)
-        => _values = values;
+    {
+        _values = values;
+    }
 
+    /// <inheritdoc/>
     public bool Equals(ImmutableEquatableArray<T> other)
         => ReferenceEquals(this, other) || ((ReadOnlySpan<T>)_values).SequenceEqual(other._values);
 
+    /// <inheritdoc/>
     public override bool Equals(object? obj) 
         => obj is ImmutableEquatableArray<T> other && Equals(other);
 
+    /// <inheritdoc/>
     public override int GetHashCode()
     {
         int hash = 0;
@@ -43,9 +62,13 @@ public sealed class ImmutableEquatableArray<T> :
         return hash;
     }
 
+    /// <inheritdoc/>
     public Enumerator GetEnumerator() => new(_values);
 
-    public struct Enumerator
+    /// <summary>
+    /// Defines an enumerator for the <see cref="ImmutableEquatableArray{T}"/> type.
+    /// </summary>
+    public struct Enumerator : IEnumerator<T>
     {
         private readonly T[] _values;
         private int _index;
@@ -56,8 +79,20 @@ public sealed class ImmutableEquatableArray<T> :
             _index = -1;
         }
 
+        /// <summary>
+        /// Advances the enumerator to the next element of the array.
+        /// </summary>
         public bool MoveNext() => ++_index < _values.Length;
+
+        /// <summary>
+        /// Gets the element at the current position of the enumerator.
+        /// </summary>
         public readonly ref T Current => ref _values[_index];
+
+        readonly T IEnumerator<T>.Current => _values[_index];
+        readonly object IEnumerator.Current => _values[_index];
+        void IEnumerator.Reset() => throw new NotImplementedException();
+        readonly void IDisposable.Dispose() { }
     }
 
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -105,11 +140,26 @@ public sealed class ImmutableEquatableArray<T> :
     }
 }
 
+/// <summary>
+/// Provides extension methods for the <see cref="ImmutableEquatableArray{T}"/> type.
+/// </summary>
 public static class ImmutableEquatableArray
 {
+    /// <summary>
+    /// Creates an <see cref="ImmutableEquatableArray{T}"/> instance from the specified values.
+    /// </summary>
+    /// <typeparam name="T">The element type for the array.</typeparam>
+    /// <param name="values">The source enumerable from which to populate the array.</param>
+    /// <returns>A new <see cref="ImmutableEquatableArray{T}"/> instance.</returns>
     public static ImmutableEquatableArray<T> ToImmutableEquatableArray<T>(this IEnumerable<T> values) where T : IEquatable<T>
         => values is ICollection<T> { Count: 0 } ? ImmutableEquatableArray<T>.Empty : ImmutableEquatableArray<T>.UnsafeCreateFromArray(values.ToArray());
 
+    /// <summary>
+    /// Creates an <see cref="ImmutableEquatableArray{T}"/> instance from the specified values.
+    /// </summary>
+    /// <typeparam name="T">The element type for the array.</typeparam>
+    /// <param name="values">The source span from which to populate the array.</param>
+    /// <returns>A new <see cref="ImmutableEquatableArray{T}"/> instance.</returns>
     public static ImmutableEquatableArray<T> Create<T>(ReadOnlySpan<T> values) where T : IEquatable<T>
         => values.IsEmpty ? ImmutableEquatableArray<T>.Empty : ImmutableEquatableArray<T>.UnsafeCreateFromArray(values.ToArray());
 }

@@ -1,7 +1,7 @@
-﻿namespace TypeShape.Applications.Validation;
-
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using TypeShape.Abstractions;
+
+namespace TypeShape.Applications.Validation;
 
 public static partial class Validator
 {

@@ -12,14 +12,31 @@ public readonly struct EquatableDiagnostic(
     Location? location,
     object?[] messageArgs) : IEquatable<EquatableDiagnostic>
 {
+    /// <summary>
+    /// The <see cref="DiagnosticDescriptor"/> for the diagnostic.
+    /// </summary>
     public DiagnosticDescriptor Descriptor { get; } = descriptor;
+
+    /// <summary>
+    /// The message arguments for the diagnostic.
+    /// </summary>
     public object?[] MessageArgs { get; } = messageArgs;
+
+    /// <summary>
+    /// The location of the diagnostic.
+    /// </summary>
     public Location? Location { get; } = location?.GetLocationTrimmed();
 
+    /// <summary>
+    /// Creates a new <see cref="Diagnostic"/> instance from the current instance.
+    /// </summary>
     public Diagnostic CreateDiagnostic()
         => Diagnostic.Create(Descriptor, Location, MessageArgs);
 
+    /// <inheritdoc/>
     public override readonly bool Equals(object? obj) => obj is EquatableDiagnostic info && Equals(info);
+
+    /// <inheritdoc/>
     public readonly bool Equals(EquatableDiagnostic other)
     {
         return Descriptor.Equals(other.Descriptor) &&
@@ -27,6 +44,7 @@ public readonly struct EquatableDiagnostic(
             Location == other.Location;
     }
 
+    /// <inheritdoc/>
     public override readonly int GetHashCode()
     {
         int hashCode = Descriptor.GetHashCode();
@@ -39,11 +57,13 @@ public readonly struct EquatableDiagnostic(
         return hashCode;
     }
 
+    /// <inheritdoc/>
     public static bool operator ==(EquatableDiagnostic left, EquatableDiagnostic right)
     {
         return left.Equals(right);
     }
 
+    /// <inheritdoc/>
     public static bool operator !=(EquatableDiagnostic left, EquatableDiagnostic right)
     {
         return !left.Equals(right);

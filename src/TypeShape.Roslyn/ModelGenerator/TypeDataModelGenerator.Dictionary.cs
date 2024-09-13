@@ -1,5 +1,4 @@
 ﻿using Microsoft.CodeAnalysis;
-using System.Transactions;
 using TypeShape.Roslyn.Helpers;
 
 namespace TypeShape.Roslyn;

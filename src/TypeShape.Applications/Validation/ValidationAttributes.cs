@@ -36,7 +36,7 @@ public class LengthAttribute : ValidationAttribute
     {
         if (typeof(TMemberType) == typeof(string))
         {
-            return (Predicate<TMemberType>)(object)(new Predicate<string>(StringPredicate));
+            return (Predicate<TMemberType>)(object)new Predicate<string>(StringPredicate);
             bool StringPredicate(string? str)
                 => str != null && Min <= str.Length && str.Length <= Max;
         }
@@ -67,7 +67,7 @@ public class RangeAttribute<T> : ValidationAttribute
         if (typeof(T).IsAssignableFrom(typeof(TMemberType)))
         {
             var comparer = Comparer ?? Comparer<T>.Default;
-            return (Predicate<TMemberType>)(object)(new Predicate<T>(value => comparer.Compare(Min, value) <= 0 && comparer.Compare(value, Max) <= 0));
+            return (Predicate<TMemberType>)(object)new Predicate<T>(value => comparer.Compare(Min, value) <= 0 && comparer.Compare(value, Max) <= 0);
         }
 
         return null;
@@ -85,7 +85,7 @@ public class RegularExpressionAttribute : ValidationAttribute
         if (typeof(TMemberType) == typeof(string))
         {
             var regex = new Regex(Pattern, RegexOptions.Compiled, matchTimeout: TimeSpan.FromMilliseconds(100));
-            return (Predicate<TMemberType>)(object)(new Predicate<string>(value => value != null && regex.IsMatch(value)));
+            return (Predicate<TMemberType>)(object)new Predicate<string>(value => value != null && regex.IsMatch(value));
         }
 
         return null;

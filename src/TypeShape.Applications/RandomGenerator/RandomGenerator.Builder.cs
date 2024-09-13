@@ -61,14 +61,18 @@ public partial class RandomGenerator
 
                 return new RandomGenerator<TDeclaringType>((Random random, int size) =>
                 {
-                    if (size == 0) 
+                    if (size == 0)
+                    {
                         return default!;
+                    }
 
                     TDeclaringType obj = defaultCtor();
                     int propertySize = GetChildSize(size, propertySetters.Length);
 
                     foreach (var propertySetter in propertySetters)
+                    {
                         propertySetter(ref obj, random, propertySize);
+                    }
 
                     return obj;
                 });
@@ -84,13 +88,17 @@ public partial class RandomGenerator
                 return new RandomGenerator<TDeclaringType>((Random random, int size) =>
                 {
                     if (size == 0)
+                    {
                         return default!;
+                    }
 
                     TArgumentState argState = argumentStateCtor();
                     int propertySize = GetChildSize(size, parameterSetters.Length);
 
                     foreach (var parameterSetter in parameterSetters)
+                    {
                         parameterSetter(ref argState, random, propertySize);
+                    }
 
                     return ctor(ref argState);
                 });
@@ -130,14 +138,18 @@ public partial class RandomGenerator
                 return new RandomGenerator<TElement[]>((Random random, int size) =>
                 {
                     if (size == 0)
+                    {
                         return default!;
+                    }
 
                     int length = random.Next(0, size);
                     var array = new TElement[length];
                     int elementSize = GetChildSize(size, length);
 
                     for (int i = 0; i < length; i++)
+                    {
                         array[i] = elementGenerator(random, elementSize);
+                    }
 
                     return array;
                 });
@@ -151,14 +163,18 @@ public partial class RandomGenerator
                     return new RandomGenerator<TEnumerable>((Random random, int size) =>
                     {
                         if (size == 0)
+                        {
                             return default!;
+                        }
 
                         TEnumerable obj = defaultCtor();
                         int length = random.Next(0, size);
                         int elementSize = GetChildSize(size, length);
 
                         for (int i = 0; i < length; i++)
+                        {
                             addElementFunc(ref obj, elementGenerator(random, elementSize));
+                        }
 
                         return obj;
                     });
@@ -168,14 +184,18 @@ public partial class RandomGenerator
                     return new RandomGenerator<TEnumerable>((Random random, int size) =>
                     {
                         if (size == 0)
+                        {
                             return default!;
+                        }
 
                         int length = random.Next(0, size);
                         using var buffer = new PooledList<TElement>(length);
                         int elementSize = GetChildSize(size, length);
 
                         for (int i = 0; i < length; i++)
+                        {
                             buffer.Add(elementGenerator(random, elementSize));
+                        }
 
                         return enumerableCtor(buffer.AsEnumerable());
                     });
@@ -185,14 +205,18 @@ public partial class RandomGenerator
                     return new RandomGenerator<TEnumerable>((Random random, int size) =>
                     {
                         if (size == 0)
+                        {
                             return default!;
+                        }
 
                         int length = random.Next(0, size);
                         using var buffer = new PooledList<TElement>(length);
                         int elementSize = GetChildSize(size, length);
 
                         for (int i = 0; i < length; i++)
+                        {
                             buffer.Add(elementGenerator(random, elementSize));
+                        }
 
                         return spanCtor(buffer.AsSpan());
                     });
@@ -215,16 +239,20 @@ public partial class RandomGenerator
                     return new RandomGenerator<TDictionary>((Random random, int size) =>
                     {
                         if (size == 0)
+                        {
                             return default!;
+                        }
 
                         TDictionary obj = defaultCtorFunc();
                         int count = random.Next(0, size);
                         int entrySize = GetChildSize(size, count);
 
                         for (int i = 0; i < count; i++)
+                        {
                             addKeyValuePairFunc(ref obj,
                                 new(keyGenerator(random, entrySize),
                                     valueGenerator(random, entrySize)));
+                        }
 
                         return obj;
                     });
@@ -234,7 +262,9 @@ public partial class RandomGenerator
                     return new RandomGenerator<TDictionary>((Random random, int size) =>
                     {
                         if (size == 0)
+                        {
                             return default!;
+                        }
 
                         Dictionary<TKey, TValue> buffer = new(size);
                         int count = random.Next(0, size);
@@ -253,7 +283,9 @@ public partial class RandomGenerator
                     return new RandomGenerator<TDictionary>((Random random, int size) =>
                     {
                         if (size == 0)
+                        {
                             return default!;
+                        }
 
                         using var buffer = new PooledList<KeyValuePair<TKey, TValue>>(size);
                         int entrySize = GetChildSize(size, size);
@@ -337,7 +369,7 @@ public partial class RandomGenerator
 
             yield return Create<object>((random, size) =>
             {
-                return (random.Next(0, 5)) switch
+                return random.Next(0, 5) switch
                 {
                     0 => NextBoolean(random),
                     1 => random.Next(-size, size),

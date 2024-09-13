@@ -415,7 +415,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
 
                 if (!parameter.IsByRef)
                 {
-                    LdRef(generator, argumentStateType, copyValueTypes: true);    
+                    LdRef(generator, argumentStateType, copyValueTypes: true);
                 }
 
                 EmitCall(generator, methodCtor.ConstructorMethod);
@@ -586,13 +586,13 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
             OpCode ldfldOpCode = isByRefParameter
                 ? OpCodes.Ldflda
                 : OpCodes.Ldfld;
-            
+
             generator.Emit(ldfldOpCode, (FieldInfo)element.Member);
         }
     }
 
     private static DynamicMethod CreateDynamicMethod(string name, Type returnType, Type[] parameters)
-        => new DynamicMethod(name, returnType, parameters, typeof(ReflectionEmitMemberAccessor).Module, skipVisibility: true);
+        => new(name, returnType, parameters, typeof(ReflectionEmitMemberAccessor).Module, skipVisibility: true);
 
     private static TDelegate CreateDelegate<TDelegate>(DynamicMethod dynamicMethod)
         where TDelegate : Delegate

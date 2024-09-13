@@ -6,7 +6,6 @@ using System.Numerics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using TypeShape.Abstractions;
 
 namespace TypeShape.Applications.JsonSerializer.Converters;
 
@@ -51,7 +50,7 @@ public abstract class LargeNumberValueConverter<T> : JsonConverter<T>
 
         try
         {
-            return Parse(destination.Slice(0, charLength));
+            return Parse(destination[..charLength]);
         }
         finally
         {
@@ -73,7 +72,7 @@ public abstract class LargeNumberValueConverter<T> : JsonConverter<T>
             : rentedBuffer = ArrayPool<char>.Shared.Rent(maxLength);
 
         int charsWritten = Format(value, destination);
-        writer.WriteRawValue(destination.Slice(0, charsWritten));
+        writer.WriteRawValue(destination[..charsWritten]);
 
         if (rentedBuffer != null)
         {

@@ -10,6 +10,7 @@ namespace TypeShape.Roslyn;
 /// </summary>
 public sealed class EnumerableDataModel : TypeDataModel
 {
+    /// <inheritdoc/>
     public override TypeDataKind Kind => TypeDataKind.Enumerable;
 
     /// <summary>
@@ -19,6 +20,9 @@ public sealed class EnumerableDataModel : TypeDataModel
     /// </summary>
     public required ITypeSymbol ElementType { get; init; }
 
+    /// <summary>
+    /// Gets the kind of enumerable model.
+    /// </summary>
     public required EnumerableKind EnumerableKind { get; init; }
 
     /// <summary>
@@ -43,6 +47,9 @@ public sealed class EnumerableDataModel : TypeDataModel
     public required int Rank { get; init; }
 }
 
+/// <summary>
+/// Identifies the kind of enumerable model.
+/// </summary>
 public enum EnumerableKind
 {
     /// <summary>

@@ -64,7 +64,7 @@ internal abstract class ReflectionDictionaryTypeShape<TDictionary, TKey, TValue>
             var mapOfSeqDelegate = ((MethodInfo)_enumerableCtor).CreateDelegate<Func<IEnumerable<Tuple<TKey, TValue>>, TDictionary>>();
             return kvps => mapOfSeqDelegate(kvps.Select(kvp => new Tuple<TKey, TValue>(kvp.Key, kvp.Value)));
         }
-        
+
         return _enumerableCtor switch
         {
             ConstructorInfo ctorInfo => provider.MemberAccessor.CreateFuncDelegate<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary>(ctorInfo),
@@ -179,7 +179,7 @@ internal abstract class ReflectionDictionaryTypeShape<TDictionary, TKey, TValue>
 
             return _enumerableCtor != null ? CollectionConstructionStrategy.Enumerable : CollectionConstructionStrategy.None;
         }
-        
+
         if (typeof(TDictionary) is { Name: "FSharpMap`2", Namespace: "Microsoft.FSharp.Collections" })
         {
             Type? module = typeof(TDictionary).Assembly.GetType("Microsoft.FSharp.Collections.MapModule");

@@ -7,7 +7,11 @@ namespace TypeShape.Roslyn;
 /// </summary>
 public sealed class NullableDataModel : TypeDataModel
 {
+    /// <inheritdoc/>
     public override TypeDataKind Kind => TypeDataKind.Nullable;
 
+    /// <summary>
+    /// Gets the element type of the nullable type.
+    /// </summary>
     public required ITypeSymbol ElementType { get; init; }
 }

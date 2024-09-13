@@ -217,13 +217,13 @@ public sealed partial class Parser : TypeDataModelGenerator
     private TypeDeclarationModel CreateTypeDeclaration(TypeWithAttributeDeclarationContext context, TypeId typeId)
     {
         (BaseTypeDeclarationSyntax? declarationSyntax, SemanticModel? semanticModel) = context.Declarations.First();
-        string typeDeclarationHeader = FormatTypeDeclarationHeader(declarationSyntax, context.TypeSymbol, CancellationToken, out bool isPartialHierarchy);
+        string typeDeclarationHeader = FormatTypeDeclarationHeader(declarationSyntax, context.TypeSymbol, out bool isPartialHierarchy);
 
         Stack<string>? parentStack = null;
         for (SyntaxNode? parentNode = declarationSyntax.Parent; parentNode is BaseTypeDeclarationSyntax parentType; parentNode = parentNode.Parent)
         {
             ITypeSymbol parentSymbol = semanticModel.GetDeclaredSymbol(parentType, CancellationToken)!;
-            string parentHeader = FormatTypeDeclarationHeader(parentType, parentSymbol, CancellationToken, out bool isPartialType);
+            string parentHeader = FormatTypeDeclarationHeader(parentType, parentSymbol, out bool isPartialType);
             (parentStack ??= new()).Push(parentHeader);
             isPartialHierarchy &= isPartialType;
         }
@@ -243,7 +243,7 @@ public sealed partial class Parser : TypeDataModelGenerator
             SourceFilenamePrefix = context.TypeSymbol.ToDisplayString(RoslynHelpers.QualifiedNameOnlyFormat),
         };
 
-        static string FormatTypeDeclarationHeader(BaseTypeDeclarationSyntax typeDeclaration, ITypeSymbol typeSymbol, CancellationToken cancellationToken, out bool isPartialType)
+        static string FormatTypeDeclarationHeader(BaseTypeDeclarationSyntax typeDeclaration, ITypeSymbol typeSymbol, out bool isPartialType)
         {
             StringBuilder stringBuilder = new();
             isPartialType = false;

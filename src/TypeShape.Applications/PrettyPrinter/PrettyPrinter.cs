@@ -1,8 +1,7 @@
-﻿namespace TypeShape.Applications.PrettyPrinter;
-
-using System.Text;
-using TypeShape;
+﻿using System.Text;
 using TypeShape.Abstractions;
+
+namespace TypeShape.Applications.PrettyPrinter;
 
 public delegate void PrettyPrinter<T>(StringBuilder builder, int indentation, T? value);
 

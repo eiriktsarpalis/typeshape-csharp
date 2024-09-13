@@ -99,5 +99,53 @@ dotnet_diagnostic.SA1508.severity = none
 # SA1008: Opening parenthesis should be spaced correctly
 dotnet_diagnostic.SA1008.severity = none
 
-# Default severity for all analyzer diagnostics
-dotnet_analyzer_diagnostic.severity = none
+# IDE0008: Use explicit type
+dotnet_diagnostic.IDE0008.severity = none
+
+# IDE0022: Use block body for method
+dotnet_diagnostic.IDE0022.severity = none
+
+# IDE0160: Convert to block scoped namespace
+csharp_style_namespace_declarations = file_scoped
+
+# IDE0130: Namespace does not match folder structure
+dotnet_diagnostic.IDE0130.severity = none
+
+# IDE0046: Convert to conditional expression
+dotnet_diagnostic.IDE0046.severity = none
+
+# IDE0055: Fix formatting
+dotnet_diagnostic.IDE0055.severity = none
+
+# IDE0061: Use block body for local function
+dotnet_diagnostic.IDE0061.severity = none
+
+# IDE0305: Simplify collection initialization
+dotnet_diagnostic.IDE0305.severity = none
+
+# IDE0042: Deconstruct variable declaration
+dotnet_diagnostic.IDE0042.severity = none
+
+# SA1313: Parameter names should begin with lower-case letter
+dotnet_diagnostic.SA1313.severity = none
+
+# IDE0290: Use primary constructor
+dotnet_diagnostic.IDE0290.severity = none
+
+# IDE0301: Simplify collection initialization
+dotnet_diagnostic.IDE0301.severity = none
+
+# IDE0024: Use block body for operator
+dotnet_diagnostic.IDE0024.severity = none
+
+# IDE0240: Remove redundant nullable directive
+dotnet_diagnostic.IDE0240.severity = none
+
+# IDE0028: Simplify collection initialization
+dotnet_diagnostic.IDE0028.severity = none
+
+# IDE0005: Remove unnecessary usings/imports
+dotnet_diagnostic.IDE0005.severity = none
+
+# xUnit2005: Do not use identity check on value type
+dotnet_diagnostic.xUnit2005.severity = none

@@ -39,7 +39,10 @@ public static partial class RandomGenerator
         while (true)
         {
             yield return generator(random, size);
-            if (size < max) size++;
+            if (size < max)
+            {
+                size++;
+            }
         }
     }
 

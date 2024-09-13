@@ -8,12 +8,18 @@ namespace TypeShape.Roslyn;
 /// </summary>
 public readonly struct PropertyDataModel
 {
+    /// <summary>
+    /// Creates a new instance of <see cref="PropertyDataModel"/> from a property symbol.
+    /// </summary>
     public PropertyDataModel(IPropertySymbol property)
     {
         PropertySymbol = property;
         IsRequired = property.IsRequired;
     }
 
+    /// <summary>
+    /// Creates a new instance of <see cref="PropertyDataModel"/> from a field symbol.
+    /// </summary>
     public PropertyDataModel(IFieldSymbol field)
     {
         PropertySymbol = field;

@@ -1,9 +1,9 @@
-﻿namespace TypeShape.Applications.JsonSerializer.Converters;
-
-using System.Buffers;
+﻿using System.Buffers;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+
+namespace TypeShape.Applications.JsonSerializer.Converters;
 
 internal abstract class JsonPropertyDictionary<TDeclaringType>
 {
@@ -47,7 +47,7 @@ internal static class JsonPropertyDictionary
                     : rentedBuffer = ArrayPool<byte>.Shared.Rent(reader.ValueSpan.Length);
 
                 bytesWritten = reader.CopyString(tmpBuffer);
-                source = tmpBuffer.Slice(0, bytesWritten);
+                source = tmpBuffer[..bytesWritten];
             }
 
             _dict.TryGetValue(source, out JsonPropertyConverter<TDeclaringType>? result);
@@ -84,7 +84,7 @@ internal static class JsonPropertyDictionary
                 : rentedBuffer = ArrayPool<char>.Shared.Rent(reader.ValueSpan.Length);
 
             int charsWritten = reader.CopyString(tmpBuffer);
-            ReadOnlySpan<char> source = tmpBuffer.Slice(0, charsWritten);
+            ReadOnlySpan<char> source = tmpBuffer[..charsWritten];
 
             _dict.TryGetValue(source, out JsonPropertyConverter<TDeclaringType>? result);
 

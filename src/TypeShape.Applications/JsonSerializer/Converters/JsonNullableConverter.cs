@@ -9,7 +9,9 @@ internal sealed class JsonNullableConverter<T>(JsonConverter<T> elementConverter
     public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         if (reader.TokenType is JsonTokenType.Null)
+        {
             return null;
+        }
 
         return elementConverter.Read(ref reader, typeToConvert, options);
     }

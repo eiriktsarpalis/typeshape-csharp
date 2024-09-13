@@ -1,6 +1,4 @@
 ﻿using Microsoft.CodeAnalysis;
-using System.Diagnostics;
-using System.Reflection;
 using TypeShape.Roslyn;
 using TypeShape.SourceGenerator.Model;
 
@@ -18,7 +16,9 @@ internal static partial class SourceFormatter
         foreach (PropertyShapeModel property in type.Properties)
         {
             if (i++ > 0)
+            {
                 writer.WriteLine();
+            }
 
             // Suppress property getters that are nullable, but are not Nullable<T>
             bool suppressGetter = property.PropertyTypeContainsNullabilityAnnotations || property is

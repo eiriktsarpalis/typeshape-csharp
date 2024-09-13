@@ -7,6 +7,7 @@ namespace TypeShape.Roslyn;
 /// </summary>
 public sealed class TupleDataModel : TypeDataModel
 {
+    /// <inheritdoc/>
     public override TypeDataKind Kind => TypeDataKind.Tuple;
 
     /// <summary>

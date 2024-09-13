@@ -9,6 +9,7 @@ namespace TypeShape.Roslyn;
 /// </summary>
 public sealed class DictionaryDataModel : TypeDataModel
 {
+    /// <inheritdoc/>
     public override TypeDataKind Kind => TypeDataKind.Dictionary;
 
     /// <summary>
@@ -23,6 +24,9 @@ public sealed class DictionaryDataModel : TypeDataModel
     /// </summary>
     public required ITypeSymbol ValueType { get; init; }
 
+    /// <summary>
+    /// Gets the kind of the current dictionary model.
+    /// </summary>
     public required DictionaryKind DictionaryKind { get; init; }
 
     /// <summary>
@@ -36,6 +40,9 @@ public sealed class DictionaryDataModel : TypeDataModel
     public required IMethodSymbol? FactoryMethod { get; init; }
 }
 
+/// <summary>
+/// Identifies the kind of dictionary model.
+/// </summary>
 public enum DictionaryKind
 {
     /// <summary>

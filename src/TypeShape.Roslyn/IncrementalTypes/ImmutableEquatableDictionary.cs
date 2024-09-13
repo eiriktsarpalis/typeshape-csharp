@@ -1,10 +1,14 @@
 ﻿using System.Collections;
 using System.ComponentModel;
 using System.Diagnostics;
-using TypeShape.Roslyn.Helpers;
 
 namespace TypeShape.Roslyn;
 
+/// <summary>
+/// Defines an immutable dictionary that defines structural equality semantics.
+/// </summary>
+/// <typeparam name="TKey">The key type of the dictionary.</typeparam>
+/// <typeparam name="TValue">The value type of the dictionary.</typeparam>
 [DebuggerDisplay("Count = {Count}")]
 [DebuggerTypeProxy(typeof(ImmutableEquatableDictionary<,>.DebugView))]
 public sealed class ImmutableEquatableDictionary<TKey, TValue> : 
@@ -16,6 +20,9 @@ public sealed class ImmutableEquatableDictionary<TKey, TValue> :
     where TKey : IEquatable<TKey> 
     where TValue : IEquatable<TValue>
 {
+    /// <summary>
+    /// An empty <see cref="ImmutableEquatableDictionary{TKey, TValue}"/> instance.
+    /// </summary>
     public static ImmutableEquatableDictionary<TKey, TValue> Empty { get; } = new([]);
 
     private readonly Dictionary<TKey, TValue> _values;
@@ -26,11 +33,27 @@ public sealed class ImmutableEquatableDictionary<TKey, TValue> :
         _values = values;
     }
 
+    /// <summary>
+    /// Gets the number of key/value pairs in the dictionary.
+    /// </summary>
     public int Count => _values.Count;
+
+    /// <summary>
+    /// Determines whether the dictionary contains the specified key.
+    /// </summary>
     public bool ContainsKey(TKey key) => _values.ContainsKey(key);
+
+    /// <summary>
+    /// Try to get the value associated with the specified key.
+    /// </summary>
     public bool TryGetValue(TKey key, out TValue value) => _values.TryGetValue(key, out value);
+
+    /// <summary>
+    /// Gets the value associated with the specified key.
+    /// </summary>
     public TValue this[TKey key] => _values[key];
 
+    /// <inheritdoc/>
     public bool Equals(ImmutableEquatableDictionary<TKey, TValue> other)
     {
         if (ReferenceEquals(this, other))
@@ -57,9 +80,11 @@ public sealed class ImmutableEquatableDictionary<TKey, TValue> :
         return true;
     }
 
+    /// <inheritdoc/>
     public override bool Equals(object? obj)
         => obj is ImmutableEquatableDictionary<TKey, TValue> other && Equals(other);
 
+    /// <inheritdoc/>
     public override int GetHashCode()
     {
         int hash = 0;
@@ -73,8 +98,17 @@ public sealed class ImmutableEquatableDictionary<TKey, TValue> :
         return hash;
     }
 
+    /// <summary>Gets an enumerator that iterates through the dictionary.</summary>
     public Dictionary<TKey, TValue>.Enumerator GetEnumerator() => _values.GetEnumerator();
+
+    /// <summary>
+    /// Gets a collection containing the keys in the dictionary.
+    /// </summary>
     public Dictionary<TKey, TValue>.KeyCollection Keys => _values.Keys;
+
+    /// <summary>
+    /// Gets a collection containing the values in the dictionary.
+    /// </summary>
     public Dictionary<TKey, TValue>.ValueCollection Values => _values.Values;
 
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -133,13 +167,30 @@ public sealed class ImmutableEquatableDictionary<TKey, TValue> :
     }
 }
 
+/// <summary>
+/// Provides a set of static methods for creating instances of <see cref="ImmutableEquatableDictionary{TKey, TValue}"/>.
+/// </summary>
 public static class ImmutableEquatableDictionary
 {
+    /// <summary>
+    /// Gets an empty <see cref="ImmutableEquatableDictionary{TKey, TValue}"/> instance.
+    /// </summary>
+    /// <typeparam name="TKey">The key type of the dictionary.</typeparam>
+    /// <typeparam name="TValue">The value type of the dictionary.</typeparam>
+    /// <returns>An empty <see cref="ImmutableEquatableDictionary{TKey, TValue}"/> instance.</returns>
     public static ImmutableEquatableDictionary<TKey, TValue> Empty<TKey, TValue>() 
         where TKey : IEquatable<TKey>
         where TValue : IEquatable<TValue>
         => ImmutableEquatableDictionary<TKey, TValue>.Empty;
 
+    /// <summary>
+    /// Creates an <see cref="ImmutableEquatableDictionary{TKey, TValue}"/> instance from the specified values.
+    /// </summary>
+    /// <typeparam name="TKey">The key type of the dictionary.</typeparam>
+    /// <typeparam name="TValue">The value type of the dictionary.</typeparam>
+    /// <param name="values">The source values used to populate the dictionary.</param>
+    /// <param name="keySelector">The projection function from which to derive a key.</param>
+    /// <returns>An <see cref="ImmutableEquatableDictionary{TKey, TValue}"/> containing the specified values.</returns>
     public static ImmutableEquatableDictionary<TKey, TValue> ToImmutableEquatableDictionary<TKey, TValue>(this IEnumerable<TValue> values, Func<TValue, TKey> keySelector) 
         where TKey : IEquatable<TKey>
         where TValue : IEquatable<TValue>
@@ -149,6 +200,16 @@ public static class ImmutableEquatableDictionary
             : ImmutableEquatableDictionary<TKey, TValue>.UnsafeCreateFromDictionary(values.ToDictionary(keySelector));
     }
 
+    /// <summary>
+    /// Creates an <see cref="ImmutableEquatableDictionary{TKey, TValue}"/> instance from the specified values.
+    /// </summary>
+    /// <typeparam name="TSource">The element type of the source enumerable.</typeparam>
+    /// <typeparam name="TKey">The key type of the dictionary.</typeparam>
+    /// <typeparam name="TValue">The value type of the dictionary.</typeparam>
+    /// <param name="source">The source enumerable seeding the dictionary entries.</param>
+    /// <param name="keySelector">The projection function from which to derive a key.</param>
+    /// <param name="valueSelector">The projection function from which to derive a value.</param>
+    /// <returns>An <see cref="ImmutableEquatableDictionary{TKey, TValue}"/> containing the specified values.</returns>
     public static ImmutableEquatableDictionary<TKey, TValue> ToImmutableEquatableDictionary<TSource, TKey, TValue>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector, Func<TSource, TValue> valueSelector)
         where TKey : IEquatable<TKey>
         where TValue : IEquatable<TValue>
@@ -158,6 +219,13 @@ public static class ImmutableEquatableDictionary
             : ImmutableEquatableDictionary<TKey, TValue>.UnsafeCreateFromDictionary(source.ToDictionary(keySelector, valueSelector));
     }
 
+    /// <summary>
+    /// Creates an <see cref="ImmutableEquatableDictionary{TKey, TValue}"/> instance from the specified values.
+    /// </summary>
+    /// <typeparam name="TKey">The key type of the dictionary.</typeparam>
+    /// <typeparam name="TValue">The value type of the dictionary.</typeparam>
+    /// <param name="values">The source key/value pairs with which to populate the dictionary.</param>
+    /// <returns>An <see cref="ImmutableEquatableDictionary{TKey, TValue}"/> containing the specified values.</returns>
     public static ImmutableEquatableDictionary<TKey, TValue> ToImmutableEquatableDictionary<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> values)
         where TKey : IEquatable<TKey>
         where TValue : IEquatable<TValue>

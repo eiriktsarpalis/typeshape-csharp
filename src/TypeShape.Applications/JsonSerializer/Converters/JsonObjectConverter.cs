@@ -1,10 +1,10 @@
-﻿namespace TypeShape.Applications.JsonSerializer.Converters;
-
-using System.Buffers;
+﻿using System.Buffers;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using TypeShape.Abstractions;
+
+namespace TypeShape.Applications.JsonSerializer.Converters;
 
 internal class JsonObjectConverter<T>(JsonPropertyConverter<T>[] properties) : JsonConverter<T>
 {

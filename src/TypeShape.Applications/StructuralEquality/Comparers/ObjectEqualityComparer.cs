@@ -65,14 +65,20 @@ internal sealed class PolymorphicObjectEqualityComparer(ITypeShapeProvider provi
     public override bool Equals(object? x, object? y)
     {
         if (x is null || y is null)
+        {
             return x is null && y is null;
+        }
 
         Type runtimeType;
         if ((runtimeType = x.GetType()) != y.GetType())
+        {
             return false;
+        }
 
         if (runtimeType == typeof(object))
+        {
             return true;
+        }
 
         return GetComparer(runtimeType).Equals(x, y);
     }

@@ -69,7 +69,7 @@ internal static partial class SourceFormatter
                 (0, 0, OptionalMemberFlagsType.None) => "null!",
                 (1, 0, OptionalMemberFlagsType.None) => FormatDefaultValueExpr(constructor.Parameters[0]),
                 (0, 1, OptionalMemberFlagsType.None) => FormatDefaultValueExpr(constructor.RequiredMembers[0]),
-                (_, _, not OptionalMemberFlagsType.BitArray) when (!constructor.Parameters.Any(p => p.HasDefaultValue)) => $"default({constructorArgumentStateFQN})",
+                (_, _, not OptionalMemberFlagsType.BitArray) when !constructor.Parameters.Any(p => p.HasDefaultValue) => $"default({constructorArgumentStateFQN})",
                 (_, _, OptionalMemberFlagsType.None) => 
                     FormatTupleConstructor(
                         constructor.Parameters
@@ -233,7 +233,9 @@ internal static partial class SourceFormatter
                                                             .Concat(constructor.OptionalMembers))
         {
             if (i > 0)
+            {
                 writer.WriteLine();
+            }
 
             writer.WriteLine($$"""
                 new global::TypeShape.SourceGenModel.SourceGenConstructorParameterShape<{{constructorArgumentStateFQN}}, {{parameter.ParameterType.FullyQualifiedName}}>

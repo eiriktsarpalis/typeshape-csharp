@@ -39,7 +39,7 @@ public static class TypeShapeConfigurationBinder
             }
 
             return _cache.GetOrAdd<Func<IConfiguration, T?>>(shape, visitor: this,
-                delayedValueFactory: self => (configuration => self.Result(configuration)));
+                delayedValueFactory: self => configuration => self.Result(configuration));
         }
         
         public override object? VisitObject<T>(IObjectTypeShape<T> objectShape, object? state = null)

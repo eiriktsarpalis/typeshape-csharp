@@ -7,6 +7,7 @@ namespace TypeShape.Roslyn;
 /// </summary>
 public sealed class ObjectDataModel : TypeDataModel
 {
+    /// <inheritdoc/>
     public override TypeDataKind Kind => TypeDataKind.Object;
 
     /// <summary>

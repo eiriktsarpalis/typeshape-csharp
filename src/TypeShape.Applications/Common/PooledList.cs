@@ -19,7 +19,7 @@ public struct PooledList<T> : IDisposable
         _count = 0;
     }
 
-    public readonly int Count => _count;
+    public readonly int Count { get; }
 
     public void Add(T value)
     {
@@ -36,7 +36,7 @@ public struct PooledList<T> : IDisposable
         _values[_count++] = value;
     }
 
-    public ref T this[int index]
+    public readonly ref T this[int index]
     {
         get
         {
@@ -56,8 +56,8 @@ public struct PooledList<T> : IDisposable
         _count = 0;
     }
 
-    public ReadOnlySpan<T> AsSpan() => _values.AsSpan(0, _count);
-    public IEnumerable<T> AsEnumerable() => MemoryMarshal.ToEnumerable((ReadOnlyMemory<T>)_values.AsMemory(0, _count));
+    public readonly ReadOnlySpan<T> AsSpan() => _values.AsSpan(0, _count);
+    public readonly IEnumerable<T> AsEnumerable() => MemoryMarshal.ToEnumerable((ReadOnlyMemory<T>)_values.AsMemory(0, _count));
 
     public void Dispose()
     {
