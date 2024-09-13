@@ -1,4 +1,4 @@
-# typeshape-csharp [![Build & Tests](https://github.com/eiriktsarpalis/typeshape-csharp/actions/workflows/build.yml/badge.svg)](https://github.com/eiriktsarpalis/typeshape-csharp/actions/workflows/build.yml) [![NuGet Badge](https://buildstats.info/nuget/typeshape-csharp)](https://www.nuget.org/packages/typeshape-csharp/)
+# typeshape-csharp [![Build & Tests](https://github.com/eiriktsarpalis/typeshape-csharp/actions/workflows/build.yml/badge.svg)](https://github.com/eiriktsarpalis/typeshape-csharp/actions/workflows/build.yml) [![NuGet Badge](https://img.shields.io/nuget/dt/typeshape-csharp)](https://www.nuget.org/packages/typeshape-csharp/)
 
 This repo contains a port of the [TypeShape](https://github.com/eiriktsarpalis/TypeShape) F# library, adapted to patterns and idioms available in C#. See the [project website](https://eiriktsarpalis.github.io/typeshape-csharp) for additional guides and [API documentation](https://eiriktsarpalis.github.io/typeshape-csharp/api/TypeShape.html).
 
