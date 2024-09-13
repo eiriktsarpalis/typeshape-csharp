@@ -21,6 +21,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{1345B3A0-17D8-4BDC-B393-B120C3EF8840}"
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\build.yml = .github\workflows\build.yml
+		.github\workflows\markdown-link-check.yml = .github\workflows\markdown-link-check.yml
+		.github\workflows\update-docs.yml = .github\workflows\update-docs.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{CAEAE474-7C40-4AB4-B1B6-8F8916B05668}"
