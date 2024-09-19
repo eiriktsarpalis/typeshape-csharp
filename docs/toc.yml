@@ -4,3 +4,5 @@
   href: typeshape-providers.md
 - name: API Documentation
   href: api/TypeShape.yml
+- name: Github Repo
+  href: https://github.com/eiriktsarpalis/typeshape-csharp
