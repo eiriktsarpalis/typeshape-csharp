@@ -5,17 +5,43 @@ using TypeShape.Abstractions;
 
 namespace TypeShape.Examples.ConfigurationBinder;
 
+/// <summary>Defines an <see cref="IConfiguration"/> binder build on top of TypeShape.</summary>
 public static class TypeShapeConfigurationBinder
 {
+    /// <summary>
+    /// Builds a configuration binder delegate instance from the specified shape.
+    /// </summary>
+    /// <typeparam name="T">The type for which to build the binder.</typeparam>
+    /// <param name="shape">The shape instance guiding binder construction.</param>
+    /// <returns>A configuration binder delegate.</returns>
     public static Func<IConfiguration, T?> Create<T>(ITypeShape<T> shape) => 
         new Builder().CreateBinder(shape);
 
-    public static Func<IConfiguration, T?> Create<T>(ITypeShapeProvider provider) =>
-        Create(provider.Resolve<T>());
+    /// <summary>
+    /// Builds a configuration binder delegate instance from the specified shape provider.
+    /// </summary>
+    /// <typeparam name="T">The type for which to build the binder.</typeparam>
+    /// <param name="shapeProvider">The shape provider guiding binder construction.</param>
+    /// <returns>A configuration binder delegate.</returns>
+    public static Func<IConfiguration, T?> Create<T>(ITypeShapeProvider shapeProvider) =>
+        Create(shapeProvider.Resolve<T>());
 
+    /// <summary>
+    /// Binds an <see cref="IConfiguration"/> to the specified type using its <see cref="IShapeable{T}"/> implementation.
+    /// </summary>
+    /// <typeparam name="T">The type to which to bind the configuration.</typeparam>
+    /// <param name="configuration">The instance providing the configuration.</param>
+    /// <returns>An instance of <typeparamref name="T"/> that binds the configuration.</returns>
     public static T? Get<T>(IConfiguration configuration) where T : IShapeable<T>
         => ConfigurationBinderCache<T, T>.Value(configuration);
 
+    /// <summary>
+    /// Binds an <see cref="IConfiguration"/> to the specified type using an externally provided <see cref="IShapeable{T}"/> implementation.
+    /// </summary>
+    /// <typeparam name="T">The type to which to bind the configuration.</typeparam>
+    /// <typeparam name="TProvider">The type providing an <see cref="IShapeable{T}"/> implementation.</typeparam>
+    /// <param name="configuration">The instance providing the configuration.</param>
+    /// <returns>An instance of <typeparamref name="T"/> that binds the configuration.</returns>
     public static T? Get<T, TProvider>(IConfiguration configuration) where TProvider : IShapeable<T>
         => ConfigurationBinderCache<T, TProvider>.Value(configuration);
 

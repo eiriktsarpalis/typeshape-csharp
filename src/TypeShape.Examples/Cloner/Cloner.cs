@@ -3,20 +3,51 @@ using TypeShape.Abstractions;
 
 namespace TypeShape.Examples.Cloner;
 
+/// <summary>
+/// Provides an object graph deep cloning implementation built on top of TypeShape.
+/// </summary>
 public static class Cloner
 {
+    /// <summary>
+    /// Builds a deep cloning delegate from the specified shape.
+    /// </summary>
+    /// <typeparam name="T">The type for which to build the cloner.</typeparam>
+    /// <param name="shape">The shape instance guiding cloner construction.</param>
+    /// <returns>A delegate for cloning instances of type <typeparamref name="T"/>.</returns>
     public static Func<T?, T?> CreateCloner<T>(ITypeShape<T> shape) =>
         new Builder().BuildCloner(shape);
 
-    public static Func<T?, T?> CreateCloner<T>(ITypeShapeProvider provider) =>
-        CreateCloner<T>(provider.Resolve<T>());
+    /// <summary>
+    /// Builds a deep cloning delegate from the specified shape provider.
+    /// </summary>
+    /// <typeparam name="T">The type for which to build the cloner.</typeparam>
+    /// <param name="shapeProvider">The shape provider guiding cloner construction.</param>
+    /// <returns>A delegate for cloning instances of type <typeparamref name="T"/>.</returns>
+    public static Func<T?, T?> CreateCloner<T>(ITypeShapeProvider shapeProvider) =>
+        CreateCloner<T>(shapeProvider.Resolve<T>());
 
+    /// <summary>
+    /// Deep clones an instance of type <typeparamref name="T"/> using its <see cref="ITypeShape{T}"/> implementation.
+    /// </summary>
+    /// <typeparam name="T">The type of the value to be cloned.</typeparam>
+    /// <param name="value">The value to be cloned.</param>
+    /// <returns>A deep cloned copy of <paramref name="value"/>.</returns>
     public static T? Clone<T>(T? value) where T : IShapeable<T> =>
-        ClonerCache<T>.Value(value);
+        ClonerCache<T, T>.Value(value);
 
-    private static class ClonerCache<T> where T : IShapeable<T>
+    /// <summary>
+    /// Deep clones an instance of type <typeparamref name="T"/> using an externally provider <see cref="ITypeShape{T}"/> implementation.
+    /// </summary>
+    /// <typeparam name="T">The type of the value to be cloned.</typeparam>
+    /// <typeparam name="TProvider">The type providing an <see cref="IShapeable{T}"/> implementation.</typeparam>
+    /// <param name="value">The value to be cloned.</param>
+    /// <returns>A deep cloned copy of <paramref name="value"/>.</returns>
+    public static T? Clone<T, TProvider>(T? value) where TProvider : IShapeable<T> =>
+        ClonerCache<T, TProvider>.Value(value);
+
+    private static class ClonerCache<T, TProvider> where TProvider : IShapeable<T>
     {
-        public static Func<T?, T?> Value => s_value ??= CreateCloner<T>(T.GetShape());
+        public static Func<T?, T?> Value => s_value ??= CreateCloner<T>(TProvider.GetShape());
         private static Func<T?, T?>? s_value;
     }
     
@@ -289,7 +320,7 @@ public static class Cloner
             static KeyValuePair<Type, object> Create<T>(Func<T?, T?> cloner) => new(typeof(T), cloner);
         }
 
-        private static Func<object?, object?> CreatePolymorphicCloner(ITypeShapeProvider provider)
+        private static Func<object?, object?> CreatePolymorphicCloner(ITypeShapeProvider shapeProvider)
         {
             var cache = new ConcurrentDictionary<Type, Func<object?, object?>>();
             return obj =>
@@ -305,12 +336,12 @@ public static class Cloner
                     return new object();
                 }
 
-                var derivedCloner = cache.GetOrAdd(runtimeType, CreateCloner, provider);
+                var derivedCloner = cache.GetOrAdd(runtimeType, CreateCloner, shapeProvider);
                 return derivedCloner(obj);
 
-                static Func<object?, object?> CreateCloner(Type type, ITypeShapeProvider provider)
+                static Func<object?, object?> CreateCloner(Type type, ITypeShapeProvider shapeProvider)
                 {
-                    ITypeShape shape = provider.Resolve(type);
+                    ITypeShape shape = shapeProvider.Resolve(type);
                     ITypeShapeFunc func = new Builder();
                     return (Func<object?, object?>)shape.Invoke(func)!;
                 }

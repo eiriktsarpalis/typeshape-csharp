@@ -6,7 +6,8 @@
           "src": "../src",
           "files": [
             "**/TypeShape.csproj",
-            "**/TypeShape.Roslyn.csproj"
+            "**/TypeShape.Roslyn.csproj",
+            "**/TypeShape.Examples.csproj"
           ]
         }
       ],

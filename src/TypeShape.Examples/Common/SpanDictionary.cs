@@ -15,6 +15,7 @@ public sealed class SpanDictionary<TKey, TValue>
     private readonly ulong _fastModMultiplier;
     private readonly ISpanEqualityComparer<TKey> _comparer;
 
+    /// <summary>Constructs a dictionary using the specified entries and comparer.</summary>
     public SpanDictionary(IEnumerable<KeyValuePair<TKey[], TValue>> input, ISpanEqualityComparer<TKey> comparer)
     {
         var source = input.ToArray();
@@ -55,8 +56,10 @@ public sealed class SpanDictionary<TKey, TValue>
         }
     }
 
+    /// <summary>Gets the numbers of entries on the dictionary.</summary>
     public int Count => _entries.Length;
 
+    /// <summary>Attempts to look up an entry by a span key.</summary>
     public bool TryGetValue(ReadOnlySpan<TKey> key, [MaybeNullWhen(false)] out TValue value)
     {
         Entry[] entries = _entries;
@@ -129,8 +132,10 @@ public sealed class SpanDictionary<TKey, TValue>
     }
 }
 
+/// <summary>Defines factory methods for <see cref="SpanDictionary{TKey, TValue}"/>.</summary>
 public static class SpanDictionary
 {
+    /// <summary>Maps the specified enumerable using a dictionary using the provided transformers.</summary>
     public static SpanDictionary<TKey, TSource> ToSpanDictionary<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey[]> keySelector, ISpanEqualityComparer<TKey> keyComparer)
         => new(source.Select(t => new KeyValuePair<TKey[], TSource>(keySelector(t), t)), keyComparer);
 }

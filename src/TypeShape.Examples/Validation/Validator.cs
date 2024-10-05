@@ -9,6 +9,7 @@ namespace TypeShape.Examples.Validation;
 /// </summary>
 public delegate void Validator<in T>(T? value, List<string> path, ref List<string>? errors);
 
+/// <summary>Provides an object validator for .NET types built on top of TypeShape.</summary>
 public static partial class Validator
 {
     /// <summary>
@@ -20,8 +21,8 @@ public static partial class Validator
     /// <summary>
     /// Builds a validator delegate using a shape provider as input.
     /// </summary>
-    public static Validator<T> Create<T>(ITypeShapeProvider provider) =>
-        Create(provider.Resolve<T>());
+    public static Validator<T> Create<T>(ITypeShapeProvider shapeProvider) =>
+        Create(shapeProvider.Resolve<T>());
 
     /// <summary>
     /// Runs validation against the provided value.

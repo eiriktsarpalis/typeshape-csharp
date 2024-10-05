@@ -9,13 +9,13 @@ using TypeShape.ReflectionProvider;
 
 // Use reflection to derive the shape for BindingModel and use it to fold
 // serialization, pretty printing, CBOR encoding and validation programs.
-ITypeShapeProvider provider = ReflectionTypeShapeProvider.Default;
+ITypeShapeProvider shapeProvider = ReflectionTypeShapeProvider.Default;
 
-TypeShapeJsonConverter<Todos> jsonConverter = TypeShapeJsonSerializer.CreateConverter<Todos>(provider);
-PrettyPrinter<Todos> printer = PrettyPrinter.Create<Todos>(provider);
-XmlConverter<Todos> xmlConverter = XmlSerializer.CreateConverter<Todos>(provider);
-CborConverter<Todos> cborConverter = CborSerializer.CreateConverter<Todos>(provider);
-IEqualityComparer<Todos> structuralEqualityComparer = StructuralEqualityComparer.Create<Todos>(provider);
+TypeShapeJsonConverter<Todos> jsonConverter = TypeShapeJsonSerializer.CreateConverter<Todos>(shapeProvider);
+PrettyPrinter<Todos> printer = PrettyPrinter.Create<Todos>(shapeProvider);
+XmlConverter<Todos> xmlConverter = XmlSerializer.CreateConverter<Todos>(shapeProvider);
+CborConverter<Todos> cborConverter = CborSerializer.CreateConverter<Todos>(shapeProvider);
+IEqualityComparer<Todos> structuralEqualityComparer = StructuralEqualityComparer.Create<Todos>(shapeProvider);
 
 DateOnly today = DateOnly.FromDateTime(DateTime.Now);
 Todos originalValue = new(
@@ -32,7 +32,7 @@ string json = jsonConverter.Serialize(value);
 Console.WriteLine($"JSON encoding:\n{json}");
 value = jsonConverter.Deserialize(json);
 
-var jsonSchema = JsonSchemaGenerator.Generate<Todos>(provider);
+var jsonSchema = JsonSchemaGenerator.Generate<Todos>(shapeProvider);
 Console.WriteLine($"JSON schema:\n{jsonSchema.ToJsonString()}");
 
 string xml = xmlConverter.Serialize(value);

@@ -58,7 +58,7 @@ internal sealed class PropertyEqualityComparer<TDeclaringType, TPropertyType> : 
     }
 }
 
-internal sealed class PolymorphicObjectEqualityComparer(ITypeShapeProvider provider) : EqualityComparer<object>
+internal sealed class PolymorphicObjectEqualityComparer(ITypeShapeProvider shapeProvider) : EqualityComparer<object>
 {
     private readonly ConcurrentDictionary<Type, IEqualityComparer> _cache = new();
 
@@ -91,6 +91,6 @@ internal sealed class PolymorphicObjectEqualityComparer(ITypeShapeProvider provi
 
     private IEqualityComparer GetComparer(Type type)
     {
-        return _cache.GetOrAdd(type, StructuralEqualityComparer.Create, provider);
+        return _cache.GetOrAdd(type, StructuralEqualityComparer.Create, shapeProvider);
     }
 }

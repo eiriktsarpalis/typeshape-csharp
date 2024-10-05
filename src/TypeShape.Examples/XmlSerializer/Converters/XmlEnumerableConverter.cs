@@ -127,7 +127,7 @@ internal sealed class XmlEnumerableConstructorEnumerableConverter<TEnumerable, T
     : XmlImmutableEnumerableConverter<TEnumerable, TElement>(elementConverter, getEnumerable)
 {
     private protected override TEnumerable Construct(PooledList<TElement> buffer)
-        => enumerableConstructor(buffer.AsEnumerable());
+        => enumerableConstructor(buffer.ExchangeToArraySegment());
 }
 
 internal sealed class XmlSpanConstructorEnumerableConverter<TEnumerable, TElement>(

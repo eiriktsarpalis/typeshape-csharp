@@ -5,6 +5,9 @@ using TypeShape.Examples.XmlSerializer.Converters;
 
 namespace TypeShape.Examples.XmlSerializer;
 
+/// <summary>
+/// Provides an XML serialization implementation built on top of TypeShape.
+/// </summary>
 public static partial class XmlSerializer
 {
     private static readonly XmlWriterSettings s_writerSettings = new()
@@ -19,12 +22,32 @@ public static partial class XmlSerializer
         IgnoreWhitespace = true,
     };
 
+    /// <summary>
+    /// Builds an <see cref="XmlConverter{T}"/> instance from the specified shape.
+    /// </summary>
+    /// <typeparam name="T">The type for which to build the converter.</typeparam>
+    /// <param name="shape">The shape instance guiding converter construction.</param>
+    /// <returns>An <see cref="XmlConverter{T}"/> instance.</returns>
     public static XmlConverter<T> CreateConverter<T>(ITypeShape<T> shape) =>
         new Builder().BuildConverter(shape);
 
-    public static XmlConverter<T> CreateConverter<T>(ITypeShapeProvider provider) =>
-        CreateConverter(provider.Resolve<T>());
+    /// <summary>
+    /// Builds an <see cref="XmlConverter{T}"/> instance from the specified shape provider.
+    /// </summary>
+    /// <typeparam name="T">The type for which to build the converter.</typeparam>
+    /// <param name="shapeProvider">The shape provider guiding converter construction.</param>
+    /// <returns>An <see cref="XmlConverter{T}"/> instance.</returns>
+    public static XmlConverter<T> CreateConverter<T>(ITypeShapeProvider shapeProvider) =>
+        CreateConverter(shapeProvider.Resolve<T>());
 
+    /// <summary>
+    /// Serializes a value to an XML string using the provided converter.
+    /// </summary>
+    /// <typeparam name="T">The type of the value to serialize.</typeparam>
+    /// <param name="converter">The converter used to serialize the value.</param>
+    /// <param name="value">The value to be serialized.</param>
+    /// <param name="settings">The setting object guiding XML formatting.</param>
+    /// <returns>An XML encoded string containing the serialized value.</returns>
     public static string Serialize<T>(this XmlConverter<T> converter, T? value, XmlWriterSettings? settings = null)
     {
         using var sw = new StringWriter();
@@ -34,6 +57,14 @@ public static partial class XmlSerializer
         return sw.ToString();
     }
 
+    /// <summary>
+    /// Deserializes a value from an XML string using the provided converter.
+    /// </summary>
+    /// <typeparam name="T">The type of the value to deserialize.</typeparam>
+    /// <param name="converter">The converter used to deserialize the value.</param>
+    /// <param name="xml">The XML encoding to be deserialized.</param>
+    /// <param name="settings">The setting object guiding XML reading.</param>
+    /// <returns>The deserialized value.</returns>
     public static T? Deserialize<T>(this XmlConverter<T> converter, string xml, XmlReaderSettings? settings = null)
     {
         using var sr = new StringReader(xml);
@@ -49,17 +80,47 @@ public static partial class XmlSerializer
         return result;
     }
 
-    public static string Serialize<T>(T? value) where T : IShapeable<T>
-        => XmlSerializerCache<T, T>.Value.Serialize(value);
+    /// <summary>
+    /// Serializes a value to an XML string using its <see cref="IShapeable{T}"/> implementation.
+    /// </summary>
+    /// <typeparam name="T">The type of the value to serialize.</typeparam>
+    /// <param name="value">The value to be serialized.</param>
+    /// <param name="settings">The setting object guiding XML formatting.</param>
+    /// <returns>An XML encoded string containing the serialized value.</returns>
+    public static string Serialize<T>(T? value, XmlWriterSettings? settings = null) where T : IShapeable<T>
+        => XmlSerializerCache<T, T>.Value.Serialize(value, settings);
 
-    public static T? Deserialize<T>(string xml) where T : IShapeable<T>
-        => XmlSerializerCache<T, T>.Value.Deserialize(xml);
+    /// <summary>
+    /// Deserializes a value from an XML string using its <see cref="IShapeable{T}"/> implementation.
+    /// </summary>
+    /// <typeparam name="T">The type of the value to deserialize.</typeparam>
+    /// <param name="xml">The XML encoding to be deserialized.</param>
+    /// <param name="settings">The setting object guiding XML reading.</param>
+    /// <returns>The deserialized value.</returns>
+    public static T? Deserialize<T>(string xml, XmlReaderSettings? settings = null) where T : IShapeable<T>
+        => XmlSerializerCache<T, T>.Value.Deserialize(xml, settings);
 
-    public static string Serialize<T, TPRovider>(T? value) where TPRovider : IShapeable<T>
-        => XmlSerializerCache<T, TPRovider>.Value.Serialize(value);
+    /// <summary>
+    /// Serializes a value to an XML string using an externally provided <see cref="IShapeable{T}"/> implementation.
+    /// </summary>
+    /// <typeparam name="T">The type of the value to serialize.</typeparam>
+    /// <typeparam name="TProvider">The type providing an <see cref="IShapeable{T}"/> implementation.</typeparam>
+    /// <param name="value">The value to be serialized.</param>
+    /// <param name="settings">The setting object guiding XML formatting.</param>
+    /// <returns>An XML encoded string containing the serialized value.</returns>
+    public static string Serialize<T, TProvider>(T? value, XmlWriterSettings? settings = null) where TProvider : IShapeable<T>
+        => XmlSerializerCache<T, TProvider>.Value.Serialize(value, settings);
 
-    public static T? Deserialize<T, TPRovider>(string xml) where TPRovider : IShapeable<T>
-        => XmlSerializerCache<T, TPRovider>.Value.Deserialize(xml);
+    /// <summary>
+    /// Deserializes a value from an XML string using an externally provided <see cref="IShapeable{T}"/> implementation.
+    /// </summary>
+    /// <typeparam name="T">The type of the value to deserialize.</typeparam>
+    /// <typeparam name="TProvider">The type providing an <see cref="IShapeable{T}"/> implementation.</typeparam>
+    /// <param name="xml">The XML encoding to be deserialized.</param>
+    /// <param name="settings">The setting object guiding XML reading.</param>
+    /// <returns>The deserialized value.</returns>
+    public static T? Deserialize<T, TProvider>(string xml, XmlReaderSettings? settings = null) where TProvider : IShapeable<T>
+        => XmlSerializerCache<T, TProvider>.Value.Deserialize(xml, settings);
 
     private static class XmlSerializerCache<T, TProvider> where TProvider : IShapeable<T>
     {

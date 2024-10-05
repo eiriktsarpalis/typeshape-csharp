@@ -26,19 +26,19 @@ public static class TypeShapeProvider
     /// Resolves the <see cref="ITypeShape{T}"/> corresponding to <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T">The ty</typeparam>
-    /// <param name="provider">The provider from which to extract the <see cref="ITypeShape"/>.</param>
+    /// <param name="shapeProvider">The provider from which to extract the <see cref="ITypeShape"/>.</param>
     /// <returns>An <see cref="ITypeShape{T}"/> instance describing <typeparamref name="T"/>.</returns>
-    /// <exception cref="NotSupportedException"><paramref name="provider"/> does not support <typeparamref name="T"/>.</exception>
-    public static ITypeShape<T> Resolve<T>(this ITypeShapeProvider provider)
-        => (ITypeShape<T>)Resolve(provider, typeof(T));
+    /// <exception cref="NotSupportedException"><paramref name="shapeProvider"/> does not support <typeparamref name="T"/>.</exception>
+    public static ITypeShape<T> Resolve<T>(this ITypeShapeProvider shapeProvider)
+        => (ITypeShape<T>)Resolve(shapeProvider, typeof(T));
 
     /// <summary>
     /// Resolves the <see cref="ITypeShape"/> corresponding to <paramref name="type"/>.
     /// </summary>
-    /// <param name="provider">The provider from which to extract the <see cref="ITypeShape"/>.</param>
+    /// <param name="shapeProvider">The provider from which to extract the <see cref="ITypeShape"/>.</param>
     /// <param name="type">The type whose shape we need to resolve.</param>
     /// <returns>An <see cref="ITypeShape"/> instance describing <paramref name="type"/>.</returns>
-    /// <exception cref="NotSupportedException"><paramref name="provider"/> does not support <paramref name="type"/>.</exception>
-    public static ITypeShape Resolve(this ITypeShapeProvider provider, Type type)
-        => provider.GetShape(type) ?? throw new NotSupportedException($"The TypeShape provider '{provider.GetType()}' does not support type '{type}'.");
+    /// <exception cref="NotSupportedException"><paramref name="shapeProvider"/> does not support <paramref name="type"/>.</exception>
+    public static ITypeShape Resolve(this ITypeShapeProvider shapeProvider, Type type)
+        => shapeProvider.GetShape(type) ?? throw new NotSupportedException($"The TypeShape provider '{shapeProvider.GetType()}' does not support type '{type}'.");
 }

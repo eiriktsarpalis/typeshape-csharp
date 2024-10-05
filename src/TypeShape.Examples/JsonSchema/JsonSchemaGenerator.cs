@@ -7,19 +7,35 @@ using TypeShape.Abstractions;
 namespace TypeShape.Examples.JsonSchema;
 
 /// <summary>
-/// A JSON schema generator for .NET types inspired by https://github.com/eiriktsarpalis/typeshape-csharp
+/// A JSON schema generator for .NET types inspired by https://github.com/eiriktsarpalis/stj-schema-exporter
 /// </summary>
 public static class JsonSchemaGenerator
 {
-    public static JsonObject Generate<T>(ITypeShapeProvider provider)
-        => Generate(provider.Resolve<T>());
+    /// <summary>
+    /// Generates a JSON schema using the specified shape provider.
+    /// </summary>
+    /// <typeparam name="T">The type for which to generate a JSON schema.</typeparam>
+    public static JsonObject Generate<T>(ITypeShapeProvider shapeProvider)
+        => Generate(shapeProvider.Resolve<T>());
 
+    /// <summary>
+    /// Generates a JSON schema using the specified shape.
+    /// </summary>
     public static JsonObject Generate(ITypeShape typeShape)
         => new Generator().GenerateSchema(typeShape);
 
+    /// <summary>
+    /// Generates a JSON schema using an externally provided <see cref="IShapeable{T}"/> implementation.
+    /// </summary>
+    /// <typeparam name="T">The type for which to generate a JSON schema.</typeparam>
+    /// <typeparam name="TProvider">The type providing an <see cref="IShapeable{T}"/> implementation.</typeparam>
     public static JsonObject Generate<T, TProvider>() where TProvider : IShapeable<T>
         => Generate(TProvider.GetShape());
 
+    /// <summary>
+    /// Generates a JSON schema using its <see cref="IShapeable{T}"/> implementation.
+    /// </summary>
+    /// <typeparam name="T">The type for which to generate a JSON schema.</typeparam>
     public static JsonObject Generate<T>() where T : IShapeable<T>
         => Generate(T.GetShape());
 

@@ -109,7 +109,7 @@ internal sealed class JsonEnumerableConstructorEnumerableConverter<TEnumerable, 
     : JsonImmutableEnumerableConverter<TEnumerable, TElement>(elementConverter, typeShape)
 {
     private protected override TEnumerable Construct(PooledList<TElement> buffer)
-        => enumerableConstructor(buffer.AsEnumerable());
+        => enumerableConstructor(buffer.ExchangeToArraySegment());
 }
 
 internal sealed class JsonSpanConstructorEnumerableConverter<TEnumerable, TElement>(

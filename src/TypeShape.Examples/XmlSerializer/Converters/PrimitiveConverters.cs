@@ -176,7 +176,7 @@ internal sealed class CharConverter : XmlConverter<char>
         => writer.WriteElementString(localName, value.ToString(CultureInfo.InvariantCulture));
 }
 
-public sealed class RuneConverter : XmlConverter<Rune>
+internal sealed class RuneConverter : XmlConverter<Rune>
 {
     public override Rune Read(XmlReader reader)
         => Rune.GetRuneAt(reader.ReadElementContentAsString(), 0);

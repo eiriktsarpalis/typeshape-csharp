@@ -9,29 +9,11 @@ using System.Text.Json.Serialization;
 
 namespace TypeShape.Examples.JsonSerializer.Converters;
 
-public sealed class BigIntegerConverter : LargeNumberValueConverter<BigInteger>
+/// <summary>Defines a converter for <see cref="BigInteger"/>.</summary>
+public sealed class BigIntegerConverter : JsonConverter<BigInteger>
 {
-    public override BigInteger Parse(ReadOnlySpan<char> value)
-        => BigInteger.Parse(value, CultureInfo.InvariantCulture);
-
-    public override int GetMaxCharLength(BigInteger value)
-        => (int)Math.Ceiling(value.GetByteCount() * 8.0 / Math.Log10(2));
-
-    public override int Format(BigInteger value, Span<char> destination)
-    {
-        bool success = value.TryFormat(destination, out int charsWritten, provider: CultureInfo.InvariantCulture);
-        Debug.Assert(success);
-        return charsWritten;
-    }
-}
-
-public abstract class LargeNumberValueConverter<T> : JsonConverter<T>
-{
-    public abstract T Parse(ReadOnlySpan<char> value);
-    public abstract int GetMaxCharLength(T value);
-    public abstract int Format(T value, Span<char> destination);
-
-    public sealed override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    /// <inheritdoc/>
+    public sealed override BigInteger Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         Debug.Assert(!reader.HasValueSequence); // https://github.com/dotnet/runtime/issues/84375
 
@@ -50,7 +32,7 @@ public abstract class LargeNumberValueConverter<T> : JsonConverter<T>
 
         try
         {
-            return Parse(destination[..charLength]);
+            return BigInteger.Parse(destination[..charLength], CultureInfo.InvariantCulture);
         }
         finally
         {
@@ -62,16 +44,18 @@ public abstract class LargeNumberValueConverter<T> : JsonConverter<T>
         }
     }
 
-    public sealed override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
+    /// <inheritdoc/>
+    public sealed override void Write(Utf8JsonWriter writer, BigInteger value, JsonSerializerOptions options)
     {
         char[]? rentedBuffer = null;
-        int maxLength = GetMaxCharLength(value);
+        int maxLength = (int)Math.Ceiling(value.GetByteCount() * 8.0 / Math.Log10(2));
 
         Span<char> destination = maxLength <= 128
             ? stackalloc char[128]
             : rentedBuffer = ArrayPool<char>.Shared.Rent(maxLength);
 
-        int charsWritten = Format(value, destination);
+        bool success = value.TryFormat(destination, out int charsWritten, provider: CultureInfo.InvariantCulture);
+        Debug.Assert(success);
         writer.WriteRawValue(destination[..charsWritten]);
 
         if (rentedBuffer != null)
@@ -82,20 +66,23 @@ public abstract class LargeNumberValueConverter<T> : JsonConverter<T>
     }
 }
 
+/// <summary>Defines a converter for <see cref="Rune"/>.</summary>
 public sealed class RuneConverter : JsonConverter<Rune>
 {
+    /// <inheritdoc/>
     public override Rune Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         return Rune.GetRuneAt(reader.GetString()!, 0);
     }
 
+    /// <inheritdoc/>
     public override void Write(Utf8JsonWriter writer, Rune value, JsonSerializerOptions options)
     {
         writer.WriteStringValue(value.ToString());
     }
 }
 
-public sealed class JsonObjectConverter(ITypeShapeProvider provider) : JsonConverter<object?>
+internal sealed class JsonObjectConverter(ITypeShapeProvider shapeProvider) : JsonConverter<object?>
 {
     private static readonly ConcurrentDictionary<Type, ITypeShapeJsonConverter> _derivedTypes = new();
     public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -136,6 +123,6 @@ public sealed class JsonObjectConverter(ITypeShapeProvider provider) : JsonConve
             return null;
         }
 
-        return _derivedTypes.GetOrAdd(runtimeType, TypeShapeJsonSerializer.CreateConverter, provider);
+        return _derivedTypes.GetOrAdd(runtimeType, TypeShapeJsonSerializer.CreateConverter, shapeProvider);
     }
 }

@@ -119,5 +119,5 @@ The repo consists of the following projects:
   * An object cloning function,
   * A structural `IEqualityComparer<T>` generator for POCOs and collections,
   * An object validator in the style of System.ComponentModel.DataAnnotations.
-  * A simple .NET object mapper in the style of AutoMapper.
+  * A simple .NET object mapper.
 * The [`applications`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/applications) folder contains sample Native AOT console applications.

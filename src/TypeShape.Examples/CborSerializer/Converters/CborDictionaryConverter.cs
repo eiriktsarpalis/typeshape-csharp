@@ -115,7 +115,7 @@ internal sealed class CborEnumerableConstructorDictionaryConverter<TDictionary, 
     : CborImmutableDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, getDictionary)
 {
     private protected override TDictionary Construct(PooledList<KeyValuePair<TKey, TValue>> buffer)
-        => constructor(buffer.AsEnumerable());
+        => constructor(buffer.ExchangeToArraySegment());
 }
 
 internal sealed class CborSpanConstructorDictionaryConverter<TDictionary, TKey, TValue>(

@@ -205,7 +205,7 @@ internal sealed class CharConverter : CborConverter<char>
     }
 }
 
-public sealed class RuneConverter : CborConverter<Rune>
+internal sealed class RuneConverter : CborConverter<Rune>
 {
     public override Rune Read(CborReader reader)
     {

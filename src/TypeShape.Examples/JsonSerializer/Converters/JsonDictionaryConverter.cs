@@ -129,7 +129,7 @@ internal sealed class JsonEnumerableConstructorDictionaryConverter<TDictionary, 
     where TKey : notnull
 {
     private protected override TDictionary Construct(PooledList<KeyValuePair<TKey, TValue>> buffer)
-        => constructor(buffer.AsEnumerable());
+        => constructor(buffer.ExchangeToArraySegment());
 }
 
 internal sealed class JsonSpanConstructorDictionaryConverter<TDictionary, TKey, TValue>(

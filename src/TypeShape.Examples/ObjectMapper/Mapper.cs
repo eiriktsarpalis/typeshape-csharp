@@ -43,10 +43,10 @@ public static partial class Mapper
     /// </summary>
     /// <typeparam name="TSource">The type to map from.</typeparam>
     /// <typeparam name="TTarget">The type to map to.</typeparam>
-    /// <param name="provider">The TypeShape provider.</param>
+    /// <param name="shapeProvider">The TypeShape provider.</param>
     /// <returns>A mapper delegate.</returns>
-    public static Mapper<TSource, TTarget> Create<TSource, TTarget>(ITypeShapeProvider provider) =>
-        Create(provider.Resolve<TSource>(), provider.Resolve<TTarget>());
+    public static Mapper<TSource, TTarget> Create<TSource, TTarget>(ITypeShapeProvider shapeProvider) =>
+        Create(shapeProvider.Resolve<TSource>(), shapeProvider.Resolve<TTarget>());
 
     /// <summary>
     /// Maps an object of type <typeparamref name="TSource"/> to an object of type <typeparamref name="TTarget"/>.

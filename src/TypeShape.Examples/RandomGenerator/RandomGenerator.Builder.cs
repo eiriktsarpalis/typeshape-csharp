@@ -197,7 +197,7 @@ public partial class RandomGenerator
                             buffer.Add(elementGenerator(random, elementSize));
                         }
 
-                        return enumerableCtor(buffer.AsEnumerable());
+                        return enumerableCtor(buffer.ExchangeToArraySegment());
                     });
 
                 case CollectionConstructionStrategy.Span:
