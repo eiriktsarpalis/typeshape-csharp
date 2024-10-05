@@ -70,36 +70,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{F2C95E2E-AED
 		src\Directory.Build.props = src\Directory.Build.props
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TypeShape.Packaging", "TypeShape.Packaging", "{40690DE2-EEED-49AC-8EB8-214BF72DFD59}"
-	ProjectSection(SolutionItems) = preProject
-		src\TypeShape.Packaging\README.md = src\TypeShape.Packaging\README.md
-		src\TypeShape.Packaging\TypeShape.Packaging.msbuildproj = src\TypeShape.Packaging\TypeShape.Packaging.msbuildproj
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "obj", "obj", "{8B51DC27-28D3-4994-90D6-93442C5F3801}"
-	ProjectSection(SolutionItems) = preProject
-		src\TypeShape.Packaging\obj\project.assets.json = src\TypeShape.Packaging\obj\project.assets.json
-		src\TypeShape.Packaging\obj\project.nuget.cache = src\TypeShape.Packaging\obj\project.nuget.cache
-		src\TypeShape.Packaging\obj\TypeShape.Packaging.msbuildproj.nuget.dgspec.json = src\TypeShape.Packaging\obj\TypeShape.Packaging.msbuildproj.nuget.dgspec.json
-		src\TypeShape.Packaging\obj\TypeShape.Packaging.msbuildproj.nuget.g.props = src\TypeShape.Packaging\obj\TypeShape.Packaging.msbuildproj.nuget.g.props
-		src\TypeShape.Packaging\obj\TypeShape.Packaging.msbuildproj.nuget.g.targets = src\TypeShape.Packaging\obj\TypeShape.Packaging.msbuildproj.nuget.g.targets
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Debug", "Debug", "{CDB5B27E-BC20-4866-9F94-DC32BBA344CE}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "net8.0", "net8.0", "{B7240018-AF5A-4CEE-8BA4-D5BF79D6A2C2}"
-	ProjectSection(SolutionItems) = preProject
-		src\TypeShape.Packaging\obj\Debug\net8.0\TypeShape.Packaging.assets.cache = src\TypeShape.Packaging\obj\Debug\net8.0\TypeShape.Packaging.assets.cache
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Release", "Release", "{BC0A46DF-32BD-4BB6-A3B6-9153C03F2CE2}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "net8.0", "net8.0", "{09CD4E8C-B7CC-42AD-922F-843762A08E2B}"
-	ProjectSection(SolutionItems) = preProject
-		src\TypeShape.Packaging\obj\Release\net8.0\TypeShape.Packaging.assets.cache = src\TypeShape.Packaging\obj\Release\net8.0\TypeShape.Packaging.assets.cache
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{1EAD80C8-8E21-4173-9438-67CE9A7A3292}"
+EndProject
+Project("{13B669BE-BB05-4DDF-9536-439F39A36129}") = "TypeShape.Packaging", "src\TypeShape.Packaging\TypeShape.Packaging.msbuildproj", "{55EC455D-6C5D-4F5C-8B84-A24DBB807328}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -163,6 +136,10 @@ Global
 		{EAABC384-65E6-404B-AA30-12EF559A0545}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EAABC384-65E6-404B-AA30-12EF559A0545}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EAABC384-65E6-404B-AA30-12EF559A0545}.Release|Any CPU.Build.0 = Release|Any CPU
+		{55EC455D-6C5D-4F5C-8B84-A24DBB807328}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55EC455D-6C5D-4F5C-8B84-A24DBB807328}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55EC455D-6C5D-4F5C-8B84-A24DBB807328}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55EC455D-6C5D-4F5C-8B84-A24DBB807328}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -183,12 +160,7 @@ Global
 		{21B5C5D9-90E4-456C-A787-C4C78AF96689} = {1EAD80C8-8E21-4173-9438-67CE9A7A3292}
 		{EAABC384-65E6-404B-AA30-12EF559A0545} = {1EAD80C8-8E21-4173-9438-67CE9A7A3292}
 		{CDF25596-D7B5-4FF0-B42D-610AEEC33B6A} = {E712CC73-2B97-4F4C-840D-4C82F5C07936}
-		{40690DE2-EEED-49AC-8EB8-214BF72DFD59} = {F2C95E2E-AED7-46E4-A93E-831FA658BD2B}
-		{8B51DC27-28D3-4994-90D6-93442C5F3801} = {40690DE2-EEED-49AC-8EB8-214BF72DFD59}
-		{CDB5B27E-BC20-4866-9F94-DC32BBA344CE} = {8B51DC27-28D3-4994-90D6-93442C5F3801}
-		{B7240018-AF5A-4CEE-8BA4-D5BF79D6A2C2} = {CDB5B27E-BC20-4866-9F94-DC32BBA344CE}
-		{BC0A46DF-32BD-4BB6-A3B6-9153C03F2CE2} = {8B51DC27-28D3-4994-90D6-93442C5F3801}
-		{09CD4E8C-B7CC-42AD-922F-843762A08E2B} = {BC0A46DF-32BD-4BB6-A3B6-9153C03F2CE2}
+		{55EC455D-6C5D-4F5C-8B84-A24DBB807328} = {F2C95E2E-AED7-46E4-A93E-831FA658BD2B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F4A4EE41-24B8-4815-9861-9B54CC34F311}
