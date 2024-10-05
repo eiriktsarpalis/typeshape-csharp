@@ -49,12 +49,12 @@ internal static partial class SourceFormatter
         var writer = new SourceWriter();
         StartFormatSourceFile(writer, typeDeclaration);
 
-        writer.WriteLine($"{typeDeclaration.TypeDeclarationHeader} : global::TypeShape.ITypeShapeProvider<{typeDeclaration.Id.FullyQualifiedName}>");
+        writer.WriteLine($"{typeDeclaration.TypeDeclarationHeader} : global::TypeShape.IShapeable<{typeDeclaration.Id.FullyQualifiedName}>");
         writer.WriteLine('{');
         writer.Indentation++;
 
         writer.WriteLine($"""
-            static global::TypeShape.Abstractions.ITypeShape<{typeDeclaration.Id.FullyQualifiedName}> global::TypeShape.ITypeShapeProvider<{typeDeclaration.Id.FullyQualifiedName}>.GetShape() 
+            static global::TypeShape.Abstractions.ITypeShape<{typeDeclaration.Id.FullyQualifiedName}> global::TypeShape.IShapeable<{typeDeclaration.Id.FullyQualifiedName}>.GetShape() 
                 => {provider.Declaration.Id.FullyQualifiedName}.Default.{typeDeclaration.Id.GeneratedPropertyName};
             """);
 

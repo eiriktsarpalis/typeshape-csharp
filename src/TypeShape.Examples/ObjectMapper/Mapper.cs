@@ -57,13 +57,13 @@ public static partial class Mapper
     /// <returns>A new value whose data is mapped from <paramref name="source"/>.</returns>
     [return: NotNullIfNotNull(nameof(source))]
     public static TTarget? MapValue<TSource, TTarget>(TSource? source)
-        where TTarget : ITypeShapeProvider<TTarget>
-        where TSource : ITypeShapeProvider<TSource>
+        where TTarget : IShapeable<TTarget>
+        where TSource : IShapeable<TSource>
         => MapperCache<TSource, TTarget>.Value(source);
 
     private static class MapperCache<TSource, TTarget>
-        where TSource : ITypeShapeProvider<TSource>
-        where TTarget : ITypeShapeProvider<TTarget>
+        where TSource : IShapeable<TSource>
+        where TTarget : IShapeable<TTarget>
     {
         public static Mapper<TSource, TTarget> Value => s_value ??= Create(TSource.GetShape(), TTarget.GetShape());
         private static Mapper<TSource, TTarget>? s_value;

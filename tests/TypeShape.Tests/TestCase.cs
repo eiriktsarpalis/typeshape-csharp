@@ -16,7 +16,7 @@ public static class TestCase
         bool isLossyRoundtrip = false,
         bool usesSpanCtor = false,
         bool isStack = false)
-        where T : ITypeShapeProvider<T> =>
+        where T : IShapeable<T> =>
         
         new TestCase<T, T>(value) 
         { 
@@ -39,7 +39,7 @@ public static class TestCase
         bool hasOutConstructorParameters = false,
         bool usesSpanCtor = false,
         bool isStack = false)
-        where TProvider : ITypeShapeProvider<T> =>
+        where TProvider : IShapeable<T> =>
     
         new TestCase<T, TProvider>(value) 
         {
@@ -54,7 +54,7 @@ public static class TestCase
 }
 
 public sealed record TestCase<T, TProvider>(T? Value) : TestCase<T>(Value)
-    where TProvider : ITypeShapeProvider<T>
+    where TProvider : IShapeable<T>
 {
     public override ITypeShape<T> GetShape(IProviderUnderTest provider) =>
         provider.GetShape<T, TProvider>();

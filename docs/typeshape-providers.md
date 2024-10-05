@@ -13,14 +13,14 @@ using TypeShape;
 partial record Person(string name, int age, List<Person> children);
 ```
 
-This augments `Person` with an explicit implementation of `ITypeShapeProvider<Person>`, which is used as an entrypoint by libraries targeting TypeShape:
+This augments `Person` with an explicit implementation of `IShapeable<Person>`, which can be used an entry point by libraries targeting TypeShape:
 
 ```C#
 MyRandomGenerator.Generate<Person>(); // Compiles
 
 public static class MyRandomGenerator
 {
-    public static T Generate<T>(int seed = 0) where T : ITypeShapeProvider<T>;
+    public static T Generate<T>(int seed = 0) where T : IShapeable<T>;
 }
 ```
 
@@ -29,7 +29,7 @@ The source generator also supports shape generation for third-party types using 
 ```C#
 [GenerateShape<Person[]>]
 [GenerateShape<List<int>>]
-public partial class Witness; // : ITypeShapeProvider<Person[]>, ITypeShapeProvider<List<int>>
+public partial class Witness; // : IShapeable<Person[]>, IShapeable<List<int>>
 ```
 
 which can be applied against supported libraries like so:
@@ -40,7 +40,7 @@ MyRandomGenerator.Generate<List<int>, Witness>() // Compiles
 
 public static class MyRandomGenerator
 {
-    public static T Generate<T, TWitness>(int seed = 0) where TWitness : ITypeShapeProvider<T>;
+    public static T Generate<T, TWitness>(int seed = 0) where TWitness : IShapeable<T>;
 }
 ```
 

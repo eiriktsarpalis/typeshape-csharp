@@ -49,7 +49,7 @@ As a library author, TypeShape lets you write high performance, feature complete
 ```C#
 public static class MyFancyParser
 {
-    public static T? Parse<T>(string myFancyFormat) where T : ITypeShapeProvider<T>;
+    public static T? Parse<T>(string myFancyFormat) where T : IShapeable<T>;
 }
 ```
 
@@ -58,7 +58,7 @@ As an end user, TypeShape lets you generate shape models for your own types that
 ```C#
 Person? person = MyFancyParser.Parse<Person>(format); // Compiles
 
-[GenerateShape] // Generate an ITypeShapeProvider<TPerson> implementation
+[GenerateShape] // Generate an IShapeable<TPerson> implementation
 partial record Person(string name, int age, List<Person> children);
 ```
 
@@ -75,7 +75,7 @@ The repo includes a [JSON serializer](https://github.com/eiriktsarpalis/typeshap
 
 ### Performance
 
-Here's a [benchmark](https://github.com/eiriktsarpalis/typeshape-csharp/blob/main/tests/TypeShape.Benchmarks/JsonBenchmark.cs) comparing `System.Text.Json` with the included TypeShape generator:
+Here's a [benchmark](https://github.com/eiriktsarpalis/typeshape-csharp/blob/main/tests/TypeShape.Benchmarks/JsonBenchmark.cs) comparing `System.Text.Json` with the included TypeShape-derived implementation:
 
 #### Serialization
 

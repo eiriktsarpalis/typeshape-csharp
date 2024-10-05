@@ -49,19 +49,19 @@ public static partial class XmlSerializer
         return result;
     }
 
-    public static string Serialize<T>(T? value) where T : ITypeShapeProvider<T>
+    public static string Serialize<T>(T? value) where T : IShapeable<T>
         => XmlSerializerCache<T, T>.Value.Serialize(value);
 
-    public static T? Deserialize<T>(string xml) where T : ITypeShapeProvider<T>
+    public static T? Deserialize<T>(string xml) where T : IShapeable<T>
         => XmlSerializerCache<T, T>.Value.Deserialize(xml);
 
-    public static string Serialize<T, TPRovider>(T? value) where TPRovider : ITypeShapeProvider<T>
+    public static string Serialize<T, TPRovider>(T? value) where TPRovider : IShapeable<T>
         => XmlSerializerCache<T, TPRovider>.Value.Serialize(value);
 
-    public static T? Deserialize<T, TPRovider>(string xml) where TPRovider : ITypeShapeProvider<T>
+    public static T? Deserialize<T, TPRovider>(string xml) where TPRovider : IShapeable<T>
         => XmlSerializerCache<T, TPRovider>.Value.Deserialize(xml);
 
-    private static class XmlSerializerCache<T, TProvider> where TProvider : ITypeShapeProvider<T>
+    private static class XmlSerializerCache<T, TProvider> where TProvider : IShapeable<T>
     {
         public static XmlConverter<T> Value => s_value ??= CreateConverter(TProvider.GetShape());
         private static XmlConverter<T>? s_value;

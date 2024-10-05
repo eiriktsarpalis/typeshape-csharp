@@ -13,13 +13,13 @@ public static partial class Counter
     public static Func<T?, long> Create<T>(ITypeShapeProvider provider)
         => Create(provider.Resolve<T>());
 
-    public static long GetCount<T>(T? value) where T : ITypeShapeProvider<T>
+    public static long GetCount<T>(T? value) where T : IShapeable<T>
         => CounterCache<T, T>.Value(value);
 
-    public static long GetCount<T, TProvider>(T? value) where TProvider : ITypeShapeProvider<T>
+    public static long GetCount<T, TProvider>(T? value) where TProvider : IShapeable<T>
         => CounterCache<T, TProvider>.Value(value);
 
-    private static class CounterCache<T, TProvider> where TProvider : ITypeShapeProvider<T>
+    private static class CounterCache<T, TProvider> where TProvider : IShapeable<T>
     {
         public static Func<T?, long> Value => s_value ??= Create(TProvider.GetShape());
         private static Func<T?, long>? s_value;

@@ -93,7 +93,7 @@ public abstract class StructuralEqualityTests(IProviderUnderTest providerUnderTe
                 }
             });
 
-        static object[] NotEqual<TProvider, T>(TProvider? provider, T left, T right) where TProvider : ITypeShapeProvider<T> =>
+        static object[] NotEqual<TProvider, T>(TProvider? provider, T left, T right) where TProvider : IShapeable<T> =>
             [TestCase.Create(provider, left), TestCase.Create(provider, right)];
     }
 

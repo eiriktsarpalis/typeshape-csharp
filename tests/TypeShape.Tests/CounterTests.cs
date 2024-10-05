@@ -31,7 +31,7 @@ public abstract class CounterTests(IProviderUnderTest providerUnderTest)
         yield return Create(p, new MyLinkedList<SimpleRecord> { Value = new SimpleRecord(1), Next = new() { Value = new SimpleRecord(2), Next = null } }, 6);
 
         static object?[] Create<TProvider, T>(TProvider? provider, T? value, long expectedCount)
-            where TProvider : ITypeShapeProvider<T> => 
+            where TProvider : IShapeable<T> => 
             [TestCase.Create(provider, value), expectedCount];
     }
 

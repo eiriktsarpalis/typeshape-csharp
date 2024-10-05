@@ -78,10 +78,10 @@ public abstract partial class ValidationTests(IProviderUnderTest providerUnderTe
             expectedErrors: ["$.key.Id: value is null or empty.",]
         );
         
-        static object?[] Create<T>(T? value, List<string>? expectedErrors = null) where T : ITypeShapeProvider<T> =>
+        static object?[] Create<T>(T? value, List<string>? expectedErrors = null) where T : IShapeable<T> =>
             CreateWithProvider(value, value, expectedErrors);
 
-        static object?[] CreateWithProvider<TProvider, T>(TProvider? provider, T? value, List<string>? expectedErrors = null) where TProvider : ITypeShapeProvider<T> =>
+        static object?[] CreateWithProvider<TProvider, T>(TProvider? provider, T? value, List<string>? expectedErrors = null) where TProvider : IShapeable<T> =>
             [TestCase.Create(provider, value), expectedErrors];
     }
 

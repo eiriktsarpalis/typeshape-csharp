@@ -142,7 +142,7 @@ public static class CompilationTests
             {
                 public static void TestTypeShape<T>(T value, ITypeShape<T> shape) { }
                 public static void TestTypeShapeProvider<T, TProvider>(T value, TProvider provider)
-                    where TProvider : ITypeShapeProvider<T> { }
+                    where TProvider : IShapeable<T> { }
             }
 
             [GenerateShape<Dictionary<int, string>>]

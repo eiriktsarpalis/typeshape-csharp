@@ -17,10 +17,10 @@ public static class JsonSchemaGenerator
     public static JsonObject Generate(ITypeShape typeShape)
         => new Generator().GenerateSchema(typeShape);
 
-    public static JsonObject Generate<T, TProvider>() where TProvider : ITypeShapeProvider<T>
+    public static JsonObject Generate<T, TProvider>() where TProvider : IShapeable<T>
         => Generate(TProvider.GetShape());
 
-    public static JsonObject Generate<T>() where T : ITypeShapeProvider<T>
+    public static JsonObject Generate<T>() where T : IShapeable<T>
         => Generate(T.GetShape());
 
     private sealed class Generator

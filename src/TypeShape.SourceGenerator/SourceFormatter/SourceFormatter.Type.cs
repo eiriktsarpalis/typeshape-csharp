@@ -20,7 +20,7 @@ internal static partial class SourceFormatter
         {
             writer.WriteLine($"""
                 #nullable disable annotations // Use nullable-oblivious interface implementation
-                {provider.Declaration.TypeDeclarationHeader} : global::TypeShape.ITypeShapeProvider<{type.Type.FullyQualifiedName}>
+                {provider.Declaration.TypeDeclarationHeader} : global::TypeShape.IShapeable<{type.Type.FullyQualifiedName}>
                 #nullable enable annotations // Use nullable-oblivious interface implementation
                 """);
         }
@@ -44,7 +44,7 @@ internal static partial class SourceFormatter
         if (type.EmitGenericTypeShapeProviderImplementation)
         {
             writer.WriteLine($"""
-                static {generatedPropertyType} global::TypeShape.ITypeShapeProvider<{type.Type.FullyQualifiedName}>.GetShape() => Default.{type.Type.GeneratedPropertyName};
+                static {generatedPropertyType} global::TypeShape.IShapeable<{type.Type.FullyQualifiedName}>.GetShape() => Default.{type.Type.GeneratedPropertyName};
 
                 """);
         }

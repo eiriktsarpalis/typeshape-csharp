@@ -11,10 +11,10 @@ public static class Cloner
     public static Func<T?, T?> CreateCloner<T>(ITypeShapeProvider provider) =>
         CreateCloner<T>(provider.Resolve<T>());
 
-    public static T? Clone<T>(T? value) where T : ITypeShapeProvider<T> =>
+    public static T? Clone<T>(T? value) where T : IShapeable<T> =>
         ClonerCache<T>.Value(value);
 
-    private static class ClonerCache<T> where T : ITypeShapeProvider<T>
+    private static class ClonerCache<T> where T : IShapeable<T>
     {
         public static Func<T?, T?> Value => s_value ??= CreateCloner<T>(T.GetShape());
         private static Func<T?, T?>? s_value;

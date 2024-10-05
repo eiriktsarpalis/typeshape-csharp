@@ -10,7 +10,7 @@ public static class TypeShapeProvider
     /// </summary>
     /// <typeparam name="T">The type from which to extract the shape.</typeparam>
     /// <returns>An <see cref="ITypeShape"/> instance describing <typeparamref name="T"/>.</returns>
-    public static ITypeShape<T> Resolve<T>() where T : ITypeShapeProvider<T>
+    public static ITypeShape<T> Resolve<T>() where T : IShapeable<T>
         => T.GetShape();
 
     /// <summary>
@@ -19,7 +19,7 @@ public static class TypeShapeProvider
     /// <typeparam name="T">The type for which to extract the shape.</typeparam>
     /// <typeparam name="TProvider">The type from which to extract the shape.</typeparam>
     /// <returns>An <see cref="ITypeShape"/> instance describing <typeparamref name="T"/>.</returns>
-    public static ITypeShape<T> Resolve<T, TProvider>() where TProvider : ITypeShapeProvider<T>
+    public static ITypeShape<T> Resolve<T, TProvider>() where TProvider : IShapeable<T>
         => TProvider.GetShape();
 
     /// <summary>

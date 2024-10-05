@@ -20,13 +20,13 @@ public static partial class PrettyPrinter
         return sb.ToString();
     }
 
-    public static string Print<T>(T? value) where T : ITypeShapeProvider<T>
+    public static string Print<T>(T? value) where T : IShapeable<T>
         => PrettyPrinterCache<T, T>.Value.Print(value);
 
-    public static string Print<T, TProvider>(T? value) where TProvider : ITypeShapeProvider<T>
+    public static string Print<T, TProvider>(T? value) where TProvider : IShapeable<T>
         => PrettyPrinterCache<T, TProvider>.Value.Print(value);
 
-    private static class PrettyPrinterCache<T, TProvider> where TProvider : ITypeShapeProvider<T>
+    private static class PrettyPrinterCache<T, TProvider> where TProvider : IShapeable<T>
     {
         public static PrettyPrinter<T> Value => s_value ??= Create(TProvider.GetShape());
         private static PrettyPrinter<T>? s_value;

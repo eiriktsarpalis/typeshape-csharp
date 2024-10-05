@@ -39,31 +39,31 @@ public static partial class CborSerializer
         return converter.Decode(encoding);
     }
 
-    public static byte[] Encode<T>(T? value) where T : ITypeShapeProvider<T>
+    public static byte[] Encode<T>(T? value) where T : IShapeable<T>
         => CborSerializerCache<T, T>.Value.Encode(value);
 
-    public static T? Decode<T>(byte[] encoding) where T : ITypeShapeProvider<T>
+    public static T? Decode<T>(byte[] encoding) where T : IShapeable<T>
         => CborSerializerCache<T, T>.Value.Decode(encoding);
 
-    public static string EncodeToHex<T>(T? value) where T : ITypeShapeProvider<T>
+    public static string EncodeToHex<T>(T? value) where T : IShapeable<T>
         => CborSerializerCache<T, T>.Value.EncodeToHex(value);
 
-    public static T? DecodeFromHex<T>(string hexEncoding) where T : ITypeShapeProvider<T>
+    public static T? DecodeFromHex<T>(string hexEncoding) where T : IShapeable<T>
         => CborSerializerCache<T, T>.Value.DecodeFromHex(hexEncoding);
 
-    public static byte[] Encode<T, TProvider>(T? value) where TProvider : ITypeShapeProvider<T>
+    public static byte[] Encode<T, TProvider>(T? value) where TProvider : IShapeable<T>
         => CborSerializerCache<T, TProvider>.Value.Encode(value);
 
-    public static T? Decode<T, TProvider>(byte[] encoding) where TProvider : ITypeShapeProvider<T>
+    public static T? Decode<T, TProvider>(byte[] encoding) where TProvider : IShapeable<T>
         => CborSerializerCache<T, TProvider>.Value.Decode(encoding);
 
-    public static string EncodeToHex<T, TProvider>(T? value) where TProvider : ITypeShapeProvider<T>
+    public static string EncodeToHex<T, TProvider>(T? value) where TProvider : IShapeable<T>
         => CborSerializerCache<T, TProvider>.Value.EncodeToHex(value);
 
-    public static T? DecodeFromHex<T, TProvider>(string hexEncoding) where TProvider : ITypeShapeProvider<T>
+    public static T? DecodeFromHex<T, TProvider>(string hexEncoding) where TProvider : IShapeable<T>
         => CborSerializerCache<T, TProvider>.Value.DecodeFromHex(hexEncoding);
 
-    private static class CborSerializerCache<T, TProvider> where TProvider : ITypeShapeProvider<T>
+    private static class CborSerializerCache<T, TProvider> where TProvider : IShapeable<T>
     {
         public static CborConverter<T> Value => s_value ??= CreateConverter(TProvider.GetShape());
         private static CborConverter<T>? s_value;

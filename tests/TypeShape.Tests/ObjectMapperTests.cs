@@ -79,8 +79,8 @@ public abstract class ObjectMapperTests(IProviderUnderTest providerUnderTest)
     }
 
     private Mapper<TFrom, TTo> GetMapper<TFrom, TTo>() 
-        where TFrom : ITypeShapeProvider<TFrom>
-        where TTo : ITypeShapeProvider<TTo> => 
+        where TFrom : IShapeable<TFrom>
+        where TTo : IShapeable<TTo> => 
         Mapper.Create(providerUnderTest.GetShape<TFrom>(), providerUnderTest.GetShape<TTo>());
 
     private (Mapper<T, T>, IEqualityComparer<T>, ITypeShape<T>) GetMapperAndEqualityComparer<T>(TestCase<T> testCase)

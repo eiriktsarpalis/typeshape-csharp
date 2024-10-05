@@ -48,28 +48,28 @@ public static partial class Validator
     /// <summary>
     /// Runs validation against the provided value.
     /// </summary>
-    public static bool TryValidate<T>(this T? value, [NotNullWhen(false)] out List<string>? errors) where T : ITypeShapeProvider<T>
+    public static bool TryValidate<T>(this T? value, [NotNullWhen(false)] out List<string>? errors) where T : IShapeable<T>
         => ValidatorCache<T, T>.Value.TryValidate(value, out errors);
 
     /// <summary>
     /// Runs validation against the provided value.
     /// </summary>
-    public static void Validate<T>(T? value) where T : ITypeShapeProvider<T>
+    public static void Validate<T>(T? value) where T : IShapeable<T>
         => ValidatorCache<T, T>.Value.Validate(value);
 
     /// <summary>
     /// Runs validation against the provided value.
     /// </summary>
-    public static bool TryValidate<T, TProvider>(T? value, [NotNullWhen(false)] out List<string>? errors) where TProvider : ITypeShapeProvider<T>
+    public static bool TryValidate<T, TProvider>(T? value, [NotNullWhen(false)] out List<string>? errors) where TProvider : IShapeable<T>
         => ValidatorCache<T, TProvider>.Value.TryValidate(value, out errors);
 
     /// <summary>
     /// Runs validation against the provided value.
     /// </summary>
-    public static void Validate<T, TProvider>(T? value) where TProvider : ITypeShapeProvider<T>
+    public static void Validate<T, TProvider>(T? value) where TProvider : IShapeable<T>
         => ValidatorCache<T, TProvider>.Value.Validate(value);
 
-    private static class ValidatorCache<T, TProvider> where TProvider : ITypeShapeProvider<T>
+    private static class ValidatorCache<T, TProvider> where TProvider : IShapeable<T>
     {
         public static Validator<T> Value => s_value ??= Create(TProvider.GetShape());
         private static Validator<T>? s_value;

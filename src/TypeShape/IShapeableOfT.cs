@@ -3,10 +3,10 @@
 namespace TypeShape;
 
 /// <summary>
-/// Defines a static and strongly typed <see cref="ITypeShape"/> provider abstraction.
+/// Defines a static abstract factory providing <see cref="ITypeShape"/> instances for a given type.
 /// </summary>
 /// <typeparam name="T">The type shape provided by this implementation.</typeparam>
-public interface ITypeShapeProvider<T>
+public interface IShapeable<T>
 {
     /// <summary>
     /// Gets the TypeShape instance corresponding to <typeparamref name="T"/>.

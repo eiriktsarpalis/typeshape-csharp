@@ -84,7 +84,7 @@ public static class Counter
 {
     private readonly static CounterVisitor s_visitor = new();
 
-    public static Func<T?, int> CreateCounter<T>() where T : ITypeShapeProvider<T>
+    public static Func<T?, int> CreateCounter<T>() where T : IShapeable<T>
     {
         ITypeShape<T> typeShape = T.GetShape();
         return (Func<T?, int>)typeShape.Accept(s_visitor)!;

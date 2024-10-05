@@ -2,7 +2,7 @@
 
 /// <summary>
 /// When applied on a partial type, this attribute instructs the
-/// TypeShape source generator to emit an <see cref="ITypeShapeProvider{T}"/>
+/// TypeShape source generator to emit an <see cref="IShapeable{T}"/>
 /// implementation for the annotated type.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface, AllowMultiple = false, Inherited = false)]

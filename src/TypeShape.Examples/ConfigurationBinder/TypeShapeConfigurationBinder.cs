@@ -13,13 +13,13 @@ public static class TypeShapeConfigurationBinder
     public static Func<IConfiguration, T?> Create<T>(ITypeShapeProvider provider) =>
         Create(provider.Resolve<T>());
 
-    public static T? Get<T>(IConfiguration configuration) where T : ITypeShapeProvider<T>
+    public static T? Get<T>(IConfiguration configuration) where T : IShapeable<T>
         => ConfigurationBinderCache<T, T>.Value(configuration);
 
-    public static T? Get<T, TProvider>(IConfiguration configuration) where TProvider : ITypeShapeProvider<T>
+    public static T? Get<T, TProvider>(IConfiguration configuration) where TProvider : IShapeable<T>
         => ConfigurationBinderCache<T, TProvider>.Value(configuration);
 
-    private static class ConfigurationBinderCache<T, TProvider> where TProvider : ITypeShapeProvider<T>
+    private static class ConfigurationBinderCache<T, TProvider> where TProvider : IShapeable<T>
     {
         public static Func<IConfiguration, T?> Value => s_value ??= Create(TProvider.GetShape());
         private static Func<IConfiguration, T?>? s_value;
