@@ -1,4 +1,4 @@
-﻿using TypeShape.Applications.StructuralEquality;
+﻿using TypeShape.Examples.StructuralEquality;
 using Xunit;
 
 namespace TypeShape.Tests;

@@ -1,8 +1,8 @@
 ﻿using System.Collections;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using TypeShape.Applications.JsonSerializer;
-using TypeShape.Applications.JsonSerializer.Converters;
+using TypeShape.Examples.JsonSerializer;
+using TypeShape.Examples.JsonSerializer.Converters;
 using Xunit;
 
 namespace TypeShape.Tests;

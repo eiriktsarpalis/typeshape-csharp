@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
 using TypeShape.Abstractions;
-using TypeShape.Applications.PrettyPrinter;
+using TypeShape.Examples.PrettyPrinter;
 using TypeShape.ReflectionProvider;
 using Xunit;
 

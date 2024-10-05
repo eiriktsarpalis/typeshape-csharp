@@ -1,4 +1,4 @@
-﻿using TypeShape.Applications.Counter;
+﻿using TypeShape.Examples.Counter;
 using Xunit;
 
 namespace TypeShape.Tests;

@@ -3,8 +3,8 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using TypeShape.Abstractions;
-using TypeShape.Applications.JsonSchema;
-using TypeShape.Applications.JsonSerializer;
+using TypeShape.Examples.JsonSchema;
+using TypeShape.Examples.JsonSerializer;
 using Xunit;
 using Xunit.Sdk;
 

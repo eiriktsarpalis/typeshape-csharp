@@ -1,9 +1,9 @@
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using TypeShape.Abstractions;
-using TypeShape.Applications.ConfigurationBinder;
-using TypeShape.Applications.JsonSerializer;
-using TypeShape.Applications.StructuralEquality;
+using TypeShape.Examples.ConfigurationBinder;
+using TypeShape.Examples.JsonSerializer;
+using TypeShape.Examples.StructuralEquality;
 using Xunit;
 
 namespace TypeShape.Tests;

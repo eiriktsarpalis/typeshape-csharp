@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using TypeShape;
-using TypeShape.Applications.JsonSerializer;
+using TypeShape.Examples.JsonSerializer;
 using TypeShape.ReflectionProvider;
 
 public static class JsonData

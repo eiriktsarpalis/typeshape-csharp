@@ -67,11 +67,11 @@ For more information see:
 * The [core abstractions](https://eiriktsarpalis.github.io/typeshape-csharp/core-abstractions.html) document for an overview of the core programming model.
 * The [typeshape providers](https://eiriktsarpalis.github.io/typeshape-csharp/typeshape-providers.html) document for an overview of the built-in shape providers and their APIs.
 * The generated [API documentation](https://eiriktsarpalis.github.io/typeshape-csharp/api/TypeShape.html) for the project.
-* The [`TypeShape.Applications`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Applications) project for advanced examples of libraries built on top of TypeShape.
+* The [`TypeShape.Examples`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Examples) project for advanced examples of libraries built on top of TypeShape.
 
 ## Case Study: Writing a JSON serializer
 
-The repo includes a [JSON serializer](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Applications/JsonSerializer) built on top of the `Utf8JsonWriter`/`Utf8JsonReader` primitives provided by System.Text.Json. At the time of writing, the full implementation is just under 1200 lines of code but exceeds STJ's built-in `JsonSerializer` both in terms of [supported types](https://github.com/eiriktsarpalis/typeshape-csharp/blob/main/tests/TypeShape.Tests/JsonTests.cs) and performance.
+The repo includes a [JSON serializer](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Examples/JsonSerializer) built on top of the `Utf8JsonWriter`/`Utf8JsonReader` primitives provided by System.Text.Json. At the time of writing, the full implementation is just under 1200 lines of code but exceeds STJ's built-in `JsonSerializer` both in terms of [supported types](https://github.com/eiriktsarpalis/typeshape-csharp/blob/main/tests/TypeShape.Tests/JsonTests.cs) and performance.
 
 ### Performance
 
@@ -108,7 +108,7 @@ The repo consists of the following projects:
   * The [model classes](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape/SourceGenModel) used by the source generator.
 * The [`TypeShape.SourceGenerator`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.SourceGenerator) project contains the built-in source generator implementation.
 * The [`TypeShape.Roslyn`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Roslyn) library exposes a set of components for extracting data models from Roslyn type symbols. Used as the foundation for the built-in source generator.
-* [`TypeShape.Applications`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Applications) containing library examples:
+* [`TypeShape.Examples`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Examples) containing library examples:
   * A serializer built on top of System.Text.Json,
   * A serializer built on top of System.Xml,
   * A serializer built on top of System.Formats.Cbor,
@@ -120,4 +120,4 @@ The repo consists of the following projects:
   * A structural `IEqualityComparer<T>` generator for POCOs and collections,
   * An object validator in the style of System.ComponentModel.DataAnnotations.
   * A simple .NET object mapper in the style of AutoMapper.
-* The [`samples`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/samples) folder contains sample Native AOT console applications.
+* The [`applications`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/applications) folder contains sample Native AOT console applications.

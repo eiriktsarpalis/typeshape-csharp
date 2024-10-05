@@ -1,7 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.Numerics;
 using System.Xml;
-using TypeShape.Applications.XmlSerializer;
+using TypeShape.Examples.XmlSerializer;
 using Xunit;
 
 namespace TypeShape.Tests;

@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using TypeShape.Abstractions;
-using TypeShape.Applications.RandomGenerator;
+using TypeShape.Examples.RandomGenerator;
 using TypeShape.ReflectionProvider;
 using Xunit;
 

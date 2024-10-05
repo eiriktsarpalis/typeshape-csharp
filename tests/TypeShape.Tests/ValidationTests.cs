@@ -1,4 +1,4 @@
-﻿using TypeShape.Applications.Validation;
+﻿using TypeShape.Examples.Validation;
 using Xunit;
 
 namespace TypeShape.Tests;

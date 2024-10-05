@@ -1,6 +1,6 @@
 using TypeShape.Abstractions;
-using TypeShape.Applications.Cloner;
-using TypeShape.Applications.StructuralEquality;
+using TypeShape.Examples.Cloner;
+using TypeShape.Examples.StructuralEquality;
 using Xunit;
 
 namespace TypeShape.Tests;

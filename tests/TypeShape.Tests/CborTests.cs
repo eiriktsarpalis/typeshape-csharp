@@ -1,5 +1,5 @@
 ﻿using System.Numerics;
-using TypeShape.Applications.CborSerializer;
+using TypeShape.Examples.CborSerializer;
 using Xunit;
 
 namespace TypeShape.Tests;

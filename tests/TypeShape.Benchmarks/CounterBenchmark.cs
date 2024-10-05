@@ -1,5 +1,5 @@
 ﻿using BenchmarkDotNet.Attributes;
-using TypeShape.Applications.Counter;
+using TypeShape.Examples.Counter;
 using TypeShape.ReflectionProvider;
 
 namespace TypeShape.Benchmarks;

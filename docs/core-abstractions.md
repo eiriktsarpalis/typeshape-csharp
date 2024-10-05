@@ -489,4 +489,4 @@ class EmptyConstructorVisitor : TypeShapeVisitor
 }
 ```
 
-This concludes the tutorial for the core TypeShape programming model. For more detailed examples, please refer to the [`TypeShape.Applications`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Applications) project folder.
+This concludes the tutorial for the core TypeShape programming model. For more detailed examples, please refer to the [`TypeShape.Examples`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Examples) project folder.

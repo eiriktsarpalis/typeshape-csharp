@@ -1,6 +1,6 @@
 ﻿using TypeShape.Abstractions;
-using TypeShape.Applications.RandomGenerator;
-using TypeShape.Applications.StructuralEquality;
+using TypeShape.Examples.RandomGenerator;
+using TypeShape.Examples.StructuralEquality;
 using Xunit;
 
 namespace TypeShape.Tests;
