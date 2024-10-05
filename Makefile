@@ -24,7 +24,7 @@ pack: test
 	dotnet pack -c $(CONFIGURATION) $(ADDITIONAL_ARGS) src/TypeShape.Roslyn
 	dotnet pack -c $(CONFIGURATION) $(ADDITIONAL_ARGS) src/TypeShape.Examples
 
-generate-docs: pack
+generate-docs: clean
 	dotnet tool update -g docfx
 	docfx $(DOCS_PATH)/docfx.json
 
@@ -42,4 +42,4 @@ docker-build: clean
 
 	docker rmi -f $(DOCKER_IMAGE_NAME)
 
-.DEFAULT_GOAL := generate-docs
+.DEFAULT_GOAL := pack
