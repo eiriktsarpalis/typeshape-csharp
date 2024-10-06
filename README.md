@@ -1,50 +1,50 @@
 # typeshape-csharp [![Build & Tests](https://github.com/eiriktsarpalis/typeshape-csharp/actions/workflows/build.yml/badge.svg)](https://github.com/eiriktsarpalis/typeshape-csharp/actions/workflows/build.yml) [![NuGet Badge](https://img.shields.io/nuget/dt/typeshape-csharp)](https://www.nuget.org/packages/typeshape-csharp/)
 
-This repo contains a port of the [TypeShape](https://github.com/eiriktsarpalis/TypeShape) F# library, adapted to patterns and idioms available in C#. See the [project website](https://eiriktsarpalis.github.io/typeshape-csharp) for additional guides and [API documentation](https://eiriktsarpalis.github.io/typeshape-csharp/api/TypeShape.html).
+This project is a port of the [TypeShape](https://github.com/eiriktsarpalis/TypeShape) F# library, adapted to patterns and idioms available in C#. See the [project website](https://eiriktsarpalis.github.io/typeshape-csharp) for additional background and [API documentation](https://eiriktsarpalis.github.io/typeshape-csharp/api/TypeShape.html).
 
-## Background & Motivation
+## Quick Start
 
-Datatype-generic programming is the approach to writing components that operate on arbitrary types guided by their own "shape". In this context, the shape or structure of a type refers to the data points that it exposes (fields or properties in objects, elements in collections). Common examples of such programs include serializers, structured loggers, data mappers, validators, parsers, random generators, equality comparers, and many more. In System.Text.Json, the method:
+You can try the library by installing the `typeshape-csharp` NuGet package:
 
-```C#
-public static class JsonSerializer
-{
-    public static string Serialize<T>(T? value);
-}
+```bash
+$ dotnet add package typeshape-csharp
 ```
 
-is an example of a datatype-generic program because it serializes values of any type, using a schema derived from its shape. Similarly, the method found in Microsoft.Extensions.Configuration:
+which includes the core types and source generator for generating type shapes:
 
 ```C#
-public static class ConfigurationBinder
-{
-    public static T? Get<T>(IConfiguration configuration);
-}
+using TypeShape;
+
+[GenerateShape]
+public partial record Person(string name, int age);
 ```
 
-uses the shape of `T` to derive its configuration binding strategy.
+Doing this will augment `Person` with an implementation of the `IShapeable<Person>` interface. This suffices to make `Person` usable with any library that targets the TypeShape core abstractions. You can try this out by installing the built-in example libraries:
 
-A production ready datatype-generic library should be able to handle _any type_ that the language itself permits (or fail gracefully if it cannot). Anyone who has worked on this space before will know that this is a particularly challenging problem, with full correctness being exceedingly difficult to achieve or verify. For example, authors need to consider things such as:
+```bash
+$ dotnet add package TypeShape.Examples
+```
 
-* Identifying whether a type is an object, collection, enum or something different.
-* Resolving the properties or fields that form the data contract of an object.
-* Identifying the appropriate construction strategy for a type, if available.
-* Addressing inheritance concerns, including virtual properties and diamond ambiguities.
-* Supporting special types such as nullable structs, enums, tuples or multi-dimensional arrays.
-* Handling recursive types such as linked lists or trees.
-* Supporting special modifiers such as `required`, `readonly` and `init`.
-* Recognizing members with non-nullable reference annotations.
-* Identifying potentially unsupported types such as ref structs, delegates or pointers.
+Here's how the same value can be serialized to three separate formats.
 
-This is far from an exhaustive list, but it serves to highlight the fact that such components are expensive to build and maintain. They need to be kept up-to-date as the framework evolves and the type system accumulates new features.
+```csharp
+using TypeShape.Examples.JsonSerializer;
+using TypeShape.Examples.CborSerializer;
+using TypeShape.Examples.XmlSerializer;
 
-The goal of this project is to demonstrate that much of this complexity can be consolidated behind a simple set of reusable abstractions that make authoring datatype-generic programs substantially simpler to implement and maintain.
+Person person = new("Pete", 70);
+TypeShapeJsonSerializer.Serialize(person);  // {"Name":"Pete","Age":70}
+XmlSerializer.Serialize(person);            // <value><Name>Pete</Name><Age>70</Age></value>
+CborSerializer.EncodeToHex(person);         // A2644E616D656450657465634167651846
+```
+
+Since the application uses a source generator to produce the shape for `Person`, it is fully compatible with Native AOT. See the [TypeShape providers](https://eiriktsarpalis.github.io/typeshape-csharp/typeshape-providers.html) article for more details on how to use the library with your types.
 
 ## Introduction
 
 TypeShape is a meta-library that facilitates rapid development of high performance datatype-generic programs. It exposes a simplified model for .NET types that makes it easy for library authors to publish production-ready components in just a few lines of code. The built-in source generator ensures that any library built on top of the TypeShape abstractions gets Native AOT support for free.
 
-As a library author, TypeShape lets you write high performance, feature complete generic components that target its [core abstractions](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/docs/core-abstractions.md). For example, a parser API using TypeShape might look as follows:
+As a library author, TypeShape lets you write high performance, feature complete generic components that target its [core abstractions](https://eiriktsarpalis.github.io/typeshape-csharp/core-abstractions.html). For example, a parser API using TypeShape might look as follows:
 
 ```C#
 public static class MyFancyParser

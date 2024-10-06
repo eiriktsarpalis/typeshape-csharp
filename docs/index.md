@@ -2,7 +2,49 @@
 _layout: landing
 ---
 
-# Introduction
+# Overview
+
+typeshape-csharp is a port of the [TypeShape](https://github.com/eiriktsarpalis/TypeShape) F# library, adapted to patterns and idioms available in C#.
+
+## Quick Start
+
+You can try the library by installing the `typeshape-csharp` NuGet package:
+
+```bash
+$ dotnet add package typeshape-csharp
+```
+
+which includes the core types and source generator for generating type shapes:
+
+```C#
+using TypeShape;
+
+[GenerateShape]
+public partial record Person(string name, int age);
+```
+
+Doing this will augment `Person` with an implementation of the `IShapeable<Person>` interface. This suffices to make `Person` usable with any library that targets the TypeShape core abstractions. You can try this out by installing the built-in example libraries:
+
+```bash
+$ dotnet add package TypeShape.Examples
+```
+
+Here's how the same value can be serialized to three separate formats.
+
+```csharp
+using TypeShape.Examples.JsonSerializer;
+using TypeShape.Examples.CborSerializer;
+using TypeShape.Examples.XmlSerializer;
+
+Person person = new("Pete", 70);
+TypeShapeJsonSerializer.Serialize(person);  // {"Name":"Pete","Age":70}
+XmlSerializer.Serialize(person);            // <value><Name>Pete</Name><Age>70</Age></value>
+CborSerializer.EncodeToHex(person);         // A2644E616D656450657465634167651846
+```
+
+Since the application uses a source generator to produce the shape for `Person`, it is fully compatible with Native AOT. See the [TypeShape providers](https://eiriktsarpalis.github.io/typeshape-csharp/typeshape-providers.html) article for more details on how to use the library with your types.
+
+## Background & Motivation
 
 Datatype-generic programming is the approach to writing components that operate on arbitrary types guided by their own "shape". In this context, the shape or structure of a type refers to the data points that it exposes (fields or properties in objects, elements in collections). Common examples of such programs include serializers, structured loggers, data mappers, validators, parsers, random generators, equality comparers, and many more. In System.Text.Json, the method:
 
