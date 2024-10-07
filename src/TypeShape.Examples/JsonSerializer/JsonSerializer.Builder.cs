@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using TypeShape.Abstractions;
@@ -7,17 +6,15 @@ using TypeShape.Examples.JsonSerializer.Converters;
 
 namespace TypeShape.Examples.JsonSerializer;
 
-public static partial class TypeShapeJsonSerializer
+public static partial class JsonSerializerTS
 {
     private sealed class Builder : ITypeShapeVisitor, ITypeShapeFunc
     {
-        private static readonly JsonSerializerOptions s_options = new() { TypeInfoResolver = JsonTypeInfoResolver.Combine() };
         private readonly TypeDictionary _cache = new();
 
-        public TypeShapeJsonConverter<T> BuildTypeShapeJsonConverter<T>(ITypeShape<T> typeShape) => new(BuildConverter(typeShape), s_options);
-        object? ITypeShapeFunc.Invoke<T>(ITypeShape<T> typeShape, object? state) => BuildTypeShapeJsonConverter(typeShape);
+        object? ITypeShapeFunc.Invoke<T>(ITypeShape<T> typeShape, object? state) => BuildJsonConverter(typeShape);
 
-        private JsonConverter<T> BuildConverter<T>(ITypeShape<T> typeShape)
+        public JsonConverter<T> BuildJsonConverter<T>(ITypeShape<T> typeShape)
         {
             if (s_defaultConverters.TryGetValue(typeShape.Type, out JsonConverter? defaultConverter))
             {
@@ -49,7 +46,7 @@ public static partial class TypeShapeJsonSerializer
 
         public object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
         {
-            JsonConverter<TPropertyType> propertyConverter = BuildConverter(property.PropertyType);
+            JsonConverter<TPropertyType> propertyConverter = BuildJsonConverter(property.PropertyType);
             return new JsonPropertyConverter<TDeclaringType, TPropertyType>(property, propertyConverter);
         }
 
@@ -76,13 +73,13 @@ public static partial class TypeShapeJsonSerializer
 
         public object? VisitConstructorParameter<TArgumentState, TParameter>(IConstructorParameterShape<TArgumentState, TParameter> parameter, object? state)
         {
-            JsonConverter<TParameter> paramConverter = BuildConverter(parameter.ParameterType);
+            JsonConverter<TParameter> paramConverter = BuildJsonConverter(parameter.ParameterType);
             return new JsonPropertyConverter<TArgumentState, TParameter>(parameter, paramConverter);
         }
 
         public object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableShape, object? state)
         {
-            JsonConverter<TElement> elementConverter = BuildConverter(enumerableShape.ElementType);
+            JsonConverter<TElement> elementConverter = BuildJsonConverter(enumerableShape.ElementType);
 
             if (enumerableShape.Rank > 1)
             {
@@ -116,8 +113,8 @@ public static partial class TypeShapeJsonSerializer
 
         public object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state) where TKey : notnull
         {
-            JsonConverter<TKey> keyConverter = BuildConverter(dictionaryShape.KeyType);
-            JsonConverter<TValue> valueConverter = BuildConverter(dictionaryShape.ValueType);
+            JsonConverter<TKey> keyConverter = BuildJsonConverter(dictionaryShape.KeyType);
+            JsonConverter<TValue> valueConverter = BuildJsonConverter(dictionaryShape.ValueType);
 
             return dictionaryShape.ConstructionStrategy switch
             {
@@ -149,7 +146,7 @@ public static partial class TypeShapeJsonSerializer
 
         public object? VisitNullable<T>(INullableTypeShape<T> nullableShape, object? state) where T : struct
         {
-            JsonConverter<T> elementConverter = BuildConverter(nullableShape.ElementType);
+            JsonConverter<T> elementConverter = BuildJsonConverter(nullableShape.ElementType);
             return new JsonNullableConverter<T>(elementConverter);
         }
 

@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Xml;
 using TypeShape.Abstractions;
 using TypeShape.Examples.XmlSerializer.Converters;
@@ -65,7 +66,7 @@ public static partial class XmlSerializer
     /// <param name="xml">The XML encoding to be deserialized.</param>
     /// <param name="settings">The setting object guiding XML reading.</param>
     /// <returns>The deserialized value.</returns>
-    public static T? Deserialize<T>(this XmlConverter<T> converter, string xml, XmlReaderSettings? settings = null)
+    public static T? Deserialize<T>(this XmlConverter<T> converter, [StringSyntax(StringSyntaxAttribute.Json)] string xml, XmlReaderSettings? settings = null)
     {
         using var sr = new StringReader(xml);
         using var reader = XmlReader.Create(sr, settings ?? s_readerSettings);

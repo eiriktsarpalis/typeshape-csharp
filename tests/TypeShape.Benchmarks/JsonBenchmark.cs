@@ -1,5 +1,5 @@
-﻿using System.Buffers;
-using BenchmarkDotNet.Attributes;
+﻿using BenchmarkDotNet.Attributes;
+using System.Buffers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
@@ -21,8 +21,8 @@ public static class JsonData
     public static readonly JsonTypeInfo<MyPoco> StjSourceGenInfo = StjContext.Default.MyPoco;
     public static readonly JsonTypeInfo<MyPoco> StjSourceGenInfo_fastPath = StjContext_FastPath.Default.MyPoco;
 
-    public static readonly TypeShapeJsonConverter<MyPoco> TypeShapeReflection = TypeShapeJsonSerializer.CreateConverter<MyPoco>(ReflectionTypeShapeProvider.Default);
-    public static readonly TypeShapeJsonConverter<MyPoco> TypeShapeSourceGen = TypeShapeJsonSerializer.CreateConverter<MyPoco>();
+    public static readonly JsonConverter<MyPoco> TypeShapeReflection = JsonSerializerTS.CreateConverter<MyPoco>(ReflectionTypeShapeProvider.Default);
+    public static readonly JsonConverter<MyPoco> TypeShapeSourceGen = JsonSerializerTS.CreateConverter<MyPoco>();
 }
 
 [MemoryDiagnoser]
@@ -61,14 +61,14 @@ public class JsonSerializeBenchmark
     [Benchmark]
     public void Serialize_TypeShapeReflection()
     {
-        JsonData.TypeShapeReflection.Write(_writer, JsonData.Value);
+        JsonData.TypeShapeReflection.Serialize(_writer, JsonData.Value);
         Reset();
     }
 
     [Benchmark]
     public void Serialize_TypeShapeSourceGen()
     {
-        JsonData.TypeShapeSourceGen.Write(_writer, JsonData.Value);
+        JsonData.TypeShapeSourceGen.Serialize(_writer, JsonData.Value);
         Reset();
     }
     

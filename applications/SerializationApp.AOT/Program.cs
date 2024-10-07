@@ -17,9 +17,9 @@ Todos originalValue = new(
 Todos? value = originalValue;
 Console.WriteLine($"Using values:\n{PrettyPrinter.Print(value)}");
 
-string json = TypeShapeJsonSerializer.Serialize(value);
+string json = JsonSerializerTS.Serialize(value, options: new() { Indented = true });
 Console.WriteLine($"JSON encoding:\n{json}");
-value = TypeShapeJsonSerializer.Deserialize<Todos>(json);
+value = JsonSerializerTS.Deserialize<Todos>(json);
 
 var schema = JsonSchemaGenerator.Generate<Todos>();
 Console.WriteLine($"JSON schema:\n{schema.ToJsonString()}");

@@ -26,7 +26,7 @@ public abstract class PrettyPrinterTests(IProviderUnderTest providerUnderTest)
         yield return [TestCase.Create(p, true, "true")];
         yield return [TestCase.Create(p, (int?)null, "null")];
         yield return [TestCase.Create(p, (int?)42, "42")];
-        yield return [TestCase.Create(p, MyEnum.A, "\"A\"")];
+        yield return [TestCase.Create(p, MyEnum.A, "MyEnum.A")];
         yield return [TestCase.Create(p, (int[])[], "[]")];
         yield return [TestCase.Create(p, (int[])[1, 2, 3], "[1, 2, 3]")];
         yield return [TestCase.Create(p, (int[][])[[1, 0, 0], [0, 1, 0], [0, 0, 1]], 

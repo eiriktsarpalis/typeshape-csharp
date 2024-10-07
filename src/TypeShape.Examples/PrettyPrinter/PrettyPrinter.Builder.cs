@@ -178,7 +178,7 @@ public static partial class PrettyPrinter
 
         public override object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumShape, object? state)
         {
-            return new PrettyPrinter<TEnum>((sb, _, e) => sb.Append('"').Append(e).Append('"'));
+            return new PrettyPrinter<TEnum>((sb, _, e) => sb.Append(typeof(TEnum).Name).Append('.').Append(e));
         }
 
         public override object? VisitNullable<T>(INullableTypeShape<T> nullableShape, object? state) where T : struct

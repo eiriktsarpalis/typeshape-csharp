@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using TypeShape.Abstractions;
 
 namespace TypeShape.Examples.JsonSerializer.Converters;
 
@@ -84,7 +85,7 @@ public sealed class RuneConverter : JsonConverter<Rune>
 
 internal sealed class JsonObjectConverter(ITypeShapeProvider shapeProvider) : JsonConverter<object?>
 {
-    private static readonly ConcurrentDictionary<Type, ITypeShapeJsonConverter> _derivedTypes = new();
+    private static readonly ConcurrentDictionary<Type, JsonConverter> _derivedTypes = new();
     public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         return reader.TokenType is JsonTokenType.Null ? null : JsonDocument.ParseValue(ref reader).RootElement;
@@ -98,7 +99,7 @@ internal sealed class JsonObjectConverter(ITypeShapeProvider shapeProvider) : Js
             return;
         }
 
-        ITypeShapeJsonConverter? derivedConverter = GetDerivedConverter(value);
+        JsonConverter? derivedConverter = GetDerivedConverter(value);
         if (derivedConverter is null)
         {
             writer.WriteStartObject();
@@ -106,7 +107,7 @@ internal sealed class JsonObjectConverter(ITypeShapeProvider shapeProvider) : Js
             return;
         }
 
-        derivedConverter.Write(writer, value);
+        derivedConverter.WriteAsObject(writer, value, options);
     }
 
     public override object? ReadAsPropertyName(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -115,7 +116,7 @@ internal sealed class JsonObjectConverter(ITypeShapeProvider shapeProvider) : Js
     public override void WriteAsPropertyName(Utf8JsonWriter writer, object? value, JsonSerializerOptions options)
         => writer.WritePropertyName(value?.ToString() ?? "<null>");
 
-    private ITypeShapeJsonConverter? GetDerivedConverter(object value)
+    private JsonConverter? GetDerivedConverter(object value)
     {
         Type runtimeType = value.GetType();
         if (runtimeType == typeof(object))
@@ -123,6 +124,6 @@ internal sealed class JsonObjectConverter(ITypeShapeProvider shapeProvider) : Js
             return null;
         }
 
-        return _derivedTypes.GetOrAdd(runtimeType, TypeShapeJsonSerializer.CreateConverter, shapeProvider);
+        return _derivedTypes.GetOrAdd(runtimeType, static (t, provider) => JsonSerializerTS.CreateConverter(provider.Resolve(t)), shapeProvider);
     }
 }

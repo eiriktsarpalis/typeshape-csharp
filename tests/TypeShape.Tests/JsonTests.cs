@@ -18,7 +18,7 @@ public abstract class JsonTests(IProviderUnderTest providerUnderTest)
             return;
         }
 
-        TypeShapeJsonConverter<T> converter = GetConverterUnderTest(testCase);
+        JsonConverter<T> converter = GetConverterUnderTest(testCase);
 
         string json = converter.Serialize(testCase.Value);
         Assert.Equal(ToJsonBaseline(testCase.Value), json);
@@ -66,7 +66,7 @@ public abstract class JsonTests(IProviderUnderTest providerUnderTest)
             return;
         }
 
-        TypeShapeJsonConverter<PocoWithGenericProperty<T>> converter = TypeShapeJsonSerializer.CreateConverter(providerUnderTest.UncheckedGetShape<PocoWithGenericProperty<T>>());
+        JsonConverter<PocoWithGenericProperty<T>> converter = JsonSerializerTS.CreateConverter(providerUnderTest.UncheckedGetShape<PocoWithGenericProperty<T>>());
         PocoWithGenericProperty<T> poco = new PocoWithGenericProperty<T> { Value = testCase.Value };
 
         string json = converter.Serialize(poco);
@@ -115,7 +115,7 @@ public abstract class JsonTests(IProviderUnderTest providerUnderTest)
             return;
         }
 
-        var converter = TypeShapeJsonSerializer.CreateConverter(providerUnderTest.UncheckedGetShape<List<T?>>());
+        var converter = JsonSerializerTS.CreateConverter(providerUnderTest.UncheckedGetShape<List<T?>>());
         var list = new List<T?> { testCase.Value, testCase.Value, testCase.Value };
 
         string json = converter.Serialize(list);
@@ -165,7 +165,7 @@ public abstract class JsonTests(IProviderUnderTest providerUnderTest)
             return;
         }
 
-        var converter = TypeShapeJsonSerializer.CreateConverter(providerUnderTest.UncheckedGetShape<Dictionary<string, T?>>());
+        var converter = JsonSerializerTS.CreateConverter(providerUnderTest.UncheckedGetShape<Dictionary<string, T?>>());
         var dict = new Dictionary<string, T?> { ["key1"] = testCase.Value, ["key2"] = testCase.Value, ["key3"] = testCase.Value };
 
         string json = converter.Serialize(dict);
@@ -205,21 +205,21 @@ public abstract class JsonTests(IProviderUnderTest providerUnderTest)
     public void Serialize_NonNullablePropertyWithNullValue_ThrowsJsonException()
     {
         var invalidValue = new NonNullStringRecord(null!);
-        var converter = TypeShapeJsonSerializer.CreateConverter(providerUnderTest.GetShape<NonNullStringRecord>());
+        var converter = JsonSerializerTS.CreateConverter(providerUnderTest.GetShape<NonNullStringRecord>());
         Assert.Throws<JsonException>(() => converter.Serialize(invalidValue));
     }
 
     [Fact]
     public void Deserialize_NonNullablePropertyWithNullJsonValue_ThrowsJsonException()
     {
-        var converter = TypeShapeJsonSerializer.CreateConverter(providerUnderTest.GetShape<NonNullStringRecord>());
+        var converter = JsonSerializerTS.CreateConverter(providerUnderTest.GetShape<NonNullStringRecord>());
         Assert.Throws<JsonException>(() => converter.Deserialize("""{"value":null}"""));
     }
 
     [Fact]
     public void Serialize_NullablePropertyWithNullValue_WorksAsExpected()
     {
-        var converter = TypeShapeJsonSerializer.CreateConverter(providerUnderTest.GetShape<NullableStringRecord>());
+        var converter = JsonSerializerTS.CreateConverter(providerUnderTest.GetShape<NullableStringRecord>());
         var valueWithNull = new NullableStringRecord(null);
         
         string json = converter.Serialize(valueWithNull);
@@ -230,7 +230,7 @@ public abstract class JsonTests(IProviderUnderTest providerUnderTest)
     [Fact]
     public void Serialize_NullablePropertyWithNullJsonValue_WorksAsExpected()
     {
-        var coverter = TypeShapeJsonSerializer.CreateConverter(providerUnderTest.GetShape<NullableStringRecord>());
+        var coverter = JsonSerializerTS.CreateConverter(providerUnderTest.GetShape<NullableStringRecord>());
         
         NullableStringRecord? result = coverter.Deserialize("""{"value":null}""");
 
@@ -328,21 +328,21 @@ public abstract class JsonTests(IProviderUnderTest providerUnderTest)
     public void Roundtrip_DerivedClassWithVirtualProperties()
     {
         const string ExpectedJson = """{"X":42,"Y":"str","Z":42,"W":0}""";
-        var serializer = TypeShapeJsonSerializer.CreateConverter(providerUnderTest.GetShape<DerivedClassWithVirtualProperties>());
+        var converter = JsonSerializerTS.CreateConverter(providerUnderTest.GetShape<DerivedClassWithVirtualProperties>());
 
         var value = new DerivedClassWithVirtualProperties();
-        string json = serializer.Serialize(value);
+        string json = converter.Serialize(value);
         Assert.Equal(ExpectedJson, json);
     }
 
     [Fact]
     public void ClassWithInitOnlyProperties_MissingPayloadPreservesDefaultValues()
     {
-        var serializer = TypeShapeJsonSerializer.CreateConverter(providerUnderTest.GetShape<ClassWithInitOnlyProperties>());
+        var converter = JsonSerializerTS.CreateConverter(providerUnderTest.GetShape<ClassWithInitOnlyProperties>());
         int expectedValue = new ClassWithInitOnlyProperties().Value;
         List<int> expectedValues = new ClassWithInitOnlyProperties().Values;
 
-        ClassWithInitOnlyProperties? result = serializer.Deserialize("{}");
+        ClassWithInitOnlyProperties? result = converter.Deserialize("{}");
         Assert.Equal(expectedValue, result?.Value);
         Assert.Equal(expectedValues, result?.Values);
     }
@@ -352,7 +352,7 @@ public abstract class JsonTests(IProviderUnderTest providerUnderTest)
         public T? Value { get; set; }
     }
 
-    protected static string ToJsonBaseline<T>(T? value) => JsonSerializer.Serialize(value, s_baselineOptions);
+    protected static string ToJsonBaseline<T>(T? value) => System.Text.Json.JsonSerializer.Serialize(value, s_baselineOptions);
     private static readonly JsonSerializerOptions s_baselineOptions = new()
     { 
         IncludeFields = true,
@@ -364,8 +364,8 @@ public abstract class JsonTests(IProviderUnderTest providerUnderTest)
         },
     };
 
-    private TypeShapeJsonConverter<T> GetConverterUnderTest<T>(TestCase<T> testCase) =>
-        TypeShapeJsonSerializer.CreateConverter<T>(testCase.GetShape(providerUnderTest));
+    private JsonConverter<T> GetConverterUnderTest<T>(TestCase<T> testCase) =>
+        JsonSerializerTS.CreateConverter<T>(testCase.GetShape(providerUnderTest));
 
     private protected static bool IsUnsupportedBySTJ<T>(TestCase<T> value) => 
         value.IsMultiDimensionalArray ||

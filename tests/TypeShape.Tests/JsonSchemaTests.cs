@@ -103,7 +103,7 @@ public abstract class JsonSchemaTests(IProviderUnderTest providerUnderTest)
 
         ITypeShape<T> shape = testCase.GetShape(providerUnderTest);
         JsonObject schema = JsonSchemaGenerator.Generate(shape);
-        string json = TypeShapeJsonSerializer.CreateConverter(shape).Serialize(testCase.Value);
+        string json = JsonSerializerTS.CreateConverter(shape).Serialize(testCase.Value);
 
         JsonSchema jsonSchema = JsonSerializer.Deserialize<JsonSchema>(schema)!;
         EvaluationOptions options = new() { OutputFormat = OutputFormat.List };

@@ -37,9 +37,9 @@ using TypeShape.Examples.CborSerializer;
 using TypeShape.Examples.XmlSerializer;
 
 Person person = new("Pete", 70);
-TypeShapeJsonSerializer.Serialize(person);  // {"Name":"Pete","Age":70}
-XmlSerializer.Serialize(person);            // <value><Name>Pete</Name><Age>70</Age></value>
-CborSerializer.EncodeToHex(person);         // A2644E616D656450657465634167651846
+JsonSerializerTS.Serialize(person); // {"Name":"Pete","Age":70}
+XmlSerializer.Serialize(person);    // <value><Name>Pete</Name><Age>70</Age></value>
+CborSerializer.EncodeToHex(person); // A2644E616D656450657465634167651846
 ```
 
 Since the application uses a source generator to produce the shape for `Person`, it is fully compatible with Native AOT. See the [TypeShape providers](https://eiriktsarpalis.github.io/typeshape-csharp/typeshape-providers.html) article for more details on how to use the library with your types.

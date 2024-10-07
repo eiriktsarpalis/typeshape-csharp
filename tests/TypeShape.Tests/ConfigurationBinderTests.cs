@@ -1,5 +1,6 @@
-using System.Text;
 using Microsoft.Extensions.Configuration;
+using System.Text;
+using System.Text.Json.Serialization;
 using TypeShape.Abstractions;
 using TypeShape.Examples.ConfigurationBinder;
 using TypeShape.Examples.JsonSerializer;
@@ -41,7 +42,7 @@ public abstract class ConfigurationBinderTests(IProviderUnderTest providerUnderT
     
     private static IConfiguration CreateConfiguration<T>(TestCase<T> testCase, ITypeShape<T> shape)
     {
-        TypeShapeJsonConverter<T> converter = TypeShapeJsonSerializer.CreateConverter(shape);
+        JsonConverter<T> converter = JsonSerializerTS.CreateConverter(shape);
         string json = converter.Serialize(testCase.Value);
         if (testCase.IsStack)
         {

@@ -1,4 +1,5 @@
-﻿using TypeShape;
+﻿using System.Text.Json.Serialization;
+using TypeShape;
 using TypeShape.Examples.CborSerializer;
 using TypeShape.Examples.JsonSchema;
 using TypeShape.Examples.JsonSerializer;
@@ -11,8 +12,8 @@ using TypeShape.ReflectionProvider;
 // serialization, pretty printing, CBOR encoding and validation programs.
 ITypeShapeProvider shapeProvider = ReflectionTypeShapeProvider.Default;
 
-TypeShapeJsonConverter<Todos> jsonConverter = TypeShapeJsonSerializer.CreateConverter<Todos>(shapeProvider);
 PrettyPrinter<Todos> printer = PrettyPrinter.Create<Todos>(shapeProvider);
+JsonConverter<Todos> jsonConverter = JsonSerializerTS.CreateConverter<Todos>(shapeProvider);
 XmlConverter<Todos> xmlConverter = XmlSerializer.CreateConverter<Todos>(shapeProvider);
 CborConverter<Todos> cborConverter = CborSerializer.CreateConverter<Todos>(shapeProvider);
 IEqualityComparer<Todos> structuralEqualityComparer = StructuralEqualityComparer.Create<Todos>(shapeProvider);
@@ -28,7 +29,7 @@ Todos originalValue = new(
 Todos? value = originalValue;
 Console.WriteLine($"Using values:\n{printer.Print(value)}");
 
-string json = jsonConverter.Serialize(value);
+string json = jsonConverter.Serialize(value, options: new() { Indented = true });
 Console.WriteLine($"JSON encoding:\n{json}");
 value = jsonConverter.Deserialize(json);
 
