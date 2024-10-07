@@ -4,7 +4,7 @@ _layout: landing
 
 # Overview
 
-typeshape-csharp is a port of the [TypeShape](https://github.com/eiriktsarpalis/TypeShape) F# library, adapted to patterns and idioms available in C#.
+`typeshape-csharp` is a practical datatype-generic programming library for .NET types. It is a port of the [TypeShape](https://github.com/eiriktsarpalis/TypeShape) F# library, adapted to patterns and idioms available in C#.
 
 ## Quick Start
 
