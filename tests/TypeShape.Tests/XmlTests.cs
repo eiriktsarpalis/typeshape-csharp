@@ -44,37 +44,37 @@ public abstract class XmlTests(IProviderUnderTest providerUnderTest)
     public static IEnumerable<object?[]> GetValuesAndExpectedEncoding()
     {
         SourceGenProvider p = SourceGenProvider.Default;
-        yield return [TestCase.Create(p, (object?)null, """<root nil="true" />""")];
-        yield return [TestCase.Create(p, false, "<root>false</root>")];
-        yield return [TestCase.Create(p, true, "<root>true</root>")];
-        yield return [TestCase.Create(p, 42, "<root>42</root>")];
-        yield return [TestCase.Create(p, -7001, "<root>-7001</root>")];
-        yield return [TestCase.Create(p, (byte)255, "<root>255</root>")];
-        yield return [TestCase.Create(p, int.MaxValue, "<root>2147483647</root>")];
-        yield return [TestCase.Create(p, int.MinValue, "<root>-2147483648</root>")];
-        yield return [TestCase.Create(p, long.MaxValue, "<root>9223372036854775807</root>")];
-        yield return [TestCase.Create(p, long.MinValue, "<root>-9223372036854775808</root>")];
-        yield return [TestCase.Create(p, Int128.MaxValue, "<root>170141183460469231731687303715884105727</root>")];
-        yield return [TestCase.Create(p, (BigInteger)Int128.MaxValue, "<root>170141183460469231731687303715884105727</root>")];
-        yield return [TestCase.Create(p, (Half)1, "<root>1</root>")];
-        yield return [TestCase.Create(p, (float)0.2, "<root>0.2</root>")];
-        yield return [TestCase.Create(p, decimal.MaxValue, "<root>79228162514264337593543950335</root>")];
-        yield return [TestCase.Create(p, (int[])[1, 2, 3], "<root><element>1</element><element>2</element><element>3</element></root>")];
-        yield return [TestCase.Create(p, (List<int>)[1, 2, 3], "<root><element>1</element><element>2</element><element>3</element></root>")];
-        yield return [TestCase.Create(p, new Dictionary<string, string> { ["key1"] = "value", ["key2"] = "value" }, "<root><entry><key>key1</key><value>value</value></entry><entry><key>key2</key><value>value</value></entry></root>")];
-        yield return [TestCase.Create(p, ImmutableSortedDictionary.CreateRange<string, string>([new("key1", "value"), new("key2", "value")]), "<root><entry><key>key1</key><value>value</value></entry><entry><key>key2</key><value>value</value></entry></root>")];
-        yield return [TestCase.Create(p, (byte[])[1, 2, 3], "<root>AQID</root>")];
-        yield return [TestCase.Create(p, 'c', "<root>c</root>")];
-        yield return [TestCase.Create(p, (string?)null, """<root nil="true" />""")];
-        yield return [TestCase.Create(p, "", "<root></root>")];
-        yield return [TestCase.Create(p, "Hello, World!", "<root>Hello, World!</root>")];
-        yield return [TestCase.Create(p, Guid.Empty, "<root>00000000-0000-0000-0000-000000000000</root>")];
-        yield return [TestCase.Create(p, TimeSpan.MinValue, "<root>-10675199.02:48:05.4775808</root>")];
-        yield return [TestCase.Create(p, DateTimeOffset.MinValue, "<root>0001-01-01T00:00:00Z</root>")];
-        yield return [TestCase.Create(p, DateOnly.MaxValue, "<root>9999-12-31</root>")];
-        yield return [TestCase.Create(p, TimeOnly.MaxValue, "<root>23:59:59.9999999</root>")];
-        yield return [TestCase.Create(new SimpleRecord(value: 42), "<root><value>42</value></root>")];
-        yield return [TestCase.Create(new BaseClass { X = 42 }, "<root><X>42</X></root>")];
+        yield return [TestCase.Create(p, (object?)null, """<value nil="true" />""")];
+        yield return [TestCase.Create(p, false, "<value>false</value>")];
+        yield return [TestCase.Create(p, true, "<value>true</value>")];
+        yield return [TestCase.Create(p, 42, "<value>42</value>")];
+        yield return [TestCase.Create(p, -7001, "<value>-7001</value>")];
+        yield return [TestCase.Create(p, (byte)255, "<value>255</value>")];
+        yield return [TestCase.Create(p, int.MaxValue, "<value>2147483647</value>")];
+        yield return [TestCase.Create(p, int.MinValue, "<value>-2147483648</value>")];
+        yield return [TestCase.Create(p, long.MaxValue, "<value>9223372036854775807</value>")];
+        yield return [TestCase.Create(p, long.MinValue, "<value>-9223372036854775808</value>")];
+        yield return [TestCase.Create(p, Int128.MaxValue, "<value>170141183460469231731687303715884105727</value>")];
+        yield return [TestCase.Create(p, (BigInteger)Int128.MaxValue, "<value>170141183460469231731687303715884105727</value>")];
+        yield return [TestCase.Create(p, (Half)1, "<value>1</value>")];
+        yield return [TestCase.Create(p, (float)0.2, "<value>0.2</value>")];
+        yield return [TestCase.Create(p, decimal.MaxValue, "<value>79228162514264337593543950335</value>")];
+        yield return [TestCase.Create(p, (int[])[1, 2, 3], "<value><element>1</element><element>2</element><element>3</element></value>")];
+        yield return [TestCase.Create(p, (List<int>)[1, 2, 3], "<value><element>1</element><element>2</element><element>3</element></value>")];
+        yield return [TestCase.Create(p, new Dictionary<string, string> { ["key1"] = "value", ["key2"] = "value" }, "<value><entry><key>key1</key><value>value</value></entry><entry><key>key2</key><value>value</value></entry></value>")];
+        yield return [TestCase.Create(p, ImmutableSortedDictionary.CreateRange<string, string>([new("key1", "value"), new("key2", "value")]), "<value><entry><key>key1</key><value>value</value></entry><entry><key>key2</key><value>value</value></entry></value>")];
+        yield return [TestCase.Create(p, (byte[])[1, 2, 3], "<value>AQID</value>")];
+        yield return [TestCase.Create(p, 'c', "<value>c</value>")];
+        yield return [TestCase.Create(p, (string?)null, """<value nil="true" />""")];
+        yield return [TestCase.Create(p, "", "<value></value>")];
+        yield return [TestCase.Create(p, "Hello, World!", "<value>Hello, World!</value>")];
+        yield return [TestCase.Create(p, Guid.Empty, "<value>00000000-0000-0000-0000-000000000000</value>")];
+        yield return [TestCase.Create(p, TimeSpan.MinValue, "<value>-10675199.02:48:05.4775808</value>")];
+        yield return [TestCase.Create(p, DateTimeOffset.MinValue, "<value>0001-01-01T00:00:00Z</value>")];
+        yield return [TestCase.Create(p, DateOnly.MaxValue, "<value>9999-12-31</value>")];
+        yield return [TestCase.Create(p, TimeOnly.MaxValue, "<value>23:59:59.9999999</value>")];
+        yield return [TestCase.Create(new SimpleRecord(value: 42), "<value><value>42</value></value>")];
+        yield return [TestCase.Create(new BaseClass { X = 42 }, "<value><X>42</X></value>")];
     }
 
     [Theory]

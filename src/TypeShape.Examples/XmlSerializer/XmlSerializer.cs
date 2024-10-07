@@ -52,7 +52,7 @@ public static partial class XmlSerializer
     {
         using var sw = new StringWriter();
         using var writer = XmlWriter.Create(sw, settings ?? s_writerSettings);
-        converter.Write(writer, localName: "root", value);
+        converter.Write(writer, localName: "value", value);
         writer.Flush();
         return sw.ToString();
     }
