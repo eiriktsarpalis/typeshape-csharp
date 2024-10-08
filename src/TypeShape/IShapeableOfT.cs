@@ -3,7 +3,7 @@
 namespace TypeShape;
 
 /// <summary>
-/// Defines a static abstract factory providing <see cref="ITypeShape"/> instances for a given type.
+/// Defines a static abstract factory providing a <see cref="ITypeShape{T}"/> instance.
 /// </summary>
 /// <typeparam name="T">The type shape provided by this implementation.</typeparam>
 public interface IShapeable<T>
