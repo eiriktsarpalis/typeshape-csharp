@@ -36,7 +36,7 @@ public sealed partial class Parser : TypeDataModelGenerator
     {
         if (property.GetAttribute(_knownSymbols.PropertyShapeAttribute) is AttributeData propertyAttribute)
         {
-            bool includeProperty = propertyAttribute.TryGetNamedArgument("Ignore", out bool ignoreValue) ? !ignoreValue : true;
+            bool includeProperty = !propertyAttribute.TryGetNamedArgument("Ignore", out bool ignoreValue) || !ignoreValue;
             if (includeProperty)
             {
                 // Use the signature of the base property to determine shape.
@@ -58,7 +58,7 @@ public sealed partial class Parser : TypeDataModelGenerator
     {
         if (field.GetAttribute(_knownSymbols.PropertyShapeAttribute) is AttributeData fieldAttribute)
         {
-            return fieldAttribute.TryGetNamedArgument("Ignore", out bool ignoreValue) ? !ignoreValue : true;
+            return !fieldAttribute.TryGetNamedArgument("Ignore", out bool ignoreValue) || !ignoreValue;
         }
 
         return base.IncludeField(field);

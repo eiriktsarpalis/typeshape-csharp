@@ -12,6 +12,16 @@ using System.Text.Json.Serialization;
 using Microsoft.FSharp.Collections;
 using PolyType.Tests.FSharp;
 
+#pragma warning disable IDE0040 // Accessibility modifiers required
+#pragma warning disable IDE0052 // Make field readonly
+#pragma warning disable IDE0044 // Make field readonly
+#pragma warning disable IDE1006 // Naming rule violation
+#pragma warning disable IDE0300 // Collection initialization can be simplified
+#pragma warning disable IDE0021 // Use block body from constructor
+#pragma warning disable IDE0250 // Struct can be made readonly
+#pragma warning disable IDE0251 // Member can be made readonly
+#pragma warning disable IDE0032 // Use auto property
+
 namespace PolyType.Tests;
 
 /// <summary>
@@ -1433,8 +1443,7 @@ public partial class GenericCollectionWithBuilderAttribute<T> : List<T>
 {
     private GenericCollectionWithBuilderAttribute() { }
 
-    public static GenericCollectionWithBuilderAttribute<T> CreateEmpty()
-        => new GenericCollectionWithBuilderAttribute<T>();
+    public static GenericCollectionWithBuilderAttribute<T> CreateEmpty() => new();
 }
 
 public static class GenericCollectionWithBuilderAttribute
@@ -1560,9 +1569,9 @@ public partial record BaseClassWithShadowingMembers
 public partial record DerivedClassWithShadowingMember : BaseClassWithShadowingMembers
 {
     public new string? PropA { get; init; }
-    public required new int PropB { get; init; }
+    public new required int PropB { get; init; }
     public new int FieldA;
-    public required new string FieldB;
+    public new required string FieldB;
 }
 
 [GenerateShape]
