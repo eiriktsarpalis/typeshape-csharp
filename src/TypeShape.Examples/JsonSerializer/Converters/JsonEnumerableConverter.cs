@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Xml.Linq;
 using TypeShape.Abstractions;
 using TypeShape.Examples.Utilities;
 
@@ -11,6 +12,7 @@ namespace TypeShape.Examples.JsonSerializer.Converters;
 
 internal class JsonEnumerableConverter<TEnumerable, TElement>(JsonConverter<TElement> elementConverter, IEnumerableTypeShape<TEnumerable, TElement> typeShape) : JsonConverter<TEnumerable>
 {
+    private static readonly bool s_isIList = typeof(IList<TElement>).IsAssignableFrom(typeof(TEnumerable));
     private protected readonly JsonConverter<TElement> _elementConverter = elementConverter;
     private readonly Func<TEnumerable, IEnumerable<TElement>> _getEnumerable = typeShape.GetGetEnumerable();
 
@@ -26,16 +28,39 @@ internal class JsonEnumerableConverter<TEnumerable, TElement>(JsonConverter<TEle
             writer.WriteNullValue();
             return;
         }
-        
-        JsonConverter<TElement> elementConverter = _elementConverter;
-        
+
         writer.WriteStartArray();
+
+        if (s_isIList)
+        {
+            WriteElementsAsIList(writer, (IList<TElement>)value, options);
+        }
+        else
+        {
+            WriteElementsAsEnumerable(writer, value, options);
+        }
+
+        writer.WriteEndArray();
+    }
+
+    private void WriteElementsAsIList(Utf8JsonWriter writer, IList<TElement> value, JsonSerializerOptions options)
+    {
+        JsonConverter<TElement> elementConverter = _elementConverter;
+        int count = value.Count;
+
+        for (int i = 0; i < count; i++)
+        {
+            elementConverter.Write(writer, value[i], options);
+        }
+    }
+
+    private void WriteElementsAsEnumerable(Utf8JsonWriter writer, TEnumerable value, JsonSerializerOptions options)
+    {
+        JsonConverter<TElement> elementConverter = _elementConverter;
         foreach (TElement element in _getEnumerable(value))
         {
             elementConverter.Write(writer, element, options);
         }
-
-        writer.WriteEndArray();
     }
 }
 

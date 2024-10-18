@@ -181,7 +181,7 @@ public static class Cloner
 
         public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableShape, object? _)
         {
-            var elementCloner = BuildCloner<TElement>(enumerableShape.ElementType);
+            var elementCloner = BuildCloner(enumerableShape.ElementType);
             Func<TEnumerable, IEnumerable<TElement>> getEnumerable = enumerableShape.GetGetEnumerable();
             switch (enumerableShape.ConstructionStrategy)
             {
@@ -241,8 +241,8 @@ public static class Cloner
 
         public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? _)
         {
-            var keyCloner = BuildCloner<TKey>(dictionaryShape.KeyType);
-            var valueCloner = BuildCloner<TValue>(dictionaryShape.ValueType);
+            var keyCloner = BuildCloner(dictionaryShape.KeyType);
+            var valueCloner = BuildCloner(dictionaryShape.ValueType);
             var getDictionary = dictionaryShape.GetGetDictionary();
             switch (dictionaryShape.ConstructionStrategy)
             {
@@ -309,7 +309,7 @@ public static class Cloner
 
         public override object? VisitNullable<T>(INullableTypeShape<T> nullableShape, object? _)
         {
-            var elementCloner = BuildCloner<T>(nullableShape.ElementType);
+            var elementCloner = BuildCloner(nullableShape.ElementType);
             return new Func<T?, T?>(t => t.HasValue ? elementCloner(t.Value) : null);
         }
         

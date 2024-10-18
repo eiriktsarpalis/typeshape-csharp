@@ -9,6 +9,7 @@ namespace TypeShape.Examples.JsonSerializer.Converters;
 internal class JsonDictionaryConverter<TDictionary, TKey, TValue>(JsonConverter<TKey> keyConverter, JsonConverter<TValue> valueConverter, IDictionaryShape<TDictionary, TKey, TValue> shape) : JsonConverter<TDictionary>
     where TKey : notnull
 {
+    private static readonly bool s_isDictionary = typeof(Dictionary<TKey, TValue>).IsAssignableFrom(typeof(TDictionary));
     private protected readonly JsonConverter<TKey> _keyConverter = keyConverter;
     private protected readonly JsonConverter<TValue> _valueConverter = valueConverter;
     private readonly Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> _getDictionary = shape.GetGetDictionary();
@@ -26,17 +27,42 @@ internal class JsonDictionaryConverter<TDictionary, TKey, TValue>(JsonConverter<
             return;
         }
         
+        writer.WriteStartObject();
+        
+        if (s_isDictionary)
+        {
+            WriteEntriesAsDictionary(writer, (Dictionary<TKey, TValue>)(object)value, options);
+        }
+        else
+        {
+            WriteEntriesAsReadOnlyDictionary(writer, value, options);
+        }
+
+        writer.WriteEndObject();
+    }
+
+    private void WriteEntriesAsDictionary(Utf8JsonWriter writer, Dictionary<TKey, TValue> value, JsonSerializerOptions options)
+    {
         JsonConverter<TKey> keyConverter = _keyConverter;
         JsonConverter<TValue> valueConverter = _valueConverter;
-        
-        writer.WriteStartObject();
+
+        foreach (KeyValuePair<TKey, TValue> entry in value)
+        {
+            keyConverter.WriteAsPropertyName(writer, entry.Key, options);
+            valueConverter.Write(writer, entry.Value, options);
+        }
+    }
+
+    private void WriteEntriesAsReadOnlyDictionary(Utf8JsonWriter writer, TDictionary value, JsonSerializerOptions options)
+    {
+        JsonConverter<TKey> keyConverter = _keyConverter;
+        JsonConverter<TValue> valueConverter = _valueConverter;
+
         foreach (KeyValuePair<TKey, TValue> entry in _getDictionary(value))
         {
             keyConverter.WriteAsPropertyName(writer, entry.Key, options);
             valueConverter.Write(writer, entry.Value, options);
         }
-
-        writer.WriteEndObject();
     }
 }
 
