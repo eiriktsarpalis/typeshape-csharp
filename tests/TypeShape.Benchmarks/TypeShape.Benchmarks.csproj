@@ -4,11 +4,11 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-	<Nullable>enable</Nullable>
-	<WarningsAsErrors>Nullable</WarningsAsErrors>
-	<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-	<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-	<ServerGarbageCollection>true</ServerGarbageCollection>
+	  <Nullable>enable</Nullable>
+	  <WarningsAsErrors>Nullable</WarningsAsErrors>
+	  <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+	  <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+	  <ServerGarbageCollection>true</ServerGarbageCollection>
   </PropertyGroup>
 
   <ItemGroup>
