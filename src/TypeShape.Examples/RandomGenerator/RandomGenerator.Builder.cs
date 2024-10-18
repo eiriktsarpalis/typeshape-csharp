@@ -4,6 +4,7 @@ using System.Net;
 using System.Numerics;
 using System.Text;
 using TypeShape.Abstractions;
+using TypeShape.Examples.Utilities;
 
 namespace TypeShape.Examples.RandomGenerator;
 

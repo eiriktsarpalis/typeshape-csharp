@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using TypeShape.Abstractions;
+using TypeShape.Examples.Utilities;
 
 namespace TypeShape.Examples.ObjectMapper;
 

@@ -1,4 +1,5 @@
 ﻿using System.Xml;
+using TypeShape.Examples.Utilities;
 
 namespace TypeShape.Examples.XmlSerializer.Converters;
 

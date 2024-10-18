@@ -1,4 +1,5 @@
 ﻿using System.Formats.Cbor;
+using TypeShape.Examples.Utilities;
 
 namespace TypeShape.Examples.CborSerializer.Converters;
 

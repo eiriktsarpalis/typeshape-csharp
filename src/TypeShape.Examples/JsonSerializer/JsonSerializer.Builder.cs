@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using TypeShape.Abstractions;
 using TypeShape.Examples.JsonSerializer.Converters;
+using TypeShape.Examples.Utilities;
 
 namespace TypeShape.Examples.JsonSerializer;
 

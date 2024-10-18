@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using System.Globalization;
 using System.Numerics;
 using TypeShape.Abstractions;
+using TypeShape.Examples.Utilities;
 
 namespace TypeShape.Examples.ConfigurationBinder;
 

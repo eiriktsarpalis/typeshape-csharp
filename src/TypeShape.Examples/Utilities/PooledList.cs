@@ -1,7 +1,7 @@
 ﻿using System.Buffers;
 using System.Runtime.InteropServices;
 
-namespace TypeShape.Examples;
+namespace TypeShape.Examples.Utilities;
 
 /// <summary>
 /// A simple <see cref="List{T}"/> like implementation that uses pooled arrays.

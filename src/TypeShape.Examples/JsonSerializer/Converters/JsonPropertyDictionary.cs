@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using TypeShape.Examples.Utilities;
 
 namespace TypeShape.Examples.JsonSerializer.Converters;
 

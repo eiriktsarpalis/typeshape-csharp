@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using TypeShape.Examples.Utilities;
 
 namespace TypeShape.Examples.StructuralEquality.Comparers;
 

@@ -1,6 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using TypeShape.Abstractions;
 using TypeShape.Examples.StructuralEquality.Comparers;
+using TypeShape.Examples.Utilities;
 
 namespace TypeShape.Examples.StructuralEquality;
 

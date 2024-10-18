@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using TypeShape.Abstractions;
+using TypeShape.Examples.Utilities;
 
 namespace TypeShape.Examples.Validation;
 

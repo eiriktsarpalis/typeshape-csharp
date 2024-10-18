@@ -1,4 +1,5 @@
 ﻿using TypeShape.Abstractions;
+using TypeShape.Examples.Utilities;
 
 namespace TypeShape.Examples.Counter;
 

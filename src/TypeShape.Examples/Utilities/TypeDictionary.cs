@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using TypeShape.Abstractions;
 
-namespace TypeShape.Examples;
+namespace TypeShape.Examples.Utilities;
 
 /// <summary>
 /// Defines a dictionary that can be used to store values keyed on <see cref="Type"/>.

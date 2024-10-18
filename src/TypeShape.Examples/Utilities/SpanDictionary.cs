@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace TypeShape.Examples;
+namespace TypeShape.Examples.Utilities;
 
 /// <summary>
 /// Read-only HashTable allowing lookup of ReadOnlySpan keys.

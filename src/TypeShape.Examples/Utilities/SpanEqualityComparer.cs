@@ -1,4 +1,4 @@
-﻿namespace TypeShape.Examples;
+﻿namespace TypeShape.Examples.Utilities;
 
 /// <summary>Defines a span-based equality comparer.</summary>
 public interface ISpanEqualityComparer<T>

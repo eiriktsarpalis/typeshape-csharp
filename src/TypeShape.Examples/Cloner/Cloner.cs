@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using TypeShape.Abstractions;
+using TypeShape.Examples.Utilities;
 
 namespace TypeShape.Examples.Cloner;
 
