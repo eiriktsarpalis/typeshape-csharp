@@ -7,7 +7,7 @@ using TypeShape.Abstractions;
 namespace TypeShape.Examples.JsonSchema;
 
 /// <summary>
-/// A JSON schema generator for .NET types inspired by https://github.com/eiriktsarpalis/stj-schema-exporter
+/// A JSON schema generator for .NET types inspired by https://github.com/eiriktsarpalis/stj-schema-mapper
 /// </summary>
 public static class JsonSchemaGenerator
 {
