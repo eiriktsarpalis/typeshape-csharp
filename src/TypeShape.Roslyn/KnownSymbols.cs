@@ -26,6 +26,18 @@ public class KnownSymbols(Compilation compilation)
     private Option<INamedTypeSymbol?> _MemberInfoType;
 
     /// <summary>
+    /// The type symbol for <see cref="System.Exception"/>.
+    /// </summary>
+    public INamedTypeSymbol? ExceptionType => GetOrResolveType("System.Exception", ref _ExceptionType);
+    private Option<INamedTypeSymbol?> _ExceptionType;
+
+    /// <summary>
+    /// The type symbol for <see cref="System.Threading.Tasks.Task"/>.
+    /// </summary>
+    public INamedTypeSymbol? TaskType => GetOrResolveType("System.Threading.Tasks.Task", ref _TaskType);
+    private Option<INamedTypeSymbol?> _TaskType;
+
+    /// <summary>
     /// The type symbol for <see cref="IReadOnlyDictionary{TKey, TValue}"/>.
     /// </summary>
     public INamedTypeSymbol? IReadOnlyDictionaryOfTKeyTValue => GetOrResolveType("System.Collections.Generic.IReadOnlyDictionary`2", ref _IReadOnlyDictionaryOfTKeyTValue);

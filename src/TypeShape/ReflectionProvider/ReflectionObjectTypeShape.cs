@@ -343,6 +343,8 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
             type == typeof(System.Text.Rune) ||
             type == typeof(System.Numerics.BigInteger) ||
             typeof(MemberInfo).IsAssignableFrom(type) ||
-            typeof(Delegate).IsAssignableFrom(type);
+            typeof(Delegate).IsAssignableFrom(type) ||
+            typeof(Exception).IsAssignableFrom(type) ||
+            typeof(Task).IsAssignableFrom(type);
     }
 }

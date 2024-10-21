@@ -213,12 +213,11 @@ public partial class TypeDataModelGenerator
     /// Determines if the specified symbol is supported for data model generation.
     /// </summary>
     /// <remarks>
-    /// By default, unsupported types are void, pointers, delegates,
-    /// and generic type definitions.
+    /// By default, unsupported types are void, pointers, and generic type definitions.
     /// </remarks>
     protected virtual bool IsSupportedType(ITypeSymbol type)
     {
-        return type.TypeKind is not (TypeKind.Pointer or TypeKind.Error or TypeKind.Delegate) &&
+        return type.TypeKind is not (TypeKind.Pointer or TypeKind.Error) &&
           type.SpecialType is not SpecialType.System_Void && !type.ContainsGenericParameters();
     }
 }

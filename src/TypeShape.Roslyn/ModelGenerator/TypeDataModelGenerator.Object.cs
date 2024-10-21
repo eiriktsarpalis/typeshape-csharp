@@ -19,8 +19,10 @@ public partial class TypeDataModelGenerator
         return
             type.TypeKind is not (TypeKind.Class or TypeKind.Struct or TypeKind.Interface) ||
             KnownSymbols.IsSimpleType(type) ||
-            type.SpecialType is SpecialType.System_Object or SpecialType.System_Nullable_T ||
-            KnownSymbols.MemberInfoType.IsAssignableFrom(type);
+            type.SpecialType is SpecialType.System_Object or SpecialType.System_Nullable_T or SpecialType.System_Delegate or SpecialType.System_MulticastDelegate ||
+            KnownSymbols.MemberInfoType.IsAssignableFrom(type) ||
+            KnownSymbols.ExceptionType.IsAssignableFrom(type) ||
+            KnownSymbols.TaskType.IsAssignableFrom(type);
     }
 
     /// <summary>

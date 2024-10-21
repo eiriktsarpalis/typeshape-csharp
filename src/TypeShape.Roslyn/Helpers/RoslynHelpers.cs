@@ -114,68 +114,6 @@ internal static class RoslynHelpers
         => typeSymbol is INamedTypeSymbol { IsGenericType: true } namedTy && 
            SymbolEqualityComparer.Default.Equals(namedTy.OriginalDefinition, typeSymbol);
 
-    public static string GetGeneratedPropertyName(this ITypeSymbol typeSymbol)
-    {
-        switch (typeSymbol)
-        { 
-            case IArrayTypeSymbol arrayTypeSymbol:
-                int rank = arrayTypeSymbol.Rank;
-                string suffix = rank == 1 ? "_Array" : $"_Array{rank}D"; // Array, Array2D, Array3D, ...
-                return arrayTypeSymbol.ElementType.GetGeneratedPropertyName() + suffix;
-
-            case INamedTypeSymbol namedType when namedType.IsTupleType:
-                {
-                    StringBuilder sb = new();
-
-                    sb.Append(namedType.Name);
-
-                    foreach (IFieldSymbol element in namedType.TupleElements)
-                    {
-                        sb.Append('_');
-                        sb.Append(element.Type.GetGeneratedPropertyName());
-                    }
-
-                    return sb.ToString();
-                }
-
-            case INamedTypeSymbol namedType:
-                {
-                    if (namedType.TypeArguments.Length == 0 && namedType.ContainingType is null)
-                    {
-                        return namedType.Name;
-                    }
-
-                    StringBuilder sb = new();
-
-                    PrependContainingTypes(namedType);
-
-                    sb.Append(namedType.Name);
-
-                    foreach (ITypeSymbol argument in namedType.TypeArguments)
-                    {
-                        sb.Append('_');
-                        sb.Append(argument.GetGeneratedPropertyName());
-                    }
-
-                    return sb.ToString();
-
-                    void PrependContainingTypes(INamedTypeSymbol namedType)
-                    {
-                        if (namedType.ContainingType is { } parent)
-                        {
-                            PrependContainingTypes(parent);
-                            sb.Append(parent.GetGeneratedPropertyName());
-                            sb.Append('_');
-                        }
-                    }
-                }
-
-            default:
-                Debug.Fail($"Type {typeSymbol} not supported");
-                return null!;
-        }
-    }
-
     public static bool ContainsGenericParameters(this ITypeSymbol typeSymbol)
     {
         if (typeSymbol.TypeKind is TypeKind.TypeParameter or TypeKind.Error)

@@ -464,6 +464,7 @@ public static class TestTypes
         yield return TestCase.Create(ClassWithRefConstructorParameter.Create(), hasRefConstructorParameters: true);
         yield return TestCase.Create(new ClassWithOutConstructorParameter(out _), hasRefConstructorParameters: true, hasOutConstructorParameters: true);
         yield return TestCase.Create(ClassWithMultipleRefConstructorParameters.Create(), hasRefConstructorParameters: true);
+        yield return TestCase.Create(new ClassWithUnsupportedPropertyTypes());
 
         // F# types
         yield return TestCase.Create(p, new FSharpRecord(42, "str", true));
@@ -1657,6 +1658,17 @@ public partial class ClassWithMultipleRefConstructorParameters
         DateTime dateValue = DateTime.MaxValue;
         return new ClassWithMultipleRefConstructorParameters(ref intValue, in boolValue, ref dateValue);
     }
+}
+
+[GenerateShape]
+public partial class ClassWithUnsupportedPropertyTypes
+{
+    public Exception? Exception { get; }
+    public Func<int, int>? Delegate { get; }
+    public Type? Type { get; }
+    public Task<int>? Task { get; }
+    [JsonIgnore]
+    public ReadOnlySpan<char> Span => "str";
 }
 
 [GenerateShape<object>]
