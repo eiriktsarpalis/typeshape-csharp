@@ -22,8 +22,8 @@ public partial class MsgPackSerializerTests(ITestOutputHelper logger)
         where T : IShapeable<T>
     {
         Sequence<byte> writer = new();
-        MsgPackSerializer.Serialize(writer, value);
+        MsgPackSerializer.Serialize(writer, value, MessagePackSerializerOptions.Standard);
         logger.WriteLine(MessagePackSerializer.ConvertToJson(writer));
-        return MsgPackSerializer.Deserialize<T>(writer);
+        return MsgPackSerializer.Deserialize<T>(writer, MessagePackSerializerOptions.Standard);
     }
 }

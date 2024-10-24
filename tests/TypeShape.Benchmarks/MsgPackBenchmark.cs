@@ -35,6 +35,13 @@ public class MsgPackSerializationBenchmark
         sequence.Reset();
     }
 
+    [Benchmark]
+    public void Serialize_TypeShape_Formatter()
+    {
+        MsgPackSerializer.Serialize(sequence, MsgPackData.Alice, MessagePackSerializerOptions.Standard);
+        sequence.Reset();
+    }
+
     [Benchmark(Baseline = true)]
     public void Serialize_Library()
     {
@@ -52,6 +59,12 @@ public class MsgPackDeserializationBenchmark
     public void Deserialize_TypeShape()
     {
         MsgPackSerializer.Deserialize<MsgPackData.Person>(MsgPackData.AliceMsgPack);
+    }
+
+    [Benchmark]
+    public void Deserialize_TypeShape_Formatter()
+    {
+        MsgPackSerializer.Deserialize<MsgPackData.Person>(MsgPackData.AliceMsgPack, MessagePackSerializerOptions.Standard);
     }
 
     [Benchmark(Baseline = true)]
