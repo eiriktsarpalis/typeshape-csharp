@@ -20,7 +20,7 @@ public class TypeDictionary : IDictionary<Type, object?>
     // In such cases the value is either null or an instance of IResultBox representing a delayed value.
     // These values are only surfaced in lookup calls where a delayedValueFactory parameter is specified.
     private readonly Dictionary<Type, (object? Value, bool IsCompleted)> _dict = new();
-    private DelayedCollection<Type>? _keyColection;
+    private DelayedCollection<Type>? _keyCollection;
     private DelayedCollection<object?>? _valueCollection;
 
     /// <summary>
@@ -182,7 +182,7 @@ public class TypeDictionary : IDictionary<Type, object?>
     void ICollection<KeyValuePair<Type, object?>>.Add(KeyValuePair<Type, object?> item) => Add(item.Key, item.Value);
     bool ICollection<KeyValuePair<Type, object?>>.Contains(KeyValuePair<Type, object?> item) => _dict.Contains(new(item.Key, (item.Value, IsCompleted: true)));
     bool ICollection<KeyValuePair<Type, object?>>.Remove(KeyValuePair<Type, object?> item) => ((ICollection<KeyValuePair<Type, (object?, bool)>>)_dict).Remove(new(item.Key, (item.Value, true)));
-    ICollection<Type> IDictionary<Type, object?>.Keys => _keyColection ??= new(_dict.Where(e => e.Value.IsCompleted).Select(e => e.Key));
+    ICollection<Type> IDictionary<Type, object?>.Keys => _keyCollection ??= new(_dict.Where(e => e.Value.IsCompleted).Select(e => e.Key));
     ICollection<object?> IDictionary<Type, object?>.Values => _valueCollection ??= new(_dict.Where(e => e.Value.IsCompleted).Select(e => e.Value.Value));
     void ICollection<KeyValuePair<Type, object?>>.CopyTo(KeyValuePair<Type, object?>[] array, int arrayIndex)
     {

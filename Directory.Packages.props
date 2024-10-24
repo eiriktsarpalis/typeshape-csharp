@@ -7,11 +7,11 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Source Generator dependencies -->
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" PrivateAssets="all" Pack="false" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
     <!-- Build Infra & Packaging -->
     <PackageVersion Include="PolySharp" Version="1.14.1" />
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
     <PackageVersion Include="MinVer" Version="6.0.0" />
     <PackageVersion Include="NuGetizer" Version="1.2.3" />
     <PackageVersion Include="StyleCop.Analyzers" Version="1.1.118" />
