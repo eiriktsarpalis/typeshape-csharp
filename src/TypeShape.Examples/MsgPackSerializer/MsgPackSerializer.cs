@@ -1,7 +1,7 @@
-using System.Buffers;
-using System.Collections.Immutable;
-using System.ComponentModel.Design.Serialization;
 using MessagePack;
+using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using TypeShape.Abstractions;
 using TypeShape.Examples.Utilities;
 
@@ -74,12 +74,13 @@ public static class MsgPackSerializer
 
         public override object? VisitObject<T>(IObjectTypeShape<T> objectShape, object? state = null)
         {
-            Dictionary<string, Writer<T>> properties = new();
+            Dictionary<ReadOnlyMemory<byte>, Writer<T>> properties = new();
             foreach (IPropertyShape property in objectShape.GetProperties())
             {
                 if (property.HasGetter/* && property.HasSetter*/)
                 {
-                    properties[property.Name] = (Writer<T>)property.Accept(this, state)!;
+                    byte[] propertyNameBytes = MessagePackSerializer.Serialize(property.Name, MessagePackSerializerOptions.Standard);
+                    properties[propertyNameBytes] = (Writer<T>)property.Accept(this, state)!;
                 }
             }
 
@@ -95,7 +96,7 @@ public static class MsgPackSerializer
 
                 foreach (var property in properties)
                 {
-                    writer.Write(property.Key);
+                    writer.WriteRaw(property.Key.Span);
                     property.Value(ref writer, value);
                 }
             });
@@ -145,12 +146,12 @@ public static class MsgPackSerializer
 
         public override object? VisitObject<T>(IObjectTypeShape<T> objectShape, object? state = null)
         {
-            Dictionary<string, PropertySetter<T>> properties = new();
+            Dictionary<ReadOnlyMemory<byte>, PropertySetter<T>> properties = new();
             foreach (IPropertyShape property in objectShape.GetProperties())
             {
                 if (property.HasSetter)
                 {
-                    properties[property.Name] = (PropertySetter<T>)property.Accept(this, state)!;
+                    properties.Add(Encoding.UTF8.GetBytes(property.Name), (PropertySetter<T>)property.Accept(this, state)!);
                 }
             }
 
@@ -172,13 +173,13 @@ public static class MsgPackSerializer
 
                 for (int i = 0; i < count; i++)
                 {
-                    string? propertyName = reader.ReadString();
-                    if (propertyName is null)
+                    ReadOnlySequence<byte>? stringKey = reader.ReadStringSequence();
+                    if (stringKey is not { IsSingleSegment: true })
                     {
                         throw new MessagePackSerializationException();
                     }
 
-                    if (properties.TryGetValue(propertyName, out var setter))
+                    if (properties.TryGetValue(stringKey.Value.First, out PropertySetter<T>? setter))
                     {
                         setter(ref reader, ref result);
                     }
@@ -217,6 +218,68 @@ public static class MsgPackSerializer
         public override object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructorShape<TDeclaringType, TArgumentState> constructorShape, object? state = null)
         {
             return constructorShape.GetDefaultConstructor();
+        }
+    }
+
+    private sealed class Utf8KeyedDictionary<TValue>
+    {
+        private readonly List<List<(ulong Key, TValue Value)>> items = new();
+
+        internal void Add(string key, TValue value)
+        {
+            ReadOnlySpan<byte> keyBytes = Encoding.UTF8.GetBytes(key).AsSpan();
+            int length = keyBytes.Length;
+            ulong ordinalKey = global::MessagePack.Internal.AutomataKeyGen.GetKey(ref keyBytes);
+            while (this.items.Count < length)
+            {
+                this.items.Add(new());
+            }
+
+            this.items[length - 1].Add((ordinalKey, value));
+        }
+
+        internal bool TryGetValue(ReadOnlySpan<byte> key, [MaybeNullWhen(false)] out TValue value)
+        {
+            int length = key.Length;
+            ulong ordinalKey = global::MessagePack.Internal.AutomataKeyGen.GetKey(ref key);
+            if (length <= this.items.Count)
+            {
+                foreach (var item in this.items[length - 1])
+                {
+                    if (item.Key == ordinalKey)
+                    {
+                        value = item.Value;
+                        return true;
+                    }
+                }
+            }
+
+            value = default;
+            return false;
+        }
+    }
+
+    private sealed class ReadOnlyMemoryEqualityComparer : IEqualityComparer<ReadOnlyMemory<byte>>
+    {
+        internal static readonly ReadOnlyMemoryEqualityComparer Instance = new();
+
+        private ReadOnlyMemoryEqualityComparer() { }
+
+        public bool Equals(ReadOnlyMemory<byte> x, ReadOnlyMemory<byte> y)
+        {
+            if (x.Length != y.Length)
+            {
+                return false;
+            }
+
+            return x.Span.SequenceEqual(y.Span);
+        }
+
+        public int GetHashCode([DisallowNull] ReadOnlyMemory<byte> obj)
+        {
+            HashCode hashCode = new();
+            hashCode.AddBytes(obj.Span);
+            return hashCode.ToHashCode();
         }
     }
 }
