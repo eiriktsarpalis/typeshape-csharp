@@ -522,7 +522,7 @@ public readonly struct StructDictionary<TKey, TValue> : IDictionary<TKey, TValue
     public void Clear() => _dictionary.Clear();
     public bool Contains(KeyValuePair<TKey, TValue> item) => _dictionary.Contains(item);
     public bool ContainsKey(TKey key) => _dictionary.ContainsKey(key);
-    public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex) => ((IDictionary<TKey,TValue>)_dictionary).CopyTo(array, arrayIndex);
+    public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex) => ((IDictionary<TKey, TValue>)_dictionary).CopyTo(array, arrayIndex);
     public bool Remove(TKey key) => _dictionary.Remove(key);
     public bool Remove(KeyValuePair<TKey, TValue> item) => ((IDictionary<TKey, TValue>)_dictionary).Remove(item);
     public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value) => _dictionary.TryGetValue(key, out value);
@@ -588,15 +588,19 @@ public partial struct StructWithDefaultCtor
 }
 
 [GenerateShape]
-public partial class BaseClass
+public partial class BaseClass : IEquatable<BaseClass>
 {
     public int X { get; set; }
+
+    public bool Equals(BaseClass? other) => other is not null && X == other.X;
 }
 
 [GenerateShape]
-public partial class DerivedClass : BaseClass
+public partial class DerivedClass : BaseClass, IEquatable<DerivedClass>
 {
     public int Y { get; set; }
+
+    public bool Equals(DerivedClass? other) => base.Equals(other) && Y == other.Y;
 }
 
 [GenerateShape]

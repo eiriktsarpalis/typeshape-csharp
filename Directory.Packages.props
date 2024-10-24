@@ -7,8 +7,10 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Source Generator dependencies -->
+    <PackageVersion Include="MessagePack" Version="2.5.187" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
+    <PackageVersion Include="Nerdbank.Streams" Version="2.11.79" />
     <!-- Build Infra & Packaging -->
     <PackageVersion Include="PolySharp" Version="1.14.1" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />

@@ -4,6 +4,7 @@ Includes a set of reference library implementations built on top of the TypeShap
 
 * A serializer built on top of System.Text.Json,
 * A serializer built on top of System.Xml,
+* A serializer built on top of MessagePack,
 * A serializer built on top of System.Formats.Cbor,
 * A `ConfigurationBinder` like implementation,
 * A simple pretty-printer for .NET values,
