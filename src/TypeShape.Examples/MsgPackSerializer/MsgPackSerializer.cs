@@ -146,14 +146,12 @@ public static class MsgPackSerializer
 
         public override object? VisitObject<T>(IObjectTypeShape<T> objectShape, object? state = null)
         {
-            Dictionary<ReadOnlyMemory<byte>, PropertySetter<T>> properties = new();
-            foreach (IPropertyShape property in objectShape.GetProperties())
-            {
-                if (property.HasSetter)
-                {
-                    properties.Add(Encoding.UTF8.GetBytes(property.Name), (PropertySetter<T>)property.Accept(this, state)!);
-                }
-            }
+            SpanDictionary<byte, PropertySetter<T>> properties = objectShape.GetProperties()
+                .Where(p => p.HasSetter)
+                .ToSpanDictionary(
+                    p => Encoding.UTF8.GetBytes(p.Name), 
+                    p => (PropertySetter<T>)p.Accept(this, state)!,
+                    ByteSpanEqualityComparer.Ordinal);
 
             Func<T>? factory = (Func<T>?)objectShape.GetConstructor()?.Accept(this, state);
             if (factory is null)
@@ -173,13 +171,12 @@ public static class MsgPackSerializer
 
                 for (int i = 0; i < count; i++)
                 {
-                    ReadOnlySequence<byte>? stringKey = reader.ReadStringSequence();
-                    if (stringKey is not { IsSingleSegment: true })
+                    if (!reader.TryReadStringSpan(out ReadOnlySpan<byte> stringKey))
                     {
-                        throw new MessagePackSerializationException();
+                        throw new MessagePackSerializationException("do what AOT formatters do.");
                     }
 
-                    if (properties.TryGetValue(stringKey.Value.First, out PropertySetter<T>? setter))
+                    if (properties.TryGetValue(stringKey, out PropertySetter<T>? setter))
                     {
                         setter(ref reader, ref result);
                     }
