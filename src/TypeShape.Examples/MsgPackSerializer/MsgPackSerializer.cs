@@ -50,27 +50,23 @@ public static class MsgPackSerializer
 
         private static Reader<T?>? deserializer;
 
-        internal static Writer<T?> Serializer => serializer ??= SerializeVisitor.GetWriter(T.GetShape());
+        internal static Writer<T?> Serializer => serializer ??= (new SerializeVisitor()).GetWriter(T.GetShape());
 
-        internal static Reader<T?> Deserializer => deserializer ??= DeserializeVisitor.GetReader(T.GetShape());
+        internal static Reader<T?> Deserializer => deserializer ??= (new DeserializeVisitor()).GetReader(T.GetShape());
     }
 
     private sealed class SerializeVisitor : TypeShapeVisitor
     {
-        internal static readonly SerializeVisitor Instance = new();
-
-        private static readonly TypeDictionary formatters = new()
+        private readonly TypeDictionary formatters = new()
         {
             { typeof(string), new Writer<string>((ref MessagePackWriter writer, string value) => writer.Write(value)) },
             { typeof(int), new Writer<int>((ref MessagePackWriter writer, int value) => writer.Write(value)) }
         };
 
-        internal static Writer<T?> GetWriter<T>(ITypeShape<T> typeShape)
+        internal Writer<T?> GetWriter<T>(ITypeShape<T> typeShape)
         {
-            return formatters.GetOrAdd<Writer<T?>>(typeShape, Instance, box => (ref MessagePackWriter writer, T? value) => box.Result(ref writer, value));
+            return this.formatters.GetOrAdd<Writer<T?>>(typeShape, this, box => (ref MessagePackWriter writer, T? value) => box.Result(ref writer, value));
         }
-
-        private SerializeVisitor() { }
 
         public override object? VisitObject<T>(IObjectTypeShape<T> objectShape, object? state = null)
         {
@@ -115,20 +111,16 @@ public static class MsgPackSerializer
 
     private sealed class DeserializeVisitor : TypeShapeVisitor
     {
-        internal static readonly DeserializeVisitor Instance = new();
-
-        private static readonly TypeDictionary formatters = new()
+        private readonly TypeDictionary formatters = new()
         {
             { typeof(string), new Reader<string>((ref MessagePackReader reader) => reader.ReadString()) },
             { typeof(int), new Reader<int>((ref MessagePackReader reader) => reader.ReadInt32()) },
         };
 
-        internal static Reader<T?> GetReader<T>(ITypeShape<T> typeShape)
+        internal Reader<T?> GetReader<T>(ITypeShape<T> typeShape)
         {
-            return formatters.GetOrAdd<Reader<T?>>(typeShape, Instance, box => (ref MessagePackReader reader) => box.Result(ref reader));
+            return formatters.GetOrAdd<Reader<T?>>(typeShape, this, box => (ref MessagePackReader reader) => box.Result(ref reader));
         }
-
-        private DeserializeVisitor() { }
 
         private delegate void PropertySetter<T>(ref MessagePackReader reader, ref T container);
 
