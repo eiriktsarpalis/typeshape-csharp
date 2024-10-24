@@ -108,23 +108,8 @@ public static class MsgPackSerializer
         public override object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> propertyShape, object? state = null)
         {
             var getter = propertyShape.GetGetter();
-
-            switch (propertyShape.PropertyType.Kind)
-            {
-                case TypeShapeKind.Object:
-                    var formatter = GetWriter(propertyShape.PropertyType);
-                    return new Writer<TDeclaringType>((ref MessagePackWriter writer, TDeclaringType container) => formatter(ref writer, getter(ref container)));
-                case TypeShapeKind.Enum:
-                    throw new NotImplementedException();
-                case TypeShapeKind.Nullable:
-                    throw new NotImplementedException();
-                case TypeShapeKind.Enumerable:
-                    throw new NotImplementedException();
-                case TypeShapeKind.Dictionary:
-                    throw new NotImplementedException();
-                default:
-                    throw new NotSupportedException();
-            }
+            var formatter = GetWriter(propertyShape.PropertyType);
+            return new Writer<TDeclaringType>((ref MessagePackWriter writer, TDeclaringType container) => formatter(ref writer, getter(ref container)));
         }
     }
 
