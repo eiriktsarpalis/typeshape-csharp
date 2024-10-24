@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Formats.Cbor;
+using System.Globalization;
 using System.Numerics;
 using System.Text;
 
@@ -315,11 +316,20 @@ internal sealed class GuidConverter : CborConverter<Guid>
 
 internal sealed class DateTimeConverter : CborConverter<DateTime>
 {
+    private const string Rfc3339FormatString = "yyyy-MM-ddTHH:mm:ss.FFFFFFFK";
+
     public override DateTime Read(CborReader reader)
-        => reader.ReadDateTimeOffset().DateTime;
+    {
+        reader.EnsureTag(CborTag.DateTimeString);
+        string dateString = reader.ReadTextString();
+        return DateTime.ParseExact(dateString, Rfc3339FormatString, CultureInfo.InvariantCulture);
+    }
 
     public override void Write(CborWriter writer, DateTime value)
-        => writer.WriteDateTimeOffset(new DateTimeOffset(value));
+    {
+        writer.WriteTag(CborTag.DateTimeString);
+        writer.WriteTextString(value.ToString(Rfc3339FormatString, CultureInfo.InvariantCulture));
+    }
 }
 
 internal sealed class DateTimeOffsetConverter : CborConverter<DateTimeOffset>

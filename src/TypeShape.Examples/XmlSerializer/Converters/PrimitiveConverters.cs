@@ -289,7 +289,7 @@ internal sealed class DateTimeConverter : XmlConverter<DateTime>
     public override void Write(XmlWriter writer, string localName, DateTime value)
     {
         writer.WriteStartElement(localName);
-        writer.WriteValue(new DateTimeOffset(value));
+        writer.WriteValue(value);
         writer.WriteEndElement();
     }
 }
