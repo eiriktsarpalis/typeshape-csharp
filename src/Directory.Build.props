@@ -15,6 +15,7 @@
   <PropertyGroup>
     <Description>Practical Generic Programming for C#</Description>
     <Authors>Eirik Tsarpalis</Authors>
+    <Copyright>2023</Copyright>
     <Copyright>2024</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/eiriktsarpalis/typeshape-csharp</RepositoryUrl>
@@ -23,11 +24,11 @@
     <PackageOutputPath>$(RepoRoot)artifacts/</PackageOutputPath>
   </PropertyGroup>
 
-    <ItemGroup>
-        <PackageReference Include="PolySharp">
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-            <PrivateAssets>all</PrivateAssets>
-        </PackageReference>
-        <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
-    </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="PolySharp">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+  </ItemGroup>
 </Project>
