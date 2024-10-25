@@ -593,6 +593,10 @@ public partial class BaseClass : IEquatable<BaseClass>
     public int X { get; set; }
 
     public bool Equals(BaseClass? other) => other is not null && X == other.X;
+
+    public override bool Equals(object? obj) => obj is BaseClass other && Equals(other);
+
+    public override int GetHashCode() => X;
 }
 
 [GenerateShape]
@@ -601,6 +605,10 @@ public partial class DerivedClass : BaseClass, IEquatable<DerivedClass>
     public int Y { get; set; }
 
     public bool Equals(DerivedClass? other) => base.Equals(other) && Y == other.Y;
+
+    public override bool Equals(object? obj) => obj is DerivedClass other && Equals(other);
+
+    public override int GetHashCode() => HashCode.Combine(base.GetHashCode(), Y);
 }
 
 [GenerateShape]
