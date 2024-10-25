@@ -27,4 +27,7 @@
     <PackageVersion Include="JsonSchema.Net" Version="7.2.3" />
     <PackageVersion Include="FSharp.Core" Version="8.0.401" />
   </ItemGroup>
+  <ItemGroup>
+    <GlobalPackageReference Include="Nerdbank.GitVersioning" Version="3.6.146" />
+  </ItemGroup>
 </Project>
