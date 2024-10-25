@@ -7,7 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Source Generator dependencies -->
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
     <!-- Build Infra & Packaging -->
     <PackageVersion Include="PolySharp" Version="1.14.1" />
