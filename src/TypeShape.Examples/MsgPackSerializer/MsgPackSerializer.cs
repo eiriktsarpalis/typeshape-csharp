@@ -1,6 +1,7 @@
 using MessagePack;
 using MessagePack.Formatters;
 using System.Buffers;
+using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using TypeShape.Abstractions;
@@ -230,7 +231,7 @@ public static class MsgPackSerializer
 
     private sealed class FormatterVisitor : TypeShapeVisitor
     {
-        private readonly TypeDictionary formatters = new()
+        private static readonly FrozenDictionary<Type, object> PrimitiveFormatters = new Dictionary<Type, object>()
         {
             { typeof(byte[]), new PrimitiveFormatter<byte[]>((ref MessagePackReader reader) => reader.ReadBytes()?.ToArray(), (ref MessagePackWriter writer, byte[]? value) => writer.Write(value)) },
             { typeof(DateTime), new PrimitiveFormatter<DateTime>((ref MessagePackReader reader) => reader.ReadDateTime(), (ref MessagePackWriter writer, DateTime value) => writer.Write(value)) },
@@ -247,10 +248,16 @@ public static class MsgPackSerializer
             { typeof(ulong), new PrimitiveFormatter<ulong>((ref MessagePackReader reader) => reader.ReadUInt64(), (ref MessagePackWriter writer, ulong value) => writer.Write(value)) },
             { typeof(float), new PrimitiveFormatter<float>((ref MessagePackReader reader) => reader.ReadSingle(), (ref MessagePackWriter writer, float value) => writer.Write(value)) },
             { typeof(double), new PrimitiveFormatter<double>((ref MessagePackReader reader) => reader.ReadDouble(), (ref MessagePackWriter writer, double value) => writer.Write(value)) },
-        };
+        }.ToFrozenDictionary();
+        private readonly TypeDictionary formatters = new();
 
         internal IMessagePackFormatter<T?> GetFormatter<T>(ITypeShape<T> typeShape)
         {
+            if (PrimitiveFormatters.TryGetValue(typeShape.Type, out object? formatter))
+            {
+                return (IMessagePackFormatter<T?>)formatter;
+            }
+
             return formatters.GetOrAdd<IMessagePackFormatter<T?>>(typeShape, this, box => new DelayedFormatter<T?>(box));
         }
 
