@@ -232,8 +232,21 @@ public static class MsgPackSerializer
     {
         private readonly TypeDictionary formatters = new()
         {
+            { typeof(byte[]), new PrimitiveFormatter<byte[]>((ref MessagePackReader reader) => reader.ReadBytes()?.ToArray(), (ref MessagePackWriter writer, byte[]? value) => writer.Write(value)) },
+            { typeof(DateTime), new PrimitiveFormatter<DateTime>((ref MessagePackReader reader) => reader.ReadDateTime(), (ref MessagePackWriter writer, DateTime value) => writer.Write(value)) },
             { typeof(string), new PrimitiveFormatter<string>((ref MessagePackReader reader) => reader.ReadString(), (ref MessagePackWriter writer, string? value) => writer.Write(value)) },
+            { typeof(bool), new PrimitiveFormatter<bool>((ref MessagePackReader reader) => reader.ReadBoolean(), (ref MessagePackWriter writer, bool value) => writer.Write(value)) },
+            { typeof(char), new PrimitiveFormatter<char>((ref MessagePackReader reader) => reader.ReadChar(), (ref MessagePackWriter writer, char value) => writer.Write(value)) },
+            { typeof(sbyte), new PrimitiveFormatter<sbyte>((ref MessagePackReader reader) => reader.ReadSByte(), (ref MessagePackWriter writer, sbyte value) => writer.Write(value)) },
+            { typeof(short), new PrimitiveFormatter<short>((ref MessagePackReader reader) => reader.ReadInt16(), (ref MessagePackWriter writer, short value) => writer.Write(value)) },
             { typeof(int), new PrimitiveFormatter<int>((ref MessagePackReader reader) => reader.ReadInt32(), (ref MessagePackWriter writer, int value) => writer.Write(value)) },
+            { typeof(long), new PrimitiveFormatter<long>((ref MessagePackReader reader) => reader.ReadInt64(), (ref MessagePackWriter writer, long value) => writer.Write(value)) },
+            { typeof(byte), new PrimitiveFormatter<byte>((ref MessagePackReader reader) => reader.ReadByte(), (ref MessagePackWriter writer, byte value) => writer.Write(value)) },
+            { typeof(ushort), new PrimitiveFormatter<ushort>((ref MessagePackReader reader) => reader.ReadUInt16(), (ref MessagePackWriter writer, ushort value) => writer.Write(value)) },
+            { typeof(uint), new PrimitiveFormatter<uint>((ref MessagePackReader reader) => reader.ReadUInt32(), (ref MessagePackWriter writer, uint value) => writer.Write(value)) },
+            { typeof(ulong), new PrimitiveFormatter<ulong>((ref MessagePackReader reader) => reader.ReadUInt64(), (ref MessagePackWriter writer, ulong value) => writer.Write(value)) },
+            { typeof(float), new PrimitiveFormatter<float>((ref MessagePackReader reader) => reader.ReadSingle(), (ref MessagePackWriter writer, float value) => writer.Write(value)) },
+            { typeof(double), new PrimitiveFormatter<double>((ref MessagePackReader reader) => reader.ReadDouble(), (ref MessagePackWriter writer, double value) => writer.Write(value)) },
         };
 
         internal IMessagePackFormatter<T?> GetFormatter<T>(ITypeShape<T> typeShape)
@@ -265,7 +278,7 @@ public static class MsgPackSerializer
                     p => p.Deserialize,
                     ByteSpanEqualityComparer.Ordinal);
 
-            Func<T> constructor = (Func<T>)objectShape.GetConstructor()!.Accept(this)!;
+            Func<T>? constructor = (Func<T>?)objectShape.GetConstructor()?.Accept(this);
             return new SmartFormatter<T>(propertyReaders, constructor, properties);
         }
 
@@ -310,11 +323,11 @@ public static class MsgPackSerializer
         public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options) => serialize(ref writer, value);
     }
 
-    private sealed class SmartFormatter<T>(SpanDictionary<byte, DeserializeProperty<T>> propertyReaders, Func<T> constructor, List<(byte[] RawPropertyNameString, byte[] PropertyNameUtf8, SerializeProperty<T> Serialize, DeserializeProperty<T> Deserialize)> properties) : IMessagePackFormatter<T?>
+    private sealed class SmartFormatter<T>(SpanDictionary<byte, DeserializeProperty<T>> propertyReaders, Func<T>? constructor, List<(byte[] RawPropertyNameString, byte[] PropertyNameUtf8, SerializeProperty<T> Serialize, DeserializeProperty<T> Deserialize)> properties) : IMessagePackFormatter<T?>
     {
         internal SpanDictionary<byte, DeserializeProperty<T>> PropertyReaders => propertyReaders;
 
-        internal Func<T> Constructor => constructor;
+        internal Func<T>? Constructor => constructor;
 
         internal List<(byte[] RawPropertyNameString, byte[] PropertyNameUtf8, SerializeProperty<T> Serialize, DeserializeProperty<T> Deserialize)> Properties => properties;
 
@@ -323,6 +336,11 @@ public static class MsgPackSerializer
             if (reader.TryReadNil())
             {
                 return default;
+            }
+
+            if (constructor is null)
+            {
+                throw new MessagePackSerializationException($"No constructor for {typeof(T).FullName}");
             }
 
             int count = reader.ReadMapHeader();
