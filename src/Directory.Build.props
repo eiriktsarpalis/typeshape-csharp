@@ -1,27 +1,27 @@
 <Project>
-    <Import Project="..\Directory.Build.props" />
+  <Import Project="..\Directory.Build.props" />
 
-    <PropertyGroup>
-        <AnalysisLevel>latest-recommended</AnalysisLevel>
-        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-        <WarningsAsErrors>Nullable</WarningsAsErrors>
-        <WarningLevel>9999</WarningLevel>
-        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  <PropertyGroup>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors>Nullable</WarningsAsErrors>
+    <WarningLevel>9999</WarningLevel>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <SignAssembly>true</SignAssembly>
-    </PropertyGroup>
+  </PropertyGroup>
 
-    <PropertyGroup>
-        <Description>Practical Generic Programming for C#</Description>
-        <Authors>Eirik Tsarpalis</Authors>
-        <Copyright>2023</Copyright>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <RepositoryUrl>https://github.com/eiriktsarpalis/typeshape-csharp</RepositoryUrl>
-        <PackageProjectUrl>https://eiriktsarpalis.github.io/typeshape-csharp/</PackageProjectUrl>
-        <PackageTags>generic programming, source generator, polytypic</PackageTags>
-        <PackageOutputPath>$(RepoRoot)artifacts/</PackageOutputPath>
-    </PropertyGroup>
+  <PropertyGroup>
+    <Description>Practical Generic Programming for C#</Description>
+    <Authors>Eirik Tsarpalis</Authors>
+    <Copyright>2024</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/eiriktsarpalis/typeshape-csharp</RepositoryUrl>
+    <PackageProjectUrl>https://eiriktsarpalis.github.io/typeshape-csharp/</PackageProjectUrl>
+    <PackageTags>generic programming, source generator, polytypic</PackageTags>
+    <PackageOutputPath>$(RepoRoot)artifacts/</PackageOutputPath>
+  </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="PolySharp">
@@ -29,9 +29,5 @@
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
         <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
-        <PackageReference Include="NuGetizer">
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-            <PrivateAssets>all</PrivateAssets>
-        </PackageReference>
     </ItemGroup>
 </Project>

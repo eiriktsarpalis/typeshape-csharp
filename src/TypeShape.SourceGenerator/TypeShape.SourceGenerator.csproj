@@ -4,8 +4,6 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DefineConstants Condition="'$(LaunchDebugger)' == 'true'">$(DefineConstants);LAUNCH_DEBUGGER</DefineConstants>
     <DefineConstants>$(DefineConstants);ROSLYN4_4_OR_GREATER</DefineConstants>
-    <PackFolder>analyzers/dotnet/cs</PackFolder>
-    <PackSymbols>false</PackSymbols>
   </PropertyGroup>
     
   <ItemGroup>
