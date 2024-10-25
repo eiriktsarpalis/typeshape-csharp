@@ -1,4 +1,13 @@
-﻿[*.cs]
+﻿# MSBuild project files
+[*.{csproj,vbproj,vcxproj,vcxproj.filters,proj,projitems,shproj,msbuildproj,props,targets}]
+indent_size = 2
+indent_style = space
+
+[*.json]
+indent_size = 2
+indent_style = space
+
+[*.cs]
 
 # CA1000: Do not declare static members on generic types
 dotnet_diagnostic.CA1000.severity = none
