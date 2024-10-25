@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Text;
+using System.Reflection;
 
 namespace TypeShape.Roslyn.Helpers;
 
@@ -107,6 +107,34 @@ internal static class RoslynHelpers
             attr.AttributeClass.ContainingNamespace.ToDisplayString() == "System.Diagnostics.CodeAnalysis");
     }
 
+    public static bool IsRequired(this IPropertySymbol property)
+    {
+#if ROSLYN4_4_OR_GREATER
+        return property.IsRequired;
+#else
+        return s_IsRequiredProperty?.Invoke(property) ?? false;
+#endif
+    }
+
+    public static bool IsRequired(this IFieldSymbol fieldInfo)
+    {
+#if ROSLYN4_4_OR_GREATER
+        return fieldInfo.IsRequired;
+#else
+        return s_IsRequiredField?.Invoke(fieldInfo) ?? false;
+#endif
+    }
+
+#if !ROSLYN4_4_OR_GREATER
+    private static readonly Func<IPropertySymbol, bool>? s_IsRequiredProperty = CreatePropertyAccessor<IPropertySymbol, bool>(typeof(IPropertySymbol).GetProperty("IsRequired"));
+    private static readonly Func<IFieldSymbol, bool>? s_IsRequiredField = CreatePropertyAccessor<IFieldSymbol, bool>(typeof(IFieldSymbol).GetProperty("IsRequired"));
+
+    private static Func<T, TProperty>? CreatePropertyAccessor<T, TProperty>(PropertyInfo? propertyInfo)
+    {
+        return propertyInfo?.GetMethod is null ? null : (Func<T, TProperty>)Delegate.CreateDelegate(typeof(Func<T, TProperty>), propertyInfo.GetMethod);
+    }
+#endif
+
     public static string GetFullyQualifiedName(this ITypeSymbol typeSymbol)
         => typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
@@ -139,7 +167,6 @@ internal static class RoslynHelpers
 
         return false;
     }
-
 
     public static IPropertySymbol[]? GetClassTupleProperties(IAssemblySymbol coreLibAssembly, INamedTypeSymbol typeSymbol)
     {
