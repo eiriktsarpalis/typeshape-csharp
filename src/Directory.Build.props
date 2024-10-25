@@ -9,6 +9,7 @@
         <WarningsAsErrors>Nullable</WarningsAsErrors>
         <WarningLevel>9999</WarningLevel>
         <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <SignAssembly>true</SignAssembly>
     </PropertyGroup>
 
     <PropertyGroup>
