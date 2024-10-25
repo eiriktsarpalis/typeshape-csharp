@@ -1,20 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <DefineConstants Condition="'$(LaunchDebugger)' == 'true'">$(DefineConstants);LAUNCH_DEBUGGER</DefineConstants>
-        <PackFolder>analyzers/dotnet/cs</PackFolder>
-        <PackSymbols>false</PackSymbols>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants Condition="'$(LaunchDebugger)' == 'true'">$(DefineConstants);LAUNCH_DEBUGGER</DefineConstants>
+    <DefineConstants>$(DefineConstants);ROSLYN4_4_OR_GREATER</DefineConstants>
+  </PropertyGroup>
     
-    <ItemGroup>
-        <Compile Include="..\TypeShape\ReflectionProvider\Helpers\CommonHelpers.cs" Link="TypeShape.Roslyn\Helpers\CommonHelpers.cs" />
-        <Compile Include="..\TypeShape.Roslyn\**\*.cs" Exclude="**\bin\**;**\obj\**" Link="TypeShape.Roslyn\%(RecursiveDir)%(Filename)%(Extension)" />
-    </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\TypeShape\ReflectionProvider\Helpers\CommonHelpers.cs" Link="TypeShape.Roslyn\Helpers\CommonHelpers.cs" />
+    <Compile Include="..\TypeShape.Roslyn\**\*.cs" Exclude="**\bin\**;**\obj\**" Link="TypeShape.Roslyn\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
     
-    <ItemGroup>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" Pack="false" />
-        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
-    </ItemGroup>
-    
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" Pack="false" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
+  </ItemGroup>
+
 </Project>

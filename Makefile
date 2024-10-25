@@ -20,9 +20,7 @@ test: build
 	dotnet test -c $(CONFIGURATION) $(ADDITIONAL_ARGS) $(CODECOV_ARGS)
 
 pack: test
-	dotnet pack -c $(CONFIGURATION) $(ADDITIONAL_ARGS) src/TypeShape.Packaging
-	dotnet pack -c $(CONFIGURATION) $(ADDITIONAL_ARGS) src/TypeShape.Roslyn
-	dotnet pack -c $(CONFIGURATION) $(ADDITIONAL_ARGS) src/TypeShape.Examples
+	dotnet pack -c $(CONFIGURATION) $(ADDITIONAL_ARGS)
 
 generate-docs: clean
 	dotnet tool update -g docfx

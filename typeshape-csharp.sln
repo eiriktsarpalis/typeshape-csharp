@@ -51,6 +51,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		LICENSE = LICENSE
 		Makefile = Makefile
 		README.md = README.md
+		TypeShape.snk = TypeShape.snk
+		version.json = version.json
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "applications", "applications", "{2EABF8EF-0FE5-47FC-9B09-B7AF4310071E}"
@@ -70,8 +72,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{F2C95E2E-AED
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{1EAD80C8-8E21-4173-9438-67CE9A7A3292}"
-EndProject
-Project("{13B669BE-BB05-4DDF-9536-439F39A36129}") = "TypeShape.Packaging", "src\TypeShape.Packaging\TypeShape.Packaging.msbuildproj", "{55EC455D-6C5D-4F5C-8B84-A24DBB807328}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -135,8 +135,6 @@ Global
 		{EAABC384-65E6-404B-AA30-12EF559A0545}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EAABC384-65E6-404B-AA30-12EF559A0545}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EAABC384-65E6-404B-AA30-12EF559A0545}.Release|Any CPU.Build.0 = Release|Any CPU
-		{55EC455D-6C5D-4F5C-8B84-A24DBB807328}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{55EC455D-6C5D-4F5C-8B84-A24DBB807328}.Release|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -157,7 +155,6 @@ Global
 		{21B5C5D9-90E4-456C-A787-C4C78AF96689} = {1EAD80C8-8E21-4173-9438-67CE9A7A3292}
 		{EAABC384-65E6-404B-AA30-12EF559A0545} = {1EAD80C8-8E21-4173-9438-67CE9A7A3292}
 		{CDF25596-D7B5-4FF0-B42D-610AEEC33B6A} = {E712CC73-2B97-4F4C-840D-4C82F5C07936}
-		{55EC455D-6C5D-4F5C-8B84-A24DBB807328} = {F2C95E2E-AED7-46E4-A93E-831FA658BD2B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F4A4EE41-24B8-4815-9861-9B54CC34F311}
