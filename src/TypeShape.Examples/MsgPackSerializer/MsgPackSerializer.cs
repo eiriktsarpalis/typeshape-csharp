@@ -251,12 +251,7 @@ public static class MsgPackSerializer
 
         internal IMessagePackFormatter<T?> GetFormatter<T>(ITypeShape<T> typeShape)
         {
-            return formatters.GetOrAdd<IMessagePackFormatter<T?>>(typeShape, this, box => box.Result switch
-            {
-                SmartFormatter<T> f => new SmartFormatter<T>(f.PropertyReaders, f.Constructor, f.Properties),
-                PrimitiveFormatter<T> p => new PrimitiveFormatter<T>(p.DeserializeFunc, p.SerializeFunc),
-                _ => throw new NotSupportedException(),
-            });
+            return formatters.GetOrAdd<IMessagePackFormatter<T?>>(typeShape, this, box => new DelayedFormatter<T?>(box));
         }
 
         public override object? VisitObject<T>(IObjectTypeShape<T> objectShape, object? state = null)
@@ -377,5 +372,11 @@ public static class MsgPackSerializer
                 property.Serialize(ref value, ref writer, options);
             }
         }
+    }
+
+    private sealed class DelayedFormatter<T>(ResultBox<IMessagePackFormatter<T>> self) : IMessagePackFormatter<T>
+    {
+        public T Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options) => self.Result.Deserialize(ref reader, options);
+        public void Serialize(ref MessagePackWriter writer, T value, MessagePackSerializerOptions options) => self.Result.Serialize(ref writer, value, options);
     }
 }
