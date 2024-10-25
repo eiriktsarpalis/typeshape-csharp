@@ -12,7 +12,6 @@
     <!-- Build Infra & Packaging -->
     <PackageVersion Include="PolySharp" Version="1.14.1" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
-    <PackageVersion Include="MinVer" Version="6.0.0" />
     <PackageVersion Include="NuGetizer" Version="1.2.3" />
     <PackageVersion Include="StyleCop.Analyzers" Version="1.1.118" />
     <PackageVersion Include="System.Text.Json" Version="8.0.4" />
