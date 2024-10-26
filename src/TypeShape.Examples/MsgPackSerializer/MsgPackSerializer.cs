@@ -1,5 +1,6 @@
 using MessagePack;
 using MessagePack.Formatters;
+using MessagePack.Resolvers;
 using System.Buffers;
 using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
@@ -24,7 +25,7 @@ public static class MsgPackSerializer
         where T : IShapeable<T>
     {
         MessagePackWriter msgpackWriter = new(writer);
-        SerializerCache<T>.Serializer(ref msgpackWriter, value);
+        SerializerCache<T, T>.Serializer(ref msgpackWriter, value);
         msgpackWriter.Flush();
     }
 
@@ -38,7 +39,7 @@ public static class MsgPackSerializer
         where T : IShapeable<T>
     {
         MessagePackReader reader = new(sequence);
-        return SerializerCache<T>.Deserializer(ref reader);
+        return SerializerCache<T, T>.Deserializer(ref reader);
     }
 
     /// <summary>
@@ -52,7 +53,7 @@ public static class MsgPackSerializer
         where T : IShapeable<T>
     {
         MessagePackWriter msgpackWriter = new(writer);
-        SerializerCache<T>.Formatter.Serialize(ref msgpackWriter, value, options);
+        SerializerCache<T, T>.Formatter.Serialize(ref msgpackWriter, value, options);
         msgpackWriter.Flush();
     }
 
@@ -67,15 +68,46 @@ public static class MsgPackSerializer
         where T : IShapeable<T>
     {
         MessagePackReader reader = new(sequence);
-        return SerializerCache<T>.Formatter.Deserialize(ref reader, options);
+        return SerializerCache<T, T>.Formatter.Deserialize(ref reader, options);
+    }
+
+    /// <summary>
+    /// Serializes a value.
+    /// </summary>
+    /// <param name="writer">The writer that receives the msgpack bytes.</param>
+    /// <param name="value">The value to be serialized.</param>
+    /// <param name="options">The options to use when serializing.</param>
+    /// <typeparam name="T">The type of value to be serialized.</typeparam>
+    /// <typeparam name="TProvider">The type shape provider that enables serialization.</typeparam>
+    public static void Serialize<T, TProvider>(IBufferWriter<byte> writer, in T? value, MessagePackSerializerOptions options)
+        where TProvider : IShapeable<T>
+    {
+        MessagePackWriter msgpackWriter = new(writer);
+        SerializerCache<T, TProvider>.Formatter.Serialize(ref msgpackWriter, value, options);
+        msgpackWriter.Flush();
+    }
+
+    /// <summary>
+    /// Deserializes msgpack into a value of a particular type.
+    /// </summary>
+    /// <param name="sequence">The msgpack to deserialize.</param>
+    /// <param name="options">The options to use when deserializing.</param>
+    /// <typeparam name="T">The type of value to deserialize.</typeparam>
+    /// <typeparam name="TProvider">The type shape provider that enables serialization.</typeparam>
+    /// <returns>The deserialized value.</returns>
+    public static T? Deserialize<T, TProvider>(ReadOnlySequence<byte> sequence, MessagePackSerializerOptions options)
+        where TProvider : IShapeable<T>
+    {
+        MessagePackReader reader = new(sequence);
+        return SerializerCache<T, TProvider>.Formatter.Deserialize(ref reader, options);
     }
 
     private delegate T? Reader<T>(ref MessagePackReader reader);
 
     private delegate void Writer<T>(ref MessagePackWriter writer, T value);
 
-    private static class SerializerCache<T>
-        where T : IShapeable<T>
+    private static class SerializerCache<T, TProvider>
+        where TProvider : IShapeable<T>
     {
         private static Writer<T?>? serializer;
 
@@ -83,11 +115,11 @@ public static class MsgPackSerializer
 
         private static IMessagePackFormatter<T?>? formatter;
 
-        internal static Writer<T?> Serializer => serializer ??= (new SerializeVisitor()).GetWriter(T.GetShape());
+        internal static Writer<T?> Serializer => serializer ??= (new SerializeVisitor()).GetWriter(TProvider.GetShape());
 
-        internal static Reader<T?> Deserializer => deserializer ??= (new DeserializeVisitor()).GetReader(T.GetShape());
+        internal static Reader<T?> Deserializer => deserializer ??= (new DeserializeVisitor()).GetReader(TProvider.GetShape());
 
-        internal static IMessagePackFormatter<T?> Formatter => formatter ??= (new FormatterVisitor()).GetFormatter(T.GetShape());
+        internal static IMessagePackFormatter<T?> Formatter => formatter ??= (new FormatterVisitor()).GetFormatter(TProvider.GetShape());
     }
 
     private sealed class SerializeVisitor : TypeShapeVisitor
@@ -307,6 +339,11 @@ public static class MsgPackSerializer
         {
             return constructorShape.GetDefaultConstructor();
         }
+
+        public override object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumShape, object? state = null)
+        {
+            return new EnumAsStringFormatter<TEnum>();
+        }
     }
 
     private delegate T? FormatDeserialize<T>(ref MessagePackReader reader);
@@ -379,6 +416,13 @@ public static class MsgPackSerializer
                 property.Serialize(ref value, ref writer, options);
             }
         }
+    }
+
+    private sealed class EnumAsStringFormatter<T> : IMessagePackFormatter<T>
+        where T : struct, Enum
+    {
+        public T Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options) => Enum.Parse<T>(reader.ReadString()!);
+        public void Serialize(ref MessagePackWriter writer, T value, MessagePackSerializerOptions options) => writer.Write(value.ToString());
     }
 
     private sealed class DelayedFormatter<T>(ResultBox<IMessagePackFormatter<T>> self) : IMessagePackFormatter<T>
