@@ -7,7 +7,7 @@ using TypeShape.Examples.Utilities;
 namespace TypeShape.Examples.ConfigurationBinder;
 
 /// <summary>Defines an <see cref="IConfiguration"/> binder build on top of TypeShape.</summary>
-public static class TypeShapeConfigurationBinder
+public static class ConfigurationBinderTS
 {
     /// <summary>
     /// Builds a configuration binder delegate instance from the specified shape.

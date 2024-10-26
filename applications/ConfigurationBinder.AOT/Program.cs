@@ -9,7 +9,7 @@ IConfigurationRoot configuration = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json")
     .Build();
 
-ApplicationSettings? settings = TypeShapeConfigurationBinder.Get<ApplicationSettings>(configuration);
+ApplicationSettings? settings = ConfigurationBinderTS.Get<ApplicationSettings>(configuration);
 Console.WriteLine(PrettyPrinter.Print(settings));
 
 [GenerateShape]

@@ -19,11 +19,11 @@ public abstract class ConfigurationBinderTests(IProviderUnderTest providerUnderT
         if (!testCase.HasConstructors(providerUnderTest))
         {
             
-            Assert.Throws<NotSupportedException>(() => TypeShapeConfigurationBinder.Create(shape));
+            Assert.Throws<NotSupportedException>(() => ConfigurationBinderTS.Create(shape));
             return;
         }
 
-        Func<IConfiguration, T?> binder = TypeShapeConfigurationBinder.Create(shape);
+        Func<IConfiguration, T?> binder = ConfigurationBinderTS.Create(shape);
         IEqualityComparer<T> comparer = StructuralEqualityComparer.Create(shape);
         IConfiguration configuration = CreateConfiguration(testCase, shape);
 
