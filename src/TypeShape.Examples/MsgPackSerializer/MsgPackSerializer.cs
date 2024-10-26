@@ -102,6 +102,17 @@ public static class MsgPackSerializer
         return SerializerCache<T, TProvider>.Formatter.Deserialize(ref reader, options);
     }
 
+    /// <summary>
+    /// Creates a formatter for a given type shape.
+    /// </summary>
+    /// <typeparam name="T">The type to be formatted.</typeparam>
+    /// <param name="typeShape">The shape that describes the type.</param>
+    /// <returns>The formatter.</returns>
+    public static IMessagePackFormatter<T?> CreateFormatter<T>(ITypeShape<T> typeShape)
+    {
+        return (IMessagePackFormatter<T?>)new FormatterVisitor().GetFormatter(typeShape);
+    }
+
     private delegate T? Reader<T>(ref MessagePackReader reader);
 
     private delegate void Writer<T>(ref MessagePackWriter writer, T value);
@@ -281,6 +292,23 @@ public static class MsgPackSerializer
             { typeof(ulong), new PrimitiveFormatter<ulong>((ref MessagePackReader reader) => reader.ReadUInt64(), (ref MessagePackWriter writer, ulong value) => writer.Write(value)) },
             { typeof(float), new PrimitiveFormatter<float>((ref MessagePackReader reader) => reader.ReadSingle(), (ref MessagePackWriter writer, float value) => writer.Write(value)) },
             { typeof(double), new PrimitiveFormatter<double>((ref MessagePackReader reader) => reader.ReadDouble(), (ref MessagePackWriter writer, double value) => writer.Write(value)) },
+            { typeof(object), new PrimitiveFormatter<object>(
+                (ref MessagePackReader reader) => {
+                    if (reader.TryReadNil()) {
+                        return null;
+                    }
+
+                    reader.Skip();
+                    return new object();
+                },
+                (ref MessagePackWriter writer, object? value) => {
+                    if (value is null) {
+                            writer.WriteNil();
+                    } else {
+                            writer.WriteArrayHeader(0);
+                    }
+                })
+            },
         }.ToFrozenDictionary();
         private readonly TypeDictionary formatters = new();
 
