@@ -26,7 +26,6 @@ public partial class MsgPackSerializerTests(ITestOutputHelper logger)
         public int Age { get; init; }
     }
 
-    [GenerateShape<int>]
     [GenerateShape<MyEnum>]
     partial class Witness;
 
