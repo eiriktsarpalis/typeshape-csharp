@@ -208,4 +208,21 @@ public static class CompilationTests
         TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation);
         Assert.Empty(result.Diagnostics);
     }
+    
+    [Fact]
+    public static void EnumGeneration_NoErrors()
+    {
+        // Regression test for https://github.com/eiriktsarpalis/typeshape-csharp/issues/29
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+           using TypeShape;
+           
+           enum MyEnum { A, B, C }
+
+           [GenerateShape<MyEnum>]
+           partial class Witness { }
+           """);
+
+        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
 }
