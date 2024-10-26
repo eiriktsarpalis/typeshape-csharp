@@ -160,7 +160,7 @@ public partial class TypeDataModelGenerator
     /// </remarks>
     protected virtual TypeDataModelGenerationStatus MapType(ITypeSymbol type, ref TypeDataModelGenerationContext ctx, out TypeDataModel? model)
     {
-        if (TryMapEnum(type, out model, out TypeDataModelGenerationStatus status))
+        if (TryMapEnum(type, ref ctx, out model, out TypeDataModelGenerationStatus status))
         {
             return status;
         }
