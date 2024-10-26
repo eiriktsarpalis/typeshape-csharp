@@ -383,7 +383,8 @@ public static class MsgPackSerializer
 
         public override object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumShape, object? state = null)
         {
-            return new EnumAsStringFormatter<TEnum>();
+            return typeof(TUnderlying) == typeof(int) ? new EnumAsInt32Formatter<TEnum>()
+                : new EnumAsStringFormatter<TEnum>();
         }
     }
 
@@ -493,6 +494,13 @@ public static class MsgPackSerializer
     {
         public T Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options) => Enum.Parse<T>(reader.ReadString()!);
         public void Serialize(ref MessagePackWriter writer, T value, MessagePackSerializerOptions options) => writer.Write(value.ToString());
+    }
+
+    private sealed class EnumAsInt32Formatter<T> : IMessagePackFormatter<T>
+        where T : struct, Enum
+    {
+        public T Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options) => (T)(object)reader.ReadInt32();
+        public void Serialize(ref MessagePackWriter writer, T value, MessagePackSerializerOptions options) => writer.Write((int)(object)value);
     }
 
     private sealed class DelayedFormatter<T>(ResultBox<IMessagePackFormatter<T>> self) : IMessagePackFormatter<T>
