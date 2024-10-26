@@ -15,10 +15,16 @@ public partial class MsgPackSerializerTests(ITestOutputHelper logger)
     public void StructWithFields() => AssertRoundtrip(new ComplexStruct { im = 1.2, real = 3.5 });
 
     [Fact]
-    public void SimpleRecord() => AssertRoundtrip(new SimpleRecord(5));
+    public void SimpleRecord() => AssertRoundtrip(new RecordWithParamAndProperty("My name") { Age = 15 });
 
     [Fact]
     public void JustAnEnum() => AssertRoundtrip<MyEnum, Witness>(MyEnum.H);
+
+    [GenerateShape]
+    public partial record RecordWithParamAndProperty(string Name)
+    {
+        public int Age { get; init; }
+    }
 
     [GenerateShape<int>]
     [GenerateShape<MyEnum>]

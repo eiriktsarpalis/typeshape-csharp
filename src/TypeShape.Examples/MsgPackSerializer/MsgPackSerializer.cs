@@ -263,6 +263,7 @@ public static class MsgPackSerializer
 
     private sealed class FormatterVisitor : TypeShapeVisitor
     {
+        // Consider: define a special formatter for each primitive type to remove an extra delegate dispatch.
         private static readonly FrozenDictionary<Type, object> PrimitiveFormatters = new Dictionary<Type, object>()
         {
             { typeof(byte[]), new PrimitiveFormatter<byte[]>((ref MessagePackReader reader) => reader.ReadBytes()?.ToArray(), (ref MessagePackWriter writer, byte[]? value) => writer.Write(value)) },
@@ -295,25 +296,32 @@ public static class MsgPackSerializer
 
         public override object? VisitObject<T>(IObjectTypeShape<T> objectShape, object? state = null)
         {
-            List<(byte[] RawPropertyNameString, byte[] PropertyNameUtf8, SerializeProperty<T> Serialize, DeserializeProperty<T> Deserialize)>? properties = new();
+            List<(byte[] RawPropertyNameString, byte[] PropertyNameUtf8, SerializeProperty<T> Serialize, DeserializeProperty<T>? Deserialize)>? properties = new();
             foreach (IPropertyShape property in objectShape.GetProperties())
             {
                 if (property.HasGetter)
                 {
                     byte[] rawPropertyNameString = MessagePackSerializer.Serialize(property.Name, MessagePackSerializerOptions.Standard);
-                    var (s, d) = ((SerializeProperty<T>, DeserializeProperty<T>))property.Accept(this)!;
+                    var (s, d) = ((SerializeProperty<T>, DeserializeProperty<T>?))property.Accept(this)!;
                     properties.Add((rawPropertyNameString, Encoding.UTF8.GetBytes(property.Name), s, d));
                 }
             }
 
-            SpanDictionary<byte, DeserializeProperty<T>> propertyReaders = properties
+            SpanDictionary<byte, DeserializeProperty<T>?> propertyReaders = properties
                 .ToSpanDictionary(
                     p => p.PropertyNameUtf8,
                     p => p.Deserialize,
                     ByteSpanEqualityComparer.Ordinal);
 
-            Func<T>? constructor = (Func<T>?)objectShape.GetConstructor()?.Accept(this);
-            return new SmartFormatter<T>(propertyReaders, constructor, properties);
+            PropertyData<T> propertyData = new(propertyReaders, properties);
+            if (objectShape.GetConstructor() is { } ctor)
+            {
+                return ctor.Accept(this, propertyData);
+            }
+            else
+            {
+                return new SmartFormatter<T>(propertyData, null);
+            }
         }
 
         public override object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> propertyShape, object? state = null)
@@ -326,18 +334,51 @@ public static class MsgPackSerializer
                 formatter.Serialize(ref writer, getter(ref container), options);
             };
 
-            Setter<TDeclaringType, TPropertyType> setter = propertyShape.GetSetter();
-            DeserializeProperty<TDeclaringType> deserialize = (ref TDeclaringType container, ref MessagePackReader reader, MessagePackSerializerOptions options) =>
+            DeserializeProperty<TDeclaringType>? deserialize = null;
+            if (propertyShape.HasSetter)
             {
-                setter(ref container, formatter.Deserialize(ref reader, options)!);
-            };
+                Setter<TDeclaringType, TPropertyType> setter = propertyShape.GetSetter();
+                deserialize = (ref TDeclaringType container, ref MessagePackReader reader, MessagePackSerializerOptions options) =>
+                {
+                    setter(ref container, formatter.Deserialize(ref reader, options)!);
+                };
+            }
 
             return (serialize, deserialize);
         }
 
         public override object? VisitConstructor<TDeclaringType, TArgumentState>(IConstructorShape<TDeclaringType, TArgumentState> constructorShape, object? state = null)
         {
-            return constructorShape.GetDefaultConstructor();
+            var propertyData = (PropertyData<TDeclaringType>)state!;
+            if (constructorShape.ParameterCount == 0)
+            {
+                return new SmartFormatter<TDeclaringType>(propertyData, constructorShape.GetDefaultConstructor());
+            }
+
+            var argStateCtor = constructorShape.GetArgumentStateConstructor();
+
+            var parameterConverters = constructorShape
+                .GetParameters()
+                .ToSpanDictionary(p => Encoding.UTF8.GetBytes(p.Name), p => (DeserializeProperty<TArgumentState>)p.Accept(this)!, ByteSpanEqualityComparer.Ordinal);
+
+            return new SmartNonDefaultCtorFormatter<TDeclaringType, TArgumentState>(
+                propertyData,
+                argStateCtor,
+                constructorShape.GetParameterizedConstructor(),
+                parameterConverters);
+        }
+
+        public override object? VisitConstructorParameter<TArgumentState, TParameterType>(IConstructorParameterShape<TArgumentState, TParameterType> parameterShape, object? state = null)
+        {
+            var formatter = GetFormatter(parameterShape.ParameterType);
+
+            Setter<TArgumentState, TParameterType> setter = parameterShape.GetSetter();
+            DeserializeProperty<TArgumentState> deserialize = (ref TArgumentState container, ref MessagePackReader reader, MessagePackSerializerOptions options) =>
+            {
+                setter(ref container, formatter.Deserialize(ref reader, options)!);
+            };
+
+            return deserialize;
         }
 
         public override object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumShape, object? state = null)
@@ -346,12 +387,13 @@ public static class MsgPackSerializer
         }
     }
 
+    private record struct PropertyData<T>(SpanDictionary<byte, DeserializeProperty<T>?> PropertyReaders, List<(byte[] RawPropertyNameString, byte[] PropertyNameUtf8, SerializeProperty<T> Serialize, DeserializeProperty<T>? Deserialize)> Properties);
+
     private delegate T? FormatDeserialize<T>(ref MessagePackReader reader);
     private delegate void FormatSerialize<T>(ref MessagePackWriter writer, T? value);
 
     private delegate void SerializeProperty<TDeclaringType>(ref TDeclaringType container, ref MessagePackWriter writer, MessagePackSerializerOptions options);
     private delegate void DeserializeProperty<TDeclaringType>(ref TDeclaringType container, ref MessagePackReader reader, MessagePackSerializerOptions options);
-
 
     private sealed class PrimitiveFormatter<T>(FormatDeserialize<T> deserialize, FormatSerialize<T> serialize) : IMessagePackFormatter<T?>
     {
@@ -362,15 +404,9 @@ public static class MsgPackSerializer
         public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options) => serialize(ref writer, value);
     }
 
-    private sealed class SmartFormatter<T>(SpanDictionary<byte, DeserializeProperty<T>> propertyReaders, Func<T>? constructor, List<(byte[] RawPropertyNameString, byte[] PropertyNameUtf8, SerializeProperty<T> Serialize, DeserializeProperty<T> Deserialize)> properties) : IMessagePackFormatter<T?>
+    private class SmartFormatter<T>(PropertyData<T> propertyData, Func<T>? constructor) : IMessagePackFormatter<T?>
     {
-        internal SpanDictionary<byte, DeserializeProperty<T>> PropertyReaders => propertyReaders;
-
-        internal Func<T>? Constructor => constructor;
-
-        internal List<(byte[] RawPropertyNameString, byte[] PropertyNameUtf8, SerializeProperty<T> Serialize, DeserializeProperty<T> Deserialize)> Properties => properties;
-
-        public T? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+        public virtual T? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
         {
             if (reader.TryReadNil())
             {
@@ -388,7 +424,7 @@ public static class MsgPackSerializer
             for (int i = 0; i < count; i++)
             {
                 ReadOnlySpan<byte> propertyName = MessagePack.Internal.CodeGenHelpers.ReadStringSpan(ref reader);
-                if (propertyReaders.TryGetValue(propertyName, out DeserializeProperty<T>? propertyReader))
+                if (propertyData.PropertyReaders.TryGetValue(propertyName, out DeserializeProperty<T>? propertyReader) && propertyReader is not null)
                 {
                     propertyReader(ref result, ref reader, options);
                 }
@@ -409,12 +445,46 @@ public static class MsgPackSerializer
                 return;
             }
 
-            writer.WriteMapHeader(properties.Count);
-            foreach (var property in properties)
+            writer.WriteMapHeader(propertyData.Properties.Count);
+            foreach (var property in propertyData.Properties)
             {
                 writer.WriteRaw(property.RawPropertyNameString);
                 property.Serialize(ref value, ref writer, options);
             }
+        }
+    }
+
+    private sealed class SmartNonDefaultCtorFormatter<T, TArgumentState>(PropertyData<T> propertyData, Func<TArgumentState> argStateCtor, Constructor<TArgumentState, T> constructor, SpanDictionary<byte, DeserializeProperty<TArgumentState>> parameterConverters) : SmartFormatter<T>(propertyData, null)
+    {
+        public override T? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+        {
+            if (reader.TryReadNil())
+            {
+                return default;
+            }
+
+            if (constructor is null)
+            {
+                throw new MessagePackSerializationException($"No constructor for {typeof(T).FullName}");
+            }
+
+            int count = reader.ReadMapHeader();
+            TArgumentState state = argStateCtor();
+
+            for (int i = 0; i < count; i++)
+            {
+                ReadOnlySpan<byte> propertyName = MessagePack.Internal.CodeGenHelpers.ReadStringSpan(ref reader);
+                if (parameterConverters.TryGetValue(propertyName, out DeserializeProperty<TArgumentState>? propertyReader))
+                {
+                    propertyReader(ref state, ref reader, options);
+                }
+                else
+                {
+                    reader.Skip();
+                }
+            }
+
+            return constructor(ref state);
         }
     }
 
