@@ -41,7 +41,6 @@ public static class CompilationTests
     {
         Compilation compilation = CompilationHelpers.CreateCompilation("""
             using TypeShape;
-            using System.Collections.Generic;
 
             [GenerateShape]
             public partial record MyRecord(string value);
@@ -99,7 +98,6 @@ public static class CompilationTests
     {
         Compilation compilation = CompilationHelpers.CreateCompilation("""
             using TypeShape;
-            using System.Collections.Generic;
             using System.Diagnostics.CodeAnalysis;
 
             [GenerateShape]

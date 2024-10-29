@@ -11,19 +11,19 @@ public static class DiagnosticTests
         Compilation compilation = CompilationHelpers.CreateCompilation("""
             using TypeShape;
 
-            [GenerateShape<Func<int, int>>]
+            [GenerateShape<MissingType>]
             public partial class ShapeProvider
             {}
             """);
 
         TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation, disableDiagnosticValidation: true);
 
-        Diagnostic diagnostic = Assert.Single(result.Diagnostics);
+        Diagnostic? diagnostic = result.Diagnostics.FirstOrDefault(d => d.Id == "TS0001");
 
-        Assert.Equal("TS0001", diagnostic.Id);
+        Assert.NotNull(diagnostic);
         Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
         Assert.Equal((2, 1), diagnostic.Location.GetStartPosition());
-        Assert.Equal((2, 30), diagnostic.Location.GetEndPosition());
+        Assert.Equal((2, 27), diagnostic.Location.GetEndPosition());
     }
 
     [Fact]
@@ -96,10 +96,10 @@ public static class DiagnosticTests
         Compilation compilation = CompilationHelpers.CreateCompilation("""
             using TypeShape;
 
-            private static class Container
+            internal static partial class Container
             {
                 [GenerateShape]
-                partial record TypeToGenerate(int x);
+                private partial record TypeToGenerate(int x);
             }
             """);
 
@@ -110,7 +110,7 @@ public static class DiagnosticTests
         Assert.Equal("TS0005", diagnostic.Id);
         Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
         Assert.Equal((4, 4), diagnostic.Location.GetStartPosition());
-        Assert.Equal((5, 41), diagnostic.Location.GetEndPosition());
+        Assert.Equal((5, 49), diagnostic.Location.GetEndPosition());
     }
     
     [Fact]

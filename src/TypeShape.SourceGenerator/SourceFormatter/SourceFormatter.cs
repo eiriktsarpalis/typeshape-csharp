@@ -13,6 +13,12 @@ internal static partial class SourceFormatter
     public static void FormatProvider(SourceProductionContext context, TypeShapeProviderModel provider)
     {
         context.CancellationToken.ThrowIfCancellationRequested();
+
+        if (!provider.Declaration.IsPartialDeclaration)
+        {
+            return; // Skip code generation if the context type is not partial
+        }
+
         context.AddSource($"{provider.Declaration.SourceFilenamePrefix}.g.cs", FormatMainFile(provider));
         context.AddSource($"{provider.Declaration.SourceFilenamePrefix}.ITypeShapeProvider.g.cs", FormatProviderInterfaceImplementation(provider));
 
