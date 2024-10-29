@@ -50,8 +50,10 @@ internal static partial class SourceFormatter
                 global::System.Reflection.BindingFlags.NonPublic | 
                 global::System.Reflection.BindingFlags.Instance;
 
+            /// <summary>Gets the default instance of the <see cref="{{provider.Declaration.Name}}"/> class.</summary>
             public static {{provider.Declaration.Name}} Default { get; } = new();
 
+            /// <summary>Initializes a new instance of the <see cref="{{provider.Declaration.Name}}"/> class.</summary>
             public {{provider.Declaration.Name}}() { }
             """);
 
