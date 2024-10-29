@@ -182,6 +182,12 @@ public sealed partial class Parser : TypeDataModelGenerator
                 continue;
             }
 
+            TypeDeclarationModel typeDeclaration = CreateTypeDeclaration(ctx, CreateTypeId(ctx.TypeSymbol));
+            if (!typeDeclaration.IsPartialDeclaration)
+            {
+                continue; // Skip code generation if the declaring type is not partial.
+            }
+
             TypeDataModelGenerationStatus generationStatus = IncludeType(ctx.TypeSymbol);
 
             if (generationStatus is TypeDataModelGenerationStatus.UnsupportedType)
@@ -196,7 +202,6 @@ public sealed partial class Parser : TypeDataModelGenerator
                 continue;
             }
 
-            TypeDeclarationModel typeDeclaration = CreateTypeDeclaration(ctx, CreateTypeId(ctx.TypeSymbol));
             typeDeclarations.Add(typeDeclaration);
         }
 
@@ -241,6 +246,7 @@ public sealed partial class Parser : TypeDataModelGenerator
             ContainingTypes = parentStack?.ToImmutableEquatableArray() ?? [],
             Namespace = FormatNamespace(context.TypeSymbol),
             SourceFilenamePrefix = context.TypeSymbol.ToDisplayString(RoslynHelpers.QualifiedNameOnlyFormat),
+            IsPartialDeclaration = isPartialHierarchy,
         };
 
         static string FormatTypeDeclarationHeader(BaseTypeDeclarationSyntax typeDeclaration, ITypeSymbol typeSymbol, out bool isPartialType)
@@ -289,5 +295,6 @@ public sealed partial class Parser : TypeDataModelGenerator
         SourceFilenamePrefix = "GenerateShapeProvider",
         TypeDeclarationHeader = "internal partial class GenerateShapeProvider",
         ContainingTypes = [],
+        IsPartialDeclaration = true,
     };
 }
