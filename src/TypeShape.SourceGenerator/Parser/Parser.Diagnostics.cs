@@ -30,8 +30,8 @@ public sealed partial class Parser
 
     private static DiagnosticDescriptor GenericTypeDefinitionsNotSupported { get; } = new DiagnosticDescriptor(
         id: "TS0004",
-        title: "TypeShape generation not supported for generic type definitions.",
-        messageFormat: "The type '{0}' is a generic type definition which is not supported for TypeShape generation.",
+        title: "TypeShape generation not supported for generic types.",
+        messageFormat: "The type '{0}' is a generic type which is not supported for TypeShape generation.",
         category: "TypeShape.SourceGenerator",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);

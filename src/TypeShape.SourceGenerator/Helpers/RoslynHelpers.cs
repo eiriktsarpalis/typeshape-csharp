@@ -144,7 +144,10 @@ internal static partial class RoslynHelpers
     public static string GetGeneratedPropertyName(this ITypeSymbol type)
     {
         switch (type)
-        { 
+        {
+            case ITypeParameterSymbol typeParameter:
+                return typeParameter.Name;
+
             case IArrayTypeSymbol arrayType:
                 int rank = arrayType.Rank;
                 string suffix = rank == 1 ? "_Array" : $"_Array{rank}D"; // Array, Array2D, Array3D, ...

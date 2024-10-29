@@ -101,7 +101,12 @@ public sealed partial class Parser : TypeDataModelGenerator
         TypeId declaringTypeId = CreateTypeId(context.TypeSymbol);
 
         TypeDeclarationModel providerDeclaration = parser.CreateTypeDeclaration(context, declaringTypeId);
-        parser.IncludeTypesFromGenerateShapeOfTAttributes(context.TypeSymbol);
+        if (providerDeclaration.IsValidTypeDeclaration)
+        {
+            // Only generate shapes if the context type is valid.
+            parser.IncludeTypesFromGenerateShapeOfTAttributes(context.TypeSymbol);
+        }
+
         return parser.ExportTypeShapeProviderModel(providerDeclaration, [], isGeneratedViaWitnessType: true);
     }
 
@@ -176,16 +181,10 @@ public sealed partial class Parser : TypeDataModelGenerator
         var typeDeclarations = new List<TypeDeclarationModel>();
         foreach (TypeWithAttributeDeclarationContext ctx in generateShapeDeclarations)
         {
-            if (ctx.TypeSymbol.IsGenericTypeDefinition())
-            {
-                ReportDiagnostic(GenericTypeDefinitionsNotSupported, ctx.Declarations.First().Syntax.GetLocation(), ctx.TypeSymbol.ToDisplayString());
-                continue;
-            }
-
             TypeDeclarationModel typeDeclaration = CreateTypeDeclaration(ctx, CreateTypeId(ctx.TypeSymbol));
-            if (!typeDeclaration.IsPartialDeclaration)
+            if (!typeDeclaration.IsValidTypeDeclaration)
             {
-                continue; // Skip code generation if the declaring type is not partial.
+                continue; // Skip code generation if the declaring type is not valid.
             }
 
             TypeDataModelGenerationStatus generationStatus = IncludeType(ctx.TypeSymbol);
@@ -221,6 +220,14 @@ public sealed partial class Parser : TypeDataModelGenerator
 
     private TypeDeclarationModel CreateTypeDeclaration(TypeWithAttributeDeclarationContext context, TypeId typeId)
     {
+        bool isValidTypeDeclaration = true;
+
+        if (context.TypeSymbol.IsGenericTypeDefinition())
+        {
+            ReportDiagnostic(GenericTypeDefinitionsNotSupported, context.Declarations.First().Syntax.GetLocation(), context.TypeSymbol.ToDisplayString());
+            isValidTypeDeclaration = false;
+        }
+
         (BaseTypeDeclarationSyntax? declarationSyntax, SemanticModel? semanticModel) = context.Declarations.First();
         string typeDeclarationHeader = FormatTypeDeclarationHeader(declarationSyntax, context.TypeSymbol, out bool isPartialHierarchy);
 
@@ -236,6 +243,7 @@ public sealed partial class Parser : TypeDataModelGenerator
         if (!isPartialHierarchy)
         {
             ReportDiagnostic(GeneratedTypeNotPartial, declarationSyntax.GetLocation(), context.TypeSymbol.ToDisplayString());
+            isValidTypeDeclaration = false;
         }
 
         return new TypeDeclarationModel
@@ -246,7 +254,7 @@ public sealed partial class Parser : TypeDataModelGenerator
             ContainingTypes = parentStack?.ToImmutableEquatableArray() ?? [],
             Namespace = FormatNamespace(context.TypeSymbol),
             SourceFilenamePrefix = context.TypeSymbol.ToDisplayString(RoslynHelpers.QualifiedNameOnlyFormat),
-            IsPartialDeclaration = isPartialHierarchy,
+            IsValidTypeDeclaration = isValidTypeDeclaration,
         };
 
         static string FormatTypeDeclarationHeader(BaseTypeDeclarationSyntax typeDeclaration, ITypeSymbol typeSymbol, out bool isPartialType)
@@ -294,7 +302,7 @@ public sealed partial class Parser : TypeDataModelGenerator
         Namespace = "TypeShape.SourceGenerator",
         SourceFilenamePrefix = "GenerateShapeProvider",
         TypeDeclarationHeader = "internal partial class GenerateShapeProvider",
+        IsValidTypeDeclaration = true,
         ContainingTypes = [],
-        IsPartialDeclaration = true,
     };
 }

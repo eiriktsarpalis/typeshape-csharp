@@ -14,9 +14,9 @@ internal static partial class SourceFormatter
     {
         context.CancellationToken.ThrowIfCancellationRequested();
 
-        if (!provider.Declaration.IsPartialDeclaration)
+        if (!provider.Declaration.IsValidTypeDeclaration)
         {
-            return; // Skip code generation if the context type is not partial
+            return; // Skip code generation if the context type is not valid
         }
 
         context.AddSource($"{provider.Declaration.SourceFilenamePrefix}.g.cs", FormatMainFile(provider));

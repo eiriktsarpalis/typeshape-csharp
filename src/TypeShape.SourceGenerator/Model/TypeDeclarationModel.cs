@@ -10,5 +10,5 @@ public record TypeDeclarationModel
     public required ImmutableEquatableArray<string> ContainingTypes { get; init; }
     public required string SourceFilenamePrefix { get; init; }
     public required string? Namespace { get; init; }
-    public required bool IsPartialDeclaration { get; init; }
+    public required bool IsValidTypeDeclaration { get; init; }
 }
