@@ -16,13 +16,30 @@ internal static partial class SourceFormatter
         writer.Indentation++;
 
         writer.WriteLine("""
+            /// <summary>
+            /// Gets the generated <see cref="global::TypeShape.Abstractions.ITypeShape{T}" /> for the specified type.
+            /// </summary>
+            /// <typeparam name="T">The type for which a shape is requested.</typeparam>
+            /// <returns>
+            /// The generated <see cref="global::TypeShape.Abstractions.ITypeShape{T}" /> for the specified type.
+            /// </returns>
             public global::TypeShape.Abstractions.ITypeShape<T>? GetShape<T>()
                 => (global::TypeShape.Abstractions.ITypeShape<T>?)GetShape(typeof(T));
 
             """);
 
-        writer.WriteLine("public global::TypeShape.Abstractions.ITypeShape? GetShape(global::System.Type type)");
-        writer.WriteLine('{');
+        writer.WriteLine("""
+            /// <summary>
+            /// Gets the generated <see cref="global::TypeShape.Abstractions.ITypeShape" /> for the specified type.
+            /// </summary>
+            /// <param name="type">The type for which a shape is requested.</param>
+            /// <returns>
+            /// The generated <see cref="global::TypeShape.Abstractions.ITypeShape" /> for the specified type.
+            /// </returns>
+            public global::TypeShape.Abstractions.ITypeShape? GetShape(global::System.Type type)
+            {
+            """);
+
         writer.Indentation++;
 
         foreach (TypeShapeModel generatedType in provider.ProvidedTypes.Values)

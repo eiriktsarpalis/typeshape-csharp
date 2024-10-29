@@ -34,6 +34,7 @@ internal static partial class SourceFormatter
 
         writer.WriteLine($"""
             #nullable disable annotations // Use nullable-oblivious property type
+            /// <summary>Gets the generated shape for specified type.</summary>
             public {generatedPropertyType} {type.Type.GeneratedPropertyName} => {generatedFieldName} ??= {generatedFactoryMethodName}();
             #nullable enable annotations // Use nullable-oblivious property type
 

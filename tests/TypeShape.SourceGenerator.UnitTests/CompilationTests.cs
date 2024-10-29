@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
 
 namespace TypeShape.SourceGenerator.UnitTests;
@@ -219,6 +220,45 @@ public static class CompilationTests
            [GenerateShape<MyEnum>]
            partial class Witness { }
            """);
+
+        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Fact]
+    public static void XmlDocumentGeneration_GenerateShapeOfT_NoErrors()
+    {
+        // Regression test for https://github.com/eiriktsarpalis/typeshape-csharp/issues/35
+        CSharpParseOptions parseOptions = CompilationHelpers.CreateParseOptions(documentationMode: DocumentationMode.Diagnose);
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+           using TypeShape;
+           
+           /// <summary>My poco.</summary>
+           public class MyPoco<T> { }
+
+           /// <summary>My Witness.</summary>
+           [GenerateShape<MyPoco<int>>]
+           public partial class Witness { }
+           """,
+           parseOptions: parseOptions);
+
+        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Fact]
+    public static void XmlDocumentGeneration_GenerateShape_NoErrors()
+    {
+        // Regression test for https://github.com/eiriktsarpalis/typeshape-csharp/issues/35
+        CSharpParseOptions parseOptions = CompilationHelpers.CreateParseOptions(documentationMode: DocumentationMode.Diagnose);
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+           using TypeShape;
+           
+           /// <summary>My poco.</summary>
+           [GenerateShape]
+           public partial class MyPoco { }
+           """,
+           parseOptions: parseOptions);
 
         TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation);
         Assert.Empty(result.Diagnostics);
