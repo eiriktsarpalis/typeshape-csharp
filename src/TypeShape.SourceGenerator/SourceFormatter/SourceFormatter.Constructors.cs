@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using System.Diagnostics;
+using System.Reflection.Metadata;
 using System.Text;
 using TypeShape.Roslyn;
 using TypeShape.SourceGenerator.Model;
@@ -140,23 +141,40 @@ internal static partial class SourceFormatter
                     return sb.ToString();
                 }
 
-                string objectInitializerExpr = (constructor.Parameters.Length, constructor.RequiredMembers.Length) switch
+                string? memberInitializerBlock = constructor.RequiredMembers.Length switch
                 {
-                    (0, 0) => $$"""{{FormatConstructorName(constructor)}}()""",
-                    (1, 0) when constructor.OptionalMembers is [] => $$"""{{FormatConstructorName(constructor)}}({{FormatCtorParameterExpr(constructor.Parameters[0], isSingleParameter: true)}})""",
-                    (0, 1) when constructor.OptionalMembers is [] => $$"""{{FormatConstructorName(constructor)}} { {{constructor.RequiredMembers[0].UnderlyingMemberName}} = {{stateVar}} }""",
-                    (_, 0) => $$"""{{FormatConstructorName(constructor)}}({{FormatCtorArgumentsBody()}})""",
-                    (0, _) => $$"""{{FormatConstructorName(constructor)}} { {{FormatInitializerBody()}} }""",
-                    (_, _) => $$"""{{FormatConstructorName(constructor)}}({{FormatCtorArgumentsBody()}}) { {{FormatInitializerBody()}} }""",
+                    0 => null,
+                    _ when !constructor.IsAccessible => null, // Can't use member initializers with unsafe accessors
+                    1 when constructor.TotalArity == 1 => $$""" { {{constructor.RequiredMembers[0].UnderlyingMemberName}} = {{stateVar}} }""",
+                    _ => $$""" { {{FormatInitializerBody()}} }""",
                 };
 
-                return constructor.OptionalMembers.Length == 0
-                    ? objectInitializerExpr
-                    : $$"""{ var obj = {{objectInitializerExpr}}; {{FormatOptionalMemberAssignments()}}; return obj; }""";
+                string constructorExpr = constructor.Parameters.Length switch
+                {
+                    0 when memberInitializerBlock is null => $"{FormatConstructorName(constructor)}()",
+                    0 => $"{FormatConstructorName(constructor)}{memberInitializerBlock}",
+                    1 when constructor.TotalArity == 1 => $"{FormatConstructorName(constructor)}({FormatCtorParameterExpr(constructor.Parameters[0], isSingleParameter: true)})",
+                    _ => $"{FormatConstructorName(constructor)}({FormatCtorArgumentsBody()}){memberInitializerBlock}",
+                };
+
+                // Initialize required members using regular assignments if the constructor is not accessible.
+                string? requiredMemberAssignments = constructor.RequiredMembers.Length > 0 && !constructor.IsAccessible
+                    ? FormatRequiredMemberAssignments()
+                    : null;
+
+                // Initialize optional members using conditional assignments.
+                string? optionalMemberAssignments = constructor.OptionalMembers.Length > 0
+                    ? FormatOptionalMemberAssignments()
+                    : null;
+
+                return requiredMemberAssignments is null && optionalMemberAssignments is null 
+                    ? constructorExpr
+                    : $$"""{ var obj = {{constructorExpr}}; {{requiredMemberAssignments}} {{optionalMemberAssignments}} return obj; }""";
 
                 string FormatCtorArgumentsBody() => string.Join(", ", constructor.Parameters.Select(p => FormatCtorParameterExpr(p)));
                 string FormatInitializerBody() => string.Join(", ", constructor.RequiredMembers.Select(p => $"{p.UnderlyingMemberName} = {FormatCtorParameterExpr(p)}"));
-                string FormatOptionalMemberAssignments() => string.Join("; ", constructor.OptionalMembers.Select(FormatOptionalMemberAssignment));
+                string FormatRequiredMemberAssignments() => string.Join(" ", constructor.RequiredMembers.Select(FormatMemberAssignment));
+                string FormatOptionalMemberAssignments() => string.Join(" ", constructor.OptionalMembers.Select(FormatOptionalMemberAssignment));
                 string FormatOptionalMemberAssignment(ConstructorParameterShapeModel parameter)
                 {
                     Debug.Assert(parameter.Kind is ParameterKind.OptionalMember);
@@ -166,19 +184,29 @@ internal static partial class SourceFormatter
                         ? $"{stateVar}.{FlagsArgumentStateLabel}[{flagOffset}]"
                         : $"({stateVar}.{FlagsArgumentStateLabel} & {1 << flagOffset}) != 0";
                     
-                    string assignmentBody;
-                    if (parameter.IsInitOnlyProperty)
-                    {
-                        string accessorName = GetMemberAccessorName(parameter);
-                        string refPrefix = parameter.DeclaringType.IsValueType ? "ref " : "";
-                        assignmentBody = $"{accessorName}({refPrefix}obj, {FormatCtorParameterExpr(parameter)})";
-                    }
-                    else
-                    {
-                        assignmentBody = $"obj.{parameter.UnderlyingMemberName} = {FormatCtorParameterExpr(parameter)}";
-                    }
-                        
+                    string assignmentBody = FormatMemberAssignment(parameter);
+
                     return $"if ({conditionalExpr}) {assignmentBody}";
+                }
+
+                string FormatMemberAssignment(ConstructorParameterShapeModel parameter)
+                {
+                    if (parameter.IsInitOnlyProperty || !parameter.IsAccessible)
+                    {
+                        string refPrefix = parameter.DeclaringType.IsValueType ? "ref " : "";
+                        if (parameter.IsField)
+                        {
+                            string accessorName = GetFieldAccessorName(parameter.DeclaringType, parameter.UnderlyingMemberName);
+                            return $"{accessorName}({refPrefix}obj) = {FormatCtorParameterExpr(parameter)};";
+                        }
+                        else
+                        {
+                            string accessorName = GetPropertySetterAccessorName(parameter.DeclaringType, parameter.UnderlyingMemberName);
+                            return $"{accessorName}({refPrefix}obj, {FormatCtorParameterExpr(parameter)});";
+                        }
+                    }
+
+                    return $"obj.{parameter.UnderlyingMemberName} = {FormatCtorParameterExpr(parameter)};";
                 }
 
                 string FormatCtorParameterExpr(ConstructorParameterShapeModel parameter, bool isSingleParameter = false)
@@ -215,7 +243,14 @@ internal static partial class SourceFormatter
             };
 
         static string FormatConstructorName(ConstructorShapeModel constructor)
-            => constructor.StaticFactoryName ?? $"new {constructor.DeclaringType.FullyQualifiedName}";
+        {
+            return constructor switch
+            {
+                { StaticFactoryName: string factoryName } => factoryName,
+                { IsAccessible: false } => GetConstructorAccessorName(constructor.DeclaringType),
+                _ => $"new {constructor.DeclaringType.FullyQualifiedName}",
+            };
+        }
 
         static string FormatConstructorParameterFactoryName(TypeShapeModel type) =>
             $"CreateConstructorParameters_{type.Type.GeneratedPropertyName}";
@@ -374,58 +409,40 @@ internal static partial class SourceFormatter
         static string FormatTupleType(IEnumerable<string> parameterTypes)
             => $"({string.Join(", ", parameterTypes)})";
     }
-    
-    private static string GetMemberAccessorName(ConstructorParameterShapeModel parameterShapeModel)
+
+    private static string GetConstructorAccessorName(TypeId declaringType)
     {
-        return $"{parameterShapeModel.DeclaringType.GeneratedPropertyName}_set_{parameterShapeModel.UnderlyingMemberName}";
+        return $"{declaringType.GeneratedPropertyName}_CtorAccessor";
     }
 
-    private static void FormatInitPropertySetterAccessors(SourceWriter writer, ConstructorShapeModel constructor)
+    private static void FormatConstructorAccessor(SourceWriter writer, ConstructorShapeModel constructorModel)
     {
-        foreach (ConstructorParameterShapeModel parameter in constructor.OptionalMembers)
+        Debug.Assert(!constructorModel.IsAccessible);
+
+        StringBuilder parameterSignature = new();
+        foreach (ConstructorParameterShapeModel parameter in constructorModel.Parameters)
         {
-            if (!parameter.IsInitOnlyProperty)
+            string refPrefix = parameter.RefKind switch
             {
-                continue;
-            }
-            
-            writer.WriteLine();
-            string accessorName = GetMemberAccessorName(parameter);
-            string refPrefix = parameter.DeclaringType.IsValueType ? "ref " : "";
+                RefKind.Ref or
+                RefKind.RefReadOnlyParameter => "ref ",
+                RefKind.In => "in ",
+                RefKind.Out => "out ",
+                _ => ""
+            };
 
-            if (parameter.PropertyTypeIsGenericInstantiation)
-            {
-                writer.WriteLine($$"""
-                    // Workaround for https://github.com/dotnet/runtime/issues/89439
-                    private static global::System.Reflection.MethodInfo? s_{{accessorName}}_MethodInfo;
-                    private static void {{accessorName}}({{refPrefix}}{{parameter.DeclaringType.FullyQualifiedName}} obj, {{parameter.ParameterType.FullyQualifiedName}} value)
-                    {
-                    """);
-                
-                writer.Indentation++;
-                writer.WriteLine($"global::System.Reflection.MethodInfo setter = s_{accessorName}_MethodInfo ??= typeof({parameter.DeclaringType.FullyQualifiedName}).GetMethod({FormatStringLiteral("set_" + parameter.UnderlyingMemberName)}, {InstanceBindingFlagsConstMember})!;");
-                if (parameter.DeclaringType.IsValueType)
-                {
-                    writer.WriteLine($$"""
-                       object boxed = obj;
-                       setter.Invoke(boxed, new object[] { value });
-                       obj = ({{parameter.DeclaringType.FullyQualifiedName}})boxed;
-                       """);
-                }
-                else
-                {
-                    writer.WriteLine("setter.Invoke(obj, new object[] { value });");
-                }
-
-                writer.Indentation--;
-                writer.WriteLine('}');
-                continue;
-            }
-            
-            writer.WriteLine($"""
-              [global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Method, Name = {FormatStringLiteral("set_" + parameter.UnderlyingMemberName)})]
-              private static extern void {accessorName}({refPrefix}{parameter.DeclaringType.FullyQualifiedName} obj, {parameter.ParameterType.FullyQualifiedName} value);
-              """);
+            parameterSignature.Append($"{refPrefix}{parameter.ParameterType.FullyQualifiedName} {parameter.Name}, ");
         }
+
+        if (parameterSignature.Length > 0)
+        {
+            parameterSignature.Length -= 2;
+        }
+
+        string accessorName = GetConstructorAccessorName(constructorModel.DeclaringType);
+        writer.WriteLine($"""
+            [global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Constructor)]
+            private static extern {constructorModel.DeclaringType.FullyQualifiedName} {accessorName}({parameterSignature});
+            """);
     }
 }

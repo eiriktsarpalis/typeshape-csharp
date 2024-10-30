@@ -65,14 +65,24 @@ public readonly struct PropertyDataModel
     public bool IsField => PropertySymbol is IFieldSymbol;
 
     /// <summary>
+    /// Whether the getter is part of the data model.
+    /// </summary>
+    public required bool IncludeGetter { get; init; }
+
+    /// <summary>
+    /// Whether the setter is part of the data model.
+    /// </summary>
+    public required bool IncludeSetter { get; init; }
+
+    /// <summary>
     /// Whether we can access the property getter.
     /// </summary>
-    public required bool CanRead { get; init; }
+    public required bool IsGetterAccessible { get; init; }
 
     /// <summary>
     /// Whether we can access the property setter.
     /// </summary>
-    public required bool CanWrite { get; init; }
+    public required bool IsSetterAccessible { get; init; }
 
     /// <summary>
     /// Whether the getter method output is non-nullable.
