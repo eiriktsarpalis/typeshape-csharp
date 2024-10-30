@@ -126,6 +126,16 @@ internal static partial class RoslynHelpers
         => type is INamedTypeSymbol { IsGenericType: true } namedType && 
            SymbolEqualityComparer.Default.Equals(namedType.OriginalDefinition, type);
 
+    public static IPropertySymbol GetBaseProperty(this IPropertySymbol property)
+    {
+        while (property.OverriddenProperty is { } baseProp)
+        {
+            property = baseProp;
+        }
+
+        return property;
+    }
+
     public static bool MatchesNamespace(this ISymbol? symbol, ImmutableArray<string> namespaceTokens)
     {
         for (int i = namespaceTokens.Length - 1; i >= 0; i--)

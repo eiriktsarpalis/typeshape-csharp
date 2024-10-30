@@ -34,7 +34,41 @@ internal static partial class SourceFormatter
         {
             writer.WriteLine();
             FormatConstructorFactory(writer, constructorFactoryMethodName, objectShapeModel, objectShapeModel.Constructor!);
-            FormatInitPropertySetterAccessors(writer, objectShapeModel.Constructor!);
+        }
+
+        FormatMemberAccessors(writer, objectShapeModel);
+    }
+
+    private static void FormatMemberAccessors(SourceWriter writer, ObjectShapeModel objectShapeModel)
+    {
+        foreach (PropertyShapeModel property in objectShapeModel.Properties)
+        {
+            if (property.IsField)
+            {
+                writer.WriteLine();
+                FormatFieldAccessor(writer, property);
+            }
+            else
+            {
+                if (property is { EmitGetter: true, IsGetterAccessible: false })
+                {
+                    writer.WriteLine();
+                    FormatPropertyGetterAccessor(writer, property);
+                }
+
+                if (property is { EmitSetter: true, IsSetterAccessible: false } || 
+                    (objectShapeModel.Constructor is not null && property.IsInitOnly))
+                {
+                    writer.WriteLine();
+                    FormatPropertySetterAccessor(writer, property);
+                }
+            }
+        }
+
+        if (objectShapeModel.Constructor is { IsAccessible: false } ctor)
+        {
+            writer.WriteLine();
+            FormatConstructorAccessor(writer, ctor);
         }
     }
 }
