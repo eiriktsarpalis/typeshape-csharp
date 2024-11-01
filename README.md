@@ -98,6 +98,12 @@ Here's a [benchmark](https://github.com/eiriktsarpalis/typeshape-csharp/blob/mai
 
 Even though both serializers target the same underlying reader and writer types, the TypeShape implementation is ~75% faster for serialization and ~100% faster for deserialization, when compared with System.Text.Json's metadata serializer. As expected, fast-path serialization is still fastest since its implementation is fully inlined.
 
+## Known libraries based on TypeShape
+
+The following codebases are based upon TypeShape and may be worth checking out.
+
+- [Nerdbank.MessagePack](https://github.com/AArnott/Nerdbank.MessagePack) - a MessagePack library with performance to rival MessagePack-CSharp, and greater simplicity and additional features.
+
 ## Project structure
 
 The repo consists of the following projects:
