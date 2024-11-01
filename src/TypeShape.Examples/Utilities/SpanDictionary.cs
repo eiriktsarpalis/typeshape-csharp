@@ -21,7 +21,7 @@ public sealed class SpanDictionary<TKey, TValue>
         var source = input.ToArray();
         int size = source.Length;
         _comparer = comparer;
-        
+
         _buckets = new int[Math.Max(size, 1)];
         _entries = new Entry[size];
 
@@ -138,4 +138,8 @@ public static class SpanDictionary
     /// <summary>Maps the specified enumerable using a dictionary using the provided transformers.</summary>
     public static SpanDictionary<TKey, TSource> ToSpanDictionary<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey[]> keySelector, ISpanEqualityComparer<TKey> keyComparer)
         => new(source.Select(t => new KeyValuePair<TKey[], TSource>(keySelector(t), t)), keyComparer);
+
+    /// <summary>Maps the specified enumerable using a dictionary using the provided transformers.</summary>
+    public static SpanDictionary<TKey, TValue> ToSpanDictionary<TSource, TKey, TValue>(this IEnumerable<TSource> source, Func<TSource, TKey[]> keySelector, Func<TSource, TValue> valueSelector, ISpanEqualityComparer<TKey> keyComparer)
+        => new(source.Select(t => new KeyValuePair<TKey[], TValue>(keySelector(t), valueSelector(t))), keyComparer);
 }
