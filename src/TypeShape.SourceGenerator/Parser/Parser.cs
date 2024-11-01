@@ -31,48 +31,72 @@ public sealed partial class Parser : TypeDataModelGenerator
     protected override ITypeSymbol NormalizeType(ITypeSymbol type)
         => KnownSymbols.Compilation.EraseCompilerMetadata(type);
 
-    // Ignore properties and fields with the [PropertyShape] attribute set to Ignore = true.
-    protected override bool IgnorePropertyOrField(ISymbol propertyOrField)
+    // Ignore properties with the [PropertyShape] attribute set to Ignore = true.
+    protected override bool IncludeProperty(IPropertySymbol property, out bool includeGetter, out bool includeSetter)
     {
-        if (propertyOrField.GetAttribute(_knownSymbols.PropertyShapeAttribute) is AttributeData propertyAttribute)
+        if (property.GetAttribute(_knownSymbols.PropertyShapeAttribute) is AttributeData propertyAttribute)
         {
-            if (propertyAttribute.TryGetNamedArgument("Ignore", out bool ignoreValue))
+            bool includeProperty = propertyAttribute.TryGetNamedArgument("Ignore", out bool ignoreValue) ? !ignoreValue : true;
+            if (includeProperty)
             {
-                return ignoreValue;
+                // Use the signature of the base property to determine shape.
+                property = property.GetBaseProperty();
+                includeGetter = property.GetMethod is not null;
+                includeSetter = property.SetMethod is not null;
+                return true;
             }
 
+            includeGetter = includeSetter = false;
             return false;
         }
 
-        return base.IgnorePropertyOrField(propertyOrField);
+        return base.IncludeProperty(property, out includeGetter, out includeSetter);
+    }
+
+    // Ignore fields with the [PropertyShape] attribute set to Ignore = true.
+    protected override bool IncludeField(IFieldSymbol field)
+    {
+        if (field.GetAttribute(_knownSymbols.PropertyShapeAttribute) is AttributeData fieldAttribute)
+        {
+            return fieldAttribute.TryGetNamedArgument("Ignore", out bool ignoreValue) ? !ignoreValue : true;
+        }
+
+        return base.IncludeField(field);
     }
 
     // Resolve constructors with the [ConstructorShape] attribute.
     protected override IEnumerable<IMethodSymbol> ResolveConstructors(ITypeSymbol type, ImmutableArray<PropertyDataModel> properties)
     {
-        IMethodSymbol[] constructors = [..base.ResolveConstructors(type, properties)];
-        bool hasConstructorShapeAttribute = constructors.Any(ctor => ctor.HasAttribute(_knownSymbols.ConstructorShapeAttribute));
-        
-        // If there are no constructors with the attribute, we only want public constructors.
-        constructors = hasConstructorShapeAttribute
-            ? [..constructors.Where(ctor => ctor.HasAttribute(_knownSymbols.ConstructorShapeAttribute))]
-            : [..constructors.Where(ctor => ctor.DeclaredAccessibility is Accessibility.Public)];
+        // Search for constructors that have the [ConstructorShape] attribute. Ignore accessibility modifiers in this step.
+        IMethodSymbol[] constructors = type.GetMembers()
+            .OfType<IMethodSymbol>()
+            .Where(ctor => ctor is { IsStatic: false, MethodKind: MethodKind.Constructor })
+            .Where(ctor => ctor.HasAttribute(_knownSymbols.ConstructorShapeAttribute))
+            .ToArray();
 
-        if (constructors.Length < 2)
+        if (constructors.Length == 1)
         {
-            return constructors;
+            return constructors; // Found a unique match, return that.
         }
 
-        if (hasConstructorShapeAttribute)
+        if (constructors.Length > 1)
         {
+            // We have a conflict, report a diagnostic and pick one using the default heuristic.
             ReportDiagnostic(DuplicateConstructorShape, constructors[^1].Locations.FirstOrDefault(), type.ToDisplayString());
+        }
+        else
+        {
+            // Otherwise, just resolve the public constructors on the type.
+            constructors = base.ResolveConstructors(type, properties)
+                .Where(ctor => ctor.DeclaredAccessibility is Accessibility.Public)
+                .ToArray();
         }
 
         // In case of ambiguity, return the constructor that maximizes
         // the number of parameters corresponding to read-only properties.
         HashSet<(ITypeSymbol, string)> readOnlyProperties = new(
             properties
-                .Where(p => !p.CanWrite)
+                .Where(p => !p.IncludeSetter)
                 .Select(p => (p.PropertyType, p.Name)), 
             s_ctorParamComparer);
             
@@ -101,7 +125,12 @@ public sealed partial class Parser : TypeDataModelGenerator
         TypeId declaringTypeId = CreateTypeId(context.TypeSymbol);
 
         TypeDeclarationModel providerDeclaration = parser.CreateTypeDeclaration(context, declaringTypeId);
-        parser.IncludeTypesFromGenerateShapeOfTAttributes(context.TypeSymbol);
+        if (providerDeclaration.IsValidTypeDeclaration)
+        {
+            // Only generate shapes if the context type is valid.
+            parser.IncludeTypesFromGenerateShapeOfTAttributes(context.TypeSymbol);
+        }
+
         return parser.ExportTypeShapeProviderModel(providerDeclaration, [], isGeneratedViaWitnessType: true);
     }
 
@@ -176,10 +205,10 @@ public sealed partial class Parser : TypeDataModelGenerator
         var typeDeclarations = new List<TypeDeclarationModel>();
         foreach (TypeWithAttributeDeclarationContext ctx in generateShapeDeclarations)
         {
-            if (ctx.TypeSymbol.IsGenericTypeDefinition())
+            TypeDeclarationModel typeDeclaration = CreateTypeDeclaration(ctx, CreateTypeId(ctx.TypeSymbol));
+            if (!typeDeclaration.IsValidTypeDeclaration)
             {
-                ReportDiagnostic(GenericTypeDefinitionsNotSupported, ctx.Declarations.First().Syntax.GetLocation(), ctx.TypeSymbol.ToDisplayString());
-                continue;
+                continue; // Skip code generation if the declaring type is not valid.
             }
 
             TypeDataModelGenerationStatus generationStatus = IncludeType(ctx.TypeSymbol);
@@ -196,7 +225,6 @@ public sealed partial class Parser : TypeDataModelGenerator
                 continue;
             }
 
-            TypeDeclarationModel typeDeclaration = CreateTypeDeclaration(ctx, CreateTypeId(ctx.TypeSymbol));
             typeDeclarations.Add(typeDeclaration);
         }
 
@@ -216,6 +244,14 @@ public sealed partial class Parser : TypeDataModelGenerator
 
     private TypeDeclarationModel CreateTypeDeclaration(TypeWithAttributeDeclarationContext context, TypeId typeId)
     {
+        bool isValidTypeDeclaration = true;
+
+        if (context.TypeSymbol.IsGenericTypeDefinition())
+        {
+            ReportDiagnostic(GenericTypeDefinitionsNotSupported, context.Declarations.First().Syntax.GetLocation(), context.TypeSymbol.ToDisplayString());
+            isValidTypeDeclaration = false;
+        }
+
         (BaseTypeDeclarationSyntax? declarationSyntax, SemanticModel? semanticModel) = context.Declarations.First();
         string typeDeclarationHeader = FormatTypeDeclarationHeader(declarationSyntax, context.TypeSymbol, out bool isPartialHierarchy);
 
@@ -231,6 +267,7 @@ public sealed partial class Parser : TypeDataModelGenerator
         if (!isPartialHierarchy)
         {
             ReportDiagnostic(GeneratedTypeNotPartial, declarationSyntax.GetLocation(), context.TypeSymbol.ToDisplayString());
+            isValidTypeDeclaration = false;
         }
 
         return new TypeDeclarationModel
@@ -241,6 +278,7 @@ public sealed partial class Parser : TypeDataModelGenerator
             ContainingTypes = parentStack?.ToImmutableEquatableArray() ?? [],
             Namespace = FormatNamespace(context.TypeSymbol),
             SourceFilenamePrefix = context.TypeSymbol.ToDisplayString(RoslynHelpers.QualifiedNameOnlyFormat),
+            IsValidTypeDeclaration = isValidTypeDeclaration,
         };
 
         static string FormatTypeDeclarationHeader(BaseTypeDeclarationSyntax typeDeclaration, ITypeSymbol typeSymbol, out bool isPartialType)
@@ -288,6 +326,7 @@ public sealed partial class Parser : TypeDataModelGenerator
         Namespace = "TypeShape.SourceGenerator",
         SourceFilenamePrefix = "GenerateShapeProvider",
         TypeDeclarationHeader = "internal partial class GenerateShapeProvider",
+        IsValidTypeDeclaration = true,
         ContainingTypes = [],
     };
 }

@@ -18,11 +18,9 @@ internal static partial class SourceFormatter
 
         if (type.EmitGenericTypeShapeProviderImplementation)
         {
-            writer.WriteLine($"""
-                #nullable disable annotations // Use nullable-oblivious interface implementation
-                {provider.Declaration.TypeDeclarationHeader} : global::TypeShape.IShapeable<{type.Type.FullyQualifiedName}>
-                #nullable enable annotations // Use nullable-oblivious interface implementation
-                """);
+            writer.WriteLine("#nullable disable annotations // Use nullable-oblivious interface implementation", disableIndentation: true);
+            writer.WriteLine($"""{provider.Declaration.TypeDeclarationHeader} : global::TypeShape.IShapeable<{type.Type.FullyQualifiedName}>""");
+            writer.WriteLine("#nullable enable annotations // Use nullable-oblivious interface implementation", disableIndentation: true);
         }
         else
         {
@@ -32,14 +30,12 @@ internal static partial class SourceFormatter
         writer.WriteLine('{');
         writer.Indentation++;
 
-        writer.WriteLine($"""
-            #nullable disable annotations // Use nullable-oblivious property type
-            public {generatedPropertyType} {type.Type.GeneratedPropertyName} => {generatedFieldName} ??= {generatedFactoryMethodName}();
-            #nullable enable annotations // Use nullable-oblivious property type
-
-            private {generatedPropertyType}? {generatedFieldName};
-
-            """);
+        writer.WriteLine("/// <summary>Gets the generated shape for specified type.</summary>");
+        writer.WriteLine("#nullable disable annotations // Use nullable-oblivious property type", disableIndentation: true);
+        writer.WriteLine($"public {generatedPropertyType} {type.Type.GeneratedPropertyName} => {generatedFieldName} ??= {generatedFactoryMethodName}();");
+        writer.WriteLine("#nullable enable annotations // Use nullable-oblivious property type", disableIndentation: true);
+        writer.WriteLine($"private {generatedPropertyType}? {generatedFieldName};");
+        writer.WriteLine();
 
         if (type.EmitGenericTypeShapeProviderImplementation)
         {

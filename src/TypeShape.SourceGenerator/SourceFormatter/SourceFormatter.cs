@@ -13,6 +13,12 @@ internal static partial class SourceFormatter
     public static void FormatProvider(SourceProductionContext context, TypeShapeProviderModel provider)
     {
         context.CancellationToken.ThrowIfCancellationRequested();
+
+        if (!provider.Declaration.IsValidTypeDeclaration)
+        {
+            return; // Skip code generation if the context type is not valid
+        }
+
         context.AddSource($"{provider.Declaration.SourceFilenamePrefix}.g.cs", FormatMainFile(provider));
         context.AddSource($"{provider.Declaration.SourceFilenamePrefix}.ITypeShapeProvider.g.cs", FormatProviderInterfaceImplementation(provider));
 
@@ -44,8 +50,10 @@ internal static partial class SourceFormatter
                 global::System.Reflection.BindingFlags.NonPublic | 
                 global::System.Reflection.BindingFlags.Instance;
 
+            /// <summary>Gets the default instance of the <see cref="{{provider.Declaration.Name}}"/> class.</summary>
             public static {{provider.Declaration.Name}} Default { get; } = new();
 
+            /// <summary>Initializes a new instance of the <see cref="{{provider.Declaration.Name}}"/> class.</summary>
             public {{provider.Declaration.Name}}() { }
             """);
 

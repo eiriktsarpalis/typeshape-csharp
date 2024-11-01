@@ -58,7 +58,7 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
         MemberInitializerShapeInfo[] settableMembers;
         NullabilityInfoContext? nullabilityCtx = provider.CreateNullabilityInfoContext();
 
-        (ConstructorInfo Ctor, ParameterInfo[] Parameters)[] ctorCandidates = [..GetCandidateConstructors()];
+        (ConstructorInfo Ctor, ParameterInfo[] Parameters, bool HasShapeAttribute)[] ctorCandidates = [..GetCandidateConstructors()];
         if (ctorCandidates.Length == 0)
         {
             if (typeof(T).IsValueType)
@@ -80,7 +80,7 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
 
         if (ctorCandidates.Length == 1)
         {
-            (constructorInfo, parameters) = ctorCandidates[0];
+            (constructorInfo, parameters, _) = ctorCandidates[0];
         }
         else
         {
@@ -92,13 +92,13 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
                 .Select(m => (m.MemberInfo.GetMemberType(), m.MemberInfo.Name))
                 .ToHashSet(s_ctorParameterEqualityComparer);
 
-            (constructorInfo, parameters) = ctorCandidates
+            (constructorInfo, parameters, _) = ctorCandidates
                 .MaxBy(ctor =>
                 {
                     int paramsMatchingReadOnlyMembers = ctor.Parameters.Count(p => readonlyMembers.Contains((p.ParameterType, p.Name!)));
 
                     // In the event of a tie, favor the ctor with the smallest arity.
-                    return (paramsMatchingReadOnlyMembers, -ctor.Parameters.Length);
+                    return (ctor.HasShapeAttribute, paramsMatchingReadOnlyMembers, -ctor.Parameters.Length);
                 });
         }
 
@@ -167,12 +167,13 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
                 .ToArray();
         }
 
-        IEnumerable<(ConstructorInfo, ParameterInfo[])> GetCandidateConstructors()
+        IEnumerable<(ConstructorInfo, ParameterInfo[], bool HasShapeAttribute)> GetCandidateConstructors()
         {
             bool foundCtorWithShapeAttribute = false;
             foreach (ConstructorInfo constructorInfo in typeof(T).GetConstructors(AllInstanceMembers))
             {
-                if (constructorInfo.GetCustomAttribute<ConstructorShapeAttribute>() != null)
+                bool hasShapeAttribute = constructorInfo.GetCustomAttribute<ConstructorShapeAttribute>() != null;
+                if (hasShapeAttribute)
                 {
                     if (foundCtorWithShapeAttribute)
                     {
@@ -202,7 +203,7 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
                     continue;
                 }
 
-                yield return (constructorInfo, parameters);
+                yield return (constructorInfo, parameters, hasShapeAttribute);
             }
         }
     }

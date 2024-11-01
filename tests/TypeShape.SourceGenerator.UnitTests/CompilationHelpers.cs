@@ -101,7 +101,7 @@ public static class CompilationHelpers
         {
             NewCompilation = outCompilation,
             GeneratedModels = [.. generatedModels],
-            Diagnostics = [.. diagnostics],
+            Diagnostics = [.. diagnostics, .. outCompilation.GetDiagnostics()],
         };
     }
 

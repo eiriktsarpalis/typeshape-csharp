@@ -464,7 +464,11 @@ public static class TestTypes
         yield return TestCase.Create(ClassWithRefConstructorParameter.Create(), hasRefConstructorParameters: true);
         yield return TestCase.Create(new ClassWithOutConstructorParameter(out _), hasRefConstructorParameters: true, hasOutConstructorParameters: true);
         yield return TestCase.Create(ClassWithMultipleRefConstructorParameters.Create(), hasRefConstructorParameters: true);
+        yield return TestCase.Create(ClassWithRefConstructorParameterPrivate.Create(), hasRefConstructorParameters: true);
+        yield return TestCase.Create(ClassWithMultipleRefConstructorParametersPrivate.Create(), hasRefConstructorParameters: true);
         yield return TestCase.Create(new ClassWithUnsupportedPropertyTypes());
+        yield return TestCase.Create(new ClassWithIncludedPrivateMembers());
+        yield return TestCase.Create(new StructWithIncludedPrivateMembers());
 
         // F# types
         yield return TestCase.Create(p, new FSharpRecord(42, "str", true));
@@ -1673,6 +1677,48 @@ public partial class ClassWithMultipleRefConstructorParameters
 }
 
 [GenerateShape]
+public partial class ClassWithRefConstructorParameterPrivate
+{
+    [JsonConstructor, ConstructorShape]
+    private ClassWithRefConstructorParameterPrivate(ref int value)
+    {
+        Value = value;
+    }
+
+    public int Value { get; }
+
+    public static ClassWithRefConstructorParameterPrivate Create()
+    {
+        int value = 42;
+        return new ClassWithRefConstructorParameterPrivate(ref value);
+    }
+}
+
+[GenerateShape]
+public partial class ClassWithMultipleRefConstructorParametersPrivate
+{
+    [JsonConstructor, ConstructorShape]
+    private ClassWithMultipleRefConstructorParametersPrivate(ref int intValue, in bool boolValue, ref readonly DateTime dateValue)
+    {
+        IntValue = intValue;
+        BoolValue = boolValue;
+        DateValue = dateValue;
+    }
+
+    public int IntValue { get; }
+    public bool BoolValue { get; }
+    public DateTime DateValue { get; }
+
+    public static ClassWithMultipleRefConstructorParametersPrivate Create()
+    {
+        int intValue = 42;
+        bool boolValue = true;
+        DateTime dateValue = DateTime.MaxValue;
+        return new ClassWithMultipleRefConstructorParametersPrivate(ref intValue, in boolValue, ref dateValue);
+    }
+}
+
+[GenerateShape]
 public partial class ClassWithUnsupportedPropertyTypes
 {
     public Exception? Exception { get; }
@@ -1681,6 +1727,86 @@ public partial class ClassWithUnsupportedPropertyTypes
     public Task<int>? Task { get; }
     [JsonIgnore]
     public ReadOnlySpan<char> Span => "str";
+}
+
+[GenerateShape]
+public partial class ClassWithIncludedPrivateMembers
+{
+    [SetsRequiredMembers]
+    public ClassWithIncludedPrivateMembers() : this(1, 2, 3, 4) 
+    {
+        RequiredProperty = 5;
+        RequiredField = 6;
+        OptionalProperty = 7;
+        OptionalField = 8;
+    }
+
+    [JsonConstructor, ConstructorShape]
+    private ClassWithIncludedPrivateMembers(int privateProperty, int privateField, int privateGetter, int privateSetter)
+    {
+        PrivateProperty = privateProperty;
+        PrivateField = privateField;
+        PrivateGetter = privateGetter;
+        PrivateSetter = privateSetter;
+        _ = OptionalField;
+    }
+
+    [JsonInclude, PropertyShape]
+    private int PrivateProperty { get; set; }
+    [JsonInclude, PropertyShape]
+    private int PrivateField;
+    [JsonInclude, PropertyShape]
+    public int PrivateGetter { private get; set; }
+    [JsonInclude, PropertyShape]
+    public int PrivateSetter { get; private set; }
+
+    public required int RequiredProperty { get; set; }
+    public required int RequiredField;
+
+    [JsonInclude, PropertyShape]
+    private int? OptionalProperty { get; init; }
+    [JsonInclude, PropertyShape]
+    private int? OptionalField;
+}
+
+[GenerateShape]
+public partial struct StructWithIncludedPrivateMembers
+{
+    [SetsRequiredMembers]
+    public StructWithIncludedPrivateMembers() : this(1, 2, 3, 4) 
+    {
+        RequiredProperty = 5;
+        RequiredField = 6;
+        OptionalProperty = 7;
+        OptionalField = 8;
+    }
+
+    [JsonConstructor, ConstructorShape]
+    private StructWithIncludedPrivateMembers(int privateProperty, int privateField, int privateGetter, int privateSetter)
+    {
+        PrivateProperty = privateProperty;
+        PrivateField = privateField;
+        PrivateGetter = privateGetter;
+        PrivateSetter = privateSetter;
+        _ = OptionalField;
+    }
+
+    [JsonInclude, PropertyShape]
+    private int PrivateProperty { get; set; }
+    [JsonInclude, PropertyShape]
+    private int PrivateField;
+    [JsonInclude, PropertyShape]
+    public int PrivateGetter { private get; set; }
+    [JsonInclude, PropertyShape]
+    public int PrivateSetter { get; private set; }
+
+    public required int RequiredProperty { get; set; }
+    public required int RequiredField;
+
+    [JsonInclude, PropertyShape]
+    private int? OptionalProperty { get; init; }
+    [JsonInclude, PropertyShape]
+    private int? OptionalField;
 }
 
 [GenerateShape<object>]

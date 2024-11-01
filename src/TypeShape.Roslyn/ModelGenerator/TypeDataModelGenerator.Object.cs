@@ -46,11 +46,30 @@ public partial class TypeDataModelGenerator
     }
 
     /// <summary>
-    /// Determines whether the given property or field should be ignored from the data model.
+    /// Determines whether the given field should be included in the object data model.
     /// </summary>
-    /// <remarks>Defaults to non-public properties being skipped.</remarks>
-    protected virtual bool IgnorePropertyOrField(ISymbol propertyOrField)
-        => propertyOrField.DeclaredAccessibility is not Accessibility.Public;
+    /// <remarks>Defaults to including public fields only.</remarks>
+    protected virtual bool IncludeField(IFieldSymbol field)
+        => field.DeclaredAccessibility is Accessibility.Public;
+
+    /// <summary>
+    /// Determines whether the given property should be included in the object data model.
+    /// </summary>
+    /// <remarks>Defaults to including public getters and setters only.</remarks>
+    protected virtual bool IncludeProperty(IPropertySymbol property, out bool includeGetter, out bool includeSetter)
+    {
+        if (property.DeclaredAccessibility is Accessibility.Public)
+        {
+            // Use the signature of the base property to determine shape and accessibility.
+            property = property.GetBaseProperty();
+            includeGetter = property.GetMethod is { } getter && IsAccessibleSymbol(getter);
+            includeSetter = property.SetMethod is { } setter && IsAccessibleSymbol(setter);
+            return true;
+        }
+
+        includeGetter = includeSetter = false;
+        return false;
+    }
 
     private bool TryMapObject(ITypeSymbol type, ref TypeDataModelGenerationContext ctx, out TypeDataModel? model, out TypeDataModelGenerationStatus status)
     {
@@ -92,15 +111,15 @@ public partial class TypeDataModelGenerator
             foreach (ISymbol member in members) 
             {
                 if (member is IPropertySymbol { IsStatic: false, Parameters: [] } ps &&
-                    IsAccessibleSymbol(ps) && !IsOverriddenOrShadowed(ps) && !IgnorePropertyOrField(ps) && 
+                    !IsOverriddenOrShadowed(ps) && IncludeProperty(ps, out bool includeGetter, out bool includeSetter) &&
                     IncludeNestedType(ps.Type, ref ctx) is TypeDataModelGenerationStatus.Success)
                 {
-                    PropertyDataModel propertyModel = MapProperty(ps);
+                    PropertyDataModel propertyModel = MapProperty(ps, includeGetter, includeSetter);
                     properties.Add(propertyModel);
                 }
                 else if (
                     member is IFieldSymbol { IsStatic: false, IsConst: false } fs &&
-                    IsAccessibleSymbol(fs) && !IsOverriddenOrShadowed(fs) && !IgnorePropertyOrField(fs) && 
+                    !IsOverriddenOrShadowed(fs) && IncludeField(fs) &&
                     IncludeNestedType(fs.Type, ref ctx) is TypeDataModelGenerationStatus.Success)
                 {
                     PropertyDataModel fieldModel = MapField(fs);
@@ -114,9 +133,11 @@ public partial class TypeDataModelGenerator
         return properties.ToImmutableArray();
     }
 
-    private PropertyDataModel MapProperty(IPropertySymbol property)
+    private PropertyDataModel MapProperty(IPropertySymbol property, bool includeGetter, bool includeSetter)
     {
         Debug.Assert(property is { IsStatic: false, IsIndexer: false });
+        Debug.Assert(!includeGetter || property.GetBaseProperty().GetMethod is not null);
+        Debug.Assert(!includeSetter || property.GetBaseProperty().SetMethod is not null);
 
         // Property symbol represents the most derived declaration in the current hierarchy.
         // Need to use the base symbol to determine the actual signature, but use the derived
@@ -126,21 +147,26 @@ public partial class TypeDataModelGenerator
 
         return new PropertyDataModel(property)
         {
-            CanRead = baseProperty.GetMethod is { } getter && IsAccessibleSymbol(getter),
-            CanWrite = baseProperty.SetMethod is { } setter && IsAccessibleSymbol(setter),
+            IncludeGetter = includeGetter,
+            IncludeSetter = includeSetter,
+            IsGetterAccessible = baseProperty.GetMethod is { } getter && IsAccessibleSymbol(getter),
+            IsSetterAccessible = baseProperty.SetMethod is { } setter && IsAccessibleSymbol(setter),
             IsGetterNonNullable = isGetterNonNullable,
             IsSetterNonNullable = isSetterNonNullable,
         };
     }
 
-    private static PropertyDataModel MapField(IFieldSymbol field)
+    private PropertyDataModel MapField(IFieldSymbol field)
     {
         Debug.Assert(!field.IsStatic);
         field.ResolveNullableAnnotation(out bool isGetterNonNullable, out bool isSetterNonNullable);
+        bool isAccessible = IsAccessibleSymbol(field);
         return new PropertyDataModel(field)
         {
-            CanRead = true,
-            CanWrite = !field.IsReadOnly,
+            IncludeGetter = true,
+            IncludeSetter = !field.IsReadOnly,
+            IsGetterAccessible = isAccessible,
+            IsSetterAccessible = isAccessible && !field.IsReadOnly,
             IsGetterNonNullable = isGetterNonNullable,
             IsSetterNonNullable = isSetterNonNullable,
         };
@@ -164,7 +190,6 @@ public partial class TypeDataModelGenerator
     private ConstructorDataModel? MapConstructor(IMethodSymbol constructor, ImmutableArray<PropertyDataModel> properties, ref TypeDataModelGenerationContext ctx)
     {
         Debug.Assert(constructor.MethodKind is MethodKind.Constructor || constructor.IsStatic);
-        Debug.Assert(IsAccessibleSymbol(constructor));
 
         var parameters = new List<ConstructorParameterDataModel>();
         TypeDataModelGenerationContext scopedCtx = ctx;
@@ -194,7 +219,7 @@ public partial class TypeDataModelGenerator
         {
             PropertyDataModel property = properties[i];
 
-            if (!property.CanWrite && !property.IsInitOnly)
+            if (!property.IncludeSetter && !property.IsInitOnly)
             {
                 // We're only interested in settable properties.
                 continue;

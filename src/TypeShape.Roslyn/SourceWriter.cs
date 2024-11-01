@@ -90,9 +90,23 @@ public sealed class SourceWriter
     /// <summary>
     /// Appends a new line with the specified text.
     /// </summary>
-    public void WriteLine(string text)
+    /// <param name="text">The text to append.</param>
+    /// <param name="trimNullAssignmentLines">Trims any lines containing 'Identifier = null,' assignments.</param>
+    /// <param name="disableIndentation">Append text without preserving the current indentation.</param>
+    public void WriteLine(
+        string text,
+        bool trimNullAssignmentLines = false,
+        bool disableIndentation = false)
     {
-        if (_indentation == 0)
+        if (trimNullAssignmentLines)
+        {
+            // Since the ns2.0 Regex class doesn't support spans,
+            // use Regex.Replace to preprocess the string instead
+            // of doing a line-by-line replacement.
+            text = s_nullAssignmentLineRegex.Replace(text, "");
+        }
+
+        if (_indentation == 0 || disableIndentation)
         {
             _sb.AppendLine(text);
             return;
@@ -122,13 +136,7 @@ public sealed class SourceWriter
     /// </summary>
     public void WriteLine(string text, bool trimNullAssignmentLines)
     {
-        if (trimNullAssignmentLines)
-        {
-            // Since the ns2.0 Regex class doesn't support spans,
-            // use Regex.Replace to preprocess the string instead
-            // of doing a line-by-line replacement.
-            text = s_nullAssignmentLineRegex.Replace(text, "");
-        }
+
 
         WriteLine(text);
     }
