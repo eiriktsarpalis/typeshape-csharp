@@ -17,14 +17,14 @@ public static class TestCase
         bool usesSpanCtor = false,
         bool isStack = false)
         where T : IShapeable<T> =>
-        
-        new TestCase<T, T>(value) 
-        { 
+
+        new TestCase<T, T>(value)
+        {
             ExpectedEncoding = expectedEncoding,
-            AdditionalValues = additionalValues, 
+            AdditionalValues = additionalValues,
             HasRefConstructorParameters = hasRefConstructorParameters,
             HasOutConstructorParameters = hasOutConstructorParameters,
-            IsLossyRoundtrip = isLossyRoundtrip, 
+            IsLossyRoundtrip = isLossyRoundtrip,
             UsesSpanConstructor = usesSpanCtor,
             IsStack = isStack,
         };
@@ -40,14 +40,14 @@ public static class TestCase
         bool usesSpanCtor = false,
         bool isStack = false)
         where TProvider : IShapeable<T> =>
-    
-        new TestCase<T, TProvider>(value) 
+
+        new TestCase<T, TProvider>(value)
         {
             ExpectedEncoding = expectedEncoding,
             AdditionalValues = additionalValues,
             HasRefConstructorParameters = hasRefConstructorParameters,
             HasOutConstructorParameters = hasOutConstructorParameters,
-            IsLossyRoundtrip = isLossyRoundtrip, 
+            IsLossyRoundtrip = isLossyRoundtrip,
             UsesSpanConstructor = usesSpanCtor,
             IsStack = isStack,
         };
@@ -59,12 +59,20 @@ public sealed record TestCase<T, TProvider>(T? Value) : TestCase<T>(Value)
     public override ITypeShape<T> GetShape(IProviderUnderTest provider) =>
         provider.GetShape<T, TProvider>();
 }
-    
+
 public abstract record TestCase<T>(T? Value) : ITestCase
 {
     public T?[]? AdditionalValues { get; init; }
     public string? ExpectedEncoding { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the type is a LIFO collection.
+    /// </summary>
     public bool IsStack { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether some fields or properties exist on this type that by design will not be included in the type shape.
+    /// </summary>
     public bool IsLossyRoundtrip { get; init; }
     public bool HasRefConstructorParameters { get; init; }
     public bool HasOutConstructorParameters { get; init; }
@@ -75,7 +83,7 @@ public abstract record TestCase<T>(T? Value) : ITestCase
     public Type Type => typeof(T);
     object? ITestCase.Value => Value;
     ITypeShape ITestCase.GetShape(IProviderUnderTest provider) => GetShape(provider);
-    
+
     public bool HasConstructors(IProviderUnderTest provider) =>
         !(IsAbstract && !typeof(IEnumerable).IsAssignableFrom(typeof(T))) &&
         !IsMultiDimensionalArray &&
@@ -83,21 +91,21 @@ public abstract record TestCase<T>(T? Value) : ITestCase
         (!UsesSpanConstructor || provider.Kind is not ProviderKind.Reflection);
 
     public bool IsNullable => default(T) is null;
-    public bool IsEquatable => 
+    public bool IsEquatable =>
         typeof(IEquatable<T>).IsAssignableFrom(typeof(T)) &&
         !typeof(T).IsImmutableArray() &&
         !typeof(T).IsMemoryType(out _, out _) &&
         !typeof(T).IsRecordType();
-    
+
     public bool IsTuple => typeof(ITuple).IsAssignableFrom(typeof(T));
-    public bool IsLongTuple => IsTuple && typeof(T).GetMember("Rest").Any();
+    public bool IsLongTuple => IsTuple && typeof(T).GetMember("Rest").Length > 0;
     public bool IsMultiDimensionalArray => typeof(T).IsArray && typeof(T).GetArrayRank() != 1;
     public bool IsAbstract => typeof(T).IsAbstract || typeof(T).IsInterface;
 
     IEnumerable<ITestCase> ITestCase.ExpandCases()
     {
         yield return this with { AdditionalValues = [] };
-        
+
         if (default(T) is null && Value is not null)
         {
             yield return this with { Value = default, AdditionalValues = [] };
@@ -107,7 +115,7 @@ public abstract record TestCase<T>(T? Value) : ITestCase
         {
             throw new InvalidOperationException("Cannot combine expected encodings with additional values!");
         }
-        
+
         foreach (T? additionalValue in AdditionalValues ?? [])
         {
             yield return this with { Value = additionalValue, AdditionalValues = [] };

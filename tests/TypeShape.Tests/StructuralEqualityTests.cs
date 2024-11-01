@@ -3,7 +3,7 @@ using Xunit;
 
 namespace TypeShape.Tests;
 
-public abstract class StructuralEqualityTests(IProviderUnderTest providerUnderTest)
+public abstract partial class StructuralEqualityTests(IProviderUnderTest providerUnderTest)
 {
     [Theory]
     [MemberData(nameof(TestTypes.GetEqualValuePairs), MemberType = typeof(TestTypes))]

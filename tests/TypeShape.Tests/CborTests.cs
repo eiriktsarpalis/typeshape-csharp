@@ -4,14 +4,14 @@ using Xunit;
 
 namespace TypeShape.Tests;
 
-public abstract class CborTests(IProviderUnderTest providerUnderTest)
+public abstract partial class CborTests(IProviderUnderTest providerUnderTest)
 {
     [Theory]
     [MemberData(nameof(GetValuesAndExpectedEncoding))]
     public void ReturnsExpectedEncoding<T>(TestCase<T> testCase)
     {
         CborConverter<T> converter = GetConverterUnderTest(testCase);
-        
+
         string hexEncoding = converter.EncodeToHex(testCase.Value);
         Assert.Equal(testCase.ExpectedEncoding, hexEncoding);
     }

@@ -3,7 +3,7 @@ using Xunit;
 
 namespace TypeShape.Tests;
 
-public abstract class CounterTests(IProviderUnderTest providerUnderTest)
+public abstract partial class CounterTests(IProviderUnderTest providerUnderTest)
 {
     [Theory]
     [MemberData(nameof(GetValuesAndExpectedResult))]

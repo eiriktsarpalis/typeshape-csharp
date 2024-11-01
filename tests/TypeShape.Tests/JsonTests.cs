@@ -7,7 +7,7 @@ using Xunit;
 
 namespace TypeShape.Tests;
 
-public abstract class JsonTests(IProviderUnderTest providerUnderTest)
+public abstract partial class JsonTests(IProviderUnderTest providerUnderTest)
 {
     [Theory]
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
@@ -285,6 +285,17 @@ public abstract class JsonTests(IProviderUnderTest providerUnderTest)
         TArray? result = converter.Deserialize(json);
         Assert.Equal(testCase.Value, result);
     }
+
+    [GenerateShape<int[,]>]
+    [GenerateShape<int[,,]>]
+    [GenerateShape<int[,,,,,]>]
+    [GenerateShape<(int, int, int, int, int, int, int, int, int)>]
+    [GenerateShape<(int, int, int, int, int, int, int, int, int, int,
+    int, int, int, int, int, int, int, int, int, int,
+    int, int, int, int, int, int, int, int, int, int)>]
+    [GenerateShape<Tuple<int, int, int, int, int, int, int, Tuple<int, int, int>>>]
+    [GenerateShape<Tuple<int, int, int, int, int, int, int, Tuple<int, int, int, int, int, int, int, Tuple<int>>>>]
+    internal partial class SourceGenProvider;
 
     public static IEnumerable<object?[]> GetMultiDimensionalArraysAndExpectedJson()
     {
