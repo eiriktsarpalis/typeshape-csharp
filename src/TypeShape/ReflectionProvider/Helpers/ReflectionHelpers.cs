@@ -46,7 +46,10 @@ internal static class ReflectionHelpers
     {
         if (GetNullabilityInfo(parameterInfo, ctx) is NullabilityInfo info)
         {
+#if NET8_0
             // Workaround for https://github.com/dotnet/runtime/issues/92487
+            // The fix has been incorporated into .NET 9 (and the polyfilled implementations in netfx).
+            // Should be removed once .NET 8 support is dropped.
             if (parameterInfo.GetGenericParameterDefinition() is { ParameterType: { IsGenericTypeParameter: true } typeParam })
             {
                 // Step 1. Look for nullable annotations on the type parameter.
@@ -72,27 +75,48 @@ internal static class ReflectionHelpers
 
                 static byte[]? GetNullableFlags(MemberInfo member)
                 {
-                    Attribute? attr = member.GetCustomAttributes().FirstOrDefault(attr =>
+                    foreach (CustomAttributeData attr in member.GetCustomAttributesData())
                     {
-                        Type attrType = attr.GetType();
-                        return attrType.Namespace == "System.Runtime.CompilerServices" && attrType.Name == "NullableAttribute";
-                    });
+                        Type attrType = attr.AttributeType;
+                        if (attrType.Name == "NullableAttribute" && attrType.Namespace == "System.Runtime.CompilerServices")
+                        {
+                            foreach (CustomAttributeTypedArgument ctorArg in attr.ConstructorArguments)
+                            {
+                                switch (ctorArg.Value)
+                                {
+                                    case byte flag:
+                                        return [flag];
+                                    case byte[] flags:
+                                        return flags;
+                                }
+                            }
+                        }
+                    }
 
-                    return (byte[])attr?.GetType().GetField("NullableFlags")?.GetValue(attr)!;
+                    return null;
                 }
 
                 static byte? GetNullableContextFlag(MemberInfo member)
                 {
-                    Attribute? attr = member.GetCustomAttributes().FirstOrDefault(attr =>
+                    foreach (CustomAttributeData attr in member.GetCustomAttributesData())
                     {
-                        Type attrType = attr.GetType();
-                        return attrType.Namespace == "System.Runtime.CompilerServices" && attrType.Name == "NullableContextAttribute";
-                    });
+                        Type attrType = attr.AttributeType;
+                        if (attrType.Name == "NullableContextAttribute" && attrType.Namespace == "System.Runtime.CompilerServices")
+                        {
+                            foreach (CustomAttributeTypedArgument ctorArg in attr.ConstructorArguments)
+                            {
+                                if (ctorArg.Value is byte flag)
+                                {
+                                    return flag;
+                                }
+                            }
+                        }
+                    }
 
-                    return (byte?)attr?.GetType().GetField("Flag")?.GetValue(attr)!;
+                    return null;
                 }
             }
-
+#endif
             return info.WriteState is NullabilityState.NotNull;
         }
         else
@@ -211,7 +235,7 @@ internal static class ReflectionHelpers
             ? type.GetMethod("<Clone>$", BindingFlags.Public | BindingFlags.Instance) is not null
             : type.GetMethod("PrintMembers", BindingFlags.NonPublic | BindingFlags.Instance, [typeof(StringBuilder)]) is { } method
                 && method.ReturnType == typeof(bool)
-                && method.GetCustomAttributes().Any(attr => attr.GetType().Name == "CompilerGeneratedAttribute");
+                && method.GetCustomAttributesData().Any(attr => attr.AttributeType.Name == "CompilerGeneratedAttribute");
     }
 
     public static Type GetMemberType(this MemberInfo memberInfo)
