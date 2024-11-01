@@ -13,7 +13,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="MessagePack" />
     <PackageReference Include="System.Formats.Cbor" />
     <PackageReference Include="Microsoft.Extensions.Configuration" />
   </ItemGroup>
