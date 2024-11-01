@@ -409,7 +409,7 @@ public static class TestTypes
             r30 = 30, r31 = 31, r32 = 32, r33 = 33, r34 = 34, r35 = 35, r36 = 36, r37 = 37, r38 = 38, r39 = 39,
         });
 
-        yield return TestCase.Create(new ClassWithInternalMembers { X = 1, Y = 2, Z = 3, W = 4, internalField = 5 }, isLossyRoundtrip: true);
+        yield return TestCase.Create(new ClassWithInternalMembers { X = 1, Y = 2, Z = 3, W = 4, internalField = 5 });
         yield return TestCase.Create(new ClassWithPropertyAnnotations { X = 1, Y = 2, Z = true });
         yield return TestCase.Create(new ClassWithConstructorAndAnnotations(1, 2, true));
         yield return TestCase.Create(new DerivedClassWithPropertyShapeAnnotations());
