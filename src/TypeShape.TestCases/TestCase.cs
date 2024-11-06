@@ -5,129 +5,75 @@ using TypeShape.ReflectionProvider;
 
 namespace TypeShape.Tests;
 
+/// <summary>
+/// Defines a set of factory methods for building test cases.
+/// </summary>
 public static class TestCase
 {
+    /// <summary>
+    /// Creates a new test case instance.
+    /// </summary>
+    /// <typeparam name="T">The type of test case.</typeparam>
+    /// <param name="value">The value of the test case.</param>
+    /// <param name="additionalValues">Any additional values to be tested.</param>
+    /// <param name="hasRefConstructorParameters">Whether the shape constructor accepts any ref parameters.</param>
+    /// <param name="hasOutConstructorParameters">Whether the shape constructor accepts any out parameters.</param>
+    /// <param name="isLossyRoundtrip">Whether the the shape ignores certain properties when marshalling.</param>
+    /// <param name="usesSpanConstructor">Whether the shape defines a collection constructor that takes a span of elements.</param>
+    /// <param name="isStack">Whether the type is a stack.</param>
+    /// <returns>A test case instance using the specified parameters.</returns>
     public static TestCase<T> Create<T>(
         T? value,
-        string? expectedEncoding = null,
         T?[]? additionalValues = null,
         bool hasRefConstructorParameters = false,
         bool hasOutConstructorParameters = false,
         bool isLossyRoundtrip = false,
-        bool usesSpanCtor = false,
+        bool usesSpanConstructor = false,
         bool isStack = false)
         where T : IShapeable<T> =>
 
         new TestCase<T, T>(value)
         {
-            ExpectedEncoding = expectedEncoding,
             AdditionalValues = additionalValues,
             HasRefConstructorParameters = hasRefConstructorParameters,
             HasOutConstructorParameters = hasOutConstructorParameters,
             IsLossyRoundtrip = isLossyRoundtrip,
-            UsesSpanConstructor = usesSpanCtor,
+            UsesSpanConstructor = usesSpanConstructor,
             IsStack = isStack,
         };
 
+    /// <summary>
+    /// Creates a new test case instance.
+    /// </summary>
+    /// <typeparam name="TProvider">The type of the shape provider for the <typeparamref name="T"/>.</typeparam>
+    /// <typeparam name="T">The type of test case.</typeparam>
+    /// <param name="provider">An instance of <typeparamref name="TProvider"/> to aid type inference.</param>
+    /// <param name="value">The value of the test case.</param>
+    /// <param name="additionalValues">Any additional values to be tested.</param>
+    /// <param name="hasRefConstructorParameters">Whether the shape constructor accepts any ref parameters.</param>
+    /// <param name="hasOutConstructorParameters">Whether the shape constructor accepts any out parameters.</param>
+    /// <param name="isLossyRoundtrip">Whether the the shape ignores certain properties when marshalling.</param>
+    /// <param name="usesSpanConstructor">Whether the shape defines a collection constructor that takes a span of elements.</param>
+    /// <param name="isStack">Whether the type is a stack.</param>
+    /// <returns>A test case instance using the specified parameters.</returns>
     public static TestCase<T> Create<TProvider, T>(
-        TProvider? _,
+        TProvider? provider,
         T? value,
-        string? expectedEncoding = null,
         T?[]? additionalValues = null,
         bool isLossyRoundtrip = false,
         bool hasRefConstructorParameters = false,
         bool hasOutConstructorParameters = false,
-        bool usesSpanCtor = false,
+        bool usesSpanConstructor = false,
         bool isStack = false)
         where TProvider : IShapeable<T> =>
 
         new TestCase<T, TProvider>(value)
         {
-            ExpectedEncoding = expectedEncoding,
             AdditionalValues = additionalValues,
             HasRefConstructorParameters = hasRefConstructorParameters,
             HasOutConstructorParameters = hasOutConstructorParameters,
             IsLossyRoundtrip = isLossyRoundtrip,
-            UsesSpanConstructor = usesSpanCtor,
+            UsesSpanConstructor = usesSpanConstructor,
             IsStack = isStack,
         };
-}
-
-public sealed record TestCase<T, TProvider>(T? Value) : TestCase<T>(Value)
-    where TProvider : IShapeable<T>
-{
-    public override ITypeShape<T> GetShape(IProviderUnderTest provider) =>
-        provider.GetShape<T, TProvider>();
-}
-
-public abstract record TestCase<T>(T? Value) : ITestCase
-{
-    public T?[]? AdditionalValues { get; init; }
-    public string? ExpectedEncoding { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether the type is a LIFO collection.
-    /// </summary>
-    public bool IsStack { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether some fields or properties exist on this type that by design will not be included in the type shape.
-    /// </summary>
-    public bool IsLossyRoundtrip { get; init; }
-    public bool HasRefConstructorParameters { get; init; }
-    public bool HasOutConstructorParameters { get; init; }
-    public bool UsesSpanConstructor { get; init; }
-
-    public abstract ITypeShape<T> GetShape(IProviderUnderTest provider);
-
-    public Type Type => typeof(T);
-    object? ITestCase.Value => Value;
-    ITypeShape ITestCase.GetShape(IProviderUnderTest provider) => GetShape(provider);
-
-    public bool HasConstructors(IProviderUnderTest provider) =>
-        !(IsAbstract && !typeof(IEnumerable).IsAssignableFrom(typeof(T))) &&
-        !IsMultiDimensionalArray &&
-        !HasOutConstructorParameters &&
-        (!UsesSpanConstructor || provider.Kind is not ProviderKind.Reflection);
-
-    public bool IsNullable => default(T) is null;
-    public bool IsEquatable =>
-        typeof(IEquatable<T>).IsAssignableFrom(typeof(T)) &&
-        !typeof(T).IsImmutableArray() &&
-        !typeof(T).IsMemoryType(out _, out _) &&
-        !typeof(T).IsRecordType();
-
-    public bool IsTuple => typeof(ITuple).IsAssignableFrom(typeof(T));
-    public bool IsLongTuple => IsTuple && typeof(T).GetMember("Rest").Length > 0;
-    public bool IsMultiDimensionalArray => typeof(T).IsArray && typeof(T).GetArrayRank() != 1;
-    public bool IsAbstract => typeof(T).IsAbstract || typeof(T).IsInterface;
-
-    IEnumerable<ITestCase> ITestCase.ExpandCases()
-    {
-        yield return this with { AdditionalValues = [] };
-
-        if (default(T) is null && Value is not null)
-        {
-            yield return this with { Value = default, AdditionalValues = [] };
-        }
-
-        if (ExpectedEncoding != null && AdditionalValues != null)
-        {
-            throw new InvalidOperationException("Cannot combine expected encodings with additional values!");
-        }
-
-        foreach (T? additionalValue in AdditionalValues ?? [])
-        {
-            yield return this with { Value = additionalValue, AdditionalValues = [] };
-        }
-    }
-}
-
-public interface ITestCase
-{
-    Type Type { get; }
-    object? Value { get; }
-    string? ExpectedEncoding { get; }
-    ITypeShape GetShape(IProviderUnderTest providerUnderTest);
-    IEnumerable<ITestCase> ExpandCases();
 }

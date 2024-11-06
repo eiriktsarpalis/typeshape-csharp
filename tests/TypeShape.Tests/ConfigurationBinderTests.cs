@@ -15,8 +15,8 @@ public abstract class ConfigurationBinderTests(IProviderUnderTest providerUnderT
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void BoundResultEqualsOriginalValue<T>(TestCase<T> testCase)
     {
-        ITypeShape<T> shape = testCase.GetShape(providerUnderTest);
-        if (!testCase.HasConstructors(providerUnderTest))
+        ITypeShape<T> shape = providerUnderTest.ResolveShape(testCase);
+        if (!providerUnderTest.HasConstructor(testCase))
         {
             
             Assert.Throws<NotSupportedException>(() => ConfigurationBinderTS.Create(shape));

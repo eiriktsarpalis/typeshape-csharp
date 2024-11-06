@@ -98,7 +98,7 @@ public abstract partial class StructuralEqualityTests(IProviderUnderTest provide
     }
 
     private IEqualityComparer<T> GetEqualityComparerUnderTest<T>(TestCase<T> testCase) =>
-        StructuralEqualityComparer.Create(testCase.GetShape(providerUnderTest));
+        StructuralEqualityComparer.Create(providerUnderTest.ResolveShape(testCase));
 }
 
 public sealed class StructuralEqualityTests_Reflection() : StructuralEqualityTests(RefectionProviderUnderTest.Default);

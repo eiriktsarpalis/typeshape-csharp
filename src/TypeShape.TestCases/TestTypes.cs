@@ -14,19 +14,38 @@ using TypeShape.Tests.FSharp;
 
 namespace TypeShape.Tests;
 
+/// <summary>
+/// Defines all the test cases for use as member data in Xunit theories.
+/// </summary>
 public static class TestTypes
 {
+    /// <summary>
+    /// Gets all the test cases defined by this project.
+    /// </summary>
+    /// <returns>An enumerable for use by Xunit theories.</returns>
     public static IEnumerable<object[]> GetTestCases() =>
-        GetTestCasesWithExpendedValues()
+        GetTestCasesWithExpandedValues()
         .Select(value => new object[] { value });
 
+    /// <summary>
+    /// Gets all the test cases defined by this project as pairs of equal but not the same values.
+    /// </summary>
+    /// <returns>An enumerable for use by Xunit theories.</returns>
     public static IEnumerable<object[]> GetEqualValuePairs() =>
-        GetTestCasesWithExpendedValues()
-        .Zip(GetTestCasesWithExpendedValues(), (l, r) => new object[] { l, r });
+        GetTestCasesWithExpandedValues()
+        .Zip(GetTestCasesWithExpandedValues(), (l, r) => new object[] { l, r });
 
-    public static IEnumerable<ITestCase> GetTestCasesWithExpendedValues() =>
+    /// <summary>
+    /// The core method returning all test cases and expanded values defined by this project.
+    /// </summary>
+    /// <returns>An enumerable including all test cases and expanded values defined by this project.</returns>
+    public static IEnumerable<ITestCase> GetTestCasesWithExpandedValues() =>
         GetTestCasesCore().SelectMany(testCase => testCase.ExpandCases());
 
+    /// <summary>
+    /// The core method returning all test cases defined by this project.
+    /// </summary>
+    /// <returns>An enumerable including all test cases defined by this project.</returns>
     public static IEnumerable<ITestCase> GetTestCasesCore()
     {
         SourceGenProvider p = SourceGenProvider.Default;
@@ -132,8 +151,8 @@ public static class TestTypes
         yield return TestCase.Create(p, (GenericCollectionWithBuilderAttribute<int>)[1, 2, 3]);
         yield return TestCase.Create(new CollectionWithEnumerableCtor([1, 2, 3]));
         yield return TestCase.Create(new DictionaryWithEnumerableCtor([new("key", 42)]));
-        yield return TestCase.Create(new CollectionWithSpanCtor([1, 2, 3]), usesSpanCtor: true);
-        yield return TestCase.Create(new DictionaryWithSpanCtor([new("key", 42)]), usesSpanCtor: true);
+        yield return TestCase.Create(new CollectionWithSpanCtor([1, 2, 3]), usesSpanConstructor: true);
+        yield return TestCase.Create(new DictionaryWithSpanCtor([new("key", 42)]), usesSpanConstructor: true);
 
         yield return TestCase.Create(p, new Collection<int> { 1, 2, 3 });
         yield return TestCase.Create(p, new ObservableCollection<int> { 1, 2, 3 });

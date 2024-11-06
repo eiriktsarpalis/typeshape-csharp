@@ -3,15 +3,14 @@
 This package is intended for consumption by your unit test project. It presents a bunch of types that help to exhaustively test your TypeShape visitors.
 
 ```cs
-private static readonly IProviderUnderTest Provider = SourceGenProviderUnderTest.Default; // or RefectionProviderUnderTest.Default;
-
 [Theory]
 [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
-public void Roundtrip_Value<T>(TestCase<T> testCase)
+public void Roundtrip_Value<T, TProvider>(TestCase<T, TProvider> testCase)
+    where TProvider : IShapeable<T>
 {
     T value = testCase.Value;
     Type type = testCase.Type;
-    ITypeShape<T> shape = testCase.GetShape(Provider);
+    ITypeShape<T> shape = testCase.DefaultShape;
 
     // Exercise your code using these values...
 }

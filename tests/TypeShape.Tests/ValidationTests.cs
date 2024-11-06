@@ -86,7 +86,7 @@ public abstract partial class ValidationTests(IProviderUnderTest providerUnderTe
     }
 
     private Validator<T> GetValidatorUnderTest<T>(TestCase<T> testCase) =>
-        Validator.Create<T>(testCase.GetShape(providerUnderTest));
+        Validator.Create<T>(providerUnderTest.ResolveShape(testCase));
 
     [GenerateShape]
     public partial record BindingModel

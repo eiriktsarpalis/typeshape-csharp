@@ -16,7 +16,7 @@ public abstract class JsonSchemaTests(IProviderUnderTest providerUnderTest)
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void GeneratesExpectedSchema(ITestCase testCase)
     {
-        ITypeShape shape = testCase.GetShape(providerUnderTest);
+        ITypeShape shape = providerUnderTest.ResolveShape(testCase);
         JsonObject schema = JsonSchemaGenerator.Generate(shape);
 
         switch (shape)
@@ -101,7 +101,7 @@ public abstract class JsonSchemaTests(IProviderUnderTest providerUnderTest)
             return; // Not supported by JsonSchema.NET
         }
 
-        ITypeShape<T> shape = testCase.GetShape(providerUnderTest);
+        ITypeShape<T> shape = providerUnderTest.ResolveShape(testCase);
         JsonObject schema = JsonSchemaGenerator.Generate(shape);
         string json = JsonSerializerTS.CreateConverter(shape).Serialize(testCase.Value);
 
