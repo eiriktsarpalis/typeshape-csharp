@@ -33,11 +33,6 @@ public abstract class ObjectMapperTests(IProviderUnderTest providerUnderTest)
             }
         }
 
-        if (testCase.IsLossyRoundtrip)
-        {
-            return;
-        }
-
         if (testCase.IsStack)
         {
             mappedValue = mapper(mappedValue);

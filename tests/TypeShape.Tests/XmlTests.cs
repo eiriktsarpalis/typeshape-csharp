@@ -93,11 +93,6 @@ public abstract class XmlTests(IProviderUnderTest providerUnderTest)
         {
             T? deserializedValue = converter.Deserialize(xmlEncoding);
 
-            if (testCase.IsLossyRoundtrip)
-            {
-                return;
-            }
-
             if (testCase.IsEquatable)
             {
                 Assert.Equal(testCase.Value, deserializedValue);

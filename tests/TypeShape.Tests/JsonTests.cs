@@ -30,11 +30,6 @@ public abstract partial class JsonTests(IProviderUnderTest providerUnderTest)
         else
         {
             T? deserializedValue = converter.Deserialize(json);
-
-            if (testCase.IsLossyRoundtrip)
-            {
-                return;
-            }
             
             if (testCase.IsEquatable)
             {
@@ -81,10 +76,6 @@ public abstract partial class JsonTests(IProviderUnderTest providerUnderTest)
             PocoWithGenericProperty<T>? deserializedValue = converter.Deserialize(json);
             Assert.NotNull(deserializedValue);
 
-            if (testCase.IsLossyRoundtrip)
-            {
-                return;
-            }
             if (testCase.IsEquatable)
             {
                 Assert.Equal(testCase.Value, deserializedValue.Value);
@@ -130,11 +121,6 @@ public abstract partial class JsonTests(IProviderUnderTest providerUnderTest)
             List<T?>? deserializedValue = converter.Deserialize(json)!;
             Assert.NotEmpty(deserializedValue);
 
-            if (testCase.IsLossyRoundtrip)
-            {
-                return;
-            }
-            
             if (testCase.IsEquatable)
             {
                 Assert.Equal<T?>(list, deserializedValue);
@@ -179,11 +165,6 @@ public abstract partial class JsonTests(IProviderUnderTest providerUnderTest)
         {
             Dictionary<string, T?>? deserializedValue = converter.Deserialize(json)!;
             Assert.NotEmpty(deserializedValue);
-
-            if (testCase.IsLossyRoundtrip)
-            {
-                return;
-            }
 
             if (testCase.IsEquatable)
             {

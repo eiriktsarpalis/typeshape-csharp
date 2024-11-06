@@ -18,7 +18,6 @@ public static class TestCase
     /// <param name="additionalValues">Any additional values to be tested.</param>
     /// <param name="hasRefConstructorParameters">Whether the shape constructor accepts any ref parameters.</param>
     /// <param name="hasOutConstructorParameters">Whether the shape constructor accepts any out parameters.</param>
-    /// <param name="isLossyRoundtrip">Whether the the shape ignores certain properties when marshalling.</param>
     /// <param name="usesSpanConstructor">Whether the shape defines a collection constructor that takes a span of elements.</param>
     /// <param name="isStack">Whether the type is a stack.</param>
     /// <returns>A test case instance using the specified parameters.</returns>
@@ -27,7 +26,6 @@ public static class TestCase
         T?[]? additionalValues = null,
         bool hasRefConstructorParameters = false,
         bool hasOutConstructorParameters = false,
-        bool isLossyRoundtrip = false,
         bool usesSpanConstructor = false,
         bool isStack = false)
         where T : IShapeable<T> =>
@@ -37,7 +35,6 @@ public static class TestCase
             AdditionalValues = additionalValues,
             HasRefConstructorParameters = hasRefConstructorParameters,
             HasOutConstructorParameters = hasOutConstructorParameters,
-            IsLossyRoundtrip = isLossyRoundtrip,
             UsesSpanConstructor = usesSpanConstructor,
             IsStack = isStack,
         };
@@ -52,7 +49,6 @@ public static class TestCase
     /// <param name="additionalValues">Any additional values to be tested.</param>
     /// <param name="hasRefConstructorParameters">Whether the shape constructor accepts any ref parameters.</param>
     /// <param name="hasOutConstructorParameters">Whether the shape constructor accepts any out parameters.</param>
-    /// <param name="isLossyRoundtrip">Whether the the shape ignores certain properties when marshalling.</param>
     /// <param name="usesSpanConstructor">Whether the shape defines a collection constructor that takes a span of elements.</param>
     /// <param name="isStack">Whether the type is a stack.</param>
     /// <returns>A test case instance using the specified parameters.</returns>
@@ -60,7 +56,6 @@ public static class TestCase
         TProvider? provider,
         T? value,
         T?[]? additionalValues = null,
-        bool isLossyRoundtrip = false,
         bool hasRefConstructorParameters = false,
         bool hasOutConstructorParameters = false,
         bool usesSpanConstructor = false,
@@ -72,7 +67,6 @@ public static class TestCase
             AdditionalValues = additionalValues,
             HasRefConstructorParameters = hasRefConstructorParameters,
             HasOutConstructorParameters = hasOutConstructorParameters,
-            IsLossyRoundtrip = isLossyRoundtrip,
             UsesSpanConstructor = usesSpanConstructor,
             IsStack = isStack,
         };

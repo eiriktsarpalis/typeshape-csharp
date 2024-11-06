@@ -82,10 +82,6 @@ public abstract partial class CborTests(IProviderUnderTest providerUnderTest)
         {
             T? deserializedValue = converter.DecodeFromHex(cborHex);
 
-            if (testCase.IsLossyRoundtrip)
-            {
-                return;
-            }
             if (testCase.IsEquatable)
             {
                 Assert.Equal(testCase.Value, deserializedValue);

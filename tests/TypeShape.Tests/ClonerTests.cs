@@ -32,11 +32,6 @@ public abstract class ClonerTests(IProviderUnderTest providerUnderTest)
             Assert.NotSame((object?)testCase.Value, (object?)clonedValue);
         }
 
-        if (testCase.IsLossyRoundtrip)
-        {
-            return;
-        }
-
         if (testCase.IsStack)
         {
             clonedValue = cloner(clonedValue);
