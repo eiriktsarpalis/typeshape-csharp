@@ -11,7 +11,7 @@ public abstract class RandomGeneratorTests(IProviderUnderTest providerUnderTest)
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void ProducesDeterministicRandomValues<T>(TestCase<T> testCase)
     {
-        if (!testCase.HasConstructors(providerUnderTest))
+        if (!providerUnderTest.HasConstructor(testCase))
         {
             return; // Random value generation not supported
         }
@@ -26,7 +26,7 @@ public abstract class RandomGeneratorTests(IProviderUnderTest providerUnderTest)
 
     private (RandomGenerator<T>, IEqualityComparer<T>) GetGeneratorAndEqualityComparer<T>(TestCase<T> testCase)
     {
-        ITypeShape<T> shape = testCase.GetShape(providerUnderTest);
+        ITypeShape<T> shape = providerUnderTest.ResolveShape(testCase);
         return (RandomGenerator.Create(shape), StructuralEqualityComparer.Create(shape));
     }
 }

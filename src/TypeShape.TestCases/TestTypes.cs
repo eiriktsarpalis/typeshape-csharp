@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -13,19 +14,38 @@ using TypeShape.Tests.FSharp;
 
 namespace TypeShape.Tests;
 
+/// <summary>
+/// Defines all the test cases for use as member data in Xunit theories.
+/// </summary>
 public static class TestTypes
 {
-    public static IEnumerable<object[]> GetTestCases() => 
-        GetTestCasesWithExpendedValues()
+    /// <summary>
+    /// Gets all the test cases defined by this project.
+    /// </summary>
+    /// <returns>An enumerable for use by Xunit theories.</returns>
+    public static IEnumerable<object[]> GetTestCases() =>
+        GetTestCasesWithExpandedValues()
         .Select(value => new object[] { value });
-    
-    public static IEnumerable<object[]> GetEqualValuePairs() => 
-        GetTestCasesWithExpendedValues()
-        .Zip(GetTestCasesWithExpendedValues(), (l, r) => new object[] { l, r });
 
-    public static IEnumerable<ITestCase> GetTestCasesWithExpendedValues() =>
+    /// <summary>
+    /// Gets all the test cases defined by this project as pairs of equal but not the same values.
+    /// </summary>
+    /// <returns>An enumerable for use by Xunit theories.</returns>
+    public static IEnumerable<object[]> GetEqualValuePairs() =>
+        GetTestCasesWithExpandedValues()
+        .Zip(GetTestCasesWithExpandedValues(), (l, r) => new object[] { l, r });
+
+    /// <summary>
+    /// The core method returning all test cases and expanded values defined by this project.
+    /// </summary>
+    /// <returns>An enumerable including all test cases and expanded values defined by this project.</returns>
+    public static IEnumerable<ITestCase> GetTestCasesWithExpandedValues() =>
         GetTestCasesCore().SelectMany(testCase => testCase.ExpandCases());
 
+    /// <summary>
+    /// The core method returning all test cases defined by this project.
+    /// </summary>
+    /// <returns>An enumerable including all test cases defined by this project.</returns>
     public static IEnumerable<ITestCase> GetTestCasesCore()
     {
         SourceGenProvider p = SourceGenProvider.Default;
@@ -43,7 +63,7 @@ public static class TestTypes
         yield return TestCase.Create(p, ulong.MaxValue);
         yield return TestCase.Create(p, Int128.MaxValue);
         yield return TestCase.Create(p, UInt128.MaxValue);
-        yield return TestCase.Create(p, BigInteger.Parse("-170141183460469231731687303715884105728"));
+        yield return TestCase.Create(p, BigInteger.Parse("-170141183460469231731687303715884105728", CultureInfo.InvariantCulture));
         yield return TestCase.Create(p, 3.14f);
         yield return TestCase.Create(p, 3.14d);
         yield return TestCase.Create(p, 3.14M);
@@ -57,7 +77,7 @@ public static class TestTypes
         yield return TestCase.Create(p, new Uri("https://github.com"));
         yield return TestCase.Create(p, new Version("1.0.0.0"));
         yield return TestCase.Create(p, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-        
+
         yield return TestCase.Create(p, (bool?)false);
         yield return TestCase.Create(p, (Rune?)Rune.GetRuneAt("🤯", 0));
         yield return TestCase.Create(p, (sbyte?)sbyte.MinValue);
@@ -70,7 +90,7 @@ public static class TestTypes
         yield return TestCase.Create(p, (ulong?)ulong.MaxValue);
         yield return TestCase.Create(p, (Int128?)Int128.MaxValue);
         yield return TestCase.Create(p, (UInt128?)UInt128.MaxValue);
-        yield return TestCase.Create(p, (BigInteger?)BigInteger.Parse("-170141183460469231731687303715884105728"));
+        yield return TestCase.Create(p, (BigInteger?)BigInteger.Parse("-170141183460469231731687303715884105728", CultureInfo.InvariantCulture));
         yield return TestCase.Create(p, (float?)3.14f);
         yield return TestCase.Create(p, (double?)3.14d);
         yield return TestCase.Create(p, (decimal?)3.14M);
@@ -82,7 +102,7 @@ public static class TestTypes
         yield return TestCase.Create(p, (DateOnly?)DateOnly.MaxValue);
         yield return TestCase.Create(p, (TimeOnly?)TimeOnly.MaxValue);
         yield return TestCase.Create(p, (BindingFlags?)BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-        
+
         yield return TestCase.Create(p, (int[])[1, 2, 3], additionalValues: [new int[0]]);
         yield return TestCase.Create(p, (int[][])[[1, 0, 0], [0, 1, 0], [0, 0, 1]], additionalValues: [[new int[0]]]);
         yield return TestCase.Create(p, (byte[])[1, 2, 3]);
@@ -131,8 +151,8 @@ public static class TestTypes
         yield return TestCase.Create(p, (GenericCollectionWithBuilderAttribute<int>)[1, 2, 3]);
         yield return TestCase.Create(new CollectionWithEnumerableCtor([1, 2, 3]));
         yield return TestCase.Create(new DictionaryWithEnumerableCtor([new("key", 42)]));
-        yield return TestCase.Create(new CollectionWithSpanCtor([1, 2, 3]), usesSpanCtor: true);
-        yield return TestCase.Create(new DictionaryWithSpanCtor([new("key", 42)]), usesSpanCtor: true);
+        yield return TestCase.Create(new CollectionWithSpanCtor([1, 2, 3]), usesSpanConstructor: true);
+        yield return TestCase.Create(new DictionaryWithSpanCtor([new("key", 42)]), usesSpanConstructor: true);
 
         yield return TestCase.Create(p, new Collection<int> { 1, 2, 3 });
         yield return TestCase.Create(p, new ObservableCollection<int> { 1, 2, 3 });
@@ -173,12 +193,12 @@ public static class TestTypes
         yield return TestCase.Create(new ParameterlessStructRecord());
 
         yield return TestCase.Create(new ClassWithNullabilityAttributes());
-        yield return TestCase.Create(p, new ClassWithNullabilityAttributes<string> 
-        { 
-            NotNullField = "str", 
-            DisallowNullField = "str", 
-            DisallowNullProperty = "str", 
-            NotNullProperty = "str" 
+        yield return TestCase.Create(p, new ClassWithNullabilityAttributes<string>
+        {
+            NotNullField = "str",
+            DisallowNullField = "str",
+            DisallowNullProperty = "str",
+            NotNullProperty = "str"
         });
 
         yield return TestCase.Create(p, new ClassWithNotNullProperty<string> { Property = "Value" });
@@ -333,14 +353,14 @@ public static class TestTypes
                 }
             }
         });
-        
+
         yield return TestCase.Create<RecursiveClassWithNonNullableOccurrence>(null!);
         yield return TestCase.Create(new RecursiveClassWithNonNullableOccurrences
         {
             Values = [],
         });
 
-        DateOnly today = DateOnly.Parse("2023-12-07");
+        DateOnly today = DateOnly.Parse("2023-12-07", CultureInfo.InvariantCulture);
         yield return TestCase.Create(new Todos(
             [ new (Id: 0, "Wash the dishes.", today, Status.Done),
               new (Id: 1, "Dry the dishes.", today, Status.Done),
@@ -387,29 +407,29 @@ public static class TestTypes
 
         yield return TestCase.Create(new ClassWith40RequiredMembers
         {
-            r00 = 00, r01 = 01, r02 = 02, r03 = 03, r04 = 04, r05 = 05, r06 = 06, r07 = 07, r08 = 08, r09 = 09, 
+            r00 = 00, r01 = 01, r02 = 02, r03 = 03, r04 = 04, r05 = 05, r06 = 06, r07 = 07, r08 = 08, r09 = 09,
             r10 = 10, r11 = 11, r12 = 12, r13 = 13, r14 = 14, r15 = 15, r16 = 16, r17 = 17, r18 = 18, r19 = 19,
-            r20 = 20, r21 = 21, r22 = 22, r23 = 23, r24 = 24, r25 = 25, r26 = 26, r27 = 27, r28 = 28, r29 = 29, 
+            r20 = 20, r21 = 21, r22 = 22, r23 = 23, r24 = 24, r25 = 25, r26 = 26, r27 = 27, r28 = 28, r29 = 29,
             r30 = 30, r31 = 31, r32 = 32, r33 = 33, r34 = 34, r35 = 35, r36 = 36, r37 = 37, r38 = 38, r39 = 39,
         });
 
         yield return TestCase.Create(new StructWith40RequiredMembers
         {
-            r00 = 00, r01 = 01, r02 = 02, r03 = 03, r04 = 04, r05 = 05, r06 = 06, r07 = 07, r08 = 08, r09 = 09, 
+            r00 = 00, r01 = 01, r02 = 02, r03 = 03, r04 = 04, r05 = 05, r06 = 06, r07 = 07, r08 = 08, r09 = 09,
             r10 = 10, r11 = 11, r12 = 12, r13 = 13, r14 = 14, r15 = 15, r16 = 16, r17 = 17, r18 = 18, r19 = 19,
-            r20 = 20, r21 = 21, r22 = 22, r23 = 23, r24 = 24, r25 = 25, r26 = 26, r27 = 27, r28 = 28, r29 = 29, 
+            r20 = 20, r21 = 21, r22 = 22, r23 = 23, r24 = 24, r25 = 25, r26 = 26, r27 = 27, r28 = 28, r29 = 29,
             r30 = 30, r31 = 31, r32 = 32, r33 = 33, r34 = 34, r35 = 35, r36 = 36, r37 = 37, r38 = 38, r39 = 39,
         });
 
         yield return TestCase.Create(new StructWith40RequiredMembersAndDefaultCtor
         {
-            r00 = 00, r01 = 01, r02 = 02, r03 = 03, r04 = 04, r05 = 05, r06 = 06, r07 = 07, r08 = 08, r09 = 09, 
+            r00 = 00, r01 = 01, r02 = 02, r03 = 03, r04 = 04, r05 = 05, r06 = 06, r07 = 07, r08 = 08, r09 = 09,
             r10 = 10, r11 = 11, r12 = 12, r13 = 13, r14 = 14, r15 = 15, r16 = 16, r17 = 17, r18 = 18, r19 = 19,
-            r20 = 20, r21 = 21, r22 = 22, r23 = 23, r24 = 24, r25 = 25, r26 = 26, r27 = 27, r28 = 28, r29 = 29, 
+            r20 = 20, r21 = 21, r22 = 22, r23 = 23, r24 = 24, r25 = 25, r26 = 26, r27 = 27, r28 = 28, r29 = 29,
             r30 = 30, r31 = 31, r32 = 32, r33 = 33, r34 = 34, r35 = 35, r36 = 36, r37 = 37, r38 = 38, r39 = 39,
         });
 
-        yield return TestCase.Create(new ClassWithInternalMembers { X = 1, Y = 2, Z = 3, W = 4, internalField = 5 }, isLossyRoundtrip: true);
+        yield return TestCase.Create(new ClassWithInternalMembers { X = 1, Y = 2, Z = 3, W = 4, internalField = 5 });
         yield return TestCase.Create(new ClassWithPropertyAnnotations { X = 1, Y = 2, Z = true });
         yield return TestCase.Create(new ClassWithConstructorAndAnnotations(1, 2, true));
         yield return TestCase.Create(new DerivedClassWithPropertyShapeAnnotations());
@@ -417,8 +437,8 @@ public static class TestTypes
         yield return TestCase.Create(new WeatherForecastDTO
         {
             Id = "id",
-            Date = DateTime.Parse("1975-01-01"),
-            DatesAvailable = [DateTime.Parse("1975-01-01"), DateTime.Parse("1976-01-01")],
+            Date = DateTime.Parse("1975-01-01", CultureInfo.InvariantCulture),
+            DatesAvailable = [DateTime.Parse("1975-01-01", CultureInfo.InvariantCulture), DateTime.Parse("1976-01-01", CultureInfo.InvariantCulture)],
             Summary = "Summary",
             SummaryField = "SummaryField",
             TemperatureCelsius = 42,
@@ -429,7 +449,7 @@ public static class TestTypes
                 ["Range2"] = new() { Low = 3, High = 4 },
             }
         });
-        
+
         yield return TestCase.Create(new DerivedClassWithShadowingMember { PropA = "propA", PropB = 2, FieldA = 1, FieldB = "fieldB" });
         yield return TestCase.Create(new ClassWithMultipleSelfReferences { First = new ClassWithMultipleSelfReferences() });
         yield return TestCase.Create(new ClassWithNullableTypeParameters());
@@ -630,7 +650,7 @@ public partial class DerivedClassWithVirtualProperties : BaseClassWithVirtualPro
     private int? _x;
     private string? _y;
 
-    public override int X 
+    public override int X
     {
         get => _x ?? 42;
         set
@@ -676,7 +696,7 @@ public partial interface IDerivedInterface : IBaseInterface
 
 [GenerateShape]
 public partial interface IDerived2Interface : IBaseInterface
-{ 
+{
     public int Z { get; set; }
 }
 
@@ -786,7 +806,7 @@ public partial class ClassWithSetsRequiredMembersCtor
         _value = value;
     }
 
-    public required int Value 
+    public required int Value
     {
         get => _value;
         init => throw new NotSupportedException();
@@ -805,7 +825,7 @@ public partial struct StructWithSetsRequiredMembersCtor
     }
 
     public required int Value
-    { 
+    {
         get => _value;
         init => _value = -1;
     }
@@ -831,7 +851,7 @@ public partial struct StructWithSetsRequiredMembersDefaultCtor
 
 public readonly struct GenericStructWithInitOnlyProperty<T>
 {
-    public T Value { get; init; } 
+    public T Value { get; init; }
 }
 
 [GenerateShape]
@@ -846,7 +866,7 @@ public partial class ClassWithIndexer
 {
     public string this[int i]
     {
-        get => i.ToString();
+        get => i.ToString(CultureInfo.InvariantCulture);
         set { }
     }
 }
@@ -1006,7 +1026,7 @@ public partial class ClassWithNullabilityAttributes
 
     public ClassWithNullabilityAttributes() { }
 
-    public ClassWithNullabilityAttributes([AllowNull] string allowNull, [DisallowNull] string? disallowNull) 
+    public ClassWithNullabilityAttributes([AllowNull] string allowNull, [DisallowNull] string? disallowNull)
     {
         _allowNull = allowNull;
         _disallowNull = disallowNull;
@@ -1188,7 +1208,7 @@ public partial record RecordWithNullableDefaultEnum(MyEnum? flags = MyEnum.A | M
 
 [GenerateShape]
 public partial record LargeClassRecord(
-    int x0 = 0, int x1 = 1, int x2 = 2, int x3 = 3, int x4 = 4, int x5 = 5, int x6 = 5, 
+    int x0 = 0, int x1 = 1, int x2 = 2, int x3 = 3, int x4 = 4, int x5 = 5, int x6 = 5,
     int x7 = 7, int x8 = 8, string x9 = "str", LargeClassRecord? nested = null);
 
 [GenerateShape]
@@ -1612,7 +1632,7 @@ partial class ClassWithMultipleConstructors
 
         Z = z;
     }
-    
+
     public int X { get; set; }
     public int Y { get; set; }
     public int Z { get; }
@@ -1649,7 +1669,7 @@ public partial class ClassWithOutConstructorParameter
     {
         Value = value = 42;
     }
-    
+
     public int Value { get; }
 }
 
@@ -1662,7 +1682,7 @@ public partial class ClassWithMultipleRefConstructorParameters
         BoolValue = boolValue;
         DateValue = dateValue;
     }
-    
+
     public int IntValue { get; }
     public bool BoolValue { get; }
     public DateTime DateValue { get; }
@@ -1733,7 +1753,7 @@ public partial class ClassWithUnsupportedPropertyTypes
 public partial class ClassWithIncludedPrivateMembers
 {
     [SetsRequiredMembers]
-    public ClassWithIncludedPrivateMembers() : this(1, 2, 3, 4) 
+    public ClassWithIncludedPrivateMembers() : this(1, 2, 3, 4)
     {
         RequiredProperty = 5;
         RequiredField = 6;
@@ -1773,7 +1793,7 @@ public partial class ClassWithIncludedPrivateMembers
 public partial struct StructWithIncludedPrivateMembers
 {
     [SetsRequiredMembers]
-    public StructWithIncludedPrivateMembers() : this(1, 2, 3, 4) 
+    public StructWithIncludedPrivateMembers() : this(1, 2, 3, 4)
     {
         RequiredProperty = 5;
         RequiredField = 6;

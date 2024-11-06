@@ -3,7 +3,7 @@ using Xunit;
 
 namespace TypeShape.Tests;
 
-public abstract class CounterTests(IProviderUnderTest providerUnderTest)
+public abstract partial class CounterTests(IProviderUnderTest providerUnderTest)
 {
     [Theory]
     [MemberData(nameof(GetValuesAndExpectedResult))]
@@ -47,7 +47,7 @@ public abstract class CounterTests(IProviderUnderTest providerUnderTest)
         Assert.Equal(leftCount, rightCount);
     }
 
-    protected Func<T?, long> GetCounterUnderTest<T>(TestCase<T> testCase) => Counter.Create<T>(testCase.GetShape(providerUnderTest));
+    protected Func<T?, long> GetCounterUnderTest<T>(TestCase<T> testCase) => Counter.Create<T>(providerUnderTest.ResolveShape(testCase));
 }
 
 public sealed class CounterTests_Reflection() : CounterTests(RefectionProviderUnderTest.Default);

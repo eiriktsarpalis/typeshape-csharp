@@ -7,7 +7,7 @@
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors>Nullable</WarningsAsErrors>
-    <WarningLevel>9999</WarningLevel>
+    <WarningLevel Condition="'$(MSBuildProjectExtension)'!='.fsproj'">9999</WarningLevel>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <SignAssembly>true</SignAssembly>
   </PropertyGroup>

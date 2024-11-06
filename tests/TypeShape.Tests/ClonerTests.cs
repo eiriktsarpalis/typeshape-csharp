@@ -11,9 +11,9 @@ public abstract class ClonerTests(IProviderUnderTest providerUnderTest)
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void Cloner_ProducesEqualCopy<T>(TestCase<T> testCase)
     {
-        if (!testCase.HasConstructors(providerUnderTest))
+        if (!providerUnderTest.HasConstructor(testCase))
         {
-            Assert.Throws<NotSupportedException>(() => Cloner.CreateCloner(testCase.GetShape(providerUnderTest)));
+            Assert.Throws<NotSupportedException>(() => Cloner.CreateCloner(providerUnderTest.ResolveShape(testCase)));
             return;
         }
 
@@ -47,7 +47,7 @@ public abstract class ClonerTests(IProviderUnderTest providerUnderTest)
 
     private (Func<T?, T?>, IEqualityComparer<T>) GetClonerAndEqualityComparer<T>(TestCase<T> testCase)
     {
-        ITypeShape<T> shape = testCase.GetShape(providerUnderTest);
+        ITypeShape<T> shape = providerUnderTest.ResolveShape(testCase);
         return (Cloner.CreateCloner(shape), StructuralEqualityComparer.Create(shape));
     }
 }

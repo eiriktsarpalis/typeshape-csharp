@@ -11,7 +11,7 @@ public abstract class ObjectMapperTests(IProviderUnderTest providerUnderTest)
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void MapToTheSameType_ProducesEqualCopy<T>(TestCase<T> testCase)
     {
-        if (!testCase.HasConstructors(providerUnderTest))
+        if (!providerUnderTest.HasConstructor(testCase))
         {
             return;
         }
@@ -81,11 +81,11 @@ public abstract class ObjectMapperTests(IProviderUnderTest providerUnderTest)
     private Mapper<TFrom, TTo> GetMapper<TFrom, TTo>() 
         where TFrom : IShapeable<TFrom>
         where TTo : IShapeable<TTo> => 
-        Mapper.Create(providerUnderTest.GetShape<TFrom>(), providerUnderTest.GetShape<TTo>());
+        Mapper.Create(providerUnderTest.ResolveShape<TFrom>(), providerUnderTest.ResolveShape<TTo>());
 
     private (Mapper<T, T>, IEqualityComparer<T>, ITypeShape<T>) GetMapperAndEqualityComparer<T>(TestCase<T> testCase)
     {
-        ITypeShape<T> shape = testCase.GetShape(providerUnderTest);
+        ITypeShape<T> shape = providerUnderTest.ResolveShape(testCase);
         return (Mapper.Create(shape, shape), StructuralEqualityComparer.Create(shape), shape);
     }
 }

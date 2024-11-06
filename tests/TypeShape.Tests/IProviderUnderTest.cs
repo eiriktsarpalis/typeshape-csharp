@@ -1,3 +1,4 @@
+using System.Collections;
 using TypeShape.Abstractions;
 using TypeShape.ReflectionProvider;
 
@@ -8,15 +9,23 @@ public interface IProviderUnderTest
     ITypeShapeProvider? Provider { get; }
     ProviderKind Kind { get; }
     bool ResolvesNullableAnnotations { get; }
-    ITypeShape<T> GetShape<T, TProvider>() where TProvider : IShapeable<T>;
-    ITypeShape<T> GetShape<T>() where T : IShapeable<T> => GetShape<T, T>();
-    ITypeShape<T> UncheckedGetShape<T>();
+    ITypeShape ResolveShape(ITestCase testCase);
+    ITypeShape<T> ResolveShape<T>(TestCase<T> testCase);
+    ITypeShape<T> ResolveShape<T, TProvider>() where TProvider : IShapeable<T>;
+    ITypeShape<T> ResolveShape<T>() where T : IShapeable<T> => ResolveShape<T, T>();
+    ITypeShape<T> UncheckedResolveShape<T>();
+
+    bool HasConstructor(ITestCase testCase) =>
+        !(testCase.IsAbstract && !typeof(IEnumerable).IsAssignableFrom(testCase.Type)) &&
+        !testCase.IsMultiDimensionalArray &&
+        !testCase.HasOutConstructorParameters &&
+        (!testCase.UsesSpanConstructor || Kind is not ProviderKind.ReflectionNoEmit);
 }
 
 public enum ProviderKind
 {
     SourceGen,
-    Reflection,
+    ReflectionNoEmit,
     ReflectionEmit
 };
 
@@ -27,8 +36,10 @@ public sealed class SourceGenProviderUnderTest : IProviderUnderTest
     public ProviderKind Kind => ProviderKind.SourceGen;
     public bool ResolvesNullableAnnotations => true;
     public ITypeShapeProvider? Provider => null;
-    public ITypeShape<T> GetShape<T, TProvider>() where TProvider : IShapeable<T> => TProvider.GetShape();
-    public ITypeShape<T> UncheckedGetShape<T>() => throw new NotSupportedException();
+    public ITypeShape ResolveShape(ITestCase testCase) => testCase.DefaultShape;
+    public ITypeShape<T> ResolveShape<T>(TestCase<T> testCase) => testCase.DefaultShape;
+    public ITypeShape<T> ResolveShape<T, TProvider>() where TProvider : IShapeable<T> => TProvider.GetShape();
+    public ITypeShape<T> UncheckedResolveShape<T>() => throw new NotSupportedException();
 }
 
 public sealed class RefectionProviderUnderTest(ReflectionTypeShapeProviderOptions options) : IProviderUnderTest
@@ -37,9 +48,11 @@ public sealed class RefectionProviderUnderTest(ReflectionTypeShapeProviderOption
     public static RefectionProviderUnderTest NoEmit { get; } = new(new() { UseReflectionEmit = false });
     public static RefectionProviderUnderTest NoNullableAnnotations { get; } = new(new() { ResolveNullableAnnotations = false });
 
-    public ProviderKind Kind => options.UseReflectionEmit ? ProviderKind.ReflectionEmit : ProviderKind.Reflection;
+    public ProviderKind Kind => options.UseReflectionEmit ? ProviderKind.ReflectionEmit : ProviderKind.ReflectionNoEmit;
     public bool ResolvesNullableAnnotations => options.ResolveNullableAnnotations;
     public ITypeShapeProvider Provider { get; } = new ReflectionTypeShapeProvider(options);
-    public ITypeShape<T> GetShape<T, TProvider>() where TProvider : IShapeable<T> => Provider.Resolve<T>();
-    public ITypeShape<T> UncheckedGetShape<T>() => Provider.Resolve<T>();
+    public ITypeShape ResolveShape(ITestCase testCase) => Provider.Resolve(testCase.Type);
+    public ITypeShape<T> ResolveShape<T>(TestCase<T> testCase) => Provider.Resolve<T>();
+    public ITypeShape<T> ResolveShape<T, TProvider>() where TProvider : IShapeable<T> => Provider.Resolve<T>();
+    public ITypeShape<T> UncheckedResolveShape<T>() => Provider.Resolve<T>();
 }

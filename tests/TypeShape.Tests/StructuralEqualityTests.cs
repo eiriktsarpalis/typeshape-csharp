@@ -3,7 +3,7 @@ using Xunit;
 
 namespace TypeShape.Tests;
 
-public abstract class StructuralEqualityTests(IProviderUnderTest providerUnderTest)
+public abstract partial class StructuralEqualityTests(IProviderUnderTest providerUnderTest)
 {
     [Theory]
     [MemberData(nameof(TestTypes.GetEqualValuePairs), MemberType = typeof(TestTypes))]
@@ -98,7 +98,7 @@ public abstract class StructuralEqualityTests(IProviderUnderTest providerUnderTe
     }
 
     private IEqualityComparer<T> GetEqualityComparerUnderTest<T>(TestCase<T> testCase) =>
-        StructuralEqualityComparer.Create(testCase.GetShape(providerUnderTest));
+        StructuralEqualityComparer.Create(providerUnderTest.ResolveShape(testCase));
 }
 
 public sealed class StructuralEqualityTests_Reflection() : StructuralEqualityTests(RefectionProviderUnderTest.Default);
