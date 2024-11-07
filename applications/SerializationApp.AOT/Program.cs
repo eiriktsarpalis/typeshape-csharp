@@ -1,10 +1,10 @@
-﻿using TypeShape;
-using TypeShape.Examples.CborSerializer;
-using TypeShape.Examples.JsonSchema;
-using TypeShape.Examples.JsonSerializer;
-using TypeShape.Examples.PrettyPrinter;
-using TypeShape.Examples.StructuralEquality;
-using TypeShape.Examples.XmlSerializer;
+﻿using PolyType;
+using PolyType.Examples.CborSerializer;
+using PolyType.Examples.JsonSchema;
+using PolyType.Examples.JsonSerializer;
+using PolyType.Examples.PrettyPrinter;
+using PolyType.Examples.StructuralEquality;
+using PolyType.Examples.XmlSerializer;
 
 DateOnly today = DateOnly.FromDateTime(DateTime.Now);
 Todos originalValue = new(

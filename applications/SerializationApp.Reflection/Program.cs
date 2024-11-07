@@ -1,12 +1,12 @@
 ﻿using System.Text.Json.Serialization;
-using TypeShape;
-using TypeShape.Examples.CborSerializer;
-using TypeShape.Examples.JsonSchema;
-using TypeShape.Examples.JsonSerializer;
-using TypeShape.Examples.PrettyPrinter;
-using TypeShape.Examples.StructuralEquality;
-using TypeShape.Examples.XmlSerializer;
-using TypeShape.ReflectionProvider;
+using PolyType;
+using PolyType.Examples.CborSerializer;
+using PolyType.Examples.JsonSchema;
+using PolyType.Examples.JsonSerializer;
+using PolyType.Examples.PrettyPrinter;
+using PolyType.Examples.StructuralEquality;
+using PolyType.Examples.XmlSerializer;
+using PolyType.ReflectionProvider;
 
 // Use reflection to derive the shape for BindingModel and use it to fold
 // serialization, pretty printing, CBOR encoding and validation programs.

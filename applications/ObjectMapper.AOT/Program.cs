@@ -1,6 +1,6 @@
-﻿using TypeShape;
-using TypeShape.Examples.ObjectMapper;
-using TypeShape.Examples.PrettyPrinter;
+﻿using PolyType;
+using PolyType.Examples.ObjectMapper;
+using PolyType.Examples.PrettyPrinter;
 
 var weatherForecastDto = new WeatherForecastDTO
 {

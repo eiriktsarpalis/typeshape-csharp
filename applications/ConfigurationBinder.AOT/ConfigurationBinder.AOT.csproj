@@ -15,9 +15,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\TypeShape\TypeShape.csproj" />
-        <ProjectReference Include="..\..\src\TypeShape.SourceGenerator\TypeShape.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-        <ProjectReference Include="..\..\src\TypeShape.Examples\TypeShape.Examples.csproj" />
+        <ProjectReference Include="..\..\src\PolyType\PolyType.csproj" />
+        <ProjectReference Include="..\..\src\PolyType.SourceGenerator\PolyType.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+        <ProjectReference Include="..\..\src\PolyType.Examples\PolyType.Examples.csproj" />
     </ItemGroup>
 
     <ItemGroup>

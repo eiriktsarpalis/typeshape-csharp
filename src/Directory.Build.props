@@ -17,8 +17,8 @@
     <Authors>Eirik Tsarpalis</Authors>
     <Copyright>2024</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/eiriktsarpalis/typeshape-csharp</RepositoryUrl>
-    <PackageProjectUrl>https://eiriktsarpalis.github.io/typeshape-csharp/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/eiriktsarpalis/PolyType</RepositoryUrl>
+    <PackageProjectUrl>https://eiriktsarpalis.github.io/PolyType/</PackageProjectUrl>
     <PackageTags>generic programming, source generator, polytypic</PackageTags>
     <PackageOutputPath>$(RepoRoot)artifacts/</PackageOutputPath>
     <PackageIcon>pkgicon.png</PackageIcon>

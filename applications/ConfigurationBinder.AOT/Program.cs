@@ -1,8 +1,8 @@
 ﻿using System.Collections.Immutable;
 using Microsoft.Extensions.Configuration;
-using TypeShape;
-using TypeShape.Examples.ConfigurationBinder;
-using TypeShape.Examples.PrettyPrinter;
+using PolyType;
+using PolyType.Examples.ConfigurationBinder;
+using PolyType.Examples.PrettyPrinter;
 
 IConfigurationRoot configuration = new ConfigurationBuilder()
     .SetBasePath(AppContext.BaseDirectory)

@@ -1,6 +1,6 @@
-﻿using TypeShape;
-using TypeShape.Examples.PrettyPrinter;
-using TypeShape.Examples.RandomGenerator;
+﻿using PolyType;
+using PolyType.Examples.PrettyPrinter;
+using PolyType.Examples.RandomGenerator;
 
 foreach (MeasurementData data in RandomGenerator.GenerateValues<MeasurementData>())
 {

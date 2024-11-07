@@ -5,8 +5,8 @@
         {
           "src": "../src",
           "files": [
-            "**/TypeShape.csproj",
-            "**/TypeShape.Roslyn.csproj"
+            "**/PolyType.csproj",
+            "**/PolyType.Roslyn.csproj"
           ]
         }
       ],
@@ -34,8 +34,8 @@
       "modern"
     ],
     "globalMetadata": {
-      "_appName": "typeshape-csharp",
-      "_appTitle": "typeshape-csharp",
+      "_appName": "PolyType",
+      "_appTitle": "PolyType",
       "_enableSearch": true,
       "pdf": false
     }

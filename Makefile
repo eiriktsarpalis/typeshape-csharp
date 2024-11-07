@@ -6,7 +6,7 @@ NUGET_SOURCE ?= "https://api.nuget.org/v3/index.json"
 NUGET_API_KEY ?= ""
 ADDITIONAL_ARGS ?= -p:ContinuousIntegrationBuild=true
 CODECOV_ARGS ?= --collect:"XPlat Code Coverage" --results-directory $(ARTIFACT_PATH)
-DOCKER_IMAGE_NAME ?= "typeshape-docker-build"
+DOCKER_IMAGE_NAME ?= "polytype-docker-build"
 DOCKER_CMD ?= make CONFIGURATION=$(CONFIGURATION)
 
 clean:

@@ -1,8 +1,8 @@
 - name: Abstractions
   href: core-abstractions.md
-- name: Providers
-  href: typeshape-providers.md
+- name: Shape Providers
+  href: shape-providers.md
 - name: API Documentation
-  href: api/TypeShape.yml
+  href: api/PolyType.yml
 - name: Github
-  href: https://github.com/eiriktsarpalis/typeshape-csharp
+  href: https://github.com/eiriktsarpalis/PolyType

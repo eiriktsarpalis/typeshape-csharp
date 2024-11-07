@@ -1,6 +1,6 @@
 # Core Abstractions
 
-This document provides a walkthrough the core type abstractions found in TypeShape. This includes `ITypeShape`, `IPropertyShape` and the visitor types for accessing them. These are typically consumed by library authors looking to build datatype-generic components. Unless otherwise stated, all APIs are found in the `TypeShape.Abstractions` namespace.
+This document provides a walkthrough the core type abstractions found in PolyType. This includes `ITypeShape`, `IPropertyShape` and the visitor types for accessing them. These are typically consumed by library authors looking to build datatype-generic components. Unless otherwise stated, all APIs are found in the `PolyType.Abstractions` namespace.
 
 ## The `ITypeShape` interface
 
@@ -9,7 +9,7 @@ The `ITypeShape` interface defines a reflection-like representation for a given 
 To illustrate the idea, consider the following APIs modelling objects with properties:
 
 ```C#
-namespace TypeShape.Abstractions;
+namespace PolyType.Abstractions;
 
 public partial interface IObjectTypeShape<TDeclaringType> : ITypeShape
 {
@@ -290,7 +290,7 @@ struct MyPoco
 
 ### Constructor shapes
 
-While property setters should suffice when mutating existing objects, constructing a new instance from scratch is somewhat more complicated, particularly for types that only expose parameterized constructors or are immutable. TypeShape models constructors using the `IConstructorShape` abstraction which can be obtained as follows:
+While property setters should suffice when mutating existing objects, constructing a new instance from scratch is somewhat more complicated, particularly for types that only expose parameterized constructors or are immutable. PolyType models constructors using the `IConstructorShape` abstraction which can be obtained as follows:
 
 ```C#
 public partial interface IObjectTypeShape<T>
@@ -489,4 +489,4 @@ class EmptyConstructorVisitor : TypeShapeVisitor
 }
 ```
 
-This concludes the tutorial for the core TypeShape programming model. For more detailed examples, please refer to the [`TypeShape.Examples`](https://github.com/eiriktsarpalis/typeshape-csharp/tree/main/src/TypeShape.Examples) project folder.
+This concludes the tutorial for the core PolyType programming model. For more detailed examples, please refer to the [`PolyType.Examples`](https://github.com/eiriktsarpalis/PolyType/tree/main/src/PolyType.Examples) project folder.

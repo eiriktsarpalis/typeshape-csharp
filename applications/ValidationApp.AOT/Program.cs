@@ -1,5 +1,5 @@
-﻿using TypeShape;
-using TypeShape.Examples.Validation;
+﻿using PolyType;
+using PolyType.Examples.Validation;
 
 var validInstance = new BindingModel
 {

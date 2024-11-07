@@ -4,15 +4,15 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-	<Nullable>enable</Nullable>
-	<WarningsAsErrors>Nullable</WarningsAsErrors>
-	<TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-	<PublishSingleFile>true</PublishSingleFile>
+    <Nullable>enable</Nullable>
+    <WarningsAsErrors>Nullable</WarningsAsErrors>
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <PublishSingleFile>true</PublishSingleFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\TypeShape\TypeShape.csproj" />
-    <ProjectReference Include="..\..\src\TypeShape.Examples\TypeShape.Examples.csproj" />
+    <ProjectReference Include="..\..\src\PolyType\PolyType.csproj" />
+    <ProjectReference Include="..\..\src\PolyType.Examples\PolyType.Examples.csproj" />
   </ItemGroup>
 
 </Project>
