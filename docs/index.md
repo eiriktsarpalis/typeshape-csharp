@@ -42,7 +42,7 @@ XmlSerializer.Serialize(person);    // <value><Name>Pete</Name><Age>70</Age></va
 CborSerializer.EncodeToHex(person); // A2644E616D656450657465634167651846
 ```
 
-Since the application uses a source generator to produce the shape for `Person`, it is fully compatible with Native AOT. See the [shape providers](https://eiriktsarpalis.github.io/PolyType/typeshape-providers.html) article for more details on how to use the library with your types.
+Since the application uses a source generator to produce the shape for `Person`, it is fully compatible with Native AOT. See the [shape providers](https://eiriktsarpalis.github.io/PolyType/shape-providers.html) article for more details on how to use the library with your types.
 
 ## Background & Motivation
 
