@@ -93,7 +93,7 @@ public abstract class TypeShapeVisitor : ITypeShapeVisitor
     /// <returns>The result produced by the visitor.</returns>
     public virtual object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state = null)
         where TKey : notnull
-        => ThrowNotImplemented(nameof(VisitEnumerable));
+        => ThrowNotImplemented(nameof(VisitDictionary));
 
     private object? ThrowNotImplemented(string methodName)
         => throw new NotImplementedException($"The visitor method {GetType().Name}.{methodName} has not been implemented.");
