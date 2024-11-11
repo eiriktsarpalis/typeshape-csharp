@@ -1,6 +1,6 @@
 # PolyType [![Build & Tests](https://github.com/eiriktsarpalis/PolyType/actions/workflows/build.yml/badge.svg)](https://github.com/eiriktsarpalis/PolyType/actions/workflows/build.yml) [![NuGet Badge](https://img.shields.io/nuget/dt/PolyType)](https://www.nuget.org/packages/PolyType/)
 
-`PolyType` is a practical datatype-generic programming library for .NET types. It is an adaptation of the [TypeShape](https://github.com/eiriktsarpalis/TypeShape) library for F#, adapted to patterns and idioms available in C#. See the [project website](https://eiriktsarpalis.github.io/PolyType) for additional background and [API documentation](https://eiriktsarpalis.github.io/PolyType/api/PolyType.html).
+PolyType is a practical datatype-generic programming library for .NET types. It is a direct adaptation of the [TypeShape](https://github.com/eiriktsarpalis/TypeShape) library for F#, adapted to patterns and idioms available in C#. See the [project website](https://eiriktsarpalis.github.io/PolyType) for additional background and [API documentation](https://eiriktsarpalis.github.io/PolyType/api/PolyType.html).
 
 ## Quick Start
 
