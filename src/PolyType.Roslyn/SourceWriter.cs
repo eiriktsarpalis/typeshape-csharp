@@ -131,17 +131,6 @@ public sealed class SourceWriter
         new(@$"{HWSR}\w+{HWSR}={HWSR}null{HWSR},?{HWSR}\r?\n", RegexOptions.Compiled);
 
     /// <summary>
-    /// Overload that trims any lines containing '[PropertyName] = null,' 
-    /// assignments from generated object expressions.
-    /// </summary>
-    public void WriteLine(string text, bool trimNullAssignmentLines)
-    {
-
-
-        WriteLine(text);
-    }
-
-    /// <summary>
     /// Appends a new line to the source text.
     /// </summary>
     public void WriteLine() => _sb.AppendLine();

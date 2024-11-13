@@ -3,6 +3,8 @@ using System.Runtime.CompilerServices;
 using PolyType.Abstractions;
 using PolyType.ReflectionProvider;
 
+#pragma warning disable IDE0060 // Remove unused parameter
+
 namespace PolyType.Tests;
 
 /// <summary>
