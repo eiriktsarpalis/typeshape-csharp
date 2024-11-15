@@ -312,4 +312,23 @@ public static class CompilationTests
         PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation);
         Assert.Empty(result.Diagnostics);
     }
+
+    [Fact]
+    public static void RecordWitnessType_NoErrors()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+            using PolyType;
+            using PolyType.Abstractions;
+
+            ITypeShape<MyPoco> shape = TypeShapeProvider.Resolve<MyPoco, Witness>();
+
+            record MyPoco(string[] Values);
+
+            [GenerateShape<MyPoco>]
+            partial record Witness;
+            """, outputKind: OutputKind.ConsoleApplication);
+
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
 }

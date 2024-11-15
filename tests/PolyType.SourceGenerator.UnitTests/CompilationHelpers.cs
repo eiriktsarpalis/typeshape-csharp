@@ -37,7 +37,8 @@ public static class CompilationHelpers
         string source,
         MetadataReference[]? additionalReferences = null,
         string assemblyName = "TestAssembly",
-        CSharpParseOptions? parseOptions = null)
+        CSharpParseOptions? parseOptions = null,
+        OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary)
     {
         parseOptions ??= s_defaultParseOptions;
         additionalReferences ??= [];
@@ -60,7 +61,7 @@ public static class CompilationHelpers
             assemblyName,
             syntaxTrees: syntaxTrees,
             references: references,
-            options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+            options: new CSharpCompilationOptions(outputKind)
         );
     }
 
