@@ -8,7 +8,7 @@ namespace PolyType.SourceGenerator.Model;
 public readonly struct TypeId : IEquatable<TypeId>
 {
     public required string FullyQualifiedName { get; init; }
-    public required string GeneratedPropertyName { get; init; }
+    public required string TypeIdentifier { get; init; }
     public required bool IsValueType { get; init; }
     public required SpecialType SpecialType { get; init; }
 

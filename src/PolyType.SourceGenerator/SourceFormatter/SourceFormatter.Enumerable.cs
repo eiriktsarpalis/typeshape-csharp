@@ -12,7 +12,7 @@ internal static partial class SourceFormatter
             {
                 return new global::PolyType.SourceGenModel.SourceGenEnumerableTypeShape<{{enumerableShapeModel.Type.FullyQualifiedName}}, {{enumerableShapeModel.ElementType.FullyQualifiedName}}>
                 {
-                    ElementType = {{enumerableShapeModel.ElementType.GeneratedPropertyName}},
+                    ElementType = {{enumerableShapeModel.ElementType.TypeIdentifier}},
                     ConstructionStrategy = {{FormatCollectionConstructionStrategy(enumerableShapeModel.ConstructionStrategy)}},
                     DefaultConstructorFunc = {{FormatDefaultConstructorFunc(enumerableShapeModel)}},
                     EnumerableConstructorFunc = {{FormatEnumerableConstructorFunc(enumerableShapeModel)}},

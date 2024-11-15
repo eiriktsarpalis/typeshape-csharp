@@ -13,7 +13,7 @@ internal static partial class SourceFormatter
                 return new global::PolyType.SourceGenModel.SourceGenNullableTypeShape<{{nullableShapeModel.ElementType.FullyQualifiedName}}>
                 {
                     Provider = this,
-                    ElementType = {{nullableShapeModel.ElementType.GeneratedPropertyName}},
+                    ElementType = {{nullableShapeModel.ElementType.TypeIdentifier}},
                 };
             }
             """);

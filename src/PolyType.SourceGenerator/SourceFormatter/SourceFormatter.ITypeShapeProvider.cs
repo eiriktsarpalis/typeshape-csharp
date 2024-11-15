@@ -9,24 +9,11 @@ internal static partial class SourceFormatter
     private static SourceText FormatProviderInterfaceImplementation(TypeShapeProviderModel provider)
     {
         var writer = new SourceWriter();
-        StartFormatSourceFile(writer, provider.Declaration);
+        StartFormatSourceFile(writer, provider.ProviderDeclaration);
 
-        writer.WriteLine($"{provider.Declaration.TypeDeclarationHeader} : global::PolyType.ITypeShapeProvider");
+        writer.WriteLine($"{provider.ProviderDeclaration.TypeDeclarationHeader} : global::PolyType.ITypeShapeProvider");
         writer.WriteLine('{');
         writer.Indentation++;
-
-        writer.WriteLine("""
-            /// <summary>
-            /// Gets the generated <see cref="global::PolyType.Abstractions.ITypeShape{T}" /> for the specified type.
-            /// </summary>
-            /// <typeparam name="T">The type for which a shape is requested.</typeparam>
-            /// <returns>
-            /// The generated <see cref="global::PolyType.Abstractions.ITypeShape{T}" /> for the specified type.
-            /// </returns>
-            public global::PolyType.Abstractions.ITypeShape<T>? GetShape<T>()
-                => (global::PolyType.Abstractions.ITypeShape<T>?)GetShape(typeof(T));
-
-            """);
 
         writer.WriteLine("""
             /// <summary>
@@ -46,7 +33,7 @@ internal static partial class SourceFormatter
         {
             writer.WriteLine($"""
                 if (type == typeof({generatedType.Type.FullyQualifiedName}))
-                    return {generatedType.Type.GeneratedPropertyName};
+                    return {generatedType.Type.TypeIdentifier};
 
                 """);
         }
@@ -61,22 +48,42 @@ internal static partial class SourceFormatter
         return writer.ToSourceText();
     }
 
-    private static SourceText FormatGenericProviderInterfaceImplementation(TypeDeclarationModel typeDeclaration, TypeShapeProviderModel provider)
+    private static SourceText FormatIShapeableOfTStub(TypeDeclarationModel typeDeclaration, TypeId typeToImplement, TypeShapeProviderModel provider)
     {
         var writer = new SourceWriter();
         StartFormatSourceFile(writer, typeDeclaration);
 
-        writer.WriteLine($"{typeDeclaration.TypeDeclarationHeader} : global::PolyType.IShapeable<{typeDeclaration.Id.FullyQualifiedName}>");
+        writer.WriteLine("#nullable disable annotations // Use nullable-oblivious interface implementation", disableIndentation: true);
+        writer.WriteLine($"{typeDeclaration.TypeDeclarationHeader} : global::PolyType.IShapeable<{typeToImplement.FullyQualifiedName}>");
+        writer.WriteLine("#nullable enable annotations // Use nullable-oblivious interface implementation", disableIndentation: true);
         writer.WriteLine('{');
         writer.Indentation++;
 
         writer.WriteLine($"""
-            static global::PolyType.Abstractions.ITypeShape<{typeDeclaration.Id.FullyQualifiedName}> global::PolyType.IShapeable<{typeDeclaration.Id.FullyQualifiedName}>.GetShape() 
-                => {provider.Declaration.Id.FullyQualifiedName}.Default.{typeDeclaration.Id.GeneratedPropertyName};
+            static global::PolyType.Abstractions.ITypeShape<{typeToImplement.FullyQualifiedName}> global::PolyType.IShapeable<{typeToImplement.FullyQualifiedName}>.GetShape() 
+                => {provider.ProviderDeclaration.Id.FullyQualifiedName}.Default.{typeToImplement.TypeIdentifier};
             """);
 
         writer.Indentation--;
         writer.WriteLine('}');
+        EndFormatSourceFile(writer);
+
+        return writer.ToSourceText();
+    }
+
+    private static SourceText FormatITypeShapeProviderStub(TypeDeclarationModel typeDeclaration, TypeShapeProviderModel provider)
+    {
+        var writer = new SourceWriter();
+        StartFormatSourceFile(writer, typeDeclaration);
+
+        writer.WriteLine($$"""
+            {{typeDeclaration.TypeDeclarationHeader}} : global::PolyType.ITypeShapeProvider
+            {
+                global::PolyType.Abstractions.ITypeShape? global::PolyType.ITypeShapeProvider.GetShape(global::System.Type type) 
+                    => {{provider.ProviderDeclaration.Id.FullyQualifiedName}}.Default.GetShape(type);
+            }
+            """);
+
         EndFormatSourceFile(writer);
 
         return writer.ToSourceText();

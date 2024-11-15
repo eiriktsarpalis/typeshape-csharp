@@ -43,7 +43,7 @@ public abstract class XmlTests(IProviderUnderTest providerUnderTest)
 
     public static IEnumerable<object?[]> GetValuesAndExpectedEncoding()
     {
-        SourceGenProvider p = SourceGenProvider.Default;
+        SourceGenProvider p = new();
         yield return [TestCase.Create(p, (object?)null), """<value nil="true" />"""];
         yield return [TestCase.Create(p, false), "<value>false</value>"];
         yield return [TestCase.Create(p, true), "<value>true</value>"];

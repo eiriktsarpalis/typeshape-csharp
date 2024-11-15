@@ -116,24 +116,6 @@ public sealed partial class Parser : TypeDataModelGenerator
         _knownSymbols = knownSymbols;
     }
 
-    public static TypeShapeProviderModel ParseFromGenerateShapeOfTAttributes(
-        TypeWithAttributeDeclarationContext context,
-        PolyTypeKnownSymbols knownSymbols,
-        CancellationToken cancellationToken)
-    {
-        Parser parser = new(context.TypeSymbol, knownSymbols, cancellationToken);
-        TypeId declaringTypeId = CreateTypeId(context.TypeSymbol);
-
-        TypeDeclarationModel providerDeclaration = parser.CreateTypeDeclaration(context, declaringTypeId);
-        if (providerDeclaration.IsValidTypeDeclaration)
-        {
-            // Only generate shapes if the context type is valid.
-            parser.IncludeTypesFromGenerateShapeOfTAttributes(context.TypeSymbol);
-        }
-
-        return parser.ExportTypeShapeProviderModel(providerDeclaration, [], isGeneratedViaWitnessType: true);
-    }
-
     public static TypeShapeProviderModel? ParseFromGenerateShapeAttributes(
         ImmutableArray<TypeWithAttributeDeclarationContext> generateShapeDeclarations,
         PolyTypeKnownSymbols knownSymbols,
@@ -145,11 +127,11 @@ public sealed partial class Parser : TypeDataModelGenerator
         }
 
         Parser parser = new(knownSymbols.Compilation.Assembly, knownSymbols, cancellationToken);
-        ImmutableEquatableArray<TypeDeclarationModel> generateShapeTypes = parser.IncludeTypesFromGenerateShapeAttributes(generateShapeDeclarations);
-        return parser.ExportTypeShapeProviderModel(s_globalImplicitProviderDeclaration, generateShapeTypes, isGeneratedViaWitnessType: false);
+        ImmutableEquatableArray<TypeDeclarationModel> generateShapeTypes = parser.IncludeTypesUsingGenerateShapeAttributes(generateShapeDeclarations);
+        return parser.ExportTypeShapeProviderModel(s_globalImplicitProviderDeclaration, generateShapeTypes);
     }
 
-    private TypeShapeProviderModel ExportTypeShapeProviderModel(TypeDeclarationModel providerDeclaration, ImmutableEquatableArray<TypeDeclarationModel> generateShapeTypes, bool isGeneratedViaWitnessType)
+    private TypeShapeProviderModel ExportTypeShapeProviderModel(TypeDeclarationModel providerDeclaration, ImmutableEquatableArray<TypeDeclarationModel> generateShapeTypes)
     {
         Dictionary<TypeId, TypeShapeModel> generatedModels = new(GeneratedModels.Count);
         foreach (KeyValuePair<ITypeSymbol, TypeDataModel> entry in GeneratedModels)
@@ -160,96 +142,38 @@ public sealed partial class Parser : TypeDataModelGenerator
                 ReportDiagnostic(TypeNameConflict, location: null, typeId.FullyQualifiedName);
             }
 
-            generatedModels[typeId] = MapModel(typeId, entry.Value, isGeneratedViaWitnessType);
+            generatedModels[typeId] = MapModel(typeId, entry.Value);
         }
 
         return new TypeShapeProviderModel
         {
-            Declaration = providerDeclaration,
+            ProviderDeclaration = providerDeclaration,
             ProvidedTypes = generatedModels.ToImmutableEquatableDictionary(),
-            GenerateShapeTypes = generateShapeTypes,
+            AnnotatedTypes = generateShapeTypes,
             Diagnostics = Diagnostics.ToImmutableEquatableSet(),
         };
     }
 
-    private void IncludeTypesFromGenerateShapeOfTAttributes(ITypeSymbol declaringTypeSymbol)
+    private ImmutableEquatableArray<TypeDeclarationModel> IncludeTypesUsingGenerateShapeAttributes(ImmutableArray<TypeWithAttributeDeclarationContext> generateShapeDeclarations)
     {
-        Debug.Assert(declaringTypeSymbol.TypeKind is TypeKind.Class);
-
-        foreach (AttributeData attributeData in declaringTypeSymbol.GetAttributes())
-        {
-            INamedTypeSymbol? attributeType = attributeData.AttributeClass;
-
-            if (attributeType is { TypeArguments: [ITypeSymbol typeArgument] } &&
-                SymbolEqualityComparer.Default.Equals(attributeType.ConstructedFrom, _knownSymbols.GenerateShapeAttributeOfT))
-            {
-                TypeDataModelGenerationStatus generationStatus = IncludeType(typeArgument);
-
-                if (generationStatus is TypeDataModelGenerationStatus.UnsupportedType)
-                {
-                    ReportDiagnostic(TypeNotSupported, attributeData.GetLocation(), typeArgument.ToDisplayString());
-                    continue;
-                }
-
-                if (generationStatus is TypeDataModelGenerationStatus.InaccessibleType)
-                {
-                    ReportDiagnostic(TypeNotAccessible, attributeData.GetLocation(), typeArgument.ToDisplayString());
-                    continue;
-                }
-            }
-        }
-    }
-
-    private ImmutableEquatableArray<TypeDeclarationModel> IncludeTypesFromGenerateShapeAttributes(ImmutableArray<TypeWithAttributeDeclarationContext> generateShapeDeclarations)
-    {
-        var typeDeclarations = new List<TypeDeclarationModel>();
+        List<TypeDeclarationModel>? typeDeclarations = null;
         foreach (TypeWithAttributeDeclarationContext ctx in generateShapeDeclarations)
         {
-            TypeDeclarationModel typeDeclaration = CreateTypeDeclaration(ctx, CreateTypeId(ctx.TypeSymbol));
-            if (!typeDeclaration.IsValidTypeDeclaration)
+            if (IncludeTypeUsingGenerateShapeAttributes(ctx) is { } typeDeclaration)
             {
-                continue; // Skip code generation if the declaring type is not valid.
+                (typeDeclarations ??= []).Add(typeDeclaration);
             }
-
-            TypeDataModelGenerationStatus generationStatus = IncludeType(ctx.TypeSymbol);
-
-            if (generationStatus is TypeDataModelGenerationStatus.UnsupportedType)
-            {
-                ReportDiagnostic(TypeNotSupported, ctx.Declarations.First().Syntax.GetLocation(), ctx.TypeSymbol.ToDisplayString());
-                continue;
-            }
-
-            if (generationStatus is TypeDataModelGenerationStatus.InaccessibleType)
-            {
-                ReportDiagnostic(TypeNotAccessible, ctx.Declarations.First().Syntax.GetLocation(), ctx.TypeSymbol.ToDisplayString());
-                continue;
-            }
-
-            typeDeclarations.Add(typeDeclaration);
         }
 
-        return typeDeclarations.ToImmutableEquatableArray();
+        return typeDeclarations?.ToImmutableEquatableArray() ?? [];
     }
 
-    private static TypeId CreateTypeId(ITypeSymbol type)
+    private TypeDeclarationModel? IncludeTypeUsingGenerateShapeAttributes(TypeWithAttributeDeclarationContext context)
     {
-        return new TypeId
-        {
-            FullyQualifiedName = type.GetFullyQualifiedName(),
-            GeneratedPropertyName = type.CreateTypeIdentifier(),
-            IsValueType = type.IsValueType,
-            SpecialType = type.OriginalDefinition.SpecialType,
-        };
-    }
-
-    private TypeDeclarationModel CreateTypeDeclaration(TypeWithAttributeDeclarationContext context, TypeId typeId)
-    {
-        bool isValidTypeDeclaration = true;
-
         if (context.TypeSymbol.IsGenericTypeDefinition())
         {
             ReportDiagnostic(GenericTypeDefinitionsNotSupported, context.Declarations.First().Syntax.GetLocation(), context.TypeSymbol.ToDisplayString());
-            isValidTypeDeclaration = false;
+            return null;
         }
 
         (BaseTypeDeclarationSyntax? declarationSyntax, SemanticModel? semanticModel) = context.Declarations.First();
@@ -267,7 +191,48 @@ public sealed partial class Parser : TypeDataModelGenerator
         if (!isPartialHierarchy)
         {
             ReportDiagnostic(GeneratedTypeNotPartial, declarationSyntax.GetLocation(), context.TypeSymbol.ToDisplayString());
-            isValidTypeDeclaration = false;
+            return null;
+        }
+
+        TypeId typeId = CreateTypeId(context.TypeSymbol);
+        HashSet<TypeId>? shapeableOfTImplementations = null;
+        bool isWitnessTypeDeclaration = false;
+
+        foreach (AttributeData attributeData in context.TypeSymbol.GetAttributes())
+        {
+            ITypeSymbol typeToInclude;
+            TypeId typeIdToInclude;
+
+            if (SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, _knownSymbols.GenerateShapeAttribute))
+            {
+                typeToInclude = context.TypeSymbol;
+                typeIdToInclude = typeId;
+            }
+            else if (
+                attributeData.AttributeClass is { TypeArguments: [ITypeSymbol typeArgument] } &&
+                SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass.ConstructedFrom, _knownSymbols.GenerateShapeAttributeOfT))
+            {
+                typeToInclude = typeArgument;
+                typeIdToInclude = CreateTypeId(typeArgument);
+                isWitnessTypeDeclaration = true;
+            }
+            else
+            {
+                continue;
+            }
+
+            switch (IncludeType(typeToInclude))
+            {
+                case TypeDataModelGenerationStatus.UnsupportedType:
+                    ReportDiagnostic(TypeNotSupported, attributeData.GetLocation(), typeToInclude.ToDisplayString());
+                    continue;
+
+                case TypeDataModelGenerationStatus.InaccessibleType:
+                    ReportDiagnostic(TypeNotAccessible, attributeData.GetLocation(), typeToInclude.ToDisplayString());
+                    continue;
+            }
+
+            (shapeableOfTImplementations ??= new()).Add(typeIdToInclude);
         }
 
         return new TypeDeclarationModel
@@ -278,7 +243,8 @@ public sealed partial class Parser : TypeDataModelGenerator
             ContainingTypes = parentStack?.ToImmutableEquatableArray() ?? [],
             Namespace = FormatNamespace(context.TypeSymbol),
             SourceFilenamePrefix = context.TypeSymbol.ToDisplayString(RoslynHelpers.QualifiedNameOnlyFormat),
-            IsValidTypeDeclaration = isValidTypeDeclaration,
+            ImplementsITypeShapeProvider = isWitnessTypeDeclaration,
+            ShapeableOfTImplementations = shapeableOfTImplementations?.ToImmutableEquatableSet() ?? [],
         };
 
         static string FormatTypeDeclarationHeader(BaseTypeDeclarationSyntax typeDeclaration, ITypeSymbol typeSymbol, out bool isPartialType)
@@ -303,6 +269,17 @@ public sealed partial class Parser : TypeDataModelGenerator
         }
     }
 
+    private static TypeId CreateTypeId(ITypeSymbol type)
+    {
+        return new TypeId
+        {
+            FullyQualifiedName = type.GetFullyQualifiedName(),
+            TypeIdentifier = type.CreateTypeIdentifier(),
+            IsValueType = type.IsValueType,
+            SpecialType = type.OriginalDefinition.SpecialType,
+        };
+    }
+
     private static string? FormatNamespace(ITypeSymbol type)
     {
         if (type.ContainingNamespace is { IsGlobalNamespace: false } ns)
@@ -317,16 +294,17 @@ public sealed partial class Parser : TypeDataModelGenerator
     {
         Id = new()
         {
-            FullyQualifiedName = "global::PolyType.SourceGenerator.GenerateShapeProvider",
-            GeneratedPropertyName = "GenerateShapeProvider",
+            FullyQualifiedName = "global::PolyType.SourceGenerator.ShapeProvider",
+            TypeIdentifier = "GenerateShapeProvider",
             IsValueType = false,
             SpecialType = SpecialType.None,
         },
-        Name = "GenerateShapeProvider",
+        Name = "ShapeProvider",
         Namespace = "PolyType.SourceGenerator",
-        SourceFilenamePrefix = "GenerateShapeProvider",
-        TypeDeclarationHeader = "internal partial class GenerateShapeProvider",
-        IsValidTypeDeclaration = true,
+        SourceFilenamePrefix = "PolyType.SourceGenerator.ShapeProvider",
+        TypeDeclarationHeader = "internal partial class ShapeProvider",
+        ImplementsITypeShapeProvider = true,
         ContainingTypes = [],
+        ShapeableOfTImplementations = [],
     };
 }

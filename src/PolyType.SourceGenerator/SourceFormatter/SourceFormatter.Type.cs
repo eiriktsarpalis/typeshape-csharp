@@ -10,40 +10,22 @@ internal static partial class SourceFormatter
     private static SourceText FormatType(TypeShapeProviderModel provider, TypeShapeModel type)
     {
         string generatedPropertyType = $"global::PolyType.Abstractions.ITypeShape<{type.Type.FullyQualifiedName}>";
-        string generatedFactoryMethodName = $"Create_{type.Type.GeneratedPropertyName}";
-        string generatedFieldName = "_" + type.Type.GeneratedPropertyName;
+        string generatedFactoryMethodName = $"Create_{type.Type.TypeIdentifier}";
+        string generatedFieldName = "_" + type.Type.TypeIdentifier;
 
         var writer = new SourceWriter();
-        StartFormatSourceFile(writer, provider.Declaration);
+        StartFormatSourceFile(writer, provider.ProviderDeclaration);
 
-        if (type.EmitGenericTypeShapeProviderImplementation)
-        {
-            writer.WriteLine("#nullable disable annotations // Use nullable-oblivious interface implementation", disableIndentation: true);
-            writer.WriteLine($"""{provider.Declaration.TypeDeclarationHeader} : global::PolyType.IShapeable<{type.Type.FullyQualifiedName}>""");
-            writer.WriteLine("#nullable enable annotations // Use nullable-oblivious interface implementation", disableIndentation: true);
-        }
-        else
-        {
-            writer.WriteLine(provider.Declaration.TypeDeclarationHeader);
-        }
-
+        writer.WriteLine(provider.ProviderDeclaration.TypeDeclarationHeader);
         writer.WriteLine('{');
         writer.Indentation++;
 
-        writer.WriteLine("/// <summary>Gets the generated shape for specified type.</summary>");
+        writer.WriteLine("/// <summary>Gets a generated shape for the specified type.</summary>");
         writer.WriteLine("#nullable disable annotations // Use nullable-oblivious property type", disableIndentation: true);
-        writer.WriteLine($"public {generatedPropertyType} {type.Type.GeneratedPropertyName} => {generatedFieldName} ??= {generatedFactoryMethodName}();");
+        writer.WriteLine($"public {generatedPropertyType} {type.Type.TypeIdentifier} => {generatedFieldName} ??= {generatedFactoryMethodName}();");
         writer.WriteLine("#nullable enable annotations // Use nullable-oblivious property type", disableIndentation: true);
         writer.WriteLine($"private {generatedPropertyType}? {generatedFieldName};");
         writer.WriteLine();
-
-        if (type.EmitGenericTypeShapeProviderImplementation)
-        {
-            writer.WriteLine($"""
-                static {generatedPropertyType} global::PolyType.IShapeable<{type.Type.FullyQualifiedName}>.GetShape() => Default.{type.Type.GeneratedPropertyName};
-
-                """);
-        }
 
         switch (type)
         {

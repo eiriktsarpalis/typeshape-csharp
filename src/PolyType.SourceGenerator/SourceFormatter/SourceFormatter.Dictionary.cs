@@ -12,8 +12,8 @@ internal static partial class SourceFormatter
             {
                 return new global::PolyType.SourceGenModel.SourceGenDictionaryTypeShape<{{dictionaryShapeModel.Type.FullyQualifiedName}}, {{dictionaryShapeModel.KeyType.FullyQualifiedName}}, {{dictionaryShapeModel.ValueType.FullyQualifiedName}}>
                 {
-                    KeyType = {{dictionaryShapeModel.KeyType.GeneratedPropertyName}},
-                    ValueType = {{dictionaryShapeModel.ValueType.GeneratedPropertyName}},
+                    KeyType = {{dictionaryShapeModel.KeyType.TypeIdentifier}},
+                    ValueType = {{dictionaryShapeModel.ValueType.TypeIdentifier}},
                     GetDictionaryFunc = {{FormatGetDictionaryFunc(dictionaryShapeModel)}},
                     ConstructionStrategy = {{FormatCollectionConstructionStrategy(dictionaryShapeModel.ConstructionStrategy)}},
                     DefaultConstructorFunc = {{FormatDefaultConstructorFunc(dictionaryShapeModel)}},

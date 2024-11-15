@@ -12,8 +12,7 @@ public static class DiagnosticTests
             using PolyType;
 
             [GenerateShape<MissingType>]
-            public partial class ShapeProvider
-            {}
+            public partial class ShapeProvider;
             """);
 
         PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation, disableDiagnosticValidation: true);
@@ -181,8 +180,8 @@ public static class DiagnosticTests
 
         Assert.Equal("TS0005", diagnostic.Id);
         Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
-        Assert.Equal((4, 4), diagnostic.Location.GetStartPosition());
-        Assert.Equal((5, 49), diagnostic.Location.GetEndPosition());
+        Assert.Equal((4, 5), diagnostic.Location.GetStartPosition());
+        Assert.Equal((4, 18), diagnostic.Location.GetEndPosition());
     }
     
     [Fact]

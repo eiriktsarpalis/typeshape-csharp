@@ -664,4 +664,14 @@ public static class ReflectionHelpers
 public sealed class TypeShapeProviderTests_Reflection() : TypeShapeProviderTests(RefectionProviderUnderTest.Default);
 public sealed class TypeShapeProviderTests_ReflectionEmit() : TypeShapeProviderTests(RefectionProviderUnderTest.NoEmit);
 public sealed class TypeShapeProviderTests_NoNullableAnnotations() : TypeShapeProviderTests(RefectionProviderUnderTest.NoNullableAnnotations);
-public sealed class TypeShapeProviderTests_SourceGen() : TypeShapeProviderTests(SourceGenProviderUnderTest.Default);
+public sealed class TypeShapeProviderTests_SourceGen() : TypeShapeProviderTests(SourceGenProviderUnderTest.Default)
+{
+    [Theory]
+    [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
+    public void WitnessType_ImplementsITypeShapeProvider(ITestCase testCase)
+    {
+        SourceGenProvider provider = new();
+        ITypeShapeProvider shapeProvider = Assert.IsAssignableFrom<ITypeShapeProvider>(provider);
+        Assert.Same(testCase.DefaultShape, shapeProvider.GetShape(testCase.Type));
+    }
+}

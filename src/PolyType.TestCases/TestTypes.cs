@@ -58,7 +58,7 @@ public static class TestTypes
     /// <returns>An enumerable including all test cases defined by this project.</returns>
     public static IEnumerable<ITestCase> GetTestCasesCore()
     {
-        SourceGenProvider p = SourceGenProvider.Default;
+        SourceGenProvider p = new();
         yield return TestCase.Create(p, new object());
         yield return TestCase.Create(p, false);
         yield return TestCase.Create(p, "stringValue", additionalValues: [""]);
@@ -580,7 +580,7 @@ public partial class PocoWithListAndDictionaryProps
     public Dictionary<string, int>? Dict { get; set; }
 }
 
-internal class MyLinkedList<T>
+public class MyLinkedList<T>
 {
     public T? Value { get; set; }
     public MyLinkedList<T>? Next { get; set; }
@@ -2036,4 +2036,4 @@ partial class @class
 [GenerateShape<FSharpMap<string, int>>]
 [GenerateShape<FSharpSet<int>>]
 [GenerateShape<FSharpRecordWithCollections>]
-internal partial class SourceGenProvider;
+public partial class SourceGenProvider;
