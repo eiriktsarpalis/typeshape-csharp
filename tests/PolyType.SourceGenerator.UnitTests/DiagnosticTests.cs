@@ -16,7 +16,7 @@ public static class DiagnosticTests
             {}
             """);
 
-        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         Diagnostic? diagnostic = result.Diagnostics.FirstOrDefault(d => d.Id == "TS0001");
 
@@ -36,7 +36,7 @@ public static class DiagnosticTests
             public class TypeToGenerate { }
             """);
 
-        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         Diagnostic diagnostic = Assert.Single(result.Diagnostics);
 
@@ -58,7 +58,7 @@ public static class DiagnosticTests
             public class TypeToGenerate { }
             """);
 
-        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         Diagnostic diagnostic = Assert.Single(result.Diagnostics);
 
@@ -80,7 +80,7 @@ public static class DiagnosticTests
             }
             """);
 
-        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         Diagnostic diagnostic = Assert.Single(result.Diagnostics);
 
@@ -105,7 +105,7 @@ public static class DiagnosticTests
             }
             """);
 
-        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         Diagnostic diagnostic = Assert.Single(result.Diagnostics);
 
@@ -127,7 +127,7 @@ public static class DiagnosticTests
             }
             """);
 
-        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         Diagnostic diagnostic = Assert.Single(result.Diagnostics);
 
@@ -152,7 +152,7 @@ public static class DiagnosticTests
             }
             """);
 
-        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         Diagnostic diagnostic = Assert.Single(result.Diagnostics);
 
@@ -175,7 +175,7 @@ public static class DiagnosticTests
             }
             """);
 
-        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         Diagnostic diagnostic = Assert.Single(result.Diagnostics);
 
@@ -202,7 +202,7 @@ public static class DiagnosticTests
            }
            """);
 
-        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation, disableDiagnosticValidation: true);
 
         Diagnostic diagnostic = Assert.Single(result.Diagnostics);
 

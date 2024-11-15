@@ -47,8 +47,8 @@ public static class IncrementalCompilationTests
         Compilation compilation1 = CompilationHelpers.CreateCompilation(source);
         Compilation compilation2 = CompilationHelpers.CreateCompilation(source);
 
-        TypeShapeSourceGeneratorResult result1 = CompilationHelpers.RunTypeShapeSourceGenerator(compilation1, disableDiagnosticValidation: true);
-        TypeShapeSourceGeneratorResult result2 = CompilationHelpers.RunTypeShapeSourceGenerator(compilation2, disableDiagnosticValidation: true);
+        PolyTypeSourceGeneratorResult result1 = CompilationHelpers.RunPolyTypeSourceGenerator(compilation1, disableDiagnosticValidation: true);
+        PolyTypeSourceGeneratorResult result2 = CompilationHelpers.RunPolyTypeSourceGenerator(compilation2, disableDiagnosticValidation: true);
 
         CompilationHelpers.AssertStructurallyEqual(result1.GeneratedModels, result2.GeneratedModels);
         Assert.Equal(result1.GeneratedModels, result2.GeneratedModels);
@@ -80,8 +80,8 @@ public static class IncrementalCompilationTests
         Compilation compilation1 = CompilationHelpers.CreateCompilation(source1);
         Compilation compilation2 = CompilationHelpers.CreateCompilation(source2);
 
-        TypeShapeSourceGeneratorResult result1 = CompilationHelpers.RunTypeShapeSourceGenerator(compilation1);
-        TypeShapeSourceGeneratorResult result2 = CompilationHelpers.RunTypeShapeSourceGenerator(compilation2);
+        PolyTypeSourceGeneratorResult result1 = CompilationHelpers.RunPolyTypeSourceGenerator(compilation1);
+        PolyTypeSourceGeneratorResult result2 = CompilationHelpers.RunPolyTypeSourceGenerator(compilation2);
 
         Assert.NotEqual(result1.GeneratedModels, result2.GeneratedModels);
     }
@@ -127,8 +127,8 @@ public static class IncrementalCompilationTests
         Compilation compilation1 = CompilationHelpers.CreateCompilation(source1);
         Compilation compilation2 = CompilationHelpers.CreateCompilation(source2);
 
-        TypeShapeSourceGeneratorResult result1 = CompilationHelpers.RunTypeShapeSourceGenerator(compilation1);
-        TypeShapeSourceGeneratorResult result2 = CompilationHelpers.RunTypeShapeSourceGenerator(compilation2);
+        PolyTypeSourceGeneratorResult result1 = CompilationHelpers.RunPolyTypeSourceGenerator(compilation1);
+        PolyTypeSourceGeneratorResult result2 = CompilationHelpers.RunPolyTypeSourceGenerator(compilation2);
 
         CompilationHelpers.AssertStructurallyEqual(result1.GeneratedModels, result2.GeneratedModels);
         Assert.Equal(result1.GeneratedModels, result2.GeneratedModels);

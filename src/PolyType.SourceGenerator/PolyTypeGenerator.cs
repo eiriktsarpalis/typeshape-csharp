@@ -7,15 +7,15 @@ using PolyType.SourceGenerator.Model;
 namespace PolyType.SourceGenerator;
 
 [Generator]
-public sealed class TypeShapeIncrementalGenerator : IIncrementalGenerator
+public sealed class PolyTypeGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
 #if LAUNCH_DEBUGGER
         System.Diagnostics.Debugger.Launch();
 #endif
-        IncrementalValueProvider<TypeShapeKnownSymbols> knownSymbols = context.CompilationProvider
-            .Select((compilation, _) => new TypeShapeKnownSymbols(compilation));
+        IncrementalValueProvider<PolyTypeKnownSymbols> knownSymbols = context.CompilationProvider
+            .Select((compilation, _) => new PolyTypeKnownSymbols(compilation));
 
         IncrementalValuesProvider<TypeShapeProviderModel> generateShapeOfTModels = context.SyntaxProvider
             .ForTypesWithAttributeDeclaration(

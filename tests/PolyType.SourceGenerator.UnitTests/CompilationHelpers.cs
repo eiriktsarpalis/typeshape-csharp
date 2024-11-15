@@ -10,7 +10,7 @@ using Xunit;
 
 namespace PolyType.SourceGenerator.UnitTests;
 
-public record TypeShapeSourceGeneratorResult
+public record PolyTypeSourceGeneratorResult
 {
     public required Compilation NewCompilation { get; init; }
     public required ImmutableEquatableArray<TypeShapeProviderModel> GeneratedModels { get; init; }
@@ -64,7 +64,7 @@ public static class CompilationHelpers
         );
     }
 
-    public static CSharpGeneratorDriver CreateTypeShapeSourceGeneratorDriver(Compilation compilation, TypeShapeIncrementalGenerator? generator = null)
+    public static CSharpGeneratorDriver CreatePolyTypeSourceGeneratorDriver(Compilation compilation, PolyTypeGenerator? generator = null)
     {
         generator ??= new();
         CSharpParseOptions parseOptions = compilation.SyntaxTrees
@@ -80,15 +80,15 @@ public static class CompilationHelpers
                 trackIncrementalGeneratorSteps: true));
     }
 
-    public static TypeShapeSourceGeneratorResult RunTypeShapeSourceGenerator(Compilation compilation, bool disableDiagnosticValidation = false)
+    public static PolyTypeSourceGeneratorResult RunPolyTypeSourceGenerator(Compilation compilation, bool disableDiagnosticValidation = false)
     {
         List<TypeShapeProviderModel> generatedModels = [];
-        var generator = new TypeShapeIncrementalGenerator
+        var generator = new PolyTypeGenerator
         {
             OnGeneratingSource = generatedModels.Add
         };
 
-        CSharpGeneratorDriver driver = CreateTypeShapeSourceGeneratorDriver(compilation, generator);
+        CSharpGeneratorDriver driver = CreatePolyTypeSourceGeneratorDriver(compilation, generator);
         driver.RunGeneratorsAndUpdateCompilation(compilation, out Compilation outCompilation, out ImmutableArray<Diagnostic> diagnostics);
 
         if (!disableDiagnosticValidation)

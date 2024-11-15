@@ -17,7 +17,7 @@ public sealed partial class Parser : TypeDataModelGenerator
             SymbolEqualityComparer.Default,
             CommonHelpers.CamelCaseInvariantComparer.Instance);
     
-    private readonly TypeShapeKnownSymbols _knownSymbols;
+    private readonly PolyTypeKnownSymbols _knownSymbols;
 
     // We want to flatten System.Tuple types for consistency with
     // the reflection-based provider (which caters to F# model types).
@@ -110,7 +110,7 @@ public sealed partial class Parser : TypeDataModelGenerator
             .Take(1);
     }
 
-    private Parser(ISymbol generationScope, TypeShapeKnownSymbols knownSymbols, CancellationToken cancellationToken) 
+    private Parser(ISymbol generationScope, PolyTypeKnownSymbols knownSymbols, CancellationToken cancellationToken) 
         : base(generationScope, knownSymbols, cancellationToken)
     {
         _knownSymbols = knownSymbols;
@@ -118,7 +118,7 @@ public sealed partial class Parser : TypeDataModelGenerator
 
     public static TypeShapeProviderModel ParseFromGenerateShapeOfTAttributes(
         TypeWithAttributeDeclarationContext context,
-        TypeShapeKnownSymbols knownSymbols,
+        PolyTypeKnownSymbols knownSymbols,
         CancellationToken cancellationToken)
     {
         Parser parser = new(context.TypeSymbol, knownSymbols, cancellationToken);
@@ -136,7 +136,7 @@ public sealed partial class Parser : TypeDataModelGenerator
 
     public static TypeShapeProviderModel? ParseFromGenerateShapeAttributes(
         ImmutableArray<TypeWithAttributeDeclarationContext> generateShapeDeclarations,
-        TypeShapeKnownSymbols knownSymbols,
+        PolyTypeKnownSymbols knownSymbols,
         CancellationToken cancellationToken)
     {
         if (generateShapeDeclarations.IsEmpty)
