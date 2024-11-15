@@ -8,7 +8,7 @@ namespace PolyType.SourceGenModel;
 /// <typeparam name="TDictionary">The type of the dictionary.</typeparam>
 /// <typeparam name="TKey">The type of the dictionary key.</typeparam>
 /// <typeparam name="TValue">The type of the dictionary value.</typeparam>
-public sealed class SourceGenDictionaryTypeShape<TDictionary, TKey, TValue> : IDictionaryShape<TDictionary, TKey, TValue>
+public sealed class SourceGenDictionaryTypeShape<TDictionary, TKey, TValue> : IDictionaryTypeShape<TDictionary, TKey, TValue>
     where TKey : notnull
 {
     /// <summary>
@@ -56,18 +56,18 @@ public sealed class SourceGenDictionaryTypeShape<TDictionary, TKey, TValue> : ID
     /// </summary>
     public SpanConstructor<KeyValuePair<TKey, TValue>, TDictionary>? SpanConstructorFunc { get; init; }
 
-    Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> IDictionaryShape<TDictionary, TKey, TValue>.GetGetDictionary()
+    Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> IDictionaryTypeShape<TDictionary, TKey, TValue>.GetGetDictionary()
         => GetDictionaryFunc;
 
-    Func<TDictionary> IDictionaryShape<TDictionary, TKey, TValue>.GetDefaultConstructor()
+    Func<TDictionary> IDictionaryTypeShape<TDictionary, TKey, TValue>.GetDefaultConstructor()
         => DefaultConstructorFunc ?? throw new InvalidOperationException("Dictionary shape does not specify a default constructor.");
 
-    Setter<TDictionary, KeyValuePair<TKey, TValue>> IDictionaryShape<TDictionary, TKey, TValue>.GetAddKeyValuePair()
+    Setter<TDictionary, KeyValuePair<TKey, TValue>> IDictionaryTypeShape<TDictionary, TKey, TValue>.GetAddKeyValuePair()
         => AddKeyValuePairFunc ?? throw new InvalidOperationException("Dictionary shape does not specify an append delegate.");
 
-    Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> IDictionaryShape<TDictionary, TKey, TValue>.GetEnumerableConstructor()
+    Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> IDictionaryTypeShape<TDictionary, TKey, TValue>.GetEnumerableConstructor()
         => EnumerableConstructorFunc ?? throw new InvalidOperationException("Dictionary shape does not specify an enumerable constructor.");
 
-    SpanConstructor<KeyValuePair<TKey, TValue>, TDictionary> IDictionaryShape<TDictionary, TKey, TValue>.GetSpanConstructor()
+    SpanConstructor<KeyValuePair<TKey, TValue>, TDictionary> IDictionaryTypeShape<TDictionary, TKey, TValue>.GetSpanConstructor()
         => SpanConstructorFunc ?? throw new InvalidOperationException("Dictionary shape does not specify a span constructor.");
 }

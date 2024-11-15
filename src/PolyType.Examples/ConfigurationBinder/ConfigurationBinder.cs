@@ -224,7 +224,7 @@ public static class ConfigurationBinderTS
             }
         }
 
-        public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state = null)
+        public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryTypeShape<TDictionary, TKey, TValue> dictionaryShape, object? state = null)
         {
             if (!s_builtInParsers.TryGetValue(typeof(TKey), out object? parser))
             {

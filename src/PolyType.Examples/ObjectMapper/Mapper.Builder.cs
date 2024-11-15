@@ -95,7 +95,7 @@ public static partial class Mapper
             return targetEnumerable.Accept(visitor, state: enumerableShape);
         }
 
-        public override object? VisitDictionary<TSourceDictionary, TSourceKey, TSourceValue>(IDictionaryShape<TSourceDictionary, TSourceKey, TSourceValue> sourceDictionary, object? state)
+        public override object? VisitDictionary<TSourceDictionary, TSourceKey, TSourceValue>(IDictionaryTypeShape<TSourceDictionary, TSourceKey, TSourceValue> sourceDictionary, object? state)
         {
             var targetDictionary = (IDictionaryTypeShape)state!;
             var visitor = new DictionaryScopedVisitor<TSourceDictionary, TSourceKey, TSourceValue>(this);
@@ -305,9 +305,9 @@ public static partial class Mapper
         private sealed class DictionaryScopedVisitor<TSourceDictionary, TSourceKey, TSourceValue>(Builder baseVisitor) : TypeShapeVisitor
             where TSourceKey : notnull
         {
-            public override object? VisitDictionary<TTargetDictionary, TTargetKey, TTargetValue>(IDictionaryShape<TTargetDictionary, TTargetKey, TTargetValue> targetDictionary, object? state)
+            public override object? VisitDictionary<TTargetDictionary, TTargetKey, TTargetValue>(IDictionaryTypeShape<TTargetDictionary, TTargetKey, TTargetValue> targetDictionary, object? state)
             {
-                var sourceDictionary = (IDictionaryShape<TSourceDictionary, TSourceKey, TSourceValue>)state!;
+                var sourceDictionary = (IDictionaryTypeShape<TSourceDictionary, TSourceKey, TSourceValue>)state!;
                 var sourceGetDictionary = sourceDictionary.GetGetDictionary();
 
                 var keyMapper = baseVisitor.BuildMapper(sourceDictionary.KeyType, targetDictionary.KeyType);
