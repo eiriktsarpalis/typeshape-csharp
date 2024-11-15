@@ -20,7 +20,7 @@ public sealed class PolyTypeGenerator : IIncrementalGenerator
         IncrementalValuesProvider<TypeShapeProviderModel> generateShapeOfTModels = context.SyntaxProvider
             .ForTypesWithAttributeDeclaration(
                 "PolyType.GenerateShapeAttribute<T>",
-                (node, _) => node is ClassDeclarationSyntax)
+                (node, _) => node is ClassDeclarationSyntax or RecordDeclarationSyntax)
             .Combine(knownSymbols)
             .Select((tuple, cancellationToken) => 
                 Parser.ParseFromGenerateShapeOfTAttributes(
