@@ -18,7 +18,7 @@ public abstract partial class CounterTests(IProviderUnderTest providerUnderTest)
 
     public static IEnumerable<object?[]> GetValuesAndExpectedResult()
     {
-        SourceGenProvider p = SourceGenProvider.Default;
+        SourceGenProvider p = new();
         yield return Create(p, "string", 1);
         yield return Create(p, (string?)null, 0);
         yield return Create(p, -5, 1);

@@ -45,7 +45,7 @@ public abstract partial class StructuralEqualityTests(IProviderUnderTest provide
 
     public static IEnumerable<object[]> GetNotEqualValues()
     {
-        SourceGenProvider p = SourceGenProvider.Default;
+        SourceGenProvider p = new();
         yield return NotEqual(p, false, true);
         yield return NotEqual(p, null, "");
         yield return NotEqual(p, -1, 4);

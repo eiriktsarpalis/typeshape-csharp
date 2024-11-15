@@ -7,23 +7,20 @@ namespace PolyType.SourceGenerator;
 
 public sealed partial class Parser
 {
-    private TypeShapeModel MapModel(TypeId typeId, TypeDataModel model, bool isGeneratedViaWitnessType)
+    private TypeShapeModel MapModel(TypeId typeId, TypeDataModel model)
     {
-        bool emitGenericProviderImplementation = isGeneratedViaWitnessType && model.IsRootType;
         return model switch
         {
             EnumDataModel enumModel => new EnumShapeModel
             {
                 Type = typeId,
                 UnderlyingType = CreateTypeId(enumModel.UnderlyingType),
-                EmitGenericTypeShapeProviderImplementation = emitGenericProviderImplementation,
             },
 
             NullableDataModel nullableModel => new NullableShapeModel
             {
                 Type = typeId,
                 ElementType = CreateTypeId(nullableModel.ElementType),
-                EmitGenericTypeShapeProviderImplementation = emitGenericProviderImplementation,
             },
 
             EnumerableDataModel enumerableModel => new EnumerableShapeModel
@@ -61,7 +58,6 @@ public sealed partial class Parser
 
                 Kind = enumerableModel.EnumerableKind,
                 Rank = enumerableModel.Rank,
-                EmitGenericTypeShapeProviderImplementation = emitGenericProviderImplementation,
                 ElementTypeContainsNullableAnnotations = enumerableModel.ElementType.ContainsNullabilityAnnotations(),
             },
 
@@ -94,7 +90,6 @@ public sealed partial class Parser
                 StaticFactoryMethod = dictionaryModel.FactoryMethod is { IsStatic: true } m ? m.GetFullyQualifiedName() : null,
                 IsTupleEnumerableFactory = dictionaryModel.ConstructionStrategy is CollectionModelConstructionStrategy.TupleEnumerable,
                 Kind = dictionaryModel.DictionaryKind,
-                EmitGenericTypeShapeProviderImplementation = emitGenericProviderImplementation,
                 CtorRequiresDictionaryConversion =
                     dictionaryModel.ConstructionStrategy is CollectionModelConstructionStrategy.Dictionary &&
                     !IsFactoryAcceptingIEnumerable(dictionaryModel.FactoryMethod),
@@ -118,7 +113,6 @@ public sealed partial class Parser
                 IsValueTupleType = false,
                 IsTupleType = false,
                 IsRecordType = model.Type.IsRecord,
-                EmitGenericTypeShapeProviderImplementation = emitGenericProviderImplementation,
             },
 
             TupleDataModel tupleModel => new ObjectShapeModel
@@ -132,7 +126,6 @@ public sealed partial class Parser
                 IsValueTupleType = tupleModel.IsValueTuple,
                 IsTupleType = true,
                 IsRecordType = false,
-                EmitGenericTypeShapeProviderImplementation = emitGenericProviderImplementation,
             },
 
             _ => new ObjectShapeModel
@@ -143,7 +136,6 @@ public sealed partial class Parser
                 IsValueTupleType = false,
                 IsTupleType = false,
                 IsRecordType = false,
-                EmitGenericTypeShapeProviderImplementation = emitGenericProviderImplementation,
             }
         };
 

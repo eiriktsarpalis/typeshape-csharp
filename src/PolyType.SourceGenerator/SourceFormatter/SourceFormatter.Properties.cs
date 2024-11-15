@@ -40,8 +40,8 @@ internal static partial class SourceFormatter
                 new global::PolyType.SourceGenModel.SourceGenPropertyShape<{{type.Type.FullyQualifiedName}}, {{property.PropertyType.FullyQualifiedName}}>
                 {
                     Name = {{FormatStringLiteral(property.Name)}},
-                    DeclaringType = (global::PolyType.Abstractions.IObjectTypeShape<{{type.Type.FullyQualifiedName}}>){{type.Type.GeneratedPropertyName}},
-                    PropertyType = {{property.PropertyType.GeneratedPropertyName}},
+                    DeclaringType = (global::PolyType.Abstractions.IObjectTypeShape<{{type.Type.FullyQualifiedName}}>){{type.Type.TypeIdentifier}},
+                    PropertyType = {{property.PropertyType.TypeIdentifier}},
                     Getter = {{(property.EmitGetter ? $"static (ref {type.Type.FullyQualifiedName} obj) => {FormatGetterBody("obj", property)}{(suppressGetter ? "!" : "")}" : "null")}},
                     Setter = {{(property.EmitSetter ? $"static (ref {type.Type.FullyQualifiedName} obj, {property.PropertyType.FullyQualifiedName} value) => {FormatSetterBody("obj", "value" + (suppressSetter ? "!" : ""), property)}" : "null")}},
                     AttributeProviderFunc = {{FormatAttributeProviderFunc(type, property)}},
@@ -112,17 +112,17 @@ internal static partial class SourceFormatter
 
     private static string GetFieldAccessorName(TypeId declaringType, string underlyingMemberName)
     {
-        return $"{declaringType.GeneratedPropertyName}_{underlyingMemberName}_Accessor";
+        return $"{declaringType.TypeIdentifier}_{underlyingMemberName}_Accessor";
     }
 
     private static string GetPropertyGetterAccessorName(TypeId declaringType, string underlyingMemberName)
     {
-        return $"{declaringType.GeneratedPropertyName}_{underlyingMemberName}_GetAccessor";
+        return $"{declaringType.TypeIdentifier}_{underlyingMemberName}_GetAccessor";
     }
 
     private static string GetPropertySetterAccessorName(TypeId declaringType, string underlyingMemberName)
     {
-        return $"{declaringType.GeneratedPropertyName}_{underlyingMemberName}_SetAccessor";
+        return $"{declaringType.TypeIdentifier}_{underlyingMemberName}_SetAccessor";
     }
 
     private static void FormatFieldAccessor(SourceWriter writer, PropertyShapeModel property)

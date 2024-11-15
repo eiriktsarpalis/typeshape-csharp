@@ -62,7 +62,7 @@ public abstract partial class ValidationTests(IProviderUnderTest providerUnderTe
             @"$.PhoneNumber: value does not match regex pattern '^\+?[0-9]{7,14}$'."
         ]);
 
-        var provider = ModelProvider.Default;
+        var provider = new ModelProvider();
         yield return CreateWithProvider(provider,
             value: new GenericRecord<BindingModel>(validModel with { Id = null }),
             expectedErrors: ["$.value.Id: value is null or empty.",]

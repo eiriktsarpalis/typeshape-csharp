@@ -25,7 +25,7 @@ internal static partial class SourceFormatter
         writer.WriteLine($$"""
             return new global::PolyType.SourceGenModel.SourceGenConstructorShape<{{type.Type.FullyQualifiedName}}, {{constructorArgumentStateFQN}}>
             {
-                DeclaringType = (global::PolyType.Abstractions.IObjectTypeShape<{{type.Type.FullyQualifiedName}}>){{type.Type.GeneratedPropertyName}},
+                DeclaringType = (global::PolyType.Abstractions.IObjectTypeShape<{{type.Type.FullyQualifiedName}}>){{type.Type.TypeIdentifier}},
                 ParameterCount = {{constructor.TotalArity}},
                 GetParametersFunc = {{FormatNull(constructorParameterFactoryName)}},
                 DefaultConstructorFunc = {{FormatDefaultCtor(type, constructor)}},
@@ -254,7 +254,7 @@ internal static partial class SourceFormatter
         }
 
         static string FormatConstructorParameterFactoryName(TypeShapeModel type) =>
-            $"CreateConstructorParameters_{type.Type.GeneratedPropertyName}";
+            $"CreateConstructorParameters_{type.Type.TypeIdentifier}";
     }
 
     private static void FormatConstructorParameterFactory(SourceWriter writer, ObjectShapeModel type, string methodName, ConstructorShapeModel constructor, string constructorArgumentStateFQN)
@@ -278,7 +278,7 @@ internal static partial class SourceFormatter
                 {
                     Position = {{parameter.Position}},
                     Name = {{FormatStringLiteral(parameter.Name)}},
-                    ParameterType = {{parameter.ParameterType.GeneratedPropertyName}},
+                    ParameterType = {{parameter.ParameterType.TypeIdentifier}},
                     Kind = {{FormatParameterKind(parameter)}},
                     IsRequired = {{FormatBool(parameter.IsRequired)}},
                     IsNonNullable = {{FormatBool(parameter.IsNonNullable)}},
@@ -413,7 +413,7 @@ internal static partial class SourceFormatter
 
     private static string GetConstructorAccessorName(TypeId declaringType)
     {
-        return $"{declaringType.GeneratedPropertyName}_CtorAccessor";
+        return $"{declaringType.TypeIdentifier}_CtorAccessor";
     }
 
     private static void FormatConstructorAccessor(SourceWriter writer, ConstructorShapeModel constructorModel)

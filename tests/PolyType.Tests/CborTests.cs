@@ -35,7 +35,7 @@ public abstract partial class CborTests(IProviderUnderTest providerUnderTest)
 
     public static IEnumerable<object?[]> GetValuesAndExpectedEncoding()
     {
-        SourceGenProvider p = SourceGenProvider.Default;
+        SourceGenProvider p = new();
         yield return [TestCase.Create(p, (object)null!), "F6"];
         yield return [TestCase.Create(p, false), "F4"];
         yield return [TestCase.Create(p, true), "F5"];

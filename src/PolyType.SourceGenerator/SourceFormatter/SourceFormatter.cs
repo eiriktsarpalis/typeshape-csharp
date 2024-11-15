@@ -14,33 +14,39 @@ internal static partial class SourceFormatter
     {
         context.CancellationToken.ThrowIfCancellationRequested();
 
-        if (!provider.Declaration.IsValidTypeDeclaration)
-        {
-            return; // Skip code generation if the context type is not valid
-        }
-
-        context.AddSource($"{provider.Declaration.SourceFilenamePrefix}.g.cs", FormatMainFile(provider));
-        context.AddSource($"{provider.Declaration.SourceFilenamePrefix}.ITypeShapeProvider.g.cs", FormatProviderInterfaceImplementation(provider));
+        context.AddSource($"{provider.ProviderDeclaration.SourceFilenamePrefix}.g.cs", FormatMainFile(provider));
+        context.AddSource($"{provider.ProviderDeclaration.SourceFilenamePrefix}.ITypeShapeProvider.g.cs", FormatProviderInterfaceImplementation(provider));
 
         foreach (TypeShapeModel type in provider.ProvidedTypes.Values)
         {
             context.CancellationToken.ThrowIfCancellationRequested();
-            context.AddSource($"{provider.Declaration.SourceFilenamePrefix}.{type.Type.GeneratedPropertyName}.g.cs", FormatType(provider, type));
+            context.AddSource($"{provider.ProviderDeclaration.SourceFilenamePrefix}.{type.Type.TypeIdentifier}.g.cs", FormatType(provider, type));
         }
 
-        foreach (TypeDeclarationModel typeDeclaration in provider.GenerateShapeTypes)
+        foreach (TypeDeclarationModel typeDeclaration in provider.AnnotatedTypes)
         {
-            context.CancellationToken.ThrowIfCancellationRequested();
-            context.AddSource($"{typeDeclaration.SourceFilenamePrefix}.ITypeShapeProviderOfT.g.cs", FormatGenericProviderInterfaceImplementation(typeDeclaration, provider));
+            if (typeDeclaration.ImplementsITypeShapeProvider)
+            {
+                context.AddSource($"{typeDeclaration.SourceFilenamePrefix}.ITypeShapeProvider.g.cs", FormatITypeShapeProviderStub(typeDeclaration, provider));
+            }
+
+            foreach (TypeId typeToImplement in typeDeclaration.ShapeableOfTImplementations)
+            {
+                context.CancellationToken.ThrowIfCancellationRequested();
+                string sourceFile = typeToImplement == typeDeclaration.Id
+                    ? $"{typeDeclaration.SourceFilenamePrefix}.IShapeable.g.cs"
+                    : $"{typeDeclaration.SourceFilenamePrefix}.IShapeable.{typeToImplement.TypeIdentifier}.g.cs";
+                context.AddSource(sourceFile, FormatIShapeableOfTStub(typeDeclaration, typeToImplement, provider));
+            }
         }
     }
 
     private static SourceText FormatMainFile(TypeShapeProviderModel provider)
     {
         var writer = new SourceWriter();
-        StartFormatSourceFile(writer, provider.Declaration);
+        StartFormatSourceFile(writer, provider.ProviderDeclaration);
 
-        writer.WriteLine(provider.Declaration.TypeDeclarationHeader);
+        writer.WriteLine(provider.ProviderDeclaration.TypeDeclarationHeader);
         writer.WriteLine('{');
         writer.Indentation++;
 
@@ -50,11 +56,11 @@ internal static partial class SourceFormatter
                 global::System.Reflection.BindingFlags.NonPublic | 
                 global::System.Reflection.BindingFlags.Instance;
 
-            /// <summary>Gets the default instance of the <see cref="{{provider.Declaration.Name}}"/> class.</summary>
-            public static {{provider.Declaration.Name}} Default { get; } = new();
+            /// <summary>Gets the default instance of the <see cref="{{provider.ProviderDeclaration.Name}}"/> class.</summary>
+            public static {{provider.ProviderDeclaration.Name}} Default { get; } = new();
 
-            /// <summary>Initializes a new instance of the <see cref="{{provider.Declaration.Name}}"/> class.</summary>
-            public {{provider.Declaration.Name}}() { }
+            /// <summary>Initializes a new instance of the <see cref="{{provider.ProviderDeclaration.Name}}"/> class.</summary>
+            public {{provider.ProviderDeclaration.Name}}() { }
             """);
 
         writer.Indentation--;

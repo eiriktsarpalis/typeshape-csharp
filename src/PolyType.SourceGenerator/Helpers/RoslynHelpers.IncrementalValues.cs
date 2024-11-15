@@ -17,26 +17,25 @@ internal static partial class RoslynHelpers
     /// <summary>
     /// Replacement for <see cref="SyntaxValueProvider.ForAttributeWithMetadataName" /> that handles generic attributes correctly.
     /// </summary>
-    public static IncrementalValuesProvider<TypeWithAttributeDeclarationContext> ForTypesWithAttributeDeclaration(
-        this SyntaxValueProvider provider, string attributeFullyQualifiedName,
+    public static IncrementalValuesProvider<TypeWithAttributeDeclarationContext> ForTypesWithAttributeDeclarations(
+        this SyntaxValueProvider provider,
+        string[] attributeFullyQualifiedNames,
         Func<BaseTypeDeclarationSyntax, CancellationToken, bool> predicate)
     {
-        NameSyntax attributeNameSyntax = SyntaxFactory.ParseName(attributeFullyQualifiedName);
-        string attributeName = GetTypeName(attributeNameSyntax, out int attributeArity);
-        ImmutableArray<string> attributeNamespace = GetNamespaceTokens(attributeNameSyntax);
-        string? attributeNameMinusSuffix = attributeName.EndsWith("Attribute", StringComparison.Ordinal) ? attributeName[..^"Attribute".Length] : null;
+        Debug.Assert(attributeFullyQualifiedNames.Length is > 0 and <= 3, "Does not optimize for large lists of attributes.");
+        ParseAttributeFullyQualifiedNames(attributeFullyQualifiedNames, out var attributeData, out var attributeSyntaxNodeCandidates);
 
         return provider.CreateSyntaxProvider(
             predicate: (SyntaxNode node, CancellationToken token) => node is BaseTypeDeclarationSyntax typeDecl && IsAnnotatedTypeDeclaration(typeDecl, token),
             transform: Transform)
             .Where(ctx => ctx.Type != null)
             .GroupBy(
-                keySelector: value => value.Type, 
-                resultSelector: static (key, values) => 
-                    new TypeWithAttributeDeclarationContext 
-                    { 
-                        TypeSymbol = (ITypeSymbol)key!, 
-                        Declarations = values.Select(v => (v.Syntax, v.Model)).ToImmutableArray() 
+                keySelector: value => value.Type,
+                resultSelector: static (key, values) =>
+                    new TypeWithAttributeDeclarationContext
+                    {
+                        TypeSymbol = (ITypeSymbol)key!,
+                        Declarations = values.Select(v => (v.Syntax, v.Model)).ToImmutableArray()
                     },
 
                 keyComparer: SymbolEqualityComparer.Default);
@@ -48,9 +47,12 @@ internal static partial class RoslynHelpers
                 foreach (AttributeSyntax attribute in attributeList.Attributes)
                 {
                     string name = GetTypeName(attribute.Name, out int arity);
-                    if ((name == attributeName || name == attributeNameMinusSuffix) && arity == attributeArity)
+                    foreach (var candidate in attributeSyntaxNodeCandidates)
                     {
-                        return predicate(typeDecl, token);
+                        if (candidate.name == name && candidate.arity == arity)
+                        {
+                            return predicate(typeDecl, token);
+                        }
                     }
                 }
             }
@@ -65,12 +67,17 @@ internal static partial class RoslynHelpers
 
             foreach (AttributeData attrData in typeSymbol.GetAttributes())
             {
-                if (attrData.AttributeClass is INamedTypeSymbol attributeType &&
-                    attributeType.Name == attributeName &&
-                    attributeType.Arity == attributeArity &&
-                    attributeType.ContainingNamespace.MatchesNamespace(attributeNamespace))
+                if (attrData.AttributeClass is INamedTypeSymbol attributeType)
                 {
-                    return (typeSymbol, typeDecl, ctx.SemanticModel);
+                    foreach (var (attributeNamespace, attributeName, attributeArity) in attributeData)
+                    {
+                        if (attributeType.Name == attributeName &&
+                            attributeType.Arity == attributeArity &&
+                            attributeType.ContainingNamespace.MatchesNamespace(attributeNamespace))
+                        {
+                            return (typeSymbol, typeDecl, ctx.SemanticModel);
+                        }
+                    }
                 }
             }
 
@@ -129,6 +136,32 @@ internal static partial class RoslynHelpers
                         break;
                 }
             }
+        }
+
+        static void ParseAttributeFullyQualifiedNames(
+            string[] attributeFullyQualifiedNames,
+            out (ImmutableArray<string> Namespace, string Name, int Arity)[] attributeData,
+            out (string name, int arity)[] attributeSyntaxNodeCandidates)
+        {
+            attributeData = new (ImmutableArray<string> Namespace, string Name, int Arity)[attributeFullyQualifiedNames.Length];
+            List<(string name, int arity)> attributeSyntaxNodeCandidateList = new();
+            int i = 0;
+
+            foreach (string attributeFqn in attributeFullyQualifiedNames)
+            {
+                NameSyntax attributeNameSyntax = SyntaxFactory.ParseName(attributeFqn);
+                string attributeName = GetTypeName(attributeNameSyntax, out int attributeArity);
+
+                attributeSyntaxNodeCandidateList.Add((attributeName, attributeArity));
+                if (attributeName.EndsWith("Attribute", StringComparison.Ordinal))
+                {
+                    attributeSyntaxNodeCandidateList.Add((attributeName[..^"Attribute".Length], attributeArity));
+                }
+
+                attributeData[i++] = (GetNamespaceTokens(attributeNameSyntax), attributeName, attributeArity);
+            }
+
+            attributeSyntaxNodeCandidates = attributeSyntaxNodeCandidateList.ToArray();
         }
     }
 

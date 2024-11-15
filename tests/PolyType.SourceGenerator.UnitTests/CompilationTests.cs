@@ -123,7 +123,6 @@ public static class CompilationTests
     {
         Compilation compilation = CompilationHelpers.CreateCompilation("""
             using PolyType;
-            using PolyType.Abstractions;
             using System.Collections.Generic;
             #nullable enable
 
@@ -132,14 +131,12 @@ public static class CompilationTests
                 public static void TestMethod()
                 {
                     Dictionary<int, string?> dict = new();
-                    GenericMethods.TestTypeShape(dict, MyProvider.Default.Dictionary_Int32_String);
-                    GenericMethods.TestTypeShapeProvider(dict, MyProvider.Default);
+                    GenericMethods.TestTypeShapeProvider(dict, new MyProvider());
                 }
             }
 
             public static class GenericMethods
             {
-                public static void TestTypeShape<T>(T value, ITypeShape<T> shape) { }
                 public static void TestTypeShapeProvider<T, TProvider>(T value, TProvider provider)
                     where TProvider : IShapeable<T> { }
             }
@@ -192,8 +189,8 @@ public static class CompilationTests
             {
                 public static void TestMethod()
                 {
-                    ITypeShape<string> stringShape = MyWitness.Default.String;
-                    ITypeShape<int> intShape = MyWitness.Default.Int32;
+                    ITypeShape<string> stringShape = TypeShapeProvider.Resolve<string, MyWitness>();
+                    ITypeShape<int> intShape = TypeShapeProvider.Resolve<int, MyWitness>();
                 }
             }
             
@@ -291,7 +288,7 @@ public static class CompilationTests
     }
 
     [Fact]
-    public static void PrivateType_GenerateShape_AccessibleToWitness_NoErrors()
+    public static void NestedWitnessClass_NoErrors()
     {
         Compilation compilation = CompilationHelpers.CreateCompilation("""
             using PolyType;
@@ -300,11 +297,10 @@ public static class CompilationTests
             {
                 public partial class Outer2
                 {
-                    [GenerateShape<int>]
-                    [GenerateShape<Private>]
-                    private partial class Nested { }
+                    [GenerateShape<MyPoco>]
+                    private partial class Witness { }
 
-                    private class Private { }
+                    internal record MyPoco(int Value);
                 }
             }
             """);

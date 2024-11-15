@@ -235,7 +235,7 @@ public abstract partial class JsonTests(IProviderUnderTest providerUnderTest)
 
     public static IEnumerable<object?[]> GetLongTuplesAndExpectedJson()
     {
-        SourceGenProvider p = SourceGenProvider.Default;
+        SourceGenProvider p = new();
         yield return [TestCase.Create(p,
             (x1: 1, x2: 2, x3: 3, x4: 4, x5: 5, x6: 6, x7: 7, x8: 8, x9: 9)),
             """{"Item1":1,"Item2":2,"Item3":3,"Item4":4,"Item5":5,"Item6":6,"Item7":7,"Item8":8,"Item9":9}"""];
@@ -280,7 +280,7 @@ public abstract partial class JsonTests(IProviderUnderTest providerUnderTest)
 
     public static IEnumerable<object?[]> GetMultiDimensionalArraysAndExpectedJson()
     {
-        SourceGenProvider p = SourceGenProvider.Default;
+        SourceGenProvider p = new();
         yield return [TestCase.Create(p, new int[,] { }), """[]"""];
         yield return [TestCase.Create(p, new int[,,] { }), """[]"""];
         yield return [TestCase.Create(p, new int[,,,,,] { }), """[]"""];

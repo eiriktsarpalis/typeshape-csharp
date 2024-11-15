@@ -18,7 +18,7 @@ public abstract class PrettyPrinterTests(IProviderUnderTest providerUnderTest)
 
     public static IEnumerable<object?[]> GetValues()
     {
-        SourceGenProvider p = SourceGenProvider.Default;
+        SourceGenProvider p = new();
         yield return [TestCase.Create(p, 1), "1"];
         yield return [TestCase.Create(p, (string?)null), "null"];
         yield return [TestCase.Create(p, "str"), "\"str\""];

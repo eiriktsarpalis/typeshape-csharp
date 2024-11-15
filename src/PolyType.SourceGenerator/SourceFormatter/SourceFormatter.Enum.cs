@@ -12,7 +12,7 @@ internal static partial class SourceFormatter
             {
                 return new global::PolyType.SourceGenModel.SourceGenEnumTypeShape<{{enumShapeType.Type.FullyQualifiedName}}, {{enumShapeType.UnderlyingType.FullyQualifiedName}}>
                 {
-                    UnderlyingType = {{enumShapeType.UnderlyingType.GeneratedPropertyName}},
+                    UnderlyingType = {{enumShapeType.UnderlyingType.TypeIdentifier}},
                     Provider = this,
                 };
             }
