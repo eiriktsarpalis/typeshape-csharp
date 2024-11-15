@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Reflection.Metadata;
 using System.Text;
 using PolyType.Roslyn;
+using PolyType.SourceGenerator.Helpers;
 using PolyType.SourceGenerator.Model;
 
 namespace PolyType.SourceGenerator;
@@ -206,7 +207,7 @@ internal static partial class SourceFormatter
                         }
                     }
 
-                    return $"obj.{parameter.UnderlyingMemberName} = {FormatCtorParameterExpr(parameter)};";
+                    return $"obj.{RoslynHelpers.EscapeKeywordIdentifier(parameter.UnderlyingMemberName)} = {FormatCtorParameterExpr(parameter)};";
                 }
 
                 string FormatCtorParameterExpr(ConstructorParameterShapeModel parameter, bool isSingleParameter = false)

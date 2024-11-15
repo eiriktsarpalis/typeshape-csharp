@@ -151,70 +151,81 @@ internal static partial class RoslynHelpers
         return symbol is null or INamespaceSymbol { IsGlobalNamespace: true };
     }
 
-    public static string GetGeneratedPropertyName(this ITypeSymbol type)
+    /// <summary>
+    /// Returns a string representation of the type suitable for use as an identifier in source.
+    /// </summary>
+    public static string CreateTypeIdentifier(this ITypeSymbol type)
     {
-        switch (type)
+        StringBuilder sb = new();
+        GenerateCore(type, sb);
+        return sb.ToString();
+
+        static void GenerateCore(ITypeSymbol type, StringBuilder sb)
         {
-            case ITypeParameterSymbol typeParameter:
-                return typeParameter.Name;
+            switch (type)
+            {
+                case ITypeParameterSymbol typeParameter:
+                    AppendAsPascalCase(typeParameter.Name);
+                    break;
 
-            case IArrayTypeSymbol arrayType:
-                int rank = arrayType.Rank;
-                string suffix = rank == 1 ? "_Array" : $"_Array{rank}D"; // Array, Array2D, Array3D, ...
-                return arrayType.ElementType.GetGeneratedPropertyName() + suffix;
-
-            case INamedTypeSymbol namedType when namedType.IsTupleType:
-                {
-                    StringBuilder sb = new();
-
-                    sb.Append(namedType.Name);
-
-                    foreach (IFieldSymbol element in namedType.TupleElements)
+                case IArrayTypeSymbol arrayType:
+                    GenerateCore(arrayType.ElementType, sb);
+                    sb.Append("_Array");
+                    if (arrayType.Rank > 1)
                     {
-                        sb.Append('_');
-                        sb.Append(element.Type.GetGeneratedPropertyName());
+                        // _Array2D, _Array3D, etc.
+                        sb.Append(arrayType.Rank);
+                        sb.Append('D');
                     }
+                    break;
 
-                    return sb.ToString();
-                }
-
-            case INamedTypeSymbol namedType:
-                {
-                    if (namedType.TypeArguments.Length == 0 && namedType.ContainingType is null)
-                    {
-                        return namedType.Name;
-                    }
-
-                    StringBuilder sb = new();
-
+                case INamedTypeSymbol namedType:
                     PrependContainingTypes(namedType);
+                    AppendAsPascalCase(namedType.Name);
 
-                    sb.Append(namedType.Name);
+                    IEnumerable<ITypeSymbol> typeArguments = namedType.IsTupleType
+                        ? namedType.TupleElements.Select(e => e.Type)
+                        : namedType.TypeArguments;
 
                     foreach (ITypeSymbol argument in namedType.TypeArguments)
                     {
                         sb.Append('_');
-                        sb.Append(argument.GetGeneratedPropertyName());
+                        GenerateCore(argument, sb);
                     }
 
-                    return sb.ToString();
+                    break;
 
-                    void PrependContainingTypes(INamedTypeSymbol namedType)
-                    {
-                        if (namedType.ContainingType is { } parent)
-                        {
-                            PrependContainingTypes(parent);
-                            sb.Append(parent.GetGeneratedPropertyName());
-                            sb.Append('_');
-                        }
-                    }
+                default:
+                    Debug.Fail($"Type {type} not supported");
+                    throw new InvalidOperationException();
+            }
+
+            void PrependContainingTypes(INamedTypeSymbol namedType)
+            {
+                if (namedType.ContainingType is { } parent)
+                {
+                    PrependContainingTypes(parent);
+                    GenerateCore(parent, sb);
+                    sb.Append('_');
                 }
+            }
 
-            default:
-                Debug.Fail($"Type {type} not supported");
-                return null!;
+            void AppendAsPascalCase(string name)
+            {
+                // Avoid creating identifiers that are C# keywords
+                Debug.Assert(name.Length > 0);
+                sb.Append(char.ToUpperInvariant(name[0]));
+                sb.Append(name, 1, name.Length - 1);
+            }
         }
     }
+
+    public static bool IsCSharpKeyword(string name) =>
+        SyntaxFacts.GetKeywordKind(name) is not SyntaxKind.None ||
+        SyntaxFacts.GetContextualKeywordKind(name) is not SyntaxKind.None;
+
+    public static string EscapeKeywordIdentifier(string name) =>
+        IsCSharpKeyword(name) ? "@" + name : name;
 
     public static Location? GetLocation(this AttributeData attributeData)
     {

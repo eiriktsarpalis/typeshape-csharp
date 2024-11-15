@@ -263,4 +263,53 @@ public static class CompilationTests
         TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation);
         Assert.Empty(result.Diagnostics);
     }
+
+    [Fact]
+    public static void TypeUsingKeywordIdentifiers_GenerateShape_NoErrors()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+            using PolyType;
+
+            [GenerateShape]
+            partial class @class
+            {
+                public @class(string @string, int @__makeref, bool @yield)
+                {
+                    this.@string = @string;
+                    this.@__makeref = @__makeref;
+                    this.yield = yield;
+                }
+
+                public string @string { get; set; }
+                public int @__makeref { get; set; }
+                public bool @yield { get; set; }
+            }
+            """);
+
+        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Fact]
+    public static void PrivateType_GenerateShape_AccessibleToWitness_NoErrors()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+            using PolyType;
+
+            internal partial class Outer1
+            {
+                public partial class Outer2
+                {
+                    [GenerateShape<int>]
+                    [GenerateShape<Private>]
+                    private partial class Nested { }
+
+                    private class Private { }
+                }
+            }
+            """);
+
+        TypeShapeSourceGeneratorResult result = CompilationHelpers.RunTypeShapeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
 }

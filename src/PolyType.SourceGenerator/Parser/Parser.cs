@@ -236,7 +236,7 @@ public sealed partial class Parser : TypeDataModelGenerator
         return new TypeId
         {
             FullyQualifiedName = type.GetFullyQualifiedName(),
-            GeneratedPropertyName = type.GetGeneratedPropertyName(),
+            GeneratedPropertyName = type.CreateTypeIdentifier(),
             IsValueType = type.IsValueType,
             SpecialType = type.OriginalDefinition.SpecialType,
         };

@@ -499,6 +499,7 @@ public static class TestTypes
         yield return TestCase.Create(new ClassWithUnsupportedPropertyTypes());
         yield return TestCase.Create(new ClassWithIncludedPrivateMembers());
         yield return TestCase.Create(new StructWithIncludedPrivateMembers());
+        yield return TestCase.Create(new @class(@string: "string", @__makeref: 42, @yield: true));
 
         // F# types
         yield return TestCase.Create(p, new FSharpRecord(42, "str", true));
@@ -1838,6 +1839,22 @@ public partial struct StructWithIncludedPrivateMembers
     private int? OptionalField;
 }
 
+// A type using escaped keywords as its identifiers
+[GenerateShape]
+partial class @class
+{
+    public @class(string @string, int @__makeref, bool @yield)
+    {
+        this.@string = @string;
+        this.@__makeref = @__makeref;
+        this.yield = yield;
+    }
+
+    public string @string { get; set; }
+    public int @__makeref { get; set; }
+    public bool @yield { get; set; }
+}
+
 [GenerateShape<object>]
 [GenerateShape<bool>]
 [GenerateShape<char>]
@@ -2020,15 +2037,3 @@ public partial struct StructWithIncludedPrivateMembers
 [GenerateShape<FSharpSet<int>>]
 [GenerateShape<FSharpRecordWithCollections>]
 internal partial class SourceGenProvider;
-
-internal partial class Outer1
-{
-    public partial class Outer2
-    {
-        [GenerateShape<int>]
-        [GenerateShape<Private>]
-        private partial class Nested { }
-
-        private class Private { }
-    }
-}

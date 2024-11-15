@@ -1,7 +1,8 @@
 ﻿using Microsoft.CodeAnalysis;
-using System.Diagnostics;
 using PolyType.Roslyn;
+using PolyType.SourceGenerator.Helpers;
 using PolyType.SourceGenerator.Model;
+using System.Diagnostics;
 
 namespace PolyType.SourceGenerator;
 
@@ -81,7 +82,7 @@ internal static partial class SourceFormatter
                     }
                 }
 
-                return $"{objParam}.{property.UnderlyingMemberName}";
+                return $"{objParam}.{RoslynHelpers.EscapeKeywordIdentifier(property.UnderlyingMemberName)}";
             }
 
             static string FormatSetterBody(string objParam, string valueParam, PropertyShapeModel property)
@@ -101,7 +102,7 @@ internal static partial class SourceFormatter
                     }
                 }
 
-                return $"{objParam}.{property.UnderlyingMemberName} = {valueParam}";
+                return $"{objParam}.{RoslynHelpers.EscapeKeywordIdentifier(property.UnderlyingMemberName)} = {valueParam}";
             }
         }
 
