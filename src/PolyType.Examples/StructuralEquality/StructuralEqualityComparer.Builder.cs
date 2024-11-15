@@ -62,7 +62,7 @@ public static partial class StructuralEqualityComparer
             };
         }
 
-        public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
+        public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryTypeShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
         {
             IEqualityComparer<TKey> keyComparer = BuildEqualityComparer(dictionaryShape.KeyType);
             IEqualityComparer<TValue> valueComparer = BuildEqualityComparer(dictionaryShape.ValueType);

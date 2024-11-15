@@ -239,7 +239,7 @@ public static class Cloner
             }
         }
 
-        public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? _)
+        public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryTypeShape<TDictionary, TKey, TValue> dictionaryShape, object? _)
         {
             var keyCloner = BuildCloner(dictionaryShape.KeyType);
             var valueCloner = BuildCloner(dictionaryShape.ValueType);

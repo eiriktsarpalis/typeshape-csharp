@@ -227,7 +227,7 @@ public partial class RandomGenerator
             }
         }
 
-        public object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state) where TKey : notnull
+        public object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryTypeShape<TDictionary, TKey, TValue> dictionaryShape, object? state) where TKey : notnull
         {
             RandomGenerator<TKey> keyGenerator = BuildGenerator(dictionaryShape.KeyType);
             RandomGenerator<TValue> valueGenerator = BuildGenerator(dictionaryShape.ValueType);

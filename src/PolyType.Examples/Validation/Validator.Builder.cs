@@ -90,7 +90,7 @@ public static partial class Validator
             });
         }
 
-        public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
+        public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryTypeShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
         {
             Validator<TValue>? valueValidator = BuildValidator(dictionaryShape.ValueType);
             if (valueValidator is null)

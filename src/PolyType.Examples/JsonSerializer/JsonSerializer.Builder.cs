@@ -112,7 +112,7 @@ public static partial class JsonSerializerTS
             };
         }
 
-        public object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state) where TKey : notnull
+        public object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryTypeShape<TDictionary, TKey, TValue> dictionaryShape, object? state) where TKey : notnull
         {
             JsonConverter<TKey> keyConverter = BuildJsonConverter(dictionaryShape.KeyType);
             JsonConverter<TValue> valueConverter = BuildJsonConverter(dictionaryShape.ValueType);

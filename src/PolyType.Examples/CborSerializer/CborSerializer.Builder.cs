@@ -96,7 +96,7 @@ public static partial class CborSerializer
             };
         }
 
-        public object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state) where TKey : notnull
+        public object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryTypeShape<TDictionary, TKey, TValue> dictionaryShape, object? state) where TKey : notnull
         {
             CborConverter<TKey> keyConverter = BuildConverter(dictionaryShape.KeyType);
             CborConverter<TValue> valueConverter = BuildConverter(dictionaryShape.ValueType);

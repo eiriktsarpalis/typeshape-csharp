@@ -92,7 +92,7 @@ public static partial class XmlSerializer
             };
         }
 
-        public object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state) where TKey : notnull
+        public object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryTypeShape<TDictionary, TKey, TValue> dictionaryShape, object? state) where TKey : notnull
         {
             XmlConverter<TKey> keyConverter = BuildConverter(dictionaryShape.KeyType);
             XmlConverter<TValue> valueConverter = BuildConverter(dictionaryShape.ValueType);

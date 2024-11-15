@@ -107,14 +107,14 @@ It should be noted that the visitor is only used when constructing, or _folding_
 A collection type in this context refers to any type implementing `IEnumerable`, and this is further refined into enumerable and dictionary shapes:
 
 ```C#
-public interface IEnumerableShape<TEnumerable, TElement> : ITypeShape<TEnumerable>
+public interface IEnumerableTypeShape<TEnumerable, TElement> : ITypeShape<TEnumerable>
 {
     ITypeShape<TElement> ElementType { get; }
 
     Func<TEnumerable, IEnumerable<TElement>> GetGetEnumerable();
 }
 
-public interface IDictionaryShape<TDictionary, TKey, TValue> : ITypeShape<TDictionary>
+public interface IDictionaryTypeShape<TDictionary, TKey, TValue> : ITypeShape<TDictionary>
 {
     ITypeShape<TKey> KeyType { get; }
     ITypeShape<TValue> ValueType { get; }
@@ -128,8 +128,8 @@ A collection type is classed as a dictionary if it implements one of the known d
 ```C#
 public interface ITypeShapeVisitor
 {
-    object? VisitEnumerable<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> enumerableShape, object? state = null);
-    object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state = null);
+    object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableShape, object? state = null);
+    object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryTypeShape<TDictionary, TKey, TValue> dictionaryShape, object? state = null);
 }
 ```
 
@@ -138,7 +138,7 @@ Using the above we can now extend `CounterVisitor` so that collection types are 
 ```C#
 partial class CounterVisitor : TypeShapeVisitor
 {
-    public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableShape<TEnumerable, TElement> enumerableShape, object? _)
+    public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableShape, object? _)
     {
         var elementCounter = (Func<TElement, int>)enumerableShape.ElementType.Accept(this)!;
         Func<TEnumerable, IEnumerable<TElement>> getEnumerable = enumerableShape.GetGetEnumerable();
@@ -154,7 +154,7 @@ partial class CounterVisitor : TypeShapeVisitor
         });
     }
 
-    public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? _)
+    public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryTypeShape<TDictionary, TKey, TValue> dictionaryShape, object? _)
     {
         var keyCounter = (Func<TKey, int>)dictionaryShape.KeyType.Accept(this);
         var valueCounter = (Func<TValue, int>)dictionaryShape.ValueType.Accept(this);
@@ -223,10 +223,10 @@ partial class CounterVisitor : TypeShapeVisitor
 To recap, the `ITypeShape` model splits .NET types into five separate kinds:
 
 * Base `ITypeShape` instances which may or may not define properties,
-* `IEnumerableShape` instances describing enumerable types,
-* `IDictionaryShape` instances describing dictionary types,
-* `IEnumShape` instances describing enum types and
-* `INullableShape` instances describing `Nullable<T>` types.
+* `IEnumerableTypeShape` instances describing enumerable types,
+* `IDictionaryTypeShape` instances describing dictionary types,
+* `IEnumTypeShape` instances describing enum types and
+* `INullableTypeShape` instances describing `Nullable<T>` types.
 
 ## Constructing and mutating types
 

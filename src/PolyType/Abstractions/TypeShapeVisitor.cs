@@ -83,7 +83,7 @@ public abstract class TypeShapeVisitor : ITypeShapeVisitor
         => ThrowNotImplemented(nameof(VisitEnumerable));
 
     /// <summary>
-    /// Visits an <see cref="IDictionaryShape{TDictionary, TKey, TValue}"/> instance representing a dictionary type.
+    /// Visits an <see cref="IDictionaryTypeShape{TDictionary, TKey, TValue}"/> instance representing a dictionary type.
     /// </summary>
     /// <typeparam name="TDictionary">The type of the visited dictionary.</typeparam>
     /// <typeparam name="TKey">The key type of the visited dictionary.</typeparam>
@@ -91,7 +91,7 @@ public abstract class TypeShapeVisitor : ITypeShapeVisitor
     /// <param name="dictionaryShape">The dictionary shape to visit.</param>
     /// <param name="state">Defines user-provided state.</param>
     /// <returns>The result produced by the visitor.</returns>
-    public virtual object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state = null)
+    public virtual object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryTypeShape<TDictionary, TKey, TValue> dictionaryShape, object? state = null)
         where TKey : notnull
         => ThrowNotImplemented(nameof(VisitDictionary));
 

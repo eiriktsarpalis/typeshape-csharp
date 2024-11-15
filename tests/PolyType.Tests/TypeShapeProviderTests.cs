@@ -281,7 +281,7 @@ public abstract class TypeShapeProviderTests(IProviderUnderTest providerUnderTes
 
     private sealed class DictionaryTestVisitor : TypeShapeVisitor
     {
-        public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
+        public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryTypeShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
         {
             TDictionary dictionary;
             RandomGenerator<TKey> keyGenerator = RandomGenerator.Create((ITypeShape<TKey>)dictionaryShape.KeyType);

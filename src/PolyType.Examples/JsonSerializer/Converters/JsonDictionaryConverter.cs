@@ -6,7 +6,7 @@ using PolyType.Examples.Utilities;
 
 namespace PolyType.Examples.JsonSerializer.Converters;
 
-internal class JsonDictionaryConverter<TDictionary, TKey, TValue>(JsonConverter<TKey> keyConverter, JsonConverter<TValue> valueConverter, IDictionaryShape<TDictionary, TKey, TValue> shape) : JsonConverter<TDictionary>
+internal class JsonDictionaryConverter<TDictionary, TKey, TValue>(JsonConverter<TKey> keyConverter, JsonConverter<TValue> valueConverter, IDictionaryTypeShape<TDictionary, TKey, TValue> shape) : JsonConverter<TDictionary>
     where TKey : notnull
 {
     private static readonly bool s_isDictionary = typeof(Dictionary<TKey, TValue>).IsAssignableFrom(typeof(TDictionary));
@@ -69,7 +69,7 @@ internal class JsonDictionaryConverter<TDictionary, TKey, TValue>(JsonConverter<
 internal sealed class JsonMutableDictionaryConverter<TDictionary, TKey, TValue>(
     JsonConverter<TKey> keyConverter,
     JsonConverter<TValue> valueConverter,
-    IDictionaryShape<TDictionary, TKey, TValue> shape,
+    IDictionaryTypeShape<TDictionary, TKey, TValue> shape,
     Func<TDictionary> createObject,
     Setter<TDictionary, KeyValuePair<TKey, TValue>> addDelegate) : JsonDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, shape)
     where TKey : notnull
@@ -111,7 +111,7 @@ internal sealed class JsonMutableDictionaryConverter<TDictionary, TKey, TValue>(
 internal abstract class JsonImmutableDictionaryConverter<TDictionary, TKey, TValue>(
     JsonConverter<TKey> keyConverter,
     JsonConverter<TValue> valueConverter,
-    IDictionaryShape<TDictionary, TKey, TValue> shape)
+    IDictionaryTypeShape<TDictionary, TKey, TValue> shape)
     : JsonDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, shape)
     where TKey : notnull
 {
@@ -150,7 +150,7 @@ internal abstract class JsonImmutableDictionaryConverter<TDictionary, TKey, TVal
 internal sealed class JsonEnumerableConstructorDictionaryConverter<TDictionary, TKey, TValue>(
     JsonConverter<TKey> keyConverter,
     JsonConverter<TValue> valueConverter,
-    IDictionaryShape<TDictionary, TKey, TValue> shape,
+    IDictionaryTypeShape<TDictionary, TKey, TValue> shape,
     Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> constructor)
     : JsonImmutableDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, shape)
     where TKey : notnull
@@ -162,7 +162,7 @@ internal sealed class JsonEnumerableConstructorDictionaryConverter<TDictionary, 
 internal sealed class JsonSpanConstructorDictionaryConverter<TDictionary, TKey, TValue>(
     JsonConverter<TKey> keyConverter,
     JsonConverter<TValue> valueConverter,
-    IDictionaryShape<TDictionary, TKey, TValue> shape,
+    IDictionaryTypeShape<TDictionary, TKey, TValue> shape,
     SpanConstructor<KeyValuePair<TKey, TValue>, TDictionary> constructor)
     : JsonImmutableDictionaryConverter<TDictionary, TKey, TValue>(keyConverter, valueConverter, shape)
     where TKey : notnull
