@@ -29,10 +29,9 @@ public sealed record PropertyShapeModel
     public required bool PropertyTypeContainsNullabilityAnnotations { get; init; }
 
     /// <summary>
-    /// If an init-only property initializer, determines if a workaround
-    /// for https://github.com/dotnet/runtime/issues/89439 should be applied.
+    /// Determines if the property can use unsafe accessors in the generated code.
     /// </summary>
-    public required bool IsGenericPropertyType { get; init; }
+    public required bool CanUseUnsafeAccessors { get; init; }
 
     public required int Order { get; init; }
 }

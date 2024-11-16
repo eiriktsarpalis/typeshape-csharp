@@ -7,6 +7,7 @@ public sealed record ConstructorShapeModel
     public required TypeId DeclaringType { get; init; }
     public required bool IsPublic { get; init; }
     public required bool IsAccessible { get; init; }
+    public required bool CanUseUnsafeAccessors { get; init; }
     public required ImmutableEquatableArray<ConstructorParameterShapeModel> Parameters { get; init; }
     public required ImmutableEquatableArray<ConstructorParameterShapeModel> RequiredMembers { get; init; }
     public required ImmutableEquatableArray<ConstructorParameterShapeModel> OptionalMembers { get; init; }

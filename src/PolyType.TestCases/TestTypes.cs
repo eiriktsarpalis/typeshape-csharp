@@ -496,6 +496,10 @@ public static class TestTypes
         yield return TestCase.Create(ClassWithMultipleRefConstructorParameters.Create(), hasRefConstructorParameters: true);
         yield return TestCase.Create(ClassWithRefConstructorParameterPrivate.Create(), hasRefConstructorParameters: true);
         yield return TestCase.Create(ClassWithMultipleRefConstructorParametersPrivate.Create(), hasRefConstructorParameters: true);
+        yield return TestCase.Create(p, GenericClassWithMultipleRefConstructorParametersPrivate<int>.Create(42), hasRefConstructorParameters: true);
+        yield return TestCase.Create(p, GenericClassWithMultipleRefConstructorParametersPrivate<string>.Create("str"), hasRefConstructorParameters: true);
+        yield return TestCase.Create(p, GenericClassWithPrivateConstructor<int>.Create(42));
+        yield return TestCase.Create(p, GenericClassWithPrivateConstructor<string>.Create("str"));
         yield return TestCase.Create(new ClassWithUnsupportedPropertyTypes());
         yield return TestCase.Create(new ClassWithIncludedPrivateMembers());
         yield return TestCase.Create(new StructWithIncludedPrivateMembers());
@@ -1748,6 +1752,42 @@ public partial class ClassWithMultipleRefConstructorParametersPrivate
     }
 }
 
+public partial class GenericClassWithPrivateConstructor<T>
+{
+    [JsonConstructor, ConstructorShape]
+    private GenericClassWithPrivateConstructor(T value)
+    {
+        Value = value;
+    }
+
+    public T Value { get; }
+
+    public static GenericClassWithPrivateConstructor<T> Create(T value)
+    {
+        return new(value);
+    }
+}
+
+public partial class GenericClassWithMultipleRefConstructorParametersPrivate<T>
+{
+    [JsonConstructor, ConstructorShape]
+    private GenericClassWithMultipleRefConstructorParametersPrivate(ref T refValue, in T inValue, ref readonly T refReadOnlyValue)
+    {
+        RefValue = refValue;
+        InValue = inValue;
+        RefReadOnlyValue = refReadOnlyValue;
+    }
+
+    public T RefValue { get; }
+    public T InValue { get; }
+    public T RefReadOnlyValue { get; }
+
+    public static GenericClassWithMultipleRefConstructorParametersPrivate<T> Create(T value)
+    {
+        return new(ref value, in value, ref value);
+    }
+}
+
 [GenerateShape]
 public partial class ClassWithUnsupportedPropertyTypes
 {
@@ -2024,6 +2064,10 @@ partial class @class
 [GenerateShape<ClassWithNullableProperty<string>>]
 [GenerateShape<ClassWithNullabilityAttributes<string>>]
 [GenerateShape<ClassWithNotNullProperty<string>>]
+[GenerateShape<GenericClassWithPrivateConstructor<int>>]
+[GenerateShape<GenericClassWithPrivateConstructor<string>>]
+[GenerateShape<GenericClassWithMultipleRefConstructorParametersPrivate<int>>]
+[GenerateShape<GenericClassWithMultipleRefConstructorParametersPrivate<string>>]
 [GenerateShape<FSharpRecord>]
 [GenerateShape<FSharpStructRecord>]
 [GenerateShape<GenericFSharpRecord<string>>]

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <NoWarn>$(NoWarn);CA1051;CA1715;CA1725;CA1822;CA1825;CA1852;CA1861</NoWarn>
     <PackageReadmeFile>README.md</PackageReadmeFile>

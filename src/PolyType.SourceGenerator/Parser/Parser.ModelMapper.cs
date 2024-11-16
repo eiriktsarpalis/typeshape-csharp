@@ -167,7 +167,15 @@ public sealed partial class Parser
                 : property.Name,
 
             DeclaringType = SymbolEqualityComparer.Default.Equals(parentType, property.DeclaringType) ? parentTypeId : CreateTypeId(property.DeclaringType),
-            IsGenericPropertyType = !SymbolEqualityComparer.Default.Equals(property.PropertyType, property.PropertySymbol.OriginalDefinition.GetMemberType()),
+            CanUseUnsafeAccessors = _knownSymbols.TargetFramework switch
+            {
+                // .NET 8 does not support unsafe accessors for properties with generic types.
+                // .NET 9 blocked by https://github.com/dotnet/runtime/issues/109890
+                var target when target >= TargetFramework.Net80 =>
+                    SymbolEqualityComparer.Default.Equals(property.PropertyType, property.PropertySymbol.OriginalDefinition.GetMemberType()),
+                _ => false
+            },
+
             PropertyType = CreateTypeId(property.PropertyType),
             IsGetterNonNullable = emitGetter && property.IsGetterNonNullable,
             IsSetterNonNullable = emitSetter && property.IsSetterNonNullable,
@@ -258,6 +266,13 @@ public sealed partial class Parser
 
             StaticFactoryName = constructor.Constructor.IsStatic ? constructor.Constructor.GetFullyQualifiedName() : null,
             IsPublic = constructor.Constructor.DeclaredAccessibility is Accessibility.Public,
+            CanUseUnsafeAccessors = _knownSymbols.TargetFramework switch 
+            {
+                // .NET 8 does not support unsafe accessors for constructors of generic types.
+                // .NET 9 blocked by https://github.com/dotnet/runtime/issues/109890
+                var tfm when tfm >= TargetFramework.Net80 => !constructor.DeclaringType.IsGenericType, // https://github.com/dotnet/runtime/issues/109890
+                _ => false,
+            },
             IsAccessible = isAccessibleConstructor,
         };
     }
@@ -324,6 +339,7 @@ public sealed partial class Parser
                 OptionalMemberFlagsType = OptionalMemberFlagsType.None,
                 StaticFactoryName = null,
                 IsAccessible = true,
+                CanUseUnsafeAccessors = false,
                 IsPublic = true,
             };
         }
@@ -339,6 +355,7 @@ public sealed partial class Parser
                 OptionalMemberFlagsType = OptionalMemberFlagsType.None,
                 StaticFactoryName = null,
                 IsAccessible = true,
+                CanUseUnsafeAccessors = false,
                 IsPublic = true,
             };   
         }

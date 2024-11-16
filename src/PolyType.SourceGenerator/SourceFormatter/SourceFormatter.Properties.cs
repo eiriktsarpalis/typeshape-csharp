@@ -144,15 +144,15 @@ internal sealed partial class SourceFormatter
         string refPrefix = property.DeclaringType.IsValueType ? "ref " : "";
         string propertyGetter = "get_" + property.UnderlyingMemberName;
 
-        if (property.IsGenericPropertyType)
+        if (!property.CanUseUnsafeAccessors)
         {
+            // Emit a reflection-based workaround.
             writer.WriteLine($$"""
-                // Workaround for https://github.com/dotnet/runtime/issues/89439
                 private static global::System.Reflection.MethodInfo? __s_{{accessorName}}_MethodInfo;
                 private static {{property.PropertyType.FullyQualifiedName}} {{accessorName}}({{refPrefix}}{{property.DeclaringType.FullyQualifiedName}} obj)
                 {
                     global::System.Reflection.MethodInfo getter = __s_{{accessorName}}_MethodInfo ??= typeof({{property.DeclaringType.FullyQualifiedName}}).GetMethod({{FormatStringLiteral(propertyGetter)}}, {{InstanceBindingFlagsConstMember}})!;
-                    return getter.Invoke(obj, null);
+                    return ({{property.PropertyType.FullyQualifiedName}})getter.Invoke(obj, null)!;
                 }
                 """);
 
@@ -172,10 +172,10 @@ internal sealed partial class SourceFormatter
         string refPrefix = property.DeclaringType.IsValueType ? "ref " : "";
         string propertySetter = "set_" + property.UnderlyingMemberName;
 
-        if (property.IsGenericPropertyType)
+        if (!property.CanUseUnsafeAccessors)
         {
+            // Emit a reflection-based workaround.
             writer.WriteLine($$"""
-                // Workaround for https://github.com/dotnet/runtime/issues/89439
                 private static global::System.Reflection.MethodInfo? __s_{{accessorName}}_MethodInfo;
                 private static void {{accessorName}}({{refPrefix}}{{property.DeclaringType.FullyQualifiedName}} obj, {{property.PropertyType.FullyQualifiedName}} value)
                 {
@@ -187,13 +187,13 @@ internal sealed partial class SourceFormatter
             {
                 writer.WriteLine($$"""
                     object boxed = obj;
-                    setter.Invoke(boxed, new object[] { value });
+                    setter.Invoke(boxed, new object?[] { value });
                     obj = ({{property.DeclaringType.FullyQualifiedName}})boxed;
                     """);
             }
             else
             {
-                writer.WriteLine("setter.Invoke(obj, new object[] { value });");
+                writer.WriteLine("setter.Invoke(obj, new object?[] { value });");
             }
 
             writer.Indentation--;
