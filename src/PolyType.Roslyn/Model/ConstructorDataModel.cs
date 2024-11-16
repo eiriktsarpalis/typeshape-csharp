@@ -16,7 +16,7 @@ public readonly struct ConstructorDataModel
     /// <summary>
     /// The declaring type of the constructor.
     /// </summary>
-    public ITypeSymbol DeclaringType => Constructor.ContainingType;
+    public INamedTypeSymbol DeclaringType => Constructor.ContainingType;
 
     /// <summary>
     /// The parameters of the constructor.

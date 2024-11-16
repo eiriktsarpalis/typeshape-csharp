@@ -438,6 +438,34 @@ internal sealed partial class SourceFormatter
         }
 
         string accessorName = GetConstructorAccessorName(declaringType);
+
+        if (!constructorModel.CanUseUnsafeAccessors)
+        {
+            // Emit a reflection-based workaround.
+            string parameterTypes = constructorModel.Parameters.Length == 0
+                ? "global::System.Array.Empty<global::System.Type>()"
+                : $$"""new[] { {{string.Join(", ", constructorModel.Parameters.Select(FormatParameterType))}} }""";
+
+            static string FormatParameterType(ConstructorParameterShapeModel parameter)
+            {
+                return parameter.RefKind is RefKind.None 
+                    ? $"typeof({parameter.ParameterType.FullyQualifiedName})"
+                    : $"typeof({parameter.ParameterType.FullyQualifiedName}).MakeByRefType()";
+            }
+
+            writer.WriteLine($$"""
+                private static global::System.Reflection.ConstructorInfo? __s_{{accessorName}}_CtorInfo;
+                private static {{constructorModel.DeclaringType.FullyQualifiedName}} {{accessorName}}({{parameterSignature}})
+                {
+                    global::System.Reflection.ConstructorInfo ctorInfo = __s_{{accessorName}}_CtorInfo ??= typeof({{constructorModel.DeclaringType.FullyQualifiedName}}).GetConstructor({{InstanceBindingFlagsConstMember}}, null, {{parameterTypes}}, null)!;
+                    object?[] paramArray = new object?[] { {{string.Join(", ", constructorModel.Parameters.Select(p => p.Name))}} };
+                    return ({{constructorModel.DeclaringType.FullyQualifiedName}})ctorInfo.Invoke(paramArray);
+                }
+                """);
+
+            return;
+        }
+
         writer.WriteLine($"""
             [global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Constructor)]
             private static extern {constructorModel.DeclaringType.FullyQualifiedName} {accessorName}({parameterSignature});
