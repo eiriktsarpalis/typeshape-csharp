@@ -8,6 +8,8 @@ ADDITIONAL_ARGS ?= -p:ContinuousIntegrationBuild=true
 CODECOV_ARGS ?= --collect:"XPlat Code Coverage" --results-directory $(ARTIFACT_PATH)
 DOCKER_IMAGE_NAME ?= "polytype-docker-build"
 DOCKER_CMD ?= make CONFIGURATION=$(CONFIGURATION)
+VERSION_FILE = $(SOURCE_DIRECTORY)version.json
+VERSION ?= ""
 
 clean:
 	rm -rf $(ARTIFACT_PATH)/*
@@ -25,6 +27,13 @@ pack: test
 generate-docs: clean
 	dotnet tool update -g docfx
 	docfx $(DOCS_PATH)/docfx.json
+
+bump-version:
+	test -n "$(VERSION)" || (echo "must specify VERSION" && exit 1)
+	git diff --quiet && git diff --cached --quiet || (echo "repo contains uncommitted changes" && exit 1)
+	sed -i 's/"version"\s*:\s*"[^"]*"/"version": "$(VERSION)"/' $(VERSION_FILE)
+	git add $(VERSION_FILE) && git commit -m "Bump version to $(VERSION)"
+	git tag $(VERSION)
 
 push:
 	for nupkg in `ls $(ARTIFACT_PATH)/*.nupkg`; do \
