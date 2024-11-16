@@ -7,28 +7,28 @@ namespace PolyType.SourceGenerator;
 
 public sealed partial class Parser
 {
-    private TypeShapeModel MapModel(TypeDataModel model, TypeId typeId, string propertyIdentifier)
+    private TypeShapeModel MapModel(TypeDataModel model, TypeId typeId, string sourceIdentifier)
     {
         return model switch
         {
             EnumDataModel enumModel => new EnumShapeModel
             {
                 Type = typeId,
-                SourceIdentifier = propertyIdentifier,
+                SourceIdentifier = sourceIdentifier,
                 UnderlyingType = CreateTypeId(enumModel.UnderlyingType),
             },
 
             NullableDataModel nullableModel => new NullableShapeModel
             {
                 Type = typeId,
-                SourceIdentifier = propertyIdentifier,
+                SourceIdentifier = sourceIdentifier,
                 ElementType = CreateTypeId(nullableModel.ElementType),
             },
 
             EnumerableDataModel enumerableModel => new EnumerableShapeModel
             {
                 Type = typeId,
-                SourceIdentifier = propertyIdentifier,
+                SourceIdentifier = sourceIdentifier,
                 ElementType = CreateTypeId(enumerableModel.ElementType),
                 ConstructionStrategy = enumerableModel.ConstructionStrategy switch
                 {
@@ -67,7 +67,7 @@ public sealed partial class Parser
             DictionaryDataModel dictionaryModel => new DictionaryShapeModel
             {
                 Type = typeId,
-                SourceIdentifier = propertyIdentifier,
+                SourceIdentifier = sourceIdentifier,
                 KeyType = CreateTypeId(dictionaryModel.KeyType),
                 ValueType = CreateTypeId(dictionaryModel.ValueType),
                 ConstructionStrategy = dictionaryModel.ConstructionStrategy switch
@@ -105,7 +105,7 @@ public sealed partial class Parser
             ObjectDataModel objectModel => new ObjectShapeModel
             {
                 Type = typeId,
-                SourceIdentifier = propertyIdentifier,
+                SourceIdentifier = sourceIdentifier,
                 Constructor = objectModel.Constructors
                     .Select(c => MapConstructor(objectModel, typeId, c))
                     .FirstOrDefault(),
@@ -123,7 +123,7 @@ public sealed partial class Parser
             TupleDataModel tupleModel => new ObjectShapeModel
             {
                 Type = typeId,
-                SourceIdentifier = propertyIdentifier,
+                SourceIdentifier = sourceIdentifier,
                 Constructor = MapTupleConstructor(typeId, tupleModel),
                 Properties = tupleModel.Elements
                     .Select((e, i) => MapProperty(model.Type, typeId, e, tupleElementIndex: i, isClassTupleType: !tupleModel.IsValueTuple))
@@ -137,7 +137,7 @@ public sealed partial class Parser
             _ => new ObjectShapeModel
             { 
                 Type = typeId,
-                SourceIdentifier = propertyIdentifier,
+                SourceIdentifier = sourceIdentifier,
                 Constructor = null,
                 Properties = [],
                 IsValueTupleType = false,
