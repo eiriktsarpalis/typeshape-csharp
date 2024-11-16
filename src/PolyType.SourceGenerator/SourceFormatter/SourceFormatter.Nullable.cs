@@ -3,9 +3,9 @@ using PolyType.SourceGenerator.Model;
 
 namespace PolyType.SourceGenerator;
 
-internal static partial class SourceFormatter
+internal sealed partial class SourceFormatter
 {
-    private static void FormatNullableTypeShapeFactory(SourceWriter writer, string methodName, NullableShapeModel nullableShapeModel)
+    private void FormatNullableTypeShapeFactory(SourceWriter writer, string methodName, NullableShapeModel nullableShapeModel)
     {
         writer.WriteLine($$"""
             private global::PolyType.Abstractions.ITypeShape<{{nullableShapeModel.Type.FullyQualifiedName}}> {{methodName}}()
@@ -13,7 +13,7 @@ internal static partial class SourceFormatter
                 return new global::PolyType.SourceGenModel.SourceGenNullableTypeShape<{{nullableShapeModel.ElementType.FullyQualifiedName}}>
                 {
                     Provider = this,
-                    ElementType = {{nullableShapeModel.ElementType.TypeIdentifier}},
+                    ElementType = {{GetShapeModel(nullableShapeModel.ElementType).SourceIdentifier}},
                 };
             }
             """);

@@ -6,21 +6,29 @@ using PolyType.SourceGenerator.Model;
 
 namespace PolyType.SourceGenerator;
 
-internal static partial class SourceFormatter
+internal sealed partial class SourceFormatter(TypeShapeProviderModel provider)
 {
-    private const string InstanceBindingFlagsConstMember = "InstanceBindingFlags";
+    private const string InstanceBindingFlagsConstMember = "__BindingFlags_Instance_All";
+    private const string ProviderSingletonProperty = "Default";
+    private const string GetShapeMethodName = "GetShape";
+    public static string[] ReservedIdentifiers { get; } = [ProviderSingletonProperty,GetShapeMethodName];
 
-    public static void FormatProvider(SourceProductionContext context, TypeShapeProviderModel provider)
+    public static void GenerateSourceFiles(SourceProductionContext context, TypeShapeProviderModel provider)
+    {
+        SourceFormatter formatter = new(provider);
+        formatter.AddAllSourceFiles(context, provider);
+    }
+
+    private void AddAllSourceFiles(SourceProductionContext context, TypeShapeProviderModel provider)
     {
         context.CancellationToken.ThrowIfCancellationRequested();
-
         context.AddSource($"{provider.ProviderDeclaration.SourceFilenamePrefix}.g.cs", FormatMainFile(provider));
         context.AddSource($"{provider.ProviderDeclaration.SourceFilenamePrefix}.ITypeShapeProvider.g.cs", FormatProviderInterfaceImplementation(provider));
 
         foreach (TypeShapeModel type in provider.ProvidedTypes.Values)
         {
             context.CancellationToken.ThrowIfCancellationRequested();
-            context.AddSource($"{provider.ProviderDeclaration.SourceFilenamePrefix}.{type.Type.TypeIdentifier}.g.cs", FormatType(provider, type));
+            context.AddSource($"{provider.ProviderDeclaration.SourceFilenamePrefix}.{type.SourceIdentifier}.g.cs", FormatType(provider, type));
         }
 
         foreach (TypeDeclarationModel typeDeclaration in provider.AnnotatedTypes)
@@ -35,7 +43,7 @@ internal static partial class SourceFormatter
                 context.CancellationToken.ThrowIfCancellationRequested();
                 string sourceFile = typeToImplement == typeDeclaration.Id
                     ? $"{typeDeclaration.SourceFilenamePrefix}.IShapeable.g.cs"
-                    : $"{typeDeclaration.SourceFilenamePrefix}.IShapeable.{typeToImplement.TypeIdentifier}.g.cs";
+                    : $"{typeDeclaration.SourceFilenamePrefix}.IShapeable.{GetShapeModel(typeToImplement).SourceIdentifier}.g.cs";
                 context.AddSource(sourceFile, FormatIShapeableOfTStub(typeDeclaration, typeToImplement, provider));
             }
         }
@@ -57,7 +65,7 @@ internal static partial class SourceFormatter
                 global::System.Reflection.BindingFlags.Instance;
 
             /// <summary>Gets the default instance of the <see cref="{{provider.ProviderDeclaration.Name}}"/> class.</summary>
-            public static {{provider.ProviderDeclaration.Name}} Default { get; } = new();
+            public static {{provider.ProviderDeclaration.Name}} {{ProviderSingletonProperty}} { get; } = new();
 
             /// <summary>Initializes a new instance of the <see cref="{{provider.ProviderDeclaration.Name}}"/> class.</summary>
             public {{provider.ProviderDeclaration.Name}}() { }
@@ -111,6 +119,8 @@ internal static partial class SourceFormatter
             writer.WriteLine('}');
         }
     }
+
+    private TypeShapeModel GetShapeModel(TypeId typeId) => provider.ProvidedTypes[typeId];
 
     private static string FormatBool(bool value) => value ? "true" : "false";
     private static string FormatNull(string? stringExpr) => stringExpr is null ? "null" : stringExpr;

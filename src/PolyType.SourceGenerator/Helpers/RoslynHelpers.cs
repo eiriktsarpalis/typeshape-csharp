@@ -152,20 +152,25 @@ internal static partial class RoslynHelpers
     }
 
     /// <summary>
-    /// Returns a string representation of the type suitable for use as an identifier in source.
+    /// Returns a string representation of the type suitable for use as an identifier in source code or file names.
     /// </summary>
-    public static string CreateTypeIdentifier(this ITypeSymbol type)
+    public static string CreateTypeIdentifier(this ITypeSymbol type, ReadOnlySpan<string> reservedIdentifiers, bool includeNamespaces = false)
     {
         StringBuilder sb = new();
         GenerateCore(type, sb);
-        return sb.ToString();
+        string identifier = sb.ToString();
 
-        static void GenerateCore(ITypeSymbol type, StringBuilder sb)
+        // Do not return identifiers that are C# keywords or reserved identifiers.
+        return IsCSharpKeyword(identifier) || reservedIdentifiers.IndexOf(identifier) >= 0 
+            ? "__Type_" + identifier 
+            : identifier;
+
+        void GenerateCore(ITypeSymbol type, StringBuilder sb)
         {
             switch (type)
             {
                 case ITypeParameterSymbol typeParameter:
-                    AppendAsPascalCase(typeParameter.Name);
+                    sb.Append(typeParameter.Name);
                     break;
 
                 case IArrayTypeSymbol arrayType:
@@ -180,8 +185,13 @@ internal static partial class RoslynHelpers
                     break;
 
                 case INamedTypeSymbol namedType:
-                    PrependContainingTypes(namedType);
-                    AppendAsPascalCase(namedType.Name);
+                    if (includeNamespaces)
+                    {
+                        PrependNamespaces(namedType.ContainingNamespace);
+                        PrependContainingTypes(namedType);
+                    }
+
+                    sb.Append(namedType.Name);
 
                     IEnumerable<ITypeSymbol> typeArguments = namedType.IsTupleType
                         ? namedType.TupleElements.Select(e => e.Type)
@@ -200,6 +210,16 @@ internal static partial class RoslynHelpers
                     throw new InvalidOperationException();
             }
 
+            void PrependNamespaces(INamespaceSymbol ns)
+            {
+                if (ns.ContainingNamespace is { } containingNs)
+                {
+                    PrependNamespaces(containingNs);
+                    sb.Append(ns.Name);
+                    sb.Append('_');
+                }
+            }
+
             void PrependContainingTypes(INamedTypeSymbol namedType)
             {
                 if (namedType.ContainingType is { } parent)
@@ -208,14 +228,6 @@ internal static partial class RoslynHelpers
                     GenerateCore(parent, sb);
                     sb.Append('_');
                 }
-            }
-
-            void AppendAsPascalCase(string name)
-            {
-                // Avoid creating identifiers that are C# keywords
-                Debug.Assert(name.Length > 0);
-                sb.Append(char.ToUpperInvariant(name[0]));
-                sb.Append(name, 1, name.Length - 1);
             }
         }
     }
