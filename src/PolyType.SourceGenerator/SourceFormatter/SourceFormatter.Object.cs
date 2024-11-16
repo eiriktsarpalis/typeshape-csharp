@@ -3,12 +3,12 @@ using PolyType.SourceGenerator.Model;
 
 namespace PolyType.SourceGenerator;
 
-internal static partial class SourceFormatter
+internal sealed partial class SourceFormatter
 {
-    private static void FormatObjectTypeShapeFactory(SourceWriter writer, string methodName, ObjectShapeModel objectShapeModel)
+    private void FormatObjectTypeShapeFactory(SourceWriter writer, string methodName, ObjectShapeModel objectShapeModel)
     {
-        string? propertiesFactoryMethodName = objectShapeModel.Properties.Length > 0 ? $"CreateProperties_{objectShapeModel.Type.TypeIdentifier}" : null;
-        string? constructorFactoryMethodName = objectShapeModel.Constructor != null ? $"CreateConstructor_{objectShapeModel.Type.TypeIdentifier}" : null;
+        string? propertiesFactoryMethodName = objectShapeModel.Properties.Length > 0 ? $"__CreateProperties_{objectShapeModel.SourceIdentifier}" : null;
+        string? constructorFactoryMethodName = objectShapeModel.Constructor != null ? $"__CreateConstructor_{objectShapeModel.SourceIdentifier}" : null;
 
         writer.WriteLine($$"""
             private global::PolyType.Abstractions.ITypeShape<{{objectShapeModel.Type.FullyQualifiedName}}> {{methodName}}()
@@ -46,21 +46,21 @@ internal static partial class SourceFormatter
             if (property.IsField)
             {
                 writer.WriteLine();
-                FormatFieldAccessor(writer, property);
+                FormatFieldAccessor(writer, objectShapeModel, property);
             }
             else
             {
                 if (property is { EmitGetter: true, IsGetterAccessible: false })
                 {
                     writer.WriteLine();
-                    FormatPropertyGetterAccessor(writer, property);
+                    FormatPropertyGetterAccessor(writer, objectShapeModel, property);
                 }
 
                 if (property is { EmitSetter: true, IsSetterAccessible: false } || 
                     (objectShapeModel.Constructor is not null && property.IsInitOnly))
                 {
                     writer.WriteLine();
-                    FormatPropertySetterAccessor(writer, property);
+                    FormatPropertySetterAccessor(writer, objectShapeModel, property);
                 }
             }
         }
@@ -68,7 +68,7 @@ internal static partial class SourceFormatter
         if (objectShapeModel.Constructor is { IsAccessible: false } ctor)
         {
             writer.WriteLine();
-            FormatConstructorAccessor(writer, ctor);
+            FormatConstructorAccessor(writer, objectShapeModel, ctor);
         }
     }
 }

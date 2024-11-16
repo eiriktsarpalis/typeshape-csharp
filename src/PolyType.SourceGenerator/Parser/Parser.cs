@@ -128,27 +128,19 @@ public sealed partial class Parser : TypeDataModelGenerator
 
         Parser parser = new(knownSymbols.Compilation.Assembly, knownSymbols, cancellationToken);
         ImmutableEquatableArray<TypeDeclarationModel> generateShapeTypes = parser.IncludeTypesUsingGenerateShapeAttributes(generateShapeDeclarations);
-        return parser.ExportTypeShapeProviderModel(s_globalImplicitProviderDeclaration, generateShapeTypes);
+        return parser.ExportTypeShapeProviderModel(s_globalProviderDeclaration, generateShapeTypes);
     }
 
     private TypeShapeProviderModel ExportTypeShapeProviderModel(TypeDeclarationModel providerDeclaration, ImmutableEquatableArray<TypeDeclarationModel> generateShapeTypes)
     {
-        Dictionary<TypeId, TypeShapeModel> generatedModels = new(GeneratedModels.Count);
-        foreach (KeyValuePair<ITypeSymbol, TypeDataModel> entry in GeneratedModels)
-        {
-            TypeId typeId = CreateTypeId(entry.Value.Type);
-            if (generatedModels.ContainsKey(typeId))
-            {
-                ReportDiagnostic(TypeNameConflict, location: null, typeId.FullyQualifiedName);
-            }
-
-            generatedModels[typeId] = MapModel(typeId, entry.Value);
-        }
-
         return new TypeShapeProviderModel
         {
             ProviderDeclaration = providerDeclaration,
-            ProvidedTypes = generatedModels.ToImmutableEquatableDictionary(),
+            ProvidedTypes = GetGeneratedTypesAndIdentifiers()
+                .ToImmutableEquatableDictionary(
+                    keySelector: kvp => kvp.Key,
+                    valueSelector: kvp => MapModel(kvp.Value.Model, kvp.Value.TypeId, kvp.Value.SourceIdentifier)),
+
             AnnotatedTypes = generateShapeTypes,
             Diagnostics = Diagnostics.ToImmutableEquatableSet(),
         };
@@ -269,12 +261,63 @@ public sealed partial class Parser : TypeDataModelGenerator
         }
     }
 
+    private Dictionary<TypeId, (TypeDataModel Model, TypeId TypeId, string SourceIdentifier)> GetGeneratedTypesAndIdentifiers()
+    {
+        Dictionary<TypeId, (TypeDataModel Model, TypeId TypeId, string SourceIdentifier)> results = new(GeneratedModels.Count);
+        Dictionary<string, TypeId?> shortIdentifiers = new(GeneratedModels.Count);
+        ReadOnlySpan<string> reservedIdentifiers = SourceFormatter.ReservedIdentifiers;
+
+        foreach (KeyValuePair<ITypeSymbol, TypeDataModel> entry in GeneratedModels)
+        {
+            TypeId typeId = CreateTypeId(entry.Value.Type);
+            if (results.ContainsKey(typeId))
+            {
+                // We can't have duplicate types with the same fully qualified name.
+                ReportDiagnostic(TypeNameConflict, location: null, typeId.FullyQualifiedName);
+                continue;
+            }
+
+            // Generate a property name for the type. Start with a short-form name that
+            // doesn't include namespaces or containing types. If there is a conflict,
+            // we will update the identifiers to incorporate fully qualified names.
+            // Fully qualified names should not have conflicts since we've already checked
+
+            string sourceIdentifier = entry.Value.Type.CreateTypeIdentifier(reservedIdentifiers, includeNamespaces: false);
+            if (!shortIdentifiers.TryGetValue(sourceIdentifier, out TypeId? conflictingIdentifier))
+            {
+                // This is the first occurrence of the short-form identifier.
+                // Add to the index including the typeId in case of a later conflict.
+                shortIdentifiers.Add(sourceIdentifier, typeId);
+            }
+            else
+            {
+                // We have a conflict, update the identifiers of both types to long-form.
+                if (conflictingIdentifier is { } cId)
+                {
+                    // Update the identifier of the conflicting type since it hasn't been already.
+                    var conflictingResults = results[cId];
+                    conflictingResults.SourceIdentifier = conflictingResults.Model.Type.CreateTypeIdentifier(reservedIdentifiers, includeNamespaces: true);
+                    results[cId] = conflictingResults;
+
+                    // Mark the short-form identifier as updated.
+                    shortIdentifiers[sourceIdentifier] = null;
+                }
+
+                // Update the identifier of the current type and store the new key.
+                sourceIdentifier = entry.Value.Type.CreateTypeIdentifier(reservedIdentifiers, includeNamespaces: true);
+            }
+
+            results.Add(typeId, (entry.Value, typeId, sourceIdentifier));
+        }
+
+        return results;
+    }
+
     private static TypeId CreateTypeId(ITypeSymbol type)
     {
         return new TypeId
         {
             FullyQualifiedName = type.GetFullyQualifiedName(),
-            TypeIdentifier = type.CreateTypeIdentifier(),
             IsValueType = type.IsValueType,
             SpecialType = type.OriginalDefinition.SpecialType,
         };
@@ -290,12 +333,11 @@ public sealed partial class Parser : TypeDataModelGenerator
         return null;
     }
 
-    private static readonly TypeDeclarationModel s_globalImplicitProviderDeclaration = new()
+    private static readonly TypeDeclarationModel s_globalProviderDeclaration = new()
     {
         Id = new()
         {
             FullyQualifiedName = "global::PolyType.SourceGenerator.ShapeProvider",
-            TypeIdentifier = "GenerateShapeProvider",
             IsValueType = false,
             SpecialType = SpecialType.None,
         },

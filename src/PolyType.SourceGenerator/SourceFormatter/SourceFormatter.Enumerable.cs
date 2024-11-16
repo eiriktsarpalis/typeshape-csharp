@@ -3,16 +3,16 @@ using PolyType.SourceGenerator.Model;
 
 namespace PolyType.SourceGenerator;
 
-internal static partial class SourceFormatter
+internal sealed partial class SourceFormatter
 {
-    private static void FormatEnumerableTypeShapeFactory(SourceWriter writer, string methodName, EnumerableShapeModel enumerableShapeModel)
+    private void FormatEnumerableTypeShapeFactory(SourceWriter writer, string methodName, EnumerableShapeModel enumerableShapeModel)
     {
         writer.WriteLine($$"""
             private global::PolyType.Abstractions.ITypeShape<{{enumerableShapeModel.Type.FullyQualifiedName}}> {{methodName}}()
             {
                 return new global::PolyType.SourceGenModel.SourceGenEnumerableTypeShape<{{enumerableShapeModel.Type.FullyQualifiedName}}, {{enumerableShapeModel.ElementType.FullyQualifiedName}}>
                 {
-                    ElementType = {{enumerableShapeModel.ElementType.TypeIdentifier}},
+                    ElementType = {{GetShapeModel(enumerableShapeModel.ElementType).SourceIdentifier}},
                     ConstructionStrategy = {{FormatCollectionConstructionStrategy(enumerableShapeModel.ConstructionStrategy)}},
                     DefaultConstructorFunc = {{FormatDefaultConstructorFunc(enumerableShapeModel)}},
                     EnumerableConstructorFunc = {{FormatEnumerableConstructorFunc(enumerableShapeModel)}},

@@ -327,4 +327,76 @@ public static class CompilationTests
         PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation);
         Assert.Empty(result.Diagnostics);
     }
+
+    [Fact]
+    public static void ConflictingTypeNames_NoErrors()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+            using PolyType;
+
+            [GenerateShape]
+            public partial class MyPoco;
+
+            namespace Foo.Bar
+            {
+                partial class Container
+                {
+                    [GenerateShape]
+                    public partial class MyPoco;
+                }
+            }
+
+            namespace Foo.Baz
+            {
+                partial class Container
+                {
+                    [GenerateShape]
+                    public partial class MyPoco;
+                }
+            }
+            """);
+
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Fact]
+    public static void ConflictingTypeNamesInNestedGenerics_NoErrors()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+            using PolyType;
+
+            class Container<T>
+            {
+                public partial class MyPoco;
+            }
+
+            [GenerateShape<Container<int>.MyPoco>]
+            [GenerateShape<Container<string>.MyPoco>]
+            partial class Witness;
+            """);
+
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Fact]
+    public static void TypesUsingReservedIdentifierNames_NoErrors()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+            using PolyType;
+
+            [GenerateShape]
+            partial class Default;
+
+            [GenerateShape]
+            partial class GetShape;
+
+            [GenerateShape]
+            partial class @class;
+            """);
+
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
 }

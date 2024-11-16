@@ -8,15 +8,14 @@ using PolyType.SourceGenerator.Model;
 
 namespace PolyType.SourceGenerator;
 
-internal static partial class SourceFormatter
+internal sealed partial class SourceFormatter
 {
-    private const string BitArrayFQN = "global::System.Collections.BitArray";
     private const string FlagsArgumentStateLabel = "Flags";
 
-    private static void FormatConstructorFactory(SourceWriter writer, string methodName, ObjectShapeModel type, ConstructorShapeModel constructor)
+    private void FormatConstructorFactory(SourceWriter writer, string methodName, ObjectShapeModel type, ConstructorShapeModel constructor)
     {
         string constructorArgumentStateFQN = FormatConstructorArgumentStateFQN(type, constructor);
-        string? constructorParameterFactoryName = constructor.TotalArity > 0 ? FormatConstructorParameterFactoryName(type) : null;
+        string? constructorParameterFactoryName = constructor.TotalArity > 0 ? $"__CreateConstructorParameters_{type.SourceIdentifier}" : null;
         
         writer.WriteLine($"private global::PolyType.Abstractions.IConstructorShape {methodName}()");
         writer.WriteLine('{');
@@ -25,7 +24,7 @@ internal static partial class SourceFormatter
         writer.WriteLine($$"""
             return new global::PolyType.SourceGenModel.SourceGenConstructorShape<{{type.Type.FullyQualifiedName}}, {{constructorArgumentStateFQN}}>
             {
-                DeclaringType = (global::PolyType.Abstractions.IObjectTypeShape<{{type.Type.FullyQualifiedName}}>){{type.Type.TypeIdentifier}},
+                DeclaringType = (global::PolyType.Abstractions.IObjectTypeShape<{{type.Type.FullyQualifiedName}}>){{type.SourceIdentifier}},
                 ParameterCount = {{constructor.TotalArity}},
                 GetParametersFunc = {{FormatNull(constructorParameterFactoryName)}},
                 DefaultConstructorFunc = {{FormatDefaultCtor(type, constructor)}},
@@ -85,7 +84,7 @@ internal static partial class SourceFormatter
                         .Select(FormatDefaultValueExpr)
                         .Append(
                             flagType is OptionalMemberFlagsType.BitArray 
-                            ? $"new {BitArrayFQN}({constructor.OptionalMembers.Length})"
+                            ? $"new({constructor.OptionalMembers.Length})"
                             : "default")),
             };
 
@@ -150,12 +149,13 @@ internal static partial class SourceFormatter
                     _ => $$""" { {{FormatInitializerBody()}} }""",
                 };
 
+                string constructorName = FormatConstructorName(type, constructor);
                 string constructorExpr = constructor.Parameters.Length switch
                 {
-                    0 when memberInitializerBlock is null => $"{FormatConstructorName(constructor)}()",
-                    0 => $"{FormatConstructorName(constructor)}{memberInitializerBlock}",
-                    1 when constructor.TotalArity == 1 => $"{FormatConstructorName(constructor)}({FormatCtorParameterExpr(constructor.Parameters[0], isSingleParameter: true)})",
-                    _ => $"{FormatConstructorName(constructor)}({FormatCtorArgumentsBody()}){memberInitializerBlock}",
+                    0 when memberInitializerBlock is null => $"{constructorName}()",
+                    0 => $"{constructorName}{memberInitializerBlock}",
+                    1 when constructor.TotalArity == 1 => $"{constructorName}({FormatCtorParameterExpr(constructor.Parameters[0], isSingleParameter: true)})",
+                    _ => $"{constructorName}({FormatCtorArgumentsBody()}){memberInitializerBlock}",
                 };
 
                 // Initialize required members using regular assignments if the constructor is not accessible.
@@ -197,12 +197,12 @@ internal static partial class SourceFormatter
                         string refPrefix = parameter.DeclaringType.IsValueType ? "ref " : "";
                         if (parameter.IsField)
                         {
-                            string accessorName = GetFieldAccessorName(parameter.DeclaringType, parameter.UnderlyingMemberName);
+                            string accessorName = GetFieldAccessorName(type, parameter.UnderlyingMemberName);
                             return $"{accessorName}({refPrefix}obj) = {FormatCtorParameterExpr(parameter)};";
                         }
                         else
                         {
-                            string accessorName = GetPropertySetterAccessorName(parameter.DeclaringType, parameter.UnderlyingMemberName);
+                            string accessorName = GetPropertySetterAccessorName(type, parameter.UnderlyingMemberName);
                             return $"{accessorName}({refPrefix}obj, {FormatCtorParameterExpr(parameter)});";
                         }
                     }
@@ -235,29 +235,26 @@ internal static partial class SourceFormatter
             }
         }
 
-        static string FormatDefaultCtor(ObjectShapeModel type, ConstructorShapeModel constructor)
+        static string FormatDefaultCtor(ObjectShapeModel declaringType, ConstructorShapeModel constructor)
             => constructor.TotalArity switch
             {
-                0 when type.IsValueTupleType => $"static () => default({type.Type.FullyQualifiedName})",
-                0 => $"static () => {FormatConstructorName(constructor)}()",
+                0 when declaringType.IsValueTupleType => $"static () => default({declaringType.Type.FullyQualifiedName})",
+                0 => $"static () => {FormatConstructorName(declaringType, constructor)}()",
                 _ => "null",
             };
 
-        static string FormatConstructorName(ConstructorShapeModel constructor)
+        static string FormatConstructorName(ObjectShapeModel declaringType, ConstructorShapeModel constructor)
         {
             return constructor switch
             {
                 { StaticFactoryName: string factoryName } => factoryName,
-                { IsAccessible: false } => GetConstructorAccessorName(constructor.DeclaringType),
+                { IsAccessible: false } => GetConstructorAccessorName(declaringType),
                 _ => $"new {constructor.DeclaringType.FullyQualifiedName}",
             };
         }
-
-        static string FormatConstructorParameterFactoryName(TypeShapeModel type) =>
-            $"CreateConstructorParameters_{type.Type.TypeIdentifier}";
     }
 
-    private static void FormatConstructorParameterFactory(SourceWriter writer, ObjectShapeModel type, string methodName, ConstructorShapeModel constructor, string constructorArgumentStateFQN)
+    private void FormatConstructorParameterFactory(SourceWriter writer, ObjectShapeModel type, string methodName, ConstructorShapeModel constructor, string constructorArgumentStateFQN)
     {
         writer.WriteLine($"private global::PolyType.Abstractions.IConstructorParameterShape[] {methodName}() => new global::PolyType.Abstractions.IConstructorParameterShape[]");
         writer.WriteLine('{');
@@ -278,7 +275,7 @@ internal static partial class SourceFormatter
                 {
                     Position = {{parameter.Position}},
                     Name = {{FormatStringLiteral(parameter.Name)}},
-                    ParameterType = {{parameter.ParameterType.TypeIdentifier}},
+                    ParameterType = {{GetShapeModel(parameter.ParameterType).SourceIdentifier}},
                     Kind = {{FormatParameterKind(parameter)}},
                     IsRequired = {{FormatBool(parameter.IsRequired)}},
                     IsNonNullable = {{FormatBool(parameter.IsNonNullable)}},
@@ -384,7 +381,7 @@ internal static partial class SourceFormatter
             OptionalMemberFlagsType.UShort => "ushort",
             OptionalMemberFlagsType.UInt32 => "uint",
             OptionalMemberFlagsType.ULong => "ulong",
-            OptionalMemberFlagsType.BitArray => BitArrayFQN,
+            OptionalMemberFlagsType.BitArray => "global::System.Collections.BitArray",
             _ => null,
         };
 
@@ -411,12 +408,12 @@ internal static partial class SourceFormatter
             => $"({string.Join(", ", parameterTypes)})";
     }
 
-    private static string GetConstructorAccessorName(TypeId declaringType)
+    private static string GetConstructorAccessorName(ObjectShapeModel declaringType)
     {
-        return $"{declaringType.TypeIdentifier}_CtorAccessor";
+        return $"__CtorAccessor_{declaringType.SourceIdentifier}";
     }
 
-    private static void FormatConstructorAccessor(SourceWriter writer, ConstructorShapeModel constructorModel)
+    private static void FormatConstructorAccessor(SourceWriter writer, ObjectShapeModel declaringType, ConstructorShapeModel constructorModel)
     {
         Debug.Assert(!constructorModel.IsAccessible);
 
@@ -440,7 +437,7 @@ internal static partial class SourceFormatter
             parameterSignature.Length -= 2;
         }
 
-        string accessorName = GetConstructorAccessorName(constructorModel.DeclaringType);
+        string accessorName = GetConstructorAccessorName(declaringType);
         writer.WriteLine($"""
             [global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Constructor)]
             private static extern {constructorModel.DeclaringType.FullyQualifiedName} {accessorName}({parameterSignature});

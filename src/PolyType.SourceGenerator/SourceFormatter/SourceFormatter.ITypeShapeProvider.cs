@@ -4,7 +4,7 @@ using PolyType.SourceGenerator.Model;
 
 namespace PolyType.SourceGenerator;
 
-internal static partial class SourceFormatter
+internal sealed partial class SourceFormatter
 {
     private static SourceText FormatProviderInterfaceImplementation(TypeShapeProviderModel provider)
     {
@@ -33,7 +33,7 @@ internal static partial class SourceFormatter
         {
             writer.WriteLine($"""
                 if (type == typeof({generatedType.Type.FullyQualifiedName}))
-                    return {generatedType.Type.TypeIdentifier};
+                    return {generatedType.SourceIdentifier};
 
                 """);
         }
@@ -48,7 +48,7 @@ internal static partial class SourceFormatter
         return writer.ToSourceText();
     }
 
-    private static SourceText FormatIShapeableOfTStub(TypeDeclarationModel typeDeclaration, TypeId typeToImplement, TypeShapeProviderModel provider)
+    private SourceText FormatIShapeableOfTStub(TypeDeclarationModel typeDeclaration, TypeId typeToImplement, TypeShapeProviderModel provider)
     {
         var writer = new SourceWriter();
         StartFormatSourceFile(writer, typeDeclaration);
@@ -61,7 +61,7 @@ internal static partial class SourceFormatter
 
         writer.WriteLine($"""
             static global::PolyType.Abstractions.ITypeShape<{typeToImplement.FullyQualifiedName}> global::PolyType.IShapeable<{typeToImplement.FullyQualifiedName}>.GetShape() 
-                => {provider.ProviderDeclaration.Id.FullyQualifiedName}.Default.{typeToImplement.TypeIdentifier};
+                => {provider.ProviderDeclaration.Id.FullyQualifiedName}.{ProviderSingletonProperty}.{GetShapeModel(typeToImplement).SourceIdentifier};
             """);
 
         writer.Indentation--;
@@ -80,7 +80,7 @@ internal static partial class SourceFormatter
             {{typeDeclaration.TypeDeclarationHeader}} : global::PolyType.ITypeShapeProvider
             {
                 global::PolyType.Abstractions.ITypeShape? global::PolyType.ITypeShapeProvider.GetShape(global::System.Type type) 
-                    => {{provider.ProviderDeclaration.Id.FullyQualifiedName}}.Default.GetShape(type);
+                    => {{provider.ProviderDeclaration.Id.FullyQualifiedName}}.{{ProviderSingletonProperty}}.GetShape(type);
             }
             """);
 

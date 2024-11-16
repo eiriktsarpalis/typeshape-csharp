@@ -42,7 +42,7 @@ public sealed class PolyTypeGenerator : IIncrementalGenerator
             context.ReportDiagnostic(diagnostic.CreateDiagnostic());
         }
 
-        SourceFormatter.FormatProvider(context, provider);
+        SourceFormatter.GenerateSourceFiles(context, provider);
     }
 
     public Action<TypeShapeProviderModel>? OnGeneratingSource { get; init; }
