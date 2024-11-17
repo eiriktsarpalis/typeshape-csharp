@@ -29,7 +29,7 @@ public readonly struct PropertyDataModel
     /// <summary>
     /// The declaring type of the property or field.
     /// </summary>
-    public ITypeSymbol DeclaringType => PropertySymbol.ContainingType;
+    public INamedTypeSymbol DeclaringType => PropertySymbol.ContainingType;
 
     /// <summary>
     /// Either an IPropertySymbol or an IFieldSymbol.

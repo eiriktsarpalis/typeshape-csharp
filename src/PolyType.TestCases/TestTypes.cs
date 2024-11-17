@@ -500,6 +500,10 @@ public static class TestTypes
         yield return TestCase.Create(p, GenericClassWithMultipleRefConstructorParametersPrivate<string>.Create("str"), hasRefConstructorParameters: true);
         yield return TestCase.Create(p, GenericClassWithPrivateConstructor<int>.Create(42));
         yield return TestCase.Create(p, GenericClassWithPrivateConstructor<string>.Create("str"));
+        yield return TestCase.Create(p, GenericClassWithPrivateField<int>.Create(42));
+        yield return TestCase.Create(p, GenericClassWithPrivateField<string>.Create("str"));
+        yield return TestCase.Create(p, GenericStructWithPrivateField<int>.Create(42));
+        yield return TestCase.Create(p, GenericStructWithPrivateField<string>.Create("str"));
         yield return TestCase.Create(new ClassWithUnsupportedPropertyTypes());
         yield return TestCase.Create(new ClassWithIncludedPrivateMembers());
         yield return TestCase.Create(new StructWithIncludedPrivateMembers());
@@ -1768,6 +1772,32 @@ public partial class GenericClassWithPrivateConstructor<T>
     }
 }
 
+public partial class GenericClassWithPrivateField<T>
+{
+    [JsonInclude, PropertyShape]
+    private T? Value;
+
+    public static GenericClassWithPrivateField<T> Create(T value)
+    {
+        var obj = new GenericClassWithPrivateField<T> { Value = value };
+        _ = obj.Value;
+        return obj;
+    }
+}
+
+public partial struct GenericStructWithPrivateField<T>
+{
+    [JsonInclude, PropertyShape]
+    private T? Value;
+
+    public static GenericStructWithPrivateField<T> Create(T value)
+    {
+        var obj = new GenericStructWithPrivateField<T> { Value = value };
+        _ = obj.Value;
+        return obj;
+    }
+}
+
 public partial class GenericClassWithMultipleRefConstructorParametersPrivate<T>
 {
     [JsonConstructor, ConstructorShape]
@@ -2066,6 +2096,10 @@ partial class @class
 [GenerateShape<ClassWithNotNullProperty<string>>]
 [GenerateShape<GenericClassWithPrivateConstructor<int>>]
 [GenerateShape<GenericClassWithPrivateConstructor<string>>]
+[GenerateShape<GenericClassWithPrivateField<int>>]
+[GenerateShape<GenericClassWithPrivateField<string>>]
+[GenerateShape<GenericStructWithPrivateField<int>>]
+[GenerateShape<GenericStructWithPrivateField<string>>]
 [GenerateShape<GenericClassWithMultipleRefConstructorParametersPrivate<int>>]
 [GenerateShape<GenericClassWithMultipleRefConstructorParametersPrivate<string>>]
 [GenerateShape<FSharpRecord>]

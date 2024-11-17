@@ -45,8 +45,11 @@ internal sealed partial class SourceFormatter
         {
             if (property.IsField)
             {
-                writer.WriteLine();
-                FormatFieldAccessor(writer, objectShapeModel, property);
+                if (!property.IsGetterAccessible)
+                {
+                    writer.WriteLine();
+                    FormatFieldAccessor(writer, objectShapeModel, property);
+                }
             }
             else
             {

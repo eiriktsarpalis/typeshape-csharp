@@ -198,7 +198,10 @@ internal sealed partial class SourceFormatter
                         if (parameter.IsField)
                         {
                             string accessorName = GetFieldAccessorName(type, parameter.UnderlyingMemberName);
-                            return $"{accessorName}({refPrefix}obj) = {FormatCtorParameterExpr(parameter)};";
+                            string ctorParameterExpr = FormatCtorParameterExpr(parameter);
+                            return parameter.CanUseUnsafeAccessors
+                                ? $"{accessorName}({refPrefix}obj) = {ctorParameterExpr};"
+                                : $"{accessorName}_set({refPrefix}obj, {ctorParameterExpr});";
                         }
                         else
                         {

@@ -169,10 +169,8 @@ public sealed partial class Parser
             DeclaringType = SymbolEqualityComparer.Default.Equals(parentType, property.DeclaringType) ? parentTypeId : CreateTypeId(property.DeclaringType),
             CanUseUnsafeAccessors = _knownSymbols.TargetFramework switch
             {
-                // .NET 8 does not support unsafe accessors for properties with generic types.
-                // .NET 9 blocked by https://github.com/dotnet/runtime/issues/109890
-                var target when target >= TargetFramework.Net80 =>
-                    SymbolEqualityComparer.Default.Equals(property.PropertyType, property.PropertySymbol.OriginalDefinition.GetMemberType()),
+                // .NET 8 or later supports unsafe accessors for properties of non-generic types.
+                var target when target >= TargetFramework.Net80 => !property.DeclaringType.IsGenericType,
                 _ => false
             },
 
@@ -222,6 +220,12 @@ public sealed partial class Parser
                 Position = position++,
                 IsRequired = propertyModel.IsRequired,
                 IsAccessible = propertyModel.IsSetterAccessible,
+                CanUseUnsafeAccessors = _knownSymbols.TargetFramework switch
+                {
+                    // .NET 8 or later supports unsafe accessors for properties of non-generic types.
+                    var target when target >= TargetFramework.Net80 => !propertyModel.DeclaringType.IsGenericType,
+                    _ => false
+                },
                 IsInitOnlyProperty = propertyModel.IsInitOnly,
                 Kind = propertyModel.IsRequired ? ParameterKind.RequiredMember : ParameterKind.OptionalMember,
                 RefKind = RefKind.None,
@@ -268,9 +272,8 @@ public sealed partial class Parser
             IsPublic = constructor.Constructor.DeclaredAccessibility is Accessibility.Public,
             CanUseUnsafeAccessors = _knownSymbols.TargetFramework switch 
             {
-                // .NET 8 does not support unsafe accessors for constructors of generic types.
-                // .NET 9 blocked by https://github.com/dotnet/runtime/issues/109890
-                var tfm when tfm >= TargetFramework.Net80 => !constructor.DeclaringType.IsGenericType, // https://github.com/dotnet/runtime/issues/109890
+                // .NET 8 or later supports unsafe accessors for properties of non-generic types.
+                var tfm when tfm >= TargetFramework.Net80 => !constructor.DeclaringType.IsGenericType,
                 _ => false,
             },
             IsAccessible = isAccessibleConstructor,
@@ -315,6 +318,7 @@ public sealed partial class Parser
             RefKind = parameter.Parameter.RefKind,
             IsRequired = !parameter.HasDefaultValue,
             IsAccessible = true,
+            CanUseUnsafeAccessors = false,
             IsInitOnlyProperty = false,
             IsNonNullable = parameter.IsNonNullable,
             ParameterTypeContainsNullabilityAnnotations = parameter.Parameter.Type.ContainsNullabilityAnnotations(),
@@ -375,6 +379,7 @@ public sealed partial class Parser
                 RefKind = RefKind.None,
                 IsRequired = true,
                 IsAccessible = true,
+                CanUseUnsafeAccessors = false,
                 IsInitOnlyProperty = false,
                 IsPublic = true,
                 IsField = true,

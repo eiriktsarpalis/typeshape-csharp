@@ -93,7 +93,9 @@ internal sealed partial class SourceFormatter
                     if (property.IsField)
                     {
                         string fieldAccessorName = GetFieldAccessorName(declaringType, property.UnderlyingMemberName);
-                        return $"{fieldAccessorName}({refPrefix}{objParam}) = {valueParam}";
+                        return property.CanUseUnsafeAccessors
+                            ? $"{fieldAccessorName}({refPrefix}{objParam}) = {valueParam}"
+                            : $"{fieldAccessorName}_set({refPrefix}{objParam}, {valueParam})";
                     }
                     else
                     {
@@ -131,6 +133,27 @@ internal sealed partial class SourceFormatter
         string accessorName = GetFieldAccessorName(declaringType, property.UnderlyingMemberName);
         string refPrefix = property.DeclaringType.IsValueType ? "ref " : "";
 
+        if (!property.CanUseUnsafeAccessors)
+        {
+            // Emit a reflection-based workaround.
+            writer.WriteLine($$"""
+                private static global::System.Reflection.FieldInfo {{accessorName}}_FieldInfo => __s_{{accessorName}}_FieldInfo ??= typeof({{property.DeclaringType.FullyQualifiedName}}).GetField({{FormatStringLiteral(property.UnderlyingMemberName)}}, {{InstanceBindingFlagsConstMember}})!;
+                private static global::System.Reflection.FieldInfo? __s_{{accessorName}}_FieldInfo;
+
+                private static {{property.PropertyType.FullyQualifiedName}} {{accessorName}}({{refPrefix}}{{property.DeclaringType.FullyQualifiedName}} obj)
+                {
+                    return ({{property.PropertyType.FullyQualifiedName}}){{accessorName}}_FieldInfo.GetValueDirect(__makeref(obj))!;
+                }
+
+                private static void {{accessorName}}_set({{refPrefix}}{{property.DeclaringType.FullyQualifiedName}} obj, {{property.PropertyType.FullyQualifiedName}} value)
+                {
+                    {{accessorName}}_FieldInfo.SetValueDirect(__makeref(obj), value);
+                }
+                """);
+
+            return;
+        }
+
         writer.WriteLine($"""
             [global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = {FormatStringLiteral(property.UnderlyingMemberName)})]
             private static extern ref {property.PropertyType.FullyQualifiedName} {accessorName}({refPrefix}{property.DeclaringType.FullyQualifiedName} obj);
@@ -147,12 +170,20 @@ internal sealed partial class SourceFormatter
         if (!property.CanUseUnsafeAccessors)
         {
             // Emit a reflection-based workaround.
+            string delegateType = property.DeclaringType.IsValueType
+                ? $"global::PolyType.Abstractions.Getter<{property.DeclaringType.FullyQualifiedName}, {property.PropertyType.FullyQualifiedName}>"
+                : $"global::System.Func<{property.DeclaringType.FullyQualifiedName}, {property.PropertyType.FullyQualifiedName}>";
+
             writer.WriteLine($$"""
-                private static global::System.Reflection.MethodInfo? __s_{{accessorName}}_MethodInfo;
+                private static {{delegateType}}? {{accessorName}}_Delegate;
                 private static {{property.PropertyType.FullyQualifiedName}} {{accessorName}}({{refPrefix}}{{property.DeclaringType.FullyQualifiedName}} obj)
                 {
-                    global::System.Reflection.MethodInfo getter = __s_{{accessorName}}_MethodInfo ??= typeof({{property.DeclaringType.FullyQualifiedName}}).GetMethod({{FormatStringLiteral(propertyGetter)}}, {{InstanceBindingFlagsConstMember}})!;
-                    return ({{property.PropertyType.FullyQualifiedName}})getter.Invoke(obj, null)!;
+                    return ({{accessorName}}_Delegate ??= CreateDelegate()).Invoke({{refPrefix}}obj);
+                    static {{delegateType}} CreateDelegate()
+                    {
+                        global::System.Reflection.MethodInfo methodInfo = typeof({{property.DeclaringType.FullyQualifiedName}}).GetMethod({{FormatStringLiteral(propertyGetter)}}, {{InstanceBindingFlagsConstMember}})!;
+                        return ({{delegateType}})global::System.Delegate.CreateDelegate(typeof({{delegateType}}), methodInfo)!;
+                    }
                 }
                 """);
 
@@ -175,29 +206,23 @@ internal sealed partial class SourceFormatter
         if (!property.CanUseUnsafeAccessors)
         {
             // Emit a reflection-based workaround.
+            string delegateType = property.DeclaringType.IsValueType
+                ? $"global::PolyType.Abstractions.Setter<{property.DeclaringType.FullyQualifiedName}, {property.PropertyType.FullyQualifiedName}>" 
+                : $"global::System.Action<{property.DeclaringType.FullyQualifiedName}, {property.PropertyType.FullyQualifiedName}>";
+
             writer.WriteLine($$"""
-                private static global::System.Reflection.MethodInfo? __s_{{accessorName}}_MethodInfo;
+                private static {{delegateType}}? {{accessorName}}_Delegate;
                 private static void {{accessorName}}({{refPrefix}}{{property.DeclaringType.FullyQualifiedName}} obj, {{property.PropertyType.FullyQualifiedName}} value)
                 {
+                    ({{accessorName}}_Delegate ??= CreateDelegate()).Invoke({{refPrefix}}obj, value);
+                    static {{delegateType}} CreateDelegate()
+                    {
+                        global::System.Reflection.MethodInfo methodInfo = typeof({{property.DeclaringType.FullyQualifiedName}}).GetMethod({{FormatStringLiteral(propertySetter)}}, {{InstanceBindingFlagsConstMember}})!;
+                        return ({{delegateType}})global::System.Delegate.CreateDelegate(typeof({{delegateType}}), methodInfo)!;
+                    }
+                }
                 """);
 
-            writer.Indentation++;
-            writer.WriteLine($"global::System.Reflection.MethodInfo setter = __s_{accessorName}_MethodInfo ??= typeof({property.DeclaringType.FullyQualifiedName}).GetMethod({FormatStringLiteral(propertySetter)}, {InstanceBindingFlagsConstMember})!;");
-            if (property.DeclaringType.IsValueType)
-            {
-                writer.WriteLine($$"""
-                    object boxed = obj;
-                    setter.Invoke(boxed, new object?[] { value });
-                    obj = ({{property.DeclaringType.FullyQualifiedName}})boxed;
-                    """);
-            }
-            else
-            {
-                writer.WriteLine("setter.Invoke(obj, new object?[] { value });");
-            }
-
-            writer.Indentation--;
-            writer.WriteLine('}');
             return;
         }
 
