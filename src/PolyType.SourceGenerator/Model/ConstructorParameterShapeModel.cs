@@ -15,6 +15,7 @@ public sealed record ConstructorParameterShapeModel
     public required bool IsInitOnlyProperty { get; init; }
     public required bool IsNonNullable { get; init; }
     public required bool IsAccessible { get; init; }
+    public required bool CanUseUnsafeAccessors { get; init; }
     public required bool ParameterTypeContainsNullabilityAnnotations { get; init; }
     public required bool IsPublic { get; init; }
     public required bool IsField { get; init; }
