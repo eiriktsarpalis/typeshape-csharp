@@ -235,7 +235,7 @@ public sealed partial class Parser : TypeDataModelGenerator
             ContainingTypes = parentStack?.ToImmutableEquatableArray() ?? [],
             Namespace = FormatNamespace(context.TypeSymbol),
             SourceFilenamePrefix = context.TypeSymbol.ToDisplayString(RoslynHelpers.QualifiedNameOnlyFormat),
-            ImplementsITypeShapeProvider = isWitnessTypeDeclaration,
+            IsWitnessTypeDeclaration = isWitnessTypeDeclaration,
             ShapeableOfTImplementations = shapeableOfTImplementations?.ToImmutableEquatableSet() ?? [],
         };
 
@@ -345,7 +345,7 @@ public sealed partial class Parser : TypeDataModelGenerator
         Namespace = "PolyType.SourceGenerator",
         SourceFilenamePrefix = "PolyType.SourceGenerator.ShapeProvider",
         TypeDeclarationHeader = "internal sealed partial class ShapeProvider",
-        ImplementsITypeShapeProvider = true,
+        IsWitnessTypeDeclaration = false,
         ContainingTypes = [],
         ShapeableOfTImplementations = [],
     };

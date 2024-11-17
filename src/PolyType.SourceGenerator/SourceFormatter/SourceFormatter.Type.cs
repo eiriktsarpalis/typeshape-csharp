@@ -7,7 +7,7 @@ namespace PolyType.SourceGenerator;
 
 internal sealed partial class SourceFormatter
 {
-    private SourceText FormatType(TypeShapeProviderModel provider, TypeShapeModel type)
+    private SourceText FormatProvidedType(TypeShapeProviderModel provider, TypeShapeModel type)
     {
         string generatedPropertyType = $"global::PolyType.Abstractions.ITypeShape<{type.Type.FullyQualifiedName}>";
         string generatedFactoryMethodName = $"__Create_{type.SourceIdentifier}";

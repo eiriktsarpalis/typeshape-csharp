@@ -23,20 +23,20 @@ internal sealed partial class SourceFormatter(TypeShapeProviderModel provider)
     private void AddAllSourceFiles(SourceProductionContext context, TypeShapeProviderModel provider)
     {
         context.CancellationToken.ThrowIfCancellationRequested();
-        context.AddSource($"{provider.ProviderDeclaration.SourceFilenamePrefix}.g.cs", FormatMainFile(provider));
+        context.AddSource($"{provider.ProviderDeclaration.SourceFilenamePrefix}.g.cs", FormatProviderMainFile(provider));
         context.AddSource($"{provider.ProviderDeclaration.SourceFilenamePrefix}.ITypeShapeProvider.g.cs", FormatProviderInterfaceImplementation(provider));
 
         foreach (TypeShapeModel type in provider.ProvidedTypes.Values)
         {
             context.CancellationToken.ThrowIfCancellationRequested();
-            context.AddSource($"{provider.ProviderDeclaration.SourceFilenamePrefix}.{type.SourceIdentifier}.g.cs", FormatType(provider, type));
+            context.AddSource($"{provider.ProviderDeclaration.SourceFilenamePrefix}.{type.SourceIdentifier}.g.cs", FormatProvidedType(provider, type));
         }
 
         foreach (TypeDeclarationModel typeDeclaration in provider.AnnotatedTypes)
         {
-            if (typeDeclaration.ImplementsITypeShapeProvider)
+            if (typeDeclaration.IsWitnessTypeDeclaration)
             {
-                context.AddSource($"{typeDeclaration.SourceFilenamePrefix}.ITypeShapeProvider.g.cs", FormatITypeShapeProviderStub(typeDeclaration, provider));
+                context.AddSource($"{typeDeclaration.SourceFilenamePrefix}.g.cs", FormatWitnessTypeMainFile(typeDeclaration, provider));
             }
 
             foreach (TypeId typeToImplement in typeDeclaration.ShapeableOfTImplementations)
@@ -50,7 +50,7 @@ internal sealed partial class SourceFormatter(TypeShapeProviderModel provider)
         }
     }
 
-    private static SourceText FormatMainFile(TypeShapeProviderModel provider)
+    private static SourceText FormatProviderMainFile(TypeShapeProviderModel provider)
     {
         var writer = new SourceWriter();
         StartFormatSourceFile(writer, provider.ProviderDeclaration);
