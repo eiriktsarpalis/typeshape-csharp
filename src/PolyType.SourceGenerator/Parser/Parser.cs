@@ -344,7 +344,7 @@ public sealed partial class Parser : TypeDataModelGenerator
         Name = "ShapeProvider",
         Namespace = "PolyType.SourceGenerator",
         SourceFilenamePrefix = "PolyType.SourceGenerator.ShapeProvider",
-        TypeDeclarationHeader = "internal partial class ShapeProvider",
+        TypeDeclarationHeader = "internal sealed partial class ShapeProvider",
         ImplementsITypeShapeProvider = true,
         ContainingTypes = [],
         ShapeableOfTImplementations = [],

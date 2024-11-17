@@ -1,10 +1,9 @@
 ﻿using Microsoft.CodeAnalysis;
-using System.Diagnostics;
-using System.Reflection.Metadata;
-using System.Text;
 using PolyType.Roslyn;
 using PolyType.SourceGenerator.Helpers;
 using PolyType.SourceGenerator.Model;
+using System.Diagnostics;
+using System.Text;
 
 namespace PolyType.SourceGenerator;
 

@@ -8,10 +8,11 @@ namespace PolyType.SourceGenerator;
 
 internal sealed partial class SourceFormatter(TypeShapeProviderModel provider)
 {
+    public static string[] ReservedIdentifiers { get; } = [ProviderSingletonProperty,GetShapeMethodName];
+
     private const string InstanceBindingFlagsConstMember = "__BindingFlags_Instance_All";
     private const string ProviderSingletonProperty = "Default";
     private const string GetShapeMethodName = "GetShape";
-    public static string[] ReservedIdentifiers { get; } = [ProviderSingletonProperty,GetShapeMethodName];
 
     public static void GenerateSourceFiles(SourceProductionContext context, TypeShapeProviderModel provider)
     {
@@ -54,6 +55,8 @@ internal sealed partial class SourceFormatter(TypeShapeProviderModel provider)
         var writer = new SourceWriter();
         StartFormatSourceFile(writer, provider.ProviderDeclaration);
 
+        writer.WriteLine("""/// <summary>The source generated <see cref="global::PolyType.ITypeShapeProvider"/> implementation for the current assembly.</summary>""");
+        writer.WriteLine($"""[global::System.CodeDom.Compiler.GeneratedCodeAttribute({FormatStringLiteral(PolyTypeGenerator.SourceGeneratorName)}, {FormatStringLiteral(PolyTypeGenerator.SourceGeneratorVersion)})]""");
         writer.WriteLine(provider.ProviderDeclaration.TypeDeclarationHeader);
         writer.WriteLine('{');
         writer.Indentation++;
@@ -68,7 +71,7 @@ internal sealed partial class SourceFormatter(TypeShapeProviderModel provider)
             public static {{provider.ProviderDeclaration.Name}} {{ProviderSingletonProperty}} { get; } = new();
 
             /// <summary>Initializes a new instance of the <see cref="{{provider.ProviderDeclaration.Name}}"/> class.</summary>
-            public {{provider.ProviderDeclaration.Name}}() { }
+            private {{provider.ProviderDeclaration.Name}}() { }
             """);
 
         writer.Indentation--;
@@ -124,6 +127,5 @@ internal sealed partial class SourceFormatter(TypeShapeProviderModel provider)
 
     private static string FormatBool(bool value) => value ? "true" : "false";
     private static string FormatNull(string? stringExpr) => stringExpr is null ? "null" : stringExpr;
-    private static string FormatStringLiteral(string value)
-        => SymbolDisplay.FormatLiteral(value, quote: true);
+    private static string FormatStringLiteral(string value) => SymbolDisplay.FormatLiteral(value, quote: true);
 }
