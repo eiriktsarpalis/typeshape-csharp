@@ -14,5 +14,5 @@ public sealed class GenerateShapeAttribute : Attribute;
 /// implementation that includes <typeparamref name="T"/>.
 /// </summary>
 /// <typeparam name="T">The type for which shape metadata will be generated.</typeparam>
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true, Inherited = false)]
 public sealed class GenerateShapeAttribute<T> : Attribute;
