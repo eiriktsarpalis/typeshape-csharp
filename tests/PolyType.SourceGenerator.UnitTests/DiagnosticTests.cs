@@ -210,4 +210,46 @@ public static class DiagnosticTests
         Assert.Equal((9, 11), diagnostic.Location.GetStartPosition());
         Assert.Equal((9, 17), diagnostic.Location.GetEndPosition());
     }
+
+    [Fact]
+    public static void GenerateShapeOnStaticClass_ProducesError()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+           using PolyType;
+
+           [GenerateShape]
+           static partial class MyClass;
+           """);
+
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation, disableDiagnosticValidation: true);
+
+        Diagnostic diagnostic = Assert.Single(result.Diagnostics);
+
+        Assert.Equal("TS0007", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Equal((2, 0), diagnostic.Location.GetStartPosition());
+        Assert.Equal((3, 29), diagnostic.Location.GetEndPosition());
+    }
+
+    [Fact]
+    public static void GenerateShapeOfTOnStaticClass_ProducesError()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+           using PolyType;
+
+           [GenerateShape<MyPoco>]
+           static partial class Witness;
+
+           record MyPoco;
+           """);
+
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation, disableDiagnosticValidation: true);
+
+        Diagnostic diagnostic = Assert.Single(result.Diagnostics);
+
+        Assert.Equal("TS0007", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Equal((2, 0), diagnostic.Location.GetStartPosition());
+        Assert.Equal((3, 29), diagnostic.Location.GetEndPosition());
+    }
 }

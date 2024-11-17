@@ -25,7 +25,7 @@ public sealed partial class Parser : TypeDataModelGenerator
 
     // All types used as generic parameters so we must exclude ref structs.
     protected override bool IsSupportedType(ITypeSymbol type)
-        => base.IsSupportedType(type) && !type.IsRefLikeType;
+        => base.IsSupportedType(type) && !type.IsRefLikeType && !type.IsStatic;
 
     // Erase nullable annotations and tuple labels from generated types.
     protected override ITypeSymbol NormalizeType(ITypeSymbol type)
@@ -186,6 +186,12 @@ public sealed partial class Parser : TypeDataModelGenerator
             return null;
         }
 
+        if (context.TypeSymbol.IsStatic)
+        {
+            ReportDiagnostic(GeneratedTypeIsStatic, declarationSyntax.GetLocation(), context.TypeSymbol.ToDisplayString());
+            return null;
+        }
+
         TypeId typeId = CreateTypeId(context.TypeSymbol);
         HashSet<TypeId>? shapeableOfTImplementations = null;
         bool isWitnessTypeDeclaration = false;
@@ -235,7 +241,7 @@ public sealed partial class Parser : TypeDataModelGenerator
             ContainingTypes = parentStack?.ToImmutableEquatableArray() ?? [],
             Namespace = FormatNamespace(context.TypeSymbol),
             SourceFilenamePrefix = context.TypeSymbol.ToDisplayString(RoslynHelpers.QualifiedNameOnlyFormat),
-            ImplementsITypeShapeProvider = isWitnessTypeDeclaration,
+            IsWitnessTypeDeclaration = isWitnessTypeDeclaration,
             ShapeableOfTImplementations = shapeableOfTImplementations?.ToImmutableEquatableSet() ?? [],
         };
 
@@ -345,7 +351,7 @@ public sealed partial class Parser : TypeDataModelGenerator
         Namespace = "PolyType.SourceGenerator",
         SourceFilenamePrefix = "PolyType.SourceGenerator.ShapeProvider",
         TypeDeclarationHeader = "internal sealed partial class ShapeProvider",
-        ImplementsITypeShapeProvider = true,
+        IsWitnessTypeDeclaration = false,
         ContainingTypes = [],
         ShapeableOfTImplementations = [],
     };

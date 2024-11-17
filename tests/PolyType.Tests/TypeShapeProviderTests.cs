@@ -666,12 +666,20 @@ public sealed class TypeShapeProviderTests_ReflectionEmit() : TypeShapeProviderT
 public sealed class TypeShapeProviderTests_NoNullableAnnotations() : TypeShapeProviderTests(RefectionProviderUnderTest.NoNullableAnnotations);
 public sealed class TypeShapeProviderTests_SourceGen() : TypeShapeProviderTests(SourceGenProviderUnderTest.Default)
 {
+    [Fact]
+    public void WitnessType_ShapeProvider_IsSingleton()
+    {
+        ITypeShapeProvider provider = SourceGenProvider.ShapeProvider;
+
+        Assert.NotNull(provider);
+        Assert.Same(provider, SourceGenProvider.ShapeProvider);
+    }
+
     [Theory]
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
-    public void WitnessType_ImplementsITypeShapeProvider(ITestCase testCase)
+    public void WitnessType_ShapeProvider_MatchesGeneratedShapes(ITestCase testCase)
     {
-        SourceGenProvider provider = new();
-        ITypeShapeProvider shapeProvider = Assert.IsAssignableFrom<ITypeShapeProvider>(provider);
-        Assert.Same(testCase.DefaultShape, shapeProvider.GetShape(testCase.Type));
+        Assert.Same(SourceGenProvider.ShapeProvider, testCase.DefaultShape.Provider);
+        Assert.Same(testCase.DefaultShape, SourceGenProvider.ShapeProvider.GetShape(testCase.Type));
     }
 }

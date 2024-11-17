@@ -10,6 +10,6 @@ public record TypeDeclarationModel
     public required ImmutableEquatableArray<string> ContainingTypes { get; init; }
     public required string SourceFilenamePrefix { get; init; }
     public required string? Namespace { get; init; }
-    public required bool ImplementsITypeShapeProvider { get; init; }
+    public required bool IsWitnessTypeDeclaration { get; init; }
     public required ImmutableEquatableSet<TypeId> ShapeableOfTImplementations { get; init; }
 }

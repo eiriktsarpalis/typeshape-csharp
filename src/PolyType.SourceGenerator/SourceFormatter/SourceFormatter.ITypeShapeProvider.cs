@@ -71,16 +71,16 @@ internal sealed partial class SourceFormatter
         return writer.ToSourceText();
     }
 
-    private static SourceText FormatITypeShapeProviderStub(TypeDeclarationModel typeDeclaration, TypeShapeProviderModel provider)
+    private static SourceText FormatWitnessTypeMainFile(TypeDeclarationModel typeDeclaration, TypeShapeProviderModel provider)
     {
         var writer = new SourceWriter();
         StartFormatSourceFile(writer, typeDeclaration);
 
         writer.WriteLine($$"""
-            {{typeDeclaration.TypeDeclarationHeader}} : global::PolyType.ITypeShapeProvider
+            {{typeDeclaration.TypeDeclarationHeader}}
             {
-                global::PolyType.Abstractions.ITypeShape? global::PolyType.ITypeShapeProvider.GetShape(global::System.Type type) 
-                    => {{provider.ProviderDeclaration.Id.FullyQualifiedName}}.{{ProviderSingletonProperty}}.GetShape(type);
+                /// <summary>Gets the source generated <see cref="global::PolyType.ITypeShapeProvider"/> corresponding to the current witness type.</summary>
+                public static global::PolyType.ITypeShapeProvider ShapeProvider => {{provider.ProviderDeclaration.Id.FullyQualifiedName}}.{{ProviderSingletonProperty}};
             }
             """);
 

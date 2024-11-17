@@ -309,19 +309,27 @@ public static class CompilationTests
         Assert.Empty(result.Diagnostics);
     }
 
-    [Fact]
-    public static void RecordWitnessType_NoErrors()
+    [Theory]
+    [InlineData("partial class")]
+    [InlineData("sealed partial class")]
+    [InlineData("partial struct")]
+    [InlineData("partial record")]
+    [InlineData("sealed partial record")]
+    [InlineData("partial record struct")]
+    public static void SupportedWitnessTypeKinds_NoErrors(string kind)
     {
-        Compilation compilation = CompilationHelpers.CreateCompilation("""
+        Compilation compilation = CompilationHelpers.CreateCompilation($"""
             using PolyType;
             using PolyType.Abstractions;
 
-            ITypeShape<MyPoco> shape = TypeShapeProvider.Resolve<MyPoco, Witness>();
+            ITypeShape<MyPoco> shape;
+            shape = TypeShapeProvider.Resolve<MyPoco, Witness>();
+            shape = TypeShapeProvider.Resolve<MyPoco>(Witness.ShapeProvider);
 
             record MyPoco(string[] Values);
 
             [GenerateShape<MyPoco>]
-            partial record Witness;
+            {kind} Witness;
             """, outputKind: OutputKind.ConsoleApplication);
 
         PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation);
