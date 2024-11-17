@@ -25,7 +25,7 @@ public sealed partial class Parser : TypeDataModelGenerator
 
     // All types used as generic parameters so we must exclude ref structs.
     protected override bool IsSupportedType(ITypeSymbol type)
-        => base.IsSupportedType(type) && !type.IsRefLikeType;
+        => base.IsSupportedType(type) && !type.IsRefLikeType && !type.IsStatic;
 
     // Erase nullable annotations and tuple labels from generated types.
     protected override ITypeSymbol NormalizeType(ITypeSymbol type)
@@ -183,6 +183,12 @@ public sealed partial class Parser : TypeDataModelGenerator
         if (!isPartialHierarchy)
         {
             ReportDiagnostic(GeneratedTypeNotPartial, declarationSyntax.GetLocation(), context.TypeSymbol.ToDisplayString());
+            return null;
+        }
+
+        if (context.TypeSymbol.IsStatic)
+        {
+            ReportDiagnostic(GeneratedTypeIsStatic, declarationSyntax.GetLocation(), context.TypeSymbol.ToDisplayString());
             return null;
         }
 

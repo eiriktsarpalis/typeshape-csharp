@@ -7,7 +7,7 @@ public sealed partial class Parser
     private static DiagnosticDescriptor TypeNotSupported { get; } = new DiagnosticDescriptor(
         id: "TS0001",
         title: "Type shape generation not supported for type.",
-        messageFormat: "Type shape generation not supported for type '{0}'.",
+        messageFormat: "The type '{0}' is not supported for PolyType generation.",
         category: "PolyType.SourceGenerator",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
@@ -50,5 +50,13 @@ public sealed partial class Parser
         messageFormat: "The type '{0}' contains multiple constructors with a ConstructorShapeAttribute.",
         category: "PolyType.SourceGenerator",
         defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    private static DiagnosticDescriptor GeneratedTypeIsStatic { get; } = new DiagnosticDescriptor(
+        id: "TS0007",
+        title: "Types annotated with GenerateShapeAttribute cannot be static.",
+        messageFormat: "The type '{0}' that has been annotated with GenerateShapeAttribute cannot be static.",
+        category: "PolyType.SourceGenerator",
+        defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 }
