@@ -195,7 +195,7 @@ internal sealed partial class SourceFormatter
                     if (parameter.IsInitOnlyProperty || !parameter.IsAccessible)
                     {
                         string refPrefix = parameter.DeclaringType.IsValueType ? "ref " : "";
-                        if (parameter.IsField && !parameter.IsAccessible)
+                        if (parameter.IsField)
                         {
                             string accessorName = GetFieldAccessorName(type, parameter.UnderlyingMemberName);
                             string ctorParameterExpr = FormatCtorParameterExpr(parameter);
