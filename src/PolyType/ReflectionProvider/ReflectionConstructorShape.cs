@@ -62,8 +62,6 @@ internal interface IConstructorShapeInfo
     IParameterShapeInfo[] Parameters { get; }
 }
 
-[RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
-[RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
 internal sealed class MethodConstructorShapeInfo : IConstructorShapeInfo
 {
     public MethodConstructorShapeInfo(

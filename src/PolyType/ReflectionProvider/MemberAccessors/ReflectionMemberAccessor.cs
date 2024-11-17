@@ -7,7 +7,6 @@ using PolyType.Abstractions;
 namespace PolyType.ReflectionProvider.MemberAccessors;
 
 [RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
-[RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
 internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
 {
     public Getter<TDeclaringType, TPropertyType> CreateGetter<TDeclaringType, TPropertyType>(MemberInfo memberInfo, MemberInfo[]? parentMembers)
@@ -16,12 +15,21 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
 
         if (parentMembers is null or { Length: 0 })
         {
-            return memberInfo switch
+            if (memberInfo is PropertyInfo p)
             {
-                PropertyInfo p => (ref TDeclaringType obj) => (TPropertyType)p.GetValue(obj)!,
-                FieldInfo f => (ref TDeclaringType obj) => (TPropertyType)f.GetValue(obj)!,
-                _ => default!,
-            };
+                if (p.DeclaringType!.IsValueType)
+                {
+                    // If a struct we can wrap the getter in the getter delegate directly.
+                    return ReflectionHelpers.CreateDelegate<Getter<TDeclaringType, TPropertyType>>(p.GetMethod!);
+                }
+
+                // Reference types can't be wrapped directly, so we create an intermediate func delegate.
+                Func<TDeclaringType, TPropertyType> getterDelegate = ReflectionHelpers.CreateDelegate<Func<TDeclaringType, TPropertyType>>(p.GetMethod!);
+                return (ref TDeclaringType obj) => getterDelegate(obj);
+            }
+
+            var f = (FieldInfo)memberInfo;
+            return (ref TDeclaringType obj) => (TPropertyType)f.GetValueDirect(__makeref(obj))!;
         }
 
         Debug.Assert(typeof(TDeclaringType).IsNestedTupleRepresentation());
@@ -35,13 +43,14 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
             var parentFields = (FieldInfo[])parentMembers;
             return (ref TDeclaringType obj) =>
             {
-                object boxedObj = obj!;
+                TypedReference typedRef = __makeref(obj);
                 for (int i = 0; i < parentFields.Length; i++)
                 {
-                    boxedObj = parentFields[i].GetValue(boxedObj)!;
+                    object value = parentFields[i].GetValueDirect(typedRef)!;
+                    typedRef = __makeref(value);
                 }
 
-                return (TPropertyType)fieldInfo.GetValue(boxedObj)!;
+                return (TPropertyType)fieldInfo.GetValueDirect(typedRef)!;
             };
         }
         else
@@ -70,30 +79,22 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
 
         if (parentMembers is null or { Length: 0 })
         {
-            return memberInfo switch
+            if (memberInfo is PropertyInfo p)
             {
-                PropertyInfo p =>
-                    !typeof(TDeclaringType).IsValueType
-                    ? (ref TDeclaringType obj, TPropertyType value) => p.SetValue(obj, value)
-                    : (ref TDeclaringType obj, TPropertyType value) =>
-                    {
-                        object? boxedObj = obj;
-                        p.SetValue(boxedObj, value);
-                        obj = (TDeclaringType)boxedObj!;
-                    },
+                MethodInfo setter = p.SetMethod!;
+                if (p.DeclaringType!.IsValueType)
+                {
+                    // If a struct we can wrap the setter in the setter delegate directly.
+                    return ReflectionHelpers.CreateDelegate<Setter<TDeclaringType, TPropertyType>>(setter);
+                }
 
-                FieldInfo f =>
-                    !typeof(TDeclaringType).IsValueType
-                    ? (ref TDeclaringType obj, TPropertyType value) => f.SetValue(obj, value)
-                    : (ref TDeclaringType obj, TPropertyType value) =>
-                    {
-                        object? boxedObj = obj;
-                        f.SetValue(boxedObj, value);
-                        obj = (TDeclaringType)boxedObj!;
-                    },
+                // Reference types can't be wrapped directly, so we create an intermediate action delegate.
+                Action<TDeclaringType, TPropertyType> setterDelegate = ReflectionHelpers.CreateDelegate<Action<TDeclaringType, TPropertyType>>(setter);
+                return (ref TDeclaringType obj, TPropertyType value) => setterDelegate(obj, value);
+            }
 
-                _ => default!,
-            };
+            var f = (FieldInfo)memberInfo;
+            return (ref TDeclaringType obj, TPropertyType value) => f.SetValueDirect(__makeref(obj), value!);
         }
 
         Debug.Assert(typeof(TDeclaringType).IsNestedTupleRepresentation());

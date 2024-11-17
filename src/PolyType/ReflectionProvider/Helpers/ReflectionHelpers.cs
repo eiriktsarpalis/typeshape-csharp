@@ -6,12 +6,11 @@ using System.Text;
 
 namespace PolyType.ReflectionProvider;
 
-#if !IS_TEST_PROJECT
-[RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
-[RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
-#endif
 internal static class ReflectionHelpers
 {
+    private const string RequiresUnreferencedCodeMessage = "The method requires unreferenced code.";
+    private const string RequiresDynamicCodeMessage = "The method requires dynamic code generation.";
+
     public static bool IsNullableStruct(this Type type)
     {
         return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);
@@ -41,6 +40,9 @@ internal static class ReflectionHelpers
             isSetterNonNullable = true;
         }
     }
+
+    public static TDelegate CreateDelegate<TDelegate>(MethodInfo methodInfo) where TDelegate : Delegate
+        => (TDelegate)Delegate.CreateDelegate(typeof(TDelegate), methodInfo);
 
     public static bool IsNonNullableAnnotation(this ParameterInfo parameterInfo, NullabilityInfoContext? ctx)
     {
@@ -166,6 +168,7 @@ internal static class ReflectionHelpers
         return parameterType.IsByRef ? parameterType.GetElementType()! : parameterType;
     }
 
+    [UnconditionalSuppressMessage("Trimming", "IL2075:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.", Justification = "Looking up the generic member definition of the input.")]
     public static MemberInfo GetGenericMemberDefinition(this MemberInfo member)
     {
         if (member is Type type)
@@ -229,6 +232,7 @@ internal static class ReflectionHelpers
         return false;
     }
 
+    [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
     public static bool IsRecordType(this Type type)
     {
         return !type.IsValueType
@@ -258,6 +262,8 @@ internal static class ReflectionHelpers
         }
     }
 
+    [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
+    [RequiresDynamicCode(RequiresDynamicCodeMessage)]
     public static bool TryGetCollectionBuilderAttribute(this Type type, Type elementType, [NotNullWhen(true)] out MethodInfo? builderMethod)
     {
         builderMethod = null;
@@ -330,6 +336,7 @@ internal static class ReflectionHelpers
         return memberInfo is FieldInfo f ? f.FieldType : ((PropertyInfo)memberInfo).PropertyType;
     }
 
+    [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
     public static IEnumerable<Type> GetAllInterfaces(this Type type)
     {
         if (type.IsInterface)
@@ -343,6 +350,7 @@ internal static class ReflectionHelpers
         }
     }
 
+    [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
     public static bool ImplementsInterface(this Type type, Type interfaceType)
     {
         Debug.Assert(interfaceType.IsInterface && !interfaceType.IsConstructedGenericType);
@@ -373,6 +381,7 @@ internal static class ReflectionHelpers
             propertyInfo.SetMethod?.IsExplicitInterfaceImplementation() == true;
     }
 
+    [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
     public static PropertyInfo GetBaseDefinition(this PropertyInfo propertyInfo)
     {
         MethodInfo? getterOrSetter = propertyInfo.GetMethod ?? propertyInfo.SetMethod;
@@ -427,6 +436,7 @@ internal static class ReflectionHelpers
         return true;
     }
 
+    [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
     public static ICollection<Type> GetSortedTypeHierarchy(this Type type)
     {
         if (!type.IsInterface)
@@ -480,6 +490,7 @@ internal static class ReflectionHelpers
             genericArguments[7].IsTupleType();
     }
 
+    [RequiresDynamicCode(RequiresDynamicCodeMessage)]
     public static Type CreateValueTupleType(Type[] elementTypes)
     {
         return elementTypes.Length switch
@@ -496,6 +507,7 @@ internal static class ReflectionHelpers
         };
     }
 
+    [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
     public static IEnumerable<(string LogicalName, MemberInfo Member, MemberInfo[]? ParentMembers)> EnumerateTupleMemberPaths(Type tupleType)
     {
         // Walks the nested tuple representation, returning every element field and the parent "Rest" fields needed to access the value.

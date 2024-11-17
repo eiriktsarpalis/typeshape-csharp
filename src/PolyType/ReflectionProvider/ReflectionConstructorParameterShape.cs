@@ -5,8 +5,6 @@ using PolyType.Abstractions;
 
 namespace PolyType.ReflectionProvider;
 
-[RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
-[RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
 internal sealed class ReflectionConstructorParameterShape<TArgumentState, TParameter> : IConstructorParameterShape<TArgumentState, TParameter>
 {
     private readonly ReflectionTypeShapeProvider _provider;
@@ -58,8 +56,6 @@ internal interface IParameterShapeInfo
     object? DefaultValue { get; }
 }
 
-[RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
-[RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
 internal sealed class MethodParameterShapeInfo : IParameterShapeInfo
 {
     public MethodParameterShapeInfo(ParameterInfo parameterInfo, bool isNonNullable, MemberInfo? matchingMember = null, string? logicalName = null)
@@ -95,8 +91,6 @@ internal sealed class MethodParameterShapeInfo : IParameterShapeInfo
     public object? DefaultValue { get; }
 }
 
-[RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
-[RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
 internal sealed class MemberInitializerShapeInfo : IParameterShapeInfo
 {
     public MemberInitializerShapeInfo(MemberInfo memberInfo, string? logicalName, bool ctorSetsRequiredMembers, bool isSetterNonNullable)

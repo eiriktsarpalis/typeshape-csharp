@@ -5,8 +5,6 @@ using PolyType.Abstractions;
 
 namespace PolyType.ReflectionProvider;
 
-[RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
-[RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
 internal sealed class ReflectionPropertyShape<TDeclaringType, TPropertyType> : IPropertyShape<TDeclaringType, TPropertyType>
 {
     private readonly ReflectionTypeShapeProvider _provider;

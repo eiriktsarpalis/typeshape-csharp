@@ -6,7 +6,6 @@
     <Nullable>enable</Nullable>
     <WarningsAsErrors>Nullable</WarningsAsErrors>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-    <DefineConstants>IS_TEST_PROJECT</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
