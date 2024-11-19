@@ -7,16 +7,15 @@ namespace PolyType.ReflectionProvider;
 
 [RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
-internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider provider) : IObjectTypeShape<T>
+internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider provider) : ReflectionTypeShape<T>(provider), IObjectTypeShape<T>
 {
     private static readonly EqualityComparer<(Type Type, string Name)> s_ctorParameterEqualityComparer =
         CommonHelpers.CreateTupleComparer(
             EqualityComparer<Type>.Default,
             CommonHelpers.CamelCaseInvariantComparer.Instance);
 
-    ITypeShapeProvider ITypeShape.Provider => provider;
-
-    public TypeShapeKind Kind => TypeShapeKind.Object;
+    public override TypeShapeKind Kind => TypeShapeKind.Object;
+    public override object? Accept(ITypeShapeVisitor visitor, object? state = null) => visitor.VisitObject(this, state);
 
     public bool IsRecordType => _isRecord ??= typeof(T).IsRecordType();
     private bool? _isRecord;
@@ -45,18 +44,18 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
             if (typeof(T).IsValueType)
             {
                 IConstructorShapeInfo ctorInfo = CreateDefaultConstructor(memberInitializers: null);
-                return provider.CreateConstructor(ctorInfo);
+                return Provider.CreateConstructor(ctorInfo);
             }
             else
             {
                 IConstructorShapeInfo ctorInfo = ReflectionTypeShapeProvider.CreateTupleConstructorShapeInfo(typeof(T));
-                return provider.CreateConstructor(ctorInfo);
+                return Provider.CreateConstructor(ctorInfo);
             }
         }
 
         PropertyShapeInfo[] allMembers;
         MemberInitializerShapeInfo[] settableMembers;
-        NullabilityInfoContext? nullabilityCtx = provider.CreateNullabilityInfoContext();
+        NullabilityInfoContext? nullabilityCtx = Provider.CreateNullabilityInfoContext();
 
         (ConstructorInfo Ctor, ParameterInfo[] Parameters, bool HasShapeAttribute)[] ctorCandidates = [..GetCandidateConstructors()];
         if (ctorCandidates.Length == 0)
@@ -68,7 +67,7 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
                 settableMembers = GetSettableMembers(allMembers, ctorSetsRequiredMembers: false);
                 bool hasRequiredOrInitOnlyMembers = settableMembers.Any(m => m.IsRequired || m.IsInitOnly);
                 MethodConstructorShapeInfo defaultCtorInfo = CreateDefaultConstructor(hasRequiredOrInitOnlyMembers ? settableMembers : []);
-                return provider.CreateConstructor(defaultCtorInfo);
+                return Provider.CreateConstructor(defaultCtorInfo);
             }
 
             return null;
@@ -153,7 +152,7 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
         }
 
         var ctorShapeInfo = new MethodConstructorShapeInfo(typeof(T), constructorInfo, parameterShapeInfos, memberInitializers?.ToArray());
-        return provider.CreateConstructor(ctorShapeInfo);
+        return Provider.CreateConstructor(ctorShapeInfo);
 
         static MethodConstructorShapeInfo CreateDefaultConstructor(MemberInitializerShapeInfo[]? memberInitializers)
             => new(typeof(T), constructorMethod: null, parameters: [], memberInitializers: memberInitializers);
@@ -220,16 +219,16 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
             foreach (var field in ReflectionHelpers.EnumerateTupleMemberPaths(typeof(T)))
             {
                 PropertyShapeInfo propertyShapeInfo = new(typeof(T), field.Member, field.Member, field.ParentMembers, field.LogicalName);
-                yield return provider.CreateProperty(propertyShapeInfo);
+                yield return Provider.CreateProperty(propertyShapeInfo);
             }
 
             yield break;
         }
 
-        NullabilityInfoContext? nullabilityCtx = provider.CreateNullabilityInfoContext();
+        NullabilityInfoContext? nullabilityCtx = Provider.CreateNullabilityInfoContext();
         foreach (PropertyShapeInfo member in GetMembers(nullabilityCtx))
         {
-            yield return provider.CreateProperty(member);
+            yield return Provider.CreateProperty(member);
         }
     }
 

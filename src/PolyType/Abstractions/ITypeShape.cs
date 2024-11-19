@@ -48,9 +48,4 @@ public interface ITypeShape
 /// Provides a strongly typed shape model for a given .NET type.
 /// </summary>
 /// <typeparam name="T">The type that the shape describes.</typeparam>
-public interface ITypeShape<T> : ITypeShape
-{
-    Type ITypeShape.Type => typeof(T);
-    ICustomAttributeProvider ITypeShape.AttributeProvider => typeof(T);
-    object? ITypeShape.Invoke(ITypeShapeFunc function, object? state) => function.Invoke(this, state);
-}
+public interface ITypeShape<T> : ITypeShape;

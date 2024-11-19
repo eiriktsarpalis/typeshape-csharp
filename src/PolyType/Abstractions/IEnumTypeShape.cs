@@ -9,9 +9,6 @@ public interface IEnumTypeShape : ITypeShape
     /// The shape of the underlying type used to represent the enum.
     /// </summary>
     ITypeShape UnderlyingType { get; }
-
-    /// <inheritdoc/>
-    TypeShapeKind ITypeShape.Kind => TypeShapeKind.Enum;
 }
 
 /// <summary>
@@ -26,10 +23,4 @@ public interface IEnumTypeShape<TEnum, TUnderlying> : ITypeShape<TEnum>, IEnumTy
     /// The shape of the underlying type used to represent the enum.
     /// </summary>
     new ITypeShape<TUnderlying> UnderlyingType { get; }
-
-    /// <inheritdoc/>
-    ITypeShape IEnumTypeShape.UnderlyingType => UnderlyingType;
-
-    /// <inheritdoc/>
-    object? ITypeShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitEnum(this, state);
 }

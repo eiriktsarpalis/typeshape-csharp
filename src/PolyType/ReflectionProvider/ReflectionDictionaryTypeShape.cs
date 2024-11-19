@@ -10,7 +10,7 @@ namespace PolyType.ReflectionProvider;
 
 [RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
-internal abstract class ReflectionDictionaryTypeShape<TDictionary, TKey, TValue>(ReflectionTypeShapeProvider provider) : IDictionaryTypeShape<TDictionary, TKey, TValue>
+internal abstract class ReflectionDictionaryTypeShape<TDictionary, TKey, TValue>(ReflectionTypeShapeProvider provider) : ReflectionTypeShape<TDictionary>(provider), IDictionaryTypeShape<TDictionary, TKey, TValue>
     where TKey : notnull
 {
     private CollectionConstructionStrategy? _constructionStrategy;
@@ -21,10 +21,14 @@ internal abstract class ReflectionDictionaryTypeShape<TDictionary, TKey, TValue>
     private ConstructorInfo? _dictionaryCtor;
     private bool _isFSharpMap;
 
+    public sealed override TypeShapeKind Kind => TypeShapeKind.Dictionary;
+    public sealed override object? Accept(ITypeShapeVisitor visitor, object? state = null) => visitor.VisitDictionary(this, state);
+
     public CollectionConstructionStrategy ConstructionStrategy => _constructionStrategy ??= DetermineConstructionStrategy();
-    public ITypeShape<TKey> KeyType => provider.GetShape<TKey>();
-    public ITypeShape<TValue> ValueType => provider.GetShape<TValue>();
-    public ITypeShapeProvider Provider => provider;
+    public ITypeShape<TKey> KeyType => Provider.GetShape<TKey>();
+    public ITypeShape<TValue> ValueType => Provider.GetShape<TValue>();
+    ITypeShape IDictionaryTypeShape.KeyType => KeyType;
+    ITypeShape IDictionaryTypeShape.ValueType => ValueType;
 
     public abstract Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> GetGetDictionary();
 
@@ -36,7 +40,7 @@ internal abstract class ReflectionDictionaryTypeShape<TDictionary, TKey, TValue>
         }
 
         Debug.Assert(_addMethod != null);
-        return provider.MemberAccessor.CreateDictionaryAddDelegate<TDictionary, TKey, TValue>(_addMethod);
+        return Provider.MemberAccessor.CreateDictionaryAddDelegate<TDictionary, TKey, TValue>(_addMethod);
     }
 
     public Func<TDictionary> GetDefaultConstructor()
@@ -47,7 +51,7 @@ internal abstract class ReflectionDictionaryTypeShape<TDictionary, TKey, TValue>
         }
 
         Debug.Assert(_defaultCtor != null);
-        return provider.MemberAccessor.CreateDefaultConstructor<TDictionary>(new MethodConstructorShapeInfo(typeof(TDictionary), _defaultCtor, parameters: []));
+        return Provider.MemberAccessor.CreateDefaultConstructor<TDictionary>(new MethodConstructorShapeInfo(typeof(TDictionary), _defaultCtor, parameters: []));
     }
 
     public Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> GetEnumerableConstructor()
@@ -67,7 +71,7 @@ internal abstract class ReflectionDictionaryTypeShape<TDictionary, TKey, TValue>
 
         return _enumerableCtor switch
         {
-            ConstructorInfo ctorInfo => provider.MemberAccessor.CreateFuncDelegate<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary>(ctorInfo),
+            ConstructorInfo ctorInfo => Provider.MemberAccessor.CreateFuncDelegate<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary>(ctorInfo),
             _ => ((MethodInfo)_enumerableCtor).CreateDelegate<Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary>>(),
         };
     }
@@ -81,14 +85,14 @@ internal abstract class ReflectionDictionaryTypeShape<TDictionary, TKey, TValue>
 
         if (_dictionaryCtor is ConstructorInfo dictionaryCtor)
         {
-            var dictionaryCtorDelegate = provider.MemberAccessor.CreateFuncDelegate<Dictionary<TKey, TValue>, TDictionary>(dictionaryCtor);
+            var dictionaryCtorDelegate = Provider.MemberAccessor.CreateFuncDelegate<Dictionary<TKey, TValue>, TDictionary>(dictionaryCtor);
             return span => dictionaryCtorDelegate(CollectionHelpers.CreateDictionary(span));
         }
 
         Debug.Assert(_spanCtor != null);
         return _spanCtor switch
         {
-            ConstructorInfo ctorInfo => provider.MemberAccessor.CreateSpanConstructorDelegate<KeyValuePair<TKey, TValue>, TDictionary>(ctorInfo),
+            ConstructorInfo ctorInfo => Provider.MemberAccessor.CreateSpanConstructorDelegate<KeyValuePair<TKey, TValue>, TDictionary>(ctorInfo),
             _ => ((MethodInfo)_spanCtor).CreateDelegate<SpanConstructor<KeyValuePair<TKey, TValue>, TDictionary>>(),
         };
     }
@@ -114,7 +118,7 @@ internal abstract class ReflectionDictionaryTypeShape<TDictionary, TKey, TValue>
             }
         }
 
-        if (provider.Options.UseReflectionEmit && typeof(TDictionary).GetConstructor([typeof(ReadOnlySpan<KeyValuePair<TKey, TValue>>)]) is ConstructorInfo spanCtor)
+        if (Provider.Options.UseReflectionEmit && typeof(TDictionary).GetConstructor([typeof(ReadOnlySpan<KeyValuePair<TKey, TValue>>)]) is ConstructorInfo spanCtor)
         {
             // Cannot invoke constructors with ROS parameters without Ref.Emit
             _spanCtor = spanCtor;

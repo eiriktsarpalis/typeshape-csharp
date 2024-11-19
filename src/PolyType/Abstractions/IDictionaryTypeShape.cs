@@ -102,13 +102,4 @@ public interface IDictionaryTypeShape<TDictionary, TKey, TValue> : ITypeShape<TD
     /// <exception cref="InvalidOperationException">The collection is not <see cref="CollectionConstructionStrategy.Enumerable"/>.</exception>
     /// <returns>A delegate constructing a collection from an enumerable of values.</returns>
     Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary> GetEnumerableConstructor();
-
-    /// <inheritdoc/>
-    ITypeShape IDictionaryTypeShape.KeyType => KeyType;
-
-    /// <inheritdoc/>
-    ITypeShape IDictionaryTypeShape.ValueType => ValueType;
-
-    /// <inheritdoc/>
-    object? ITypeShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitDictionary(this, state);
 }

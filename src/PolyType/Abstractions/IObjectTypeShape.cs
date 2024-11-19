@@ -36,17 +36,10 @@ public interface IObjectTypeShape : ITypeShape
     /// </summary>
     /// <returns>A <see cref="IConstructorShape"/> representation of the constructor.</returns>
     IConstructorShape? GetConstructor();
-
-    /// <inheritdoc/>
-    TypeShapeKind ITypeShape.Kind => TypeShapeKind.Object;
 }
 
 /// <summary>
 /// Provides a strongly typed shape model for a .NET object.
 /// </summary>
 /// <typeparam name="T">The type of .NET object.</typeparam>
-public interface IObjectTypeShape<T> : ITypeShape<T>, IObjectTypeShape
-{
-    /// <inheritdoc/>
-    object? ITypeShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitObject(this, state);
-}
+public interface IObjectTypeShape<T> : ITypeShape<T>, IObjectTypeShape;

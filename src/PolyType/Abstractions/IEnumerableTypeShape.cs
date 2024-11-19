@@ -27,9 +27,6 @@ public interface IEnumerableTypeShape : ITypeShape
     /// Gets the rank of the enumerable, if a multi-dimensional array.
     /// </summary>
     int Rank { get; }
-
-    /// <inheritdoc/>
-    TypeShapeKind ITypeShape.Kind => TypeShapeKind.Enumerable;
 }
 
 /// <summary>
@@ -89,10 +86,4 @@ public interface IEnumerableTypeShape<TEnumerable, TElement> : ITypeShape<TEnume
     /// <exception cref="InvalidOperationException">The collection is not <see cref="CollectionConstructionStrategy.Enumerable"/>.</exception>
     /// <returns>A delegate constructing a collection from an enumerable of values.</returns>
     Func<IEnumerable<TElement>, TEnumerable> GetEnumerableConstructor();
-
-    /// <inheritdoc/>
-    ITypeShape IEnumerableTypeShape.ElementType => ElementType;
-
-    /// <inheritdoc/>
-    object? ITypeShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitEnumerable(this, state);
 }

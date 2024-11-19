@@ -62,5 +62,7 @@ public sealed class SourceGenConstructorShape<TDeclaringType, TArgumentState> : 
     Constructor<TArgumentState, TDeclaringType> IConstructorShape<TDeclaringType, TArgumentState>.GetParameterizedConstructor()
         => ParameterizedConstructorFunc ?? throw new InvalidOperationException("Constructor shape does not specify a parameterized constructor.");
 
+    object? IConstructorShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitConstructor(this, state);
     ICustomAttributeProvider? IConstructorShape.AttributeProvider => AttributeProviderFunc?.Invoke();
+    IObjectTypeShape IConstructorShape.DeclaringType => DeclaringType;
 }

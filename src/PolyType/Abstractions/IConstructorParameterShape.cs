@@ -103,8 +103,4 @@ public interface IConstructorParameterShape<TArgumentState, TParameterType> : IC
     /// The default value specified by the parameter, if applicable.
     /// </summary>
     new TParameterType? DefaultValue { get; }
-
-    ITypeShape IConstructorParameterShape.ParameterType => ParameterType;
-    object? IConstructorParameterShape.DefaultValue => DefaultValue;
-    object? IConstructorParameterShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitConstructorParameter(this, state);
 }

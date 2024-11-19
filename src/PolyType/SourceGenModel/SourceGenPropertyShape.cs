@@ -71,7 +71,10 @@ public sealed class SourceGenPropertyShape<TDeclaringType, TPropertyType> : IPro
     Setter<TDeclaringType, TPropertyType> IPropertyShape<TDeclaringType, TPropertyType>.GetSetter()
         => Setter is { } setter ? setter : throw new InvalidOperationException("Property shape does not specify a setter.");
 
+    ITypeShape IPropertyShape.PropertyType => PropertyType;
+    IObjectTypeShape IPropertyShape.DeclaringType => DeclaringType;
     bool IPropertyShape.HasGetter => Getter is not null;
     bool IPropertyShape.HasSetter => Setter is not null;
     ICustomAttributeProvider? IPropertyShape.AttributeProvider => AttributeProviderFunc?.Invoke();
+    object? IPropertyShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitProperty(this, state);
 }

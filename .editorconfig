@@ -158,3 +158,6 @@ dotnet_diagnostic.IDE0005.severity = none
 
 # xUnit2005: Do not use identity check on value type
 dotnet_diagnostic.xUnit2005.severity = none
+
+# SA1208: System using directives should be placed before other using directives
+dotnet_diagnostic.SA1208.severity = none

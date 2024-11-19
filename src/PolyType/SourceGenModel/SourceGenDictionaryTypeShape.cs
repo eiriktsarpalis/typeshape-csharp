@@ -8,14 +8,9 @@ namespace PolyType.SourceGenModel;
 /// <typeparam name="TDictionary">The type of the dictionary.</typeparam>
 /// <typeparam name="TKey">The type of the dictionary key.</typeparam>
 /// <typeparam name="TValue">The type of the dictionary value.</typeparam>
-public sealed class SourceGenDictionaryTypeShape<TDictionary, TKey, TValue> : IDictionaryTypeShape<TDictionary, TKey, TValue>
+public sealed class SourceGenDictionaryTypeShape<TDictionary, TKey, TValue> : SourceGenTypeShape<TDictionary>, IDictionaryTypeShape<TDictionary, TKey, TValue>
     where TKey : notnull
 {
-    /// <summary>
-    /// The provider that generated this shape.
-    /// </summary>
-    public required ITypeShapeProvider Provider { get; init; }
-
     /// <summary>
     /// The type shape of the dictionary key.
     /// </summary>
@@ -55,6 +50,15 @@ public sealed class SourceGenDictionaryTypeShape<TDictionary, TKey, TValue> : ID
     /// The function that constructs a dictionary from a span of key-value pairs.
     /// </summary>
     public SpanConstructor<KeyValuePair<TKey, TValue>, TDictionary>? SpanConstructorFunc { get; init; }
+
+    /// <inheritdoc/>
+    public override TypeShapeKind Kind => TypeShapeKind.Dictionary;
+
+    /// <inheritdoc/>
+    public override object? Accept(ITypeShapeVisitor visitor, object? state = null) => visitor.VisitDictionary(this, state);
+
+    ITypeShape IDictionaryTypeShape.KeyType => KeyType;
+    ITypeShape IDictionaryTypeShape.ValueType => ValueType;
 
     Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> IDictionaryTypeShape<TDictionary, TKey, TValue>.GetGetDictionary()
         => GetDictionaryFunc;

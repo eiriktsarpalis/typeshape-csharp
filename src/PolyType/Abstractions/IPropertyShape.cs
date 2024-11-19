@@ -116,13 +116,4 @@ public interface IPropertyShape<TDeclaringType, TPropertyType> : IPropertyShape
     /// <exception cref="InvalidOperationException">The property has no accessible setter.</exception>
     /// <returns>A setter delegate for the property.</returns>
     Setter<TDeclaringType, TPropertyType> GetSetter();
-
-    /// <inheritdoc/>
-    IObjectTypeShape IPropertyShape.DeclaringType => DeclaringType;
-
-    /// <inheritdoc/>
-    ITypeShape IPropertyShape.PropertyType => PropertyType;
-
-    /// <inheritdoc/>
-    object? IPropertyShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitProperty(this, state);
 }
