@@ -13,7 +13,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Description>Practical polytypic programming for C#</Description>
+    <Description>Practical generic programming for C#</Description>
     <Authors>Eirik Tsarpalis</Authors>
     <Copyright>2024</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
