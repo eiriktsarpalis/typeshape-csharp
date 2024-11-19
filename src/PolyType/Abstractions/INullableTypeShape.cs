@@ -9,9 +9,6 @@ public interface INullableTypeShape : ITypeShape
     /// The shape of the element type of the nullable.
     /// </summary>
     ITypeShape ElementType { get; }
-
-    /// <inheritdoc/>
-    TypeShapeKind ITypeShape.Kind => TypeShapeKind.Nullable;
 }
 
 /// <summary>
@@ -25,10 +22,4 @@ public interface INullableTypeShape<T> : ITypeShape<T?>, INullableTypeShape
     /// The shape of the element type of the nullable.
     /// </summary>
     new ITypeShape<T> ElementType { get; }
-
-    /// <inheritdoc/>
-    ITypeShape INullableTypeShape.ElementType => ElementType;
-
-    /// <inheritdoc/>
-    object? ITypeShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitNullable(this, state);
 }

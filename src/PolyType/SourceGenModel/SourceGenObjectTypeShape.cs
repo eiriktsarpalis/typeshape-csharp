@@ -6,13 +6,8 @@ namespace PolyType.SourceGenModel;
 /// Source generator model for object type shapes.
 /// </summary>
 /// <typeparam name="TObject">The type whose shape is described.</typeparam>
-public sealed class SourceGenObjectTypeShape<TObject> : IObjectTypeShape<TObject>
+public sealed class SourceGenObjectTypeShape<TObject> : SourceGenTypeShape<TObject>, IObjectTypeShape<TObject>
 {
-    /// <summary>
-    /// The provider that generated this shape.
-    /// </summary>
-    public required ITypeShapeProvider Provider { get; init; }
-
     /// <summary>
     /// Whether the type represents a record.
     /// </summary>
@@ -33,12 +28,18 @@ public sealed class SourceGenObjectTypeShape<TObject> : IObjectTypeShape<TObject
     /// </summary>
     public Func<IConstructorShape>? CreateConstructorFunc { get; init; }
 
+    /// <inheritdoc/>
+    public override TypeShapeKind Kind => TypeShapeKind.Object;
+
+    /// <inheritdoc/>
+    public override object? Accept(ITypeShapeVisitor visitor, object? state = null) => visitor.VisitObject(this, state);
+
+    bool IObjectTypeShape.HasProperties => CreatePropertiesFunc is not null;
+    bool IObjectTypeShape.HasConstructor => CreateConstructorFunc is not null;
+
     IEnumerable<IPropertyShape> IObjectTypeShape.GetProperties() =>
         CreatePropertiesFunc?.Invoke() ?? [];
 
     IConstructorShape? IObjectTypeShape.GetConstructor() =>
         CreateConstructorFunc?.Invoke();
-
-    bool IObjectTypeShape.HasProperties => CreatePropertiesFunc != null;
-    bool IObjectTypeShape.HasConstructor => CreateConstructorFunc != null;
 }

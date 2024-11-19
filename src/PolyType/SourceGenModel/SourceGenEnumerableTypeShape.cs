@@ -7,13 +7,8 @@ namespace PolyType.SourceGenModel;
 /// </summary>
 /// <typeparam name="TEnumerable">The type of the enumerable collection.</typeparam>
 /// <typeparam name="TElement">The element type of the collection.</typeparam>
-public sealed class SourceGenEnumerableTypeShape<TEnumerable, TElement> : IEnumerableTypeShape<TEnumerable, TElement>
+public sealed class SourceGenEnumerableTypeShape<TEnumerable, TElement> : SourceGenTypeShape<TEnumerable>, IEnumerableTypeShape<TEnumerable, TElement>
 {
-    /// <summary>
-    /// The provider that generated this shape.
-    /// </summary>
-    public required ITypeShapeProvider Provider { get; init; }
-
     /// <summary>
     /// The shape of the element type.
     /// </summary>
@@ -53,6 +48,14 @@ public sealed class SourceGenEnumerableTypeShape<TEnumerable, TElement> : IEnume
     /// The function that constructs a collection from a span.
     /// </summary>
     public SpanConstructor<TElement, TEnumerable>? SpanConstructorFunc { get; init; }
+
+    /// <inheritdoc/>
+    public override TypeShapeKind Kind => TypeShapeKind.Enumerable;
+
+    /// <inheritdoc/>
+    public override object? Accept(ITypeShapeVisitor visitor, object? state = null) => visitor.VisitEnumerable(this, state);
+
+    ITypeShape IEnumerableTypeShape.ElementType => ElementType;
 
     Func<TEnumerable, IEnumerable<TElement>> IEnumerableTypeShape<TEnumerable, TElement>.GetGetEnumerable()
         => GetEnumerableFunc;

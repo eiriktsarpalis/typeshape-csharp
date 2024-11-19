@@ -78,7 +78,4 @@ public interface IConstructorShape<TDeclaringType, TArgumentState> : IConstructo
     /// <exception cref="InvalidOperationException">The <see cref="IConstructorShape.ParameterCount"/> of the constructor is zero.</exception>
     /// <returns>A parameterized delegate returning an instance of <typeparamref name="TDeclaringType"/>.</returns>
     Constructor<TArgumentState, TDeclaringType> GetParameterizedConstructor();
-
-    IObjectTypeShape IConstructorShape.DeclaringType => DeclaringType;
-    object? IConstructorShape.Accept(ITypeShapeVisitor visitor, object? state) => visitor.VisitConstructor(this, state);
 }

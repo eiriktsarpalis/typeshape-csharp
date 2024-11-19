@@ -10,7 +10,7 @@ namespace PolyType.ReflectionProvider;
 
 [RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
-internal abstract class ReflectionEnumerableTypeShape<TEnumerable, TElement>(ReflectionTypeShapeProvider provider) : IEnumerableTypeShape<TEnumerable, TElement>
+internal abstract class ReflectionEnumerableTypeShape<TEnumerable, TElement>(ReflectionTypeShapeProvider provider) : ReflectionTypeShape<TEnumerable>(provider), IEnumerableTypeShape<TEnumerable, TElement>
 {
     private CollectionConstructionStrategy? _constructionStrategy;
     private ConstructorInfo? _defaultCtor;
@@ -21,10 +21,12 @@ internal abstract class ReflectionEnumerableTypeShape<TEnumerable, TElement>(Ref
 
     public virtual CollectionConstructionStrategy ConstructionStrategy => _constructionStrategy ??= DetermineConstructionStrategy();
     public virtual int Rank => 1;
-    public ITypeShape<TElement> ElementType => provider.GetShape<TElement>();
-    public ITypeShapeProvider Provider => provider;
-
     public abstract Func<TEnumerable, IEnumerable<TElement>> GetGetEnumerable();
+
+    public sealed override TypeShapeKind Kind => TypeShapeKind.Enumerable;
+    public sealed override object? Accept(ITypeShapeVisitor visitor, object? state = null) => visitor.VisitEnumerable(this, state);
+    public ITypeShape<TElement> ElementType => Provider.GetShape<TElement>();
+    ITypeShape IEnumerableTypeShape.ElementType => ElementType;
 
     public virtual Setter<TEnumerable, TElement> GetAddElement()
     {
@@ -34,7 +36,7 @@ internal abstract class ReflectionEnumerableTypeShape<TEnumerable, TElement>(Ref
         }
 
         Debug.Assert(_addMethod != null);
-        return provider.MemberAccessor.CreateEnumerableAddDelegate<TEnumerable, TElement>(_addMethod);
+        return Provider.MemberAccessor.CreateEnumerableAddDelegate<TEnumerable, TElement>(_addMethod);
     }
 
     public virtual Func<TEnumerable> GetDefaultConstructor()
@@ -45,7 +47,7 @@ internal abstract class ReflectionEnumerableTypeShape<TEnumerable, TElement>(Ref
         }
 
         Debug.Assert(_defaultCtor != null);
-        return provider.MemberAccessor.CreateDefaultConstructor<TEnumerable>(new MethodConstructorShapeInfo(typeof(TEnumerable), _defaultCtor, parameters: []));
+        return Provider.MemberAccessor.CreateDefaultConstructor<TEnumerable>(new MethodConstructorShapeInfo(typeof(TEnumerable), _defaultCtor, parameters: []));
     }
 
     public virtual Func<IEnumerable<TElement>, TEnumerable> GetEnumerableConstructor()
@@ -58,7 +60,7 @@ internal abstract class ReflectionEnumerableTypeShape<TEnumerable, TElement>(Ref
         Debug.Assert(_enumerableCtor != null);
         return _enumerableCtor switch
         {
-            ConstructorInfo ctorInfo => provider.MemberAccessor.CreateFuncDelegate<IEnumerable<TElement>, TEnumerable>(ctorInfo),
+            ConstructorInfo ctorInfo => Provider.MemberAccessor.CreateFuncDelegate<IEnumerable<TElement>, TEnumerable>(ctorInfo),
             _ => ((MethodInfo)_enumerableCtor).CreateDelegate<Func<IEnumerable<TElement>, TEnumerable>>(),
         };
     }
@@ -72,14 +74,14 @@ internal abstract class ReflectionEnumerableTypeShape<TEnumerable, TElement>(Ref
 
         if (_listCtor is ConstructorInfo listCtor)
         {
-            var listCtorDelegate = provider.MemberAccessor.CreateFuncDelegate<List<TElement>, TEnumerable>(listCtor);
+            var listCtorDelegate = Provider.MemberAccessor.CreateFuncDelegate<List<TElement>, TEnumerable>(listCtor);
             return span => listCtorDelegate(CollectionHelpers.CreateList(span));
         }
 
         Debug.Assert(_spanCtor != null);
         return _spanCtor switch
         {
-            ConstructorInfo ctorInfo => provider.MemberAccessor.CreateSpanConstructorDelegate<TElement, TEnumerable>(ctorInfo),
+            ConstructorInfo ctorInfo => Provider.MemberAccessor.CreateSpanConstructorDelegate<TElement, TEnumerable>(ctorInfo),
             _ => ((MethodInfo)_spanCtor).CreateDelegate<SpanConstructor<TElement, TEnumerable>>(),
         };
     }
@@ -107,7 +109,7 @@ internal abstract class ReflectionEnumerableTypeShape<TEnumerable, TElement>(Ref
             }
         }
 
-        if (provider.Options.UseReflectionEmit && typeof(TEnumerable).GetConstructor([typeof(ReadOnlySpan<TElement>)]) is ConstructorInfo spanCtor)
+        if (Provider.Options.UseReflectionEmit && typeof(TEnumerable).GetConstructor([typeof(ReadOnlySpan<TElement>)]) is ConstructorInfo spanCtor)
         {
             // Cannot invoke constructors with ROS parameters without Ref.Emit
             _spanCtor = spanCtor;
