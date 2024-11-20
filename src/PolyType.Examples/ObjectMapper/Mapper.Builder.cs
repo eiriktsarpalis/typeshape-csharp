@@ -60,19 +60,14 @@ public static partial class Mapper
                     return (Mapper<TSource, TTarget>?)ctor.Accept(visitor, state: sourceGetters);
 
                 case TypeShapeKind.Enum:
-                    return new Mapper<TSource, TTarget>(source => (TTarget)(object)source!);
+                    return static source => (TTarget)(object)source!;
 
                 default:
                     return (Mapper<TSource, TTarget>?)sourceShape.Accept(this, state: targetShape);
             }
         }
 
-        public override object? VisitObject<T>(IObjectTypeShape<T> objectShape, object? state = null)
-        {
-            return base.VisitObject(objectShape, state);
-        }
-
-        public override object? VisitProperty<TSource, TSourceProperty>(IPropertyShape<TSource, TSourceProperty> sourceGetter, object? state)
+        public override object? VisitProperty<TSource, TSourceProperty>(IPropertyShape<TSource, TSourceProperty> sourceGetter, object? state = null)
         {
             Debug.Assert(state is IPropertyShape or IConstructorParameterShape);
             var visitor = new PropertyScopedVisitor<TSource, TSourceProperty>(this);
@@ -126,7 +121,7 @@ public static partial class Mapper
                             return default;
                         }
 
-                        TTarget? target = defaultCtor();
+                        TTarget target = defaultCtor();
                         foreach (PropertyMapper<TSource, TTarget> mapper in propertyMappers)
                         {
                             mapper(ref source, ref target);
@@ -168,13 +163,13 @@ public static partial class Mapper
                             return default;
                         }
 
-                        TArgumentState? state = argumentStateCtor();
+                        TArgumentState argumentState = argumentStateCtor();
                         foreach (PropertyMapper<TSource, TArgumentState> mapper in propertyMappers)
                         {
-                            mapper(ref source, ref state);
+                            mapper(ref source, ref argumentState);
                         }
 
-                        return ctor(ref state);
+                        return ctor(ref argumentState);
                     });
                 }
             }
@@ -375,7 +370,7 @@ public static partial class Mapper
 
         private static Mapper<TSource, TTarget> CreateDelayedMapper<TSource, TTarget>(ResultBox<Mapper<TSource, TTarget>?> self)
         {
-            return new Mapper<TSource, TTarget>(left =>
+            return left =>
             {
                 Mapper<TSource, TTarget>? mapper = self.Result;
                 if (mapper is null)
@@ -384,7 +379,7 @@ public static partial class Mapper
                 }
 
                 return mapper(left);
-            });
+            };
         }
 
         [DoesNotReturn]

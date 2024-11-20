@@ -80,7 +80,7 @@ internal static class ReflectionHelpers
                     foreach (CustomAttributeData attr in member.GetCustomAttributesData())
                     {
                         Type attrType = attr.AttributeType;
-                        if (attrType.Name == "NullableAttribute" && attrType.Namespace == "System.Runtime.CompilerServices")
+                        if (attrType is { Name: "NullableAttribute", Namespace: "System.Runtime.CompilerServices" })
                         {
                             foreach (CustomAttributeTypedArgument ctorArg in attr.ConstructorArguments)
                             {
@@ -103,7 +103,7 @@ internal static class ReflectionHelpers
                     foreach (CustomAttributeData attr in member.GetCustomAttributesData())
                     {
                         Type attrType = attr.AttributeType;
-                        if (attrType.Name == "NullableContextAttribute" && attrType.Namespace == "System.Runtime.CompilerServices")
+                        if (attrType is { Name: "NullableContextAttribute", Namespace: "System.Runtime.CompilerServices" })
                         {
                             foreach (CustomAttributeTypedArgument ctorArg in attr.ConstructorArguments)
                             {
@@ -155,7 +155,7 @@ internal static class ReflectionHelpers
         if (parameter.Member is { DeclaringType.IsConstructedGenericType: true }
                              or MethodInfo { IsConstructedGenericMethod: true })
         {
-            var genericMethod = (MethodBase)parameter.Member.GetGenericMemberDefinition()!;
+            var genericMethod = (MethodBase)parameter.Member.GetGenericMemberDefinition();
             return genericMethod.GetParameters()[parameter.Position];
         }
 
@@ -198,7 +198,7 @@ internal static class ReflectionHelpers
 
     public static object Invoke(this MethodBase methodBase, params object?[]? args)
     {
-        Debug.Assert(methodBase is ConstructorInfo or MethodBase { IsStatic: true });
+        Debug.Assert(methodBase is ConstructorInfo or MethodInfo { IsStatic: true });
         object? result = methodBase is ConstructorInfo ctor
             ? ctor.Invoke(args)
             : methodBase.Invoke(null, args);
@@ -209,7 +209,7 @@ internal static class ReflectionHelpers
 
     public static bool IsMemoryType(this Type type, [NotNullWhen(true)] out Type? elementType, out bool isReadOnlyMemory)
     {
-        if (type.IsGenericType && type.IsValueType)
+        if (type is { IsGenericType: true, IsValueType: true })
         {
             Type genericTypeDefinition = type.GetGenericTypeDefinition();
             if (genericTypeDefinition == typeof(ReadOnlyMemory<>))
@@ -284,8 +284,9 @@ internal static class ReflectionHelpers
 
         foreach (MethodInfo method in builderType.GetMethods(BindingFlags.Public | BindingFlags.Static))
         {
-            if (method.Name == methodName && method.GetParameters() is [{ ParameterType: Type parameterType }] &&
-                parameterType.IsGenericType && parameterType.GetGenericTypeDefinition() == typeof(ReadOnlySpan<>))
+            if (method.Name == methodName &&
+                method.GetParameters() is [{ ParameterType: { IsGenericType: true } parameterType }] &&
+                parameterType.GetGenericTypeDefinition() == typeof(ReadOnlySpan<>))
             {
                 Type spanElementType = parameterType.GetGenericArguments()[0];
                 if (spanElementType == elementType && method.ReturnType == type)
@@ -353,7 +354,7 @@ internal static class ReflectionHelpers
     [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
     public static bool ImplementsInterface(this Type type, Type interfaceType)
     {
-        Debug.Assert(interfaceType.IsInterface && !interfaceType.IsConstructedGenericType);
+        Debug.Assert(interfaceType is { IsInterface: true, IsConstructedGenericType: false });
 
         foreach (Type otherInterface in type.GetAllInterfaces())
         {
@@ -371,7 +372,7 @@ internal static class ReflectionHelpers
     public static bool IsExplicitInterfaceImplementation(this MethodInfo methodInfo)
     {
         Debug.Assert(!methodInfo.IsStatic);
-        return methodInfo.IsPrivate && methodInfo.IsVirtual && methodInfo.Name.Contains('.');
+        return methodInfo is { IsPrivate: true, IsVirtual: true } && methodInfo.Name.Contains('.');
     }
 
     public static bool IsExplicitInterfaceImplementation(this PropertyInfo propertyInfo)
@@ -419,7 +420,7 @@ internal static class ReflectionHelpers
         {
             defaultValue = Enum.ToObject(parameterType, defaultValue);
         }
-        else if (Nullable.GetUnderlyingType(parameterType) is Type underlyingType && underlyingType.IsEnum)
+        else if (Nullable.GetUnderlyingType(parameterType) is { IsEnum: true } underlyingType)
         {
             defaultValue = Enum.ToObject(underlyingType, defaultValue);
         }
