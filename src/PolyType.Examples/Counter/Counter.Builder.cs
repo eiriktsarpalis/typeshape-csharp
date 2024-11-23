@@ -1,21 +1,14 @@
 ﻿using PolyType.Abstractions;
-using PolyType.Examples.Utilities;
+using PolyType.Utilities;
 
 namespace PolyType.Examples.Counter;
 
 public static partial class Counter
 {
-    private sealed class Builder : TypeShapeVisitor
+    private sealed class Builder(TypeGenerationContext generationContext) : TypeShapeVisitor, ITypeShapeFunc
     {
-        private readonly TypeDictionary _cache = new();
-
-        public Func<T?, long> BuildCounter<T>(ITypeShape<T> typeShape)
-        {
-            return _cache.GetOrAdd<Func<T?, long>>(
-                typeShape, 
-                this, 
-                delayedValueFactory: self => new Func<T?, long>(t => self.Result(t)));
-        }
+        public Func<T?, long> GetOrAddCounter<T>(ITypeShape<T> typeShape) => (Func<T?, long>)generationContext.GetOrAdd(typeShape)!;
+        object? ITypeShapeFunc.Invoke<T>(ITypeShape<T> shape, object? _) => shape.Accept(this);
 
         public override object? VisitObject<T>(IObjectTypeShape<T> type, object? state)
         {
@@ -49,7 +42,7 @@ public static partial class Counter
         public override object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
         {
             Getter<TDeclaringType, TPropertyType> getter = property.GetGetter();
-            Func<TPropertyType, long> propertyTypeCounter = BuildCounter(property.PropertyType);
+            Func<TPropertyType, long> propertyTypeCounter = GetOrAddCounter(property.PropertyType);
             return new Func<TDeclaringType, long>(obj => propertyTypeCounter(getter(ref obj)));
         }
 
@@ -65,7 +58,7 @@ public static partial class Counter
         public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableShape, object? state)
         {
             Func<TEnumerable, IEnumerable<TElement>> enumerableGetter = enumerableShape.GetGetEnumerable();
-            Func<TElement, long> elementTypeCounter = BuildCounter(enumerableShape.ElementType);
+            Func<TElement, long> elementTypeCounter = GetOrAddCounter(enumerableShape.ElementType);
             return new Func<TEnumerable, long>(enumerable =>
             {
                 if (enumerable is null)
@@ -86,8 +79,8 @@ public static partial class Counter
         public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryTypeShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
         {
             Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> dictionaryGetter = dictionaryShape.GetGetDictionary();
-            Func<TKey, long> keyTypeCounter = BuildCounter(dictionaryShape.KeyType);
-            Func<TValue, long> valueTypeCounter = BuildCounter(dictionaryShape.ValueType);
+            Func<TKey, long> keyTypeCounter = GetOrAddCounter(dictionaryShape.KeyType);
+            Func<TValue, long> valueTypeCounter = GetOrAddCounter(dictionaryShape.ValueType);
             return new Func<TDictionary, long>(dict =>
             {
                 if (dict is null)
@@ -105,5 +98,11 @@ public static partial class Counter
                 return count;
             });
         }
+    }
+
+    private sealed class DelayedCounterFactory : IDelayedValueFactory
+    {
+        public DelayedValue Create<T>(ITypeShape<T> typeShape) =>
+            new DelayedValue<Func<T?, long>>(self => t => self.Result(t));
     }
 }

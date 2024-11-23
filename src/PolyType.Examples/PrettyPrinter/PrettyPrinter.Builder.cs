@@ -1,29 +1,27 @@
-﻿using System.Diagnostics;
+﻿using PolyType.Abstractions;
+using PolyType.Utilities;
+using System.Diagnostics;
 using System.Numerics;
 using System.Text;
-using PolyType.Abstractions;
-using PolyType.Examples.Utilities;
 
 namespace PolyType.Examples.PrettyPrinter;
 
 public static partial class PrettyPrinter
 {
-    private sealed class Builder : TypeShapeVisitor
+    private sealed class Builder(TypeGenerationContext generationContext) : TypeShapeVisitor, ITypeShapeFunc
     {
         private static readonly Dictionary<Type, object> s_defaultPrinters = new(CreateDefaultPrinters());
-        private readonly TypeDictionary _cache = new();
-        
-        public PrettyPrinter<T> BuildPrettyPrinter<T>(ITypeShape<T> typeShape)
+        public PrettyPrinter<T> GetOrAddPrettyPrinter<T>(ITypeShape<T> typeShape) =>
+            (PrettyPrinter<T>)generationContext.GetOrAdd(typeShape)!;
+
+        object? ITypeShapeFunc.Invoke<T>(ITypeShape<T> typeShape, object? _)
         {
             if (s_defaultPrinters.TryGetValue(typeShape.Type, out object? defaultPrinter))
             {
-                return (PrettyPrinter<T>)defaultPrinter;
+                return defaultPrinter;
             }
 
-            return _cache.GetOrAdd<PrettyPrinter<T>>(
-                typeShape,
-                this,
-                delayedValueFactory: self => new PrettyPrinter<T>((sb, indentation, value) => self.Result(sb, indentation, value)));
+            return typeShape.Accept(this);
         }
 
         public override object? VisitObject<T>(IObjectTypeShape<T> type, object? state)
@@ -71,7 +69,7 @@ public static partial class PrettyPrinter
         public override object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
         {
             Getter<TDeclaringType, TPropertyType> getter = property.GetGetter();
-            PrettyPrinter<TPropertyType> propertyTypePrinter = BuildPrettyPrinter(property.PropertyType);
+            PrettyPrinter<TPropertyType> propertyTypePrinter = GetOrAddPrettyPrinter(property.PropertyType);
             return new PrettyPrinter<TDeclaringType>((sb, indentation, obj) =>
             {
                 Debug.Assert(obj != null);
@@ -83,7 +81,7 @@ public static partial class PrettyPrinter
         public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableShape, object? state)
         {
             Func<TEnumerable, IEnumerable<TElement>> enumerableGetter = enumerableShape.GetGetEnumerable();
-            PrettyPrinter<TElement> elementPrinter = BuildPrettyPrinter(enumerableShape.ElementType);
+            PrettyPrinter<TElement> elementPrinter = GetOrAddPrettyPrinter(enumerableShape.ElementType);
             bool valuesArePrimitives = s_defaultPrinters.ContainsKey(typeof(TElement));
 
             return new PrettyPrinter<TEnumerable>((sb, indentation, value) =>
@@ -137,8 +135,8 @@ public static partial class PrettyPrinter
         {
             string typeName = FormatTypeName(typeof(TDictionary));
             Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> dictionaryGetter = dictionaryShape.GetGetDictionary();
-            PrettyPrinter<TKey> keyPrinter = BuildPrettyPrinter(dictionaryShape.KeyType);
-            PrettyPrinter<TValue> valuePrinter = BuildPrettyPrinter(dictionaryShape.ValueType);
+            PrettyPrinter<TKey> keyPrinter = GetOrAddPrettyPrinter(dictionaryShape.KeyType);
+            PrettyPrinter<TValue> valuePrinter = GetOrAddPrettyPrinter(dictionaryShape.ValueType);
 
             return new PrettyPrinter<TDictionary>((sb, indentation, value) =>
             {
@@ -184,7 +182,7 @@ public static partial class PrettyPrinter
 
         public override object? VisitNullable<T>(INullableTypeShape<T> nullableShape, object? state) where T : struct
         {
-            PrettyPrinter<T> elementPrinter = BuildPrettyPrinter(nullableShape.ElementType);
+            PrettyPrinter<T> elementPrinter = GetOrAddPrettyPrinter(nullableShape.ElementType);
             return new PrettyPrinter<T?>((sb, indentation, value) =>
             {
                 if (value is null)
@@ -264,5 +262,11 @@ public static partial class PrettyPrinter
             static KeyValuePair<Type, object> Create<T>(PrettyPrinter<T> printer)
                 => new(typeof(T), printer);
         }
+    }
+
+    private sealed class DelayedPrettyPrinterFactory : IDelayedValueFactory
+    {
+        public DelayedValue Create<T>(ITypeShape<T> typeShape) =>
+            new DelayedValue<PrettyPrinter<T>>(self => (sb, i, t) => self.Result(sb, i, t));
     }
 }

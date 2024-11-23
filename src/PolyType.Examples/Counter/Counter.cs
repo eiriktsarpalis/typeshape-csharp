@@ -1,4 +1,5 @@
 ﻿using PolyType.Abstractions;
+using PolyType.Utilities;
 
 namespace PolyType.Examples.Counter;
 
@@ -7,11 +8,17 @@ namespace PolyType.Examples.Counter;
 /// </summary>
 public static partial class Counter
 {
+    private static readonly MultiProviderTypeCache s_cache = new()
+    {
+        DelayedValueFactory = new DelayedCounterFactory(),
+        ValueBuilderFactory = ctx => new Builder(ctx),
+    };
+
     /// <summary>
     /// Creates an object counting delegate using the specified shape.
     /// </summary>
     public static Func<T?, long> Create<T>(ITypeShape<T> shape)
-        => new Builder().BuildCounter(shape);
+        => (Func<T?, long>)s_cache.GetOrAdd(shape)!;
 
     /// <summary>
     /// Creates an object counting delegate using the specified shape provider.

@@ -1,6 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using PolyType.Abstractions;
+using PolyType.Utilities;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
-using PolyType.Abstractions;
 
 namespace PolyType.Examples.Validation;
 
@@ -12,11 +13,17 @@ public delegate void Validator<in T>(T? value, List<string> path, ref List<strin
 /// <summary>Provides an object validator for .NET types built on top of PolyType.</summary>
 public static partial class Validator
 {
+    private static readonly MultiProviderTypeCache s_cache = new()
+    {
+        DelayedValueFactory = new DelayedValidatorFactory(),
+        ValueBuilderFactory = ctx => new Builder(ctx),
+    };
+
     /// <summary>
     /// Builds a validator delegate using a type shape as input.
     /// </summary>
     public static Validator<T> Create<T>(ITypeShape<T> type) =>
-        new Builder().BuildValidator(type) ?? Builder.CreateNullValidator<T>();
+        (Validator<T>?)s_cache.GetOrAdd(type) ?? Builder.CreateNullValidator<T>();
 
     /// <summary>
     /// Builds a validator delegate using a shape provider as input.

@@ -1,22 +1,15 @@
-﻿using System.Diagnostics;
-using PolyType.Abstractions;
-using PolyType.Examples.Utilities;
+﻿using PolyType.Abstractions;
+using PolyType.Utilities;
+using System.Diagnostics;
 
 namespace PolyType.Examples.Validation;
 
 public static partial class Validator
 {
-    private sealed class Builder : TypeShapeVisitor
+    private sealed class Builder(TypeGenerationContext generationContext) : TypeShapeVisitor, ITypeShapeFunc
     {
-        private readonly TypeDictionary _cache = new();
-
-        public Validator<T>? BuildValidator<T>(ITypeShape<T> shape)
-        {
-            return _cache.GetOrAdd<Validator<T>>(
-                shape,
-                this,
-                delayedValueFactory: self => new Validator<T>((T? value, List<string> path, ref List<string>? errors) => self.Result(value, path, ref errors)));
-        }
+        public Validator<T>? GetOrAddValidator<T>(ITypeShape<T> shape) => (Validator<T>?)generationContext.GetOrAdd(shape);
+        object? ITypeShapeFunc.Invoke<T>(ITypeShape<T> typeShape, object? state) => typeShape.Accept(this);
 
         public override object? VisitObject<T>(IObjectTypeShape<T> type, object? state)
         {
@@ -57,7 +50,7 @@ public static partial class Validator
                 .Where(pair => pair.Predicate != null)
                 .ToArray()!;
 
-            Validator<TPropertyType>? propertyTypeValidator = BuildValidator(property.PropertyType);
+            Validator<TPropertyType>? propertyTypeValidator = GetOrAddValidator(property.PropertyType);
 
             if (validationPredicates is null && propertyTypeValidator is null)
             {
@@ -92,7 +85,7 @@ public static partial class Validator
 
         public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryTypeShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
         {
-            Validator<TValue>? valueValidator = BuildValidator(dictionaryShape.ValueType);
+            Validator<TValue>? valueValidator = GetOrAddValidator(dictionaryShape.ValueType);
             if (valueValidator is null)
             {
                 return null; // Nothing to validate for this type.
@@ -117,7 +110,7 @@ public static partial class Validator
 
         public override object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableShape, object? state)
         {
-            Validator<TElement>? elementValidator = BuildValidator(enumerableShape.ElementType);
+            Validator<TElement>? elementValidator = GetOrAddValidator(enumerableShape.ElementType);
             if (elementValidator is null)
             {
                 return null; // Nothing to validate for this type.
@@ -144,7 +137,7 @@ public static partial class Validator
 
         public override object? VisitNullable<T>(INullableTypeShape<T> nullableShape, object? state) where T : struct
         {
-            Validator<T>? elementValidator = BuildValidator(nullableShape.ElementType);
+            Validator<T>? elementValidator = GetOrAddValidator(nullableShape.ElementType);
             if (elementValidator is null)
             {
                 return null; // Nothing to validate for this type.
@@ -168,5 +161,11 @@ public static partial class Validator
         /// Creates a trivial validator that always succeeds.
         /// </summary>
         public static Validator<T> CreateNullValidator<T>() => new((T? value, List<string> path, ref List<string>? errors) => { });
+    }
+
+    private sealed class DelayedValidatorFactory : IDelayedValueFactory
+    {
+        public DelayedValue Create<T>(ITypeShape<T> typeShape) =>
+            new DelayedValue<Validator<T>>(self => (T? value, List<string> path, ref List<string>? errors) => self.Result(value, path, ref errors));
     }
 }

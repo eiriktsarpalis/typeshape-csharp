@@ -1,5 +1,6 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using PolyType.Abstractions;
+﻿using PolyType.Abstractions;
+using PolyType.Utilities;
+using System.Diagnostics.CodeAnalysis;
 
 namespace PolyType.Examples.ObjectMapper;
 
@@ -18,6 +19,12 @@ public delegate TTarget? Mapper<in TSource, out TTarget>(TSource? source);
 /// </summary>
 public static partial class Mapper
 {
+    private static readonly MultiProviderTypeCache s_cache = new()
+    {
+        DelayedValueFactory = new DelayedMapperFactory(),
+        ValueBuilderFactory = ctx => new Builder(ctx),
+    };
+
     /// <summary>
     /// Derives a mapper delegate from a pair of type shapes.
     /// </summary>
@@ -28,14 +35,14 @@ public static partial class Mapper
     /// <returns>A mapper delegate.</returns>
     public static Mapper<TSource, TTarget> Create<TSource, TTarget>(ITypeShape<TSource> sourceShape, ITypeShape<TTarget> targetShape)
     {
-        var builder = new Builder();
-        var mapper = builder.BuildMapper(sourceShape, targetShape);
-        if (mapper is null)
+        TypeCache providerScopedTypeCache = s_cache.GetScopedCache(sourceShape.Provider);
+        if (providerScopedTypeCache.TryGetValue(typeof(Mapper<TSource, TTarget>), out object? result))
         {
-            Builder.ThrowCannotMapTypes(typeof(TSource), typeof(TTarget));
+            return (Mapper<TSource, TTarget>)result!;
         }
 
-        return mapper;
+        ITypeShape mapperShape = new MapperShape<TSource, TTarget>(sourceShape, targetShape);
+        return (Mapper<TSource, TTarget>)providerScopedTypeCache.GetOrAdd(mapperShape)!;
     }
 
     /// <summary>

@@ -1,6 +1,10 @@
-﻿using System.Diagnostics;
+﻿using PolyType.Abstractions;
+using PolyType.Examples.CborSerializer.Converters;
+using PolyType.Utilities;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Formats.Cbor;
-using PolyType.Abstractions;
+using System.Text.Json.Serialization;
 
 namespace PolyType.Examples.CborSerializer;
 
@@ -9,6 +13,12 @@ namespace PolyType.Examples.CborSerializer;
 /// </summary>
 public static partial class CborSerializer
 {
+    private static readonly MultiProviderTypeCache s_converterCaches = new()
+    {
+        DelayedValueFactory = new DelayedCborConverterFactory(),
+        ValueBuilderFactory = ctx => new Builder(ctx),
+    };
+
     /// <summary>
     /// Builds an <see cref="CborConverter{T}"/> instance from the specified shape.
     /// </summary>
@@ -16,7 +26,7 @@ public static partial class CborSerializer
     /// <param name="shape">The shape instance guiding converter construction.</param>
     /// <returns>An <see cref="CborConverter{T}"/> instance.</returns>
     public static CborConverter<T> CreateConverter<T>(ITypeShape<T> shape) =>
-        new Builder().BuildConverter(shape);
+        (CborConverter<T>)s_converterCaches.GetOrAdd(shape)!;
 
     /// <summary>
     /// Builds an <see cref="CborConverter{T}"/> instance from the specified shape provider.
@@ -26,6 +36,16 @@ public static partial class CborSerializer
     /// <returns>An <see cref="CborConverter{T}"/> instance.</returns>
     public static CborConverter<T> CreateConverter<T>(ITypeShapeProvider shapeProvider) =>
         CreateConverter(shapeProvider.Resolve<T>());
+
+    /// <summary>
+    /// Builds a <see cref="JsonConverter"/> instance from the reflection-based shape provider.
+    /// </summary>
+    /// <typeparam name="T">The type for which to build the converter.</typeparam>
+    /// <returns>An <see cref="JsonConverter{T}"/> instance.</returns>
+    [RequiresUnreferencedCode("PolyType reflection provider requires unreferenced code")]
+    [RequiresDynamicCode("PolyType reflection provider requires dynamic code")]
+    public static CborConverter<T> CreateConverterUsingReflection<T>() =>
+        CreateConverter<T>(ReflectionProvider.ReflectionTypeShapeProvider.Default);
 
     /// <summary>
     /// Serializes a value to a CBOR encoding using the provided converter.

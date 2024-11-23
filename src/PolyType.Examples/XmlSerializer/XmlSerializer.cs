@@ -1,8 +1,9 @@
-﻿using System.Diagnostics;
+﻿using PolyType.Abstractions;
+using PolyType.Examples.XmlSerializer.Converters;
+using PolyType.Utilities;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Xml;
-using PolyType.Abstractions;
-using PolyType.Examples.XmlSerializer.Converters;
 
 namespace PolyType.Examples.XmlSerializer;
 
@@ -11,6 +12,12 @@ namespace PolyType.Examples.XmlSerializer;
 /// </summary>
 public static partial class XmlSerializer
 {
+    private static readonly MultiProviderTypeCache s_converterCaches = new()
+    {
+        DelayedValueFactory = new DelayedXmlConverterFactory(),
+        ValueBuilderFactory = ctx => new Builder(ctx),
+    };
+
     private static readonly XmlWriterSettings s_writerSettings = new()
     {
         NamespaceHandling = NamespaceHandling.Default,
@@ -30,7 +37,7 @@ public static partial class XmlSerializer
     /// <param name="shape">The shape instance guiding converter construction.</param>
     /// <returns>An <see cref="XmlConverter{T}"/> instance.</returns>
     public static XmlConverter<T> CreateConverter<T>(ITypeShape<T> shape) =>
-        new Builder().BuildConverter(shape);
+        (XmlConverter<T>)s_converterCaches.GetOrAdd(shape)!;
 
     /// <summary>
     /// Builds an <see cref="XmlConverter{T}"/> instance from the specified shape provider.

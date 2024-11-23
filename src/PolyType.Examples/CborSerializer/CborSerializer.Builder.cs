@@ -1,23 +1,26 @@
 ﻿using PolyType.Abstractions;
 using PolyType.Examples.CborSerializer.Converters;
-using PolyType.Examples.Utilities;
+using PolyType.Utilities;
 
 namespace PolyType.Examples.CborSerializer;
 
 public static partial class CborSerializer
 {
-    private sealed class Builder : ITypeShapeVisitor
+    private sealed class Builder(TypeGenerationContext generationContext) : ITypeShapeVisitor, ITypeShapeFunc
     {
-        private readonly TypeDictionary _cache = new();
+        public CborConverter<T> GetOrAddConverter<T>(ITypeShape<T> typeShape) =>
+            (CborConverter<T>)generationContext.GetOrAdd(typeShape, this)!;
 
-        public CborConverter<T> BuildConverter<T>(ITypeShape<T> typeShape)
+        object? ITypeShapeFunc.Invoke<T>(ITypeShape<T> typeShape, object? shape)
         {
+            // Check if the type has a built-in converter.
             if (s_builtInConverters.TryGetValue(typeof(T), out CborConverter? defaultConverter))
             {
                 return (CborConverter<T>)defaultConverter;
             }
 
-            return _cache.GetOrAdd<CborConverter<T>>(typeShape, this, self => new DelayedCborConverter<T>(self));
+            // Otherwise, build a converter using the visitor.
+            return typeShape.Accept(this);
         }
 
         public object? VisitObject<T>(IObjectTypeShape<T> objectShape, object? state)
@@ -35,7 +38,7 @@ public static partial class CborSerializer
 
         public object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
         {
-            CborConverter<TPropertyType> propertyConverter = BuildConverter(property.PropertyType);
+            CborConverter<TPropertyType> propertyConverter = GetOrAddConverter(property.PropertyType);
             return new CborPropertyConverter<TDeclaringType, TPropertyType>(property, propertyConverter);
         }
 
@@ -62,13 +65,13 @@ public static partial class CborSerializer
 
         public object? VisitConstructorParameter<TArgumentState, TParameterType>(IConstructorParameterShape<TArgumentState, TParameterType> parameter, object? state)
         {
-            CborConverter<TParameterType> paramConverter = BuildConverter(parameter.ParameterType);
+            CborConverter<TParameterType> paramConverter = GetOrAddConverter(parameter.ParameterType);
             return new CborPropertyConverter<TArgumentState, TParameterType>(parameter, paramConverter);
         }
 
         public object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableShape, object? state)
         {
-            CborConverter<TElement> elementConverter = BuildConverter(enumerableShape.ElementType);
+            CborConverter<TElement> elementConverter = GetOrAddConverter(enumerableShape.ElementType);
             Func<TEnumerable, IEnumerable<TElement>> getEnumerable = enumerableShape.GetGetEnumerable();
 
             return enumerableShape.ConstructionStrategy switch
@@ -98,8 +101,8 @@ public static partial class CborSerializer
 
         public object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryTypeShape<TDictionary, TKey, TValue> dictionaryShape, object? state) where TKey : notnull
         {
-            CborConverter<TKey> keyConverter = BuildConverter(dictionaryShape.KeyType);
-            CborConverter<TValue> valueConverter = BuildConverter(dictionaryShape.ValueType);
+            CborConverter<TKey> keyConverter = GetOrAddConverter(dictionaryShape.KeyType);
+            CborConverter<TValue> valueConverter = GetOrAddConverter(dictionaryShape.ValueType);
             Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getDictionary = dictionaryShape.GetGetDictionary();
 
             return dictionaryShape.ConstructionStrategy switch
@@ -132,7 +135,7 @@ public static partial class CborSerializer
 
         public object? VisitNullable<T>(INullableTypeShape<T> nullableShape, object? state) where T : struct
         {
-            CborConverter<T> elementConverter = BuildConverter(nullableShape.ElementType);
+            CborConverter<T> elementConverter = GetOrAddConverter(nullableShape.ElementType);
             return new CborNullableConverter<T>(elementConverter);
         }
 
