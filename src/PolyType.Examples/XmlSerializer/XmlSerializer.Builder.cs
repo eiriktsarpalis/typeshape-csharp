@@ -1,23 +1,24 @@
-﻿using PolyType.Examples.XmlSerializer.Converters;
-using PolyType.Abstractions;
-using PolyType.Examples.Utilities;
+﻿using PolyType.Abstractions;
+using PolyType.Examples.XmlSerializer.Converters;
+using PolyType.Utilities;
 
 namespace PolyType.Examples.XmlSerializer;
 
 public static partial class XmlSerializer
 {
-    private sealed class Builder : ITypeShapeVisitor
+    private sealed class Builder(TypeGenerationContext generationContext) : ITypeShapeVisitor, ITypeShapeFunc
     {
-        private readonly TypeDictionary _cache = new();
+        public XmlConverter<T> GetOrAddConverter<T>(ITypeShape<T> shape) =>
+            (XmlConverter<T>)generationContext.GetOrAdd(shape, this)!;
 
-        public XmlConverter<T> BuildConverter<T>(ITypeShape<T> shape)
+        object? ITypeShapeFunc.Invoke<T>(ITypeShape<T> typeShape, object? state)
         {
             if (s_defaultConverters.TryGetValue(typeof(T), out XmlConverter? defaultConverter))
             {
                 return (XmlConverter<T>)defaultConverter;
             }
 
-            return _cache.GetOrAdd<XmlConverter<T>>(shape, this, delayedValueFactory: self => new DelayedXmlConverter<T>(self));
+            return typeShape.Accept(this);
         }
 
         public object? VisitObject<T>(IObjectTypeShape<T> type, object? state)
@@ -35,7 +36,7 @@ public static partial class XmlSerializer
 
         public object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
         {
-            XmlConverter<TPropertyType> propertyConverter = BuildConverter(property.PropertyType);
+            XmlConverter<TPropertyType> propertyConverter = GetOrAddConverter(property.PropertyType);
             return new XmlPropertyConverter<TDeclaringType, TPropertyType>(property, propertyConverter);
         }
 
@@ -61,13 +62,13 @@ public static partial class XmlSerializer
 
         public object? VisitConstructorParameter<TArgumentState, TParameterType>(IConstructorParameterShape<TArgumentState, TParameterType> parameter, object? state)
         {
-            XmlConverter<TParameterType> paramConverter = BuildConverter(parameter.ParameterType);
+            XmlConverter<TParameterType> paramConverter = GetOrAddConverter(parameter.ParameterType);
             return new XmlPropertyConverter<TArgumentState, TParameterType>(parameter, paramConverter);
         }
 
         public object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableShape, object? state)
         {
-            XmlConverter<TElement> elementConverter = BuildConverter(enumerableShape.ElementType);
+            XmlConverter<TElement> elementConverter = GetOrAddConverter(enumerableShape.ElementType);
             Func<TEnumerable, IEnumerable<TElement>> getEnumerable = enumerableShape.GetGetEnumerable();
 
             return enumerableShape.ConstructionStrategy switch
@@ -94,8 +95,8 @@ public static partial class XmlSerializer
 
         public object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryTypeShape<TDictionary, TKey, TValue> dictionaryShape, object? state) where TKey : notnull
         {
-            XmlConverter<TKey> keyConverter = BuildConverter(dictionaryShape.KeyType);
-            XmlConverter<TValue> valueConverter = BuildConverter(dictionaryShape.ValueType);
+            XmlConverter<TKey> keyConverter = GetOrAddConverter(dictionaryShape.KeyType);
+            XmlConverter<TValue> valueConverter = GetOrAddConverter(dictionaryShape.ValueType);
             Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> getEnumerable = dictionaryShape.GetGetDictionary();
 
             return dictionaryShape.ConstructionStrategy switch
@@ -128,7 +129,7 @@ public static partial class XmlSerializer
 
         public object? VisitNullable<T>(INullableTypeShape<T> nullableShape, object? state) where T : struct
         {
-            XmlConverter<T> elementConverter = BuildConverter(nullableShape.ElementType);
+            XmlConverter<T> elementConverter = GetOrAddConverter(nullableShape.ElementType);
             return new XmlNullableConverter<T>(elementConverter);
         }
 

@@ -1,10 +1,11 @@
-﻿using System.Buffers.Binary;
+﻿using PolyType.Abstractions;
+using PolyType.Examples.Utilities;
+using PolyType.Utilities;
+using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Net;
 using System.Numerics;
 using System.Text;
-using PolyType.Abstractions;
-using PolyType.Examples.Utilities;
 
 namespace PolyType.Examples.RandomGenerator;
 
@@ -12,22 +13,20 @@ public partial class RandomGenerator
 {
     private delegate void RandomPropertySetter<T>(ref T value, Random random, int size);
 
-    private sealed class Builder : ITypeShapeVisitor
+    private sealed class Builder(TypeGenerationContext generationContext) : ITypeShapeVisitor, ITypeShapeFunc
     {
         private static readonly Dictionary<Type, (object Generator, RandomGenerator<object?> BoxingGenerator)> s_defaultGenerators = new(CreateDefaultGenerators());
-        private readonly TypeDictionary _cache = new();
 
-        public RandomGenerator<T> BuildGenerator<T>(ITypeShape<T> type)
+        public RandomGenerator<T> GetOrAddGenerator<T>(ITypeShape<T> type) => (RandomGenerator<T>)generationContext.GetOrAdd(type)!;
+
+        object? ITypeShapeFunc.Invoke<T>(ITypeShape<T> typeShape, object? _)
         {
-            if (s_defaultGenerators.TryGetValue(type.Type, out var entry))
+            if (s_defaultGenerators.TryGetValue(typeShape.Type, out var entry))
             {
                 return (RandomGenerator<T>)entry.Generator;
             }
 
-            return _cache.GetOrAdd<RandomGenerator<T>>(
-                type, 
-                this,
-                delayedValueFactory: self => new RandomGenerator<T>((r, s) => self.Result(r,s)));
+            return typeShape.Accept(this);
         }
 
         public object? VisitObject<T>(IObjectTypeShape<T> type, object? state)
@@ -46,7 +45,7 @@ public partial class RandomGenerator
         public object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
         {
             Setter<TDeclaringType, TPropertyType> setter = property.GetSetter();
-            RandomGenerator<TPropertyType> propertyGenerator = BuildGenerator(property.PropertyType);
+            RandomGenerator<TPropertyType> propertyGenerator = GetOrAddGenerator(property.PropertyType);
             return new RandomPropertySetter<TDeclaringType>((ref TDeclaringType obj, Random random, int size) => setter(ref obj, propertyGenerator(random, size)));
         }
 
@@ -109,7 +108,7 @@ public partial class RandomGenerator
         public object? VisitConstructorParameter<TArgumentState, TParameter>(IConstructorParameterShape<TArgumentState, TParameter> parameter, object? state)
         {
             Setter<TArgumentState, TParameter> setter = parameter.GetSetter();
-            RandomGenerator<TParameter> parameterGenerator = BuildGenerator(parameter.ParameterType);
+            RandomGenerator<TParameter> parameterGenerator = GetOrAddGenerator(parameter.ParameterType);
             return new RandomPropertySetter<TArgumentState>((ref TArgumentState obj, Random random, int size) => setter(ref obj, parameterGenerator(random, size)));
         }
 
@@ -121,13 +120,13 @@ public partial class RandomGenerator
 
         public object? VisitNullable<T>(INullableTypeShape<T> nullableShape, object? state) where T : struct
         {
-            RandomGenerator<T> elementGenerator = BuildGenerator(nullableShape.ElementType);
+            RandomGenerator<T> elementGenerator = GetOrAddGenerator(nullableShape.ElementType);
             return new RandomGenerator<T?>((Random random, int size) => NextBoolean(random) ? null : elementGenerator(random, size - 1));
         }
 
         public object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableShape, object? state)
         {
-            RandomGenerator<TElement> elementGenerator = BuildGenerator(enumerableShape.ElementType);
+            RandomGenerator<TElement> elementGenerator = GetOrAddGenerator(enumerableShape.ElementType);
 
             if (typeof(TEnumerable).IsArray)
             {
@@ -229,8 +228,8 @@ public partial class RandomGenerator
 
         public object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryTypeShape<TDictionary, TKey, TValue> dictionaryShape, object? state) where TKey : notnull
         {
-            RandomGenerator<TKey> keyGenerator = BuildGenerator(dictionaryShape.KeyType);
-            RandomGenerator<TValue> valueGenerator = BuildGenerator(dictionaryShape.ValueType);
+            RandomGenerator<TKey> keyGenerator = GetOrAddGenerator(dictionaryShape.KeyType);
+            RandomGenerator<TValue> valueGenerator = GetOrAddGenerator(dictionaryShape.ValueType);
 
             switch (dictionaryShape.ConstructionStrategy)
             {
@@ -424,5 +423,11 @@ public partial class RandomGenerator
                 _ => (int)Math.Round(parentSize / (double)totalChildren),
             };
         }
+    }
+
+    private sealed class DelayedRandomGeneratorFactory : IDelayedValueFactory
+    {
+        public DelayedValue Create<T>(ITypeShape<T> typeShape) =>
+            new DelayedValue<RandomGenerator<T>>(self => (r, t) => self.Result(r, t));
     }
 }

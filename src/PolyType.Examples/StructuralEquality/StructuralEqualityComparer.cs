@@ -1,12 +1,19 @@
-﻿using System.Collections;
+﻿using PolyType.Abstractions;
+using PolyType.Examples.StructuralEquality.Comparers;
+using PolyType.Utilities;
 using System.Diagnostics.CodeAnalysis;
-using PolyType.Abstractions;
 
 namespace PolyType.Examples.StructuralEquality;
 
 /// <summary>Provides a structural <see cref="IEqualityComparer{T}"/> generator built on top of PolyType.</summary>
 public static partial class StructuralEqualityComparer
 {
+    private static readonly MultiProviderTypeCache s_converterCaches = new()
+    {
+        DelayedValueFactory = new DelayedEqualityComparerFactory(),
+        ValueBuilderFactory = ctx => new Builder(ctx),
+    };
+
     /// <summary>
     /// Builds a structural <see cref="IEqualityComparer{T}"/> instance from the specified shape.
     /// </summary>
@@ -14,7 +21,7 @@ public static partial class StructuralEqualityComparer
     /// <param name="shape">The shape instance guiding printer construction.</param>
     /// <returns>An <see cref="IEqualityComparer{T}"/> instance.</returns>
     public static IEqualityComparer<T> Create<T>(ITypeShape<T> shape) =>
-        new Builder().BuildEqualityComparer(shape);
+        (IEqualityComparer<T>)s_converterCaches.GetOrAdd(shape)!;
 
     /// <summary>
     /// Builds a structural <see cref="IEqualityComparer{T}"/> instance from the specified shape provider.
@@ -81,13 +88,6 @@ public static partial class StructuralEqualityComparer
     /// <returns>A structural hash code for the value.</returns>
     public static bool Equals<T, TProvider>(T? left, T? right) where TProvider : IShapeable<T> => 
         EqualityComparerCache<T, TProvider>.Value.Equals(left, right);
-
-    internal static IEqualityComparer Create(Type type, ITypeShapeProvider shapeProvider)
-    {
-        ITypeShape shape = shapeProvider.Resolve(type);
-        ITypeShapeFunc builder = new Builder();
-        return (IEqualityComparer)shape.Invoke(builder, null)!;
-    }
 
     private static class EqualityComparerCache<T, TProvider> where TProvider : IShapeable<T>
     {

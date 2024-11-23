@@ -1,4 +1,5 @@
 ﻿using PolyType.Abstractions;
+using PolyType.Utilities;
 
 namespace PolyType.Examples.RandomGenerator;
 
@@ -8,14 +9,20 @@ public delegate T RandomGenerator<T>(Random random, int size);
 /// <summary>Provides a random generator for .NET types built on top of PolyType.</summary>
 public static partial class RandomGenerator
 {
+    private static readonly MultiProviderTypeCache s_converterCaches = new()
+    {
+        DelayedValueFactory = new DelayedRandomGeneratorFactory(),
+        ValueBuilderFactory = ctx => new Builder(ctx),
+    };
+
     /// <summary>
     /// Builds a <see cref="RandomGenerator{T}"/> instance from the specified shape.
     /// </summary>
     /// <typeparam name="T">The type for which to build the converter.</typeparam>
     /// <param name="shape">The shape instance guiding printer construction.</param>
     /// <returns>An <see cref="RandomGenerator{T}"/> instance.</returns>
-    public static RandomGenerator<T> Create<T>(ITypeShape<T> shape) => 
-        new Builder().BuildGenerator(shape);
+    public static RandomGenerator<T> Create<T>(ITypeShape<T> shape) =>
+        (RandomGenerator<T>)s_converterCaches.GetOrAdd(shape)!;
 
     /// <summary>
     /// Builds a <see cref="RandomGenerator{T}"/> instance from the specified shape provider.

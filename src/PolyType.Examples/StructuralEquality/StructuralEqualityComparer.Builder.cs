@@ -1,20 +1,18 @@
-﻿using System.Runtime.CompilerServices;
-using PolyType.Abstractions;
+﻿using PolyType.Abstractions;
 using PolyType.Examples.StructuralEquality.Comparers;
-using PolyType.Examples.Utilities;
+using PolyType.Utilities;
+using System.Runtime.CompilerServices;
 
 namespace PolyType.Examples.StructuralEquality;
 
 public static partial class StructuralEqualityComparer
 {
-    private sealed class Builder : TypeShapeVisitor, ITypeShapeFunc
+    private sealed class Builder(TypeGenerationContext generationContext) : TypeShapeVisitor, ITypeShapeFunc
     {
-        private readonly TypeDictionary _cache = new();
+        public IEqualityComparer<T> GetOrAddEqualityComparer<T>(ITypeShape<T> shape) =>
+            (IEqualityComparer<T>)generationContext.GetOrAdd(shape, this)!;
 
-        public IEqualityComparer<T> BuildEqualityComparer<T>(ITypeShape<T> shape) =>
-            _cache.GetOrAdd<IEqualityComparer<T>>(shape, this, delayedValueFactory: self => new DelayedEqualityComparer<T>(self));
-
-        object? ITypeShapeFunc.Invoke<T>(ITypeShape<T> typeShape, object? state) => BuildEqualityComparer(typeShape);
+        object? ITypeShapeFunc.Invoke<T>(ITypeShape<T> typeShape, object? state) => typeShape.Accept(this);
 
         public override object? VisitObject<T>(IObjectTypeShape<T> type, object? state)
         {
@@ -28,7 +26,7 @@ public static partial class StructuralEqualityComparer
             
             if (typeof(T) == typeof(object))
             {
-                return new PolymorphicObjectEqualityComparer(type.Provider);
+                return new PolymorphicObjectEqualityComparer(generationContext.ParentCache!);
             }
 
             return new ObjectEqualityComparer<T>
@@ -45,7 +43,7 @@ public static partial class StructuralEqualityComparer
             return new PropertyEqualityComparer<TDeclaringType, TPropertyType>
             {
                 Getter = property.GetGetter(),
-                PropertyTypeEqualityComparer = BuildEqualityComparer(property.PropertyType),
+                PropertyTypeEqualityComparer = GetOrAddEqualityComparer(property.PropertyType),
             };
         }
 
@@ -58,14 +56,14 @@ public static partial class StructuralEqualityComparer
         {
             return new NullableEqualityComparer<T>
             {
-                ElementComparer = BuildEqualityComparer(nullableShape.ElementType),
+                ElementComparer = GetOrAddEqualityComparer(nullableShape.ElementType),
             };
         }
 
         public override object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryTypeShape<TDictionary, TKey, TValue> dictionaryShape, object? state)
         {
-            IEqualityComparer<TKey> keyComparer = BuildEqualityComparer(dictionaryShape.KeyType);
-            IEqualityComparer<TValue> valueComparer = BuildEqualityComparer(dictionaryShape.ValueType);
+            IEqualityComparer<TKey> keyComparer = GetOrAddEqualityComparer(dictionaryShape.KeyType);
+            IEqualityComparer<TValue> valueComparer = GetOrAddEqualityComparer(dictionaryShape.ValueType);
             if (typeof(TDictionary).IsAssignableTo(typeof(Dictionary<TKey, TValue>)))
             {
                 return new DictionaryOfKVEqualityComparer<TKey, TValue>
@@ -89,7 +87,7 @@ public static partial class StructuralEqualityComparer
         {
             return new EnumerableEqualityComparer<TEnumerable, TElement>
             {
-                ElementComparer = BuildEqualityComparer(enumerableShape.ElementType),
+                ElementComparer = GetOrAddEqualityComparer(enumerableShape.ElementType),
                 GetEnumerable = enumerableShape.GetGetEnumerable()
             };
         }

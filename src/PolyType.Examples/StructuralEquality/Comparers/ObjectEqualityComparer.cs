@@ -1,8 +1,8 @@
-﻿using System.Collections;
-using System.Collections.Concurrent;
+﻿using PolyType.Abstractions;
+using PolyType.Utilities;
+using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using PolyType.Abstractions;
 
 namespace PolyType.Examples.StructuralEquality.Comparers;
 
@@ -58,10 +58,8 @@ internal sealed class PropertyEqualityComparer<TDeclaringType, TPropertyType> : 
     }
 }
 
-internal sealed class PolymorphicObjectEqualityComparer(ITypeShapeProvider shapeProvider) : EqualityComparer<object>
+internal sealed class PolymorphicObjectEqualityComparer(TypeCache cache) : EqualityComparer<object>
 {
-    private readonly ConcurrentDictionary<Type, IEqualityComparer> _cache = new();
-
     public override bool Equals(object? x, object? y)
     {
         if (x is null || y is null)
@@ -89,8 +87,6 @@ internal sealed class PolymorphicObjectEqualityComparer(ITypeShapeProvider shape
         return runtimeType == typeof(object) ? 1 : GetComparer(runtimeType).GetHashCode(obj);
     }
 
-    private IEqualityComparer GetComparer(Type type)
-    {
-        return _cache.GetOrAdd(type, StructuralEqualityComparer.Create, shapeProvider);
-    }
+    private IEqualityComparer GetComparer(Type type) =>
+        (IEqualityComparer)cache.GetOrAdd(type)!;
 }

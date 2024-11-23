@@ -1,9 +1,11 @@
-﻿using System.Buffers;
+﻿using PolyType.Abstractions;
+using PolyType.Examples.JsonSerializer.Converters;
+using PolyType.Utilities;
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using PolyType.Abstractions;
 
 namespace PolyType.Examples.JsonSerializer;
 
@@ -13,6 +15,11 @@ namespace PolyType.Examples.JsonSerializer;
 public static partial class JsonSerializerTS
 {
     private static readonly JsonSerializerOptions s_options = new();
+    private static readonly MultiProviderTypeCache s_converterCaches = new() 
+    {
+        ValueBuilderFactory = ctx => new Builder(ctx),
+        DelayedValueFactory = new DelayedJsonConverterFactory() 
+    };
 
     /// <summary>
     /// Builds a <see cref="JsonConverter{T}"/> instance from the specified shape.
@@ -20,8 +27,7 @@ public static partial class JsonSerializerTS
     /// <typeparam name="T">The type for which to build the converter.</typeparam>
     /// <param name="shape">The shape instance guiding converter construction.</param>
     /// <returns>An <see cref="JsonConverter{T}"/> instance.</returns>
-    public static JsonConverter<T> CreateConverter<T>(ITypeShape<T> shape) =>
-        new Builder().BuildJsonConverter(shape);
+    public static JsonConverter<T> CreateConverter<T>(ITypeShape<T> shape) => (JsonConverter<T>)s_converterCaches.GetOrAdd(shape)!;
 
     /// <summary>
     /// Builds an <see cref="JsonConverter{T}"/> instance from the specified shape provider.
@@ -29,19 +35,16 @@ public static partial class JsonSerializerTS
     /// <typeparam name="T">The type for which to build the converter.</typeparam>
     /// <param name="shapeProvider">The shape provider guiding converter construction.</param>
     /// <returns>An <see cref="JsonConverter{T}"/> instance.</returns>
-    public static JsonConverter<T> CreateConverter<T>(ITypeShapeProvider shapeProvider) =>
-        CreateConverter(shapeProvider.Resolve<T>());
+    public static JsonConverter<T> CreateConverter<T>(ITypeShapeProvider shapeProvider) => CreateConverter(shapeProvider.Resolve<T>());
 
     /// <summary>
-    /// Builds a <see cref="JsonConverter"/> instance from the specified shape provider.
+    /// Builds a <see cref="JsonConverter"/> instance from the reflection-based shape provider.
     /// </summary>
-    /// <param name="shape">The shape instance guiding converter construction.</param>
+    /// <typeparam name="T">The type for which to build the converter.</typeparam>
     /// <returns>An <see cref="JsonConverter{T}"/> instance.</returns>
-    public static JsonConverter CreateConverter(ITypeShape shape)
-    {
-        ITypeShapeFunc builder = new Builder();
-        return (JsonConverter)shape.Invoke(builder)!;
-    }
+    [RequiresUnreferencedCode("PolyType reflection provider requires unreferenced code")]
+    [RequiresDynamicCode("PolyType reflection provider requires dynamic code")]
+    public static JsonConverter<T> CreateConverterUsingReflection<T>() => CreateConverter<T>(ReflectionProvider.ReflectionTypeShapeProvider.Default);
 
     /// <summary>
     /// Builds an <see cref="JsonConverter{T}"/> instance using its <see cref="IShapeable{T}"/> implementation.

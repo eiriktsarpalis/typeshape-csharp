@@ -1,5 +1,6 @@
-﻿using System.Text;
-using PolyType.Abstractions;
+﻿using PolyType.Abstractions;
+using PolyType.Utilities;
+using System.Text;
 
 namespace PolyType.Examples.PrettyPrinter;
 
@@ -9,6 +10,12 @@ public delegate void PrettyPrinter<T>(StringBuilder builder, int indentation, T?
 /// <summary>Provides a pretty printer for .NET types built on top of PolyType.</summary>
 public static partial class PrettyPrinter
 {
+    private static readonly MultiProviderTypeCache s_cache = new()
+    {
+        DelayedValueFactory = new DelayedPrettyPrinterFactory(),
+        ValueBuilderFactory = ctx => new Builder(ctx),
+    };
+
     /// <summary>
     /// Builds a <see cref="PrettyPrinter{T}"/> instance from the specified shape.
     /// </summary>
@@ -16,7 +23,7 @@ public static partial class PrettyPrinter
     /// <param name="shape">The shape instance guiding printer construction.</param>
     /// <returns>An <see cref="PrettyPrinter{T}"/> instance.</returns>
     public static PrettyPrinter<T> Create<T>(ITypeShape<T> shape)
-        => new Builder().BuildPrettyPrinter(shape);
+        => (PrettyPrinter<T>)s_cache.GetOrAdd(shape)!;
 
     /// <summary>
     /// Builds a <see cref="PrettyPrinter{T}"/> instance from the specified shape provider.

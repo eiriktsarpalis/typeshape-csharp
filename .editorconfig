@@ -161,3 +161,9 @@ dotnet_diagnostic.xUnit2005.severity = none
 
 # SA1208: System using directives should be placed before other using directives
 dotnet_diagnostic.SA1208.severity = none
+
+# IDE0021: Use block body for constructor
+dotnet_diagnostic.IDE0021.severity = none
+
+# IDE0032: Use auto property
+dotnet_diagnostic.IDE0032.severity = none

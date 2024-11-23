@@ -1,12 +1,11 @@
-﻿using System.Buffers;
-using System.Collections.Concurrent;
+﻿using PolyType.Utilities;
+using System.Buffers;
 using System.Diagnostics;
 using System.Globalization;
 using System.Numerics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using PolyType.Abstractions;
 
 namespace PolyType.Examples.JsonSerializer.Converters;
 
@@ -83,9 +82,8 @@ public sealed class RuneConverter : JsonConverter<Rune>
     }
 }
 
-internal sealed class JsonObjectConverter(ITypeShapeProvider shapeProvider) : JsonConverter<object?>
+internal sealed class JsonPolymorphicObjectConverter(TypeCache typeCache) : JsonConverter<object?>
 {
-    private static readonly ConcurrentDictionary<Type, JsonConverter> _derivedTypes = new();
     public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         return reader.TokenType is JsonTokenType.Null ? null : JsonDocument.ParseValue(ref reader).RootElement;
@@ -124,6 +122,6 @@ internal sealed class JsonObjectConverter(ITypeShapeProvider shapeProvider) : Js
             return null;
         }
 
-        return _derivedTypes.GetOrAdd(runtimeType, static (t, provider) => JsonSerializerTS.CreateConverter(provider.Resolve(t)), shapeProvider);
+        return (JsonConverter)typeCache.GetOrAdd(runtimeType)!;
     }
 }

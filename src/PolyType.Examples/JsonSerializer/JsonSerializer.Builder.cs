@@ -1,38 +1,36 @@
-﻿using System.Diagnostics;
+﻿using PolyType.Abstractions;
+using PolyType.Examples.JsonSerializer.Converters;
+using PolyType.Utilities;
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
-using PolyType.Abstractions;
-using PolyType.Examples.JsonSerializer.Converters;
-using PolyType.Examples.Utilities;
 
 namespace PolyType.Examples.JsonSerializer;
 
 public static partial class JsonSerializerTS
 {
-    private sealed class Builder : ITypeShapeVisitor, ITypeShapeFunc
+    private sealed class Builder(TypeGenerationContext generationContext) : ITypeShapeVisitor, ITypeShapeFunc
     {
-        private readonly TypeDictionary _cache = new();
+        public JsonConverter<T> GetOrAddConverter<T>(ITypeShape<T> shape) =>
+            (JsonConverter<T>)generationContext.GetOrAdd(shape, this)!;
 
-        object? ITypeShapeFunc.Invoke<T>(ITypeShape<T> typeShape, object? state) => BuildJsonConverter(typeShape);
-
-        public JsonConverter<T> BuildJsonConverter<T>(ITypeShape<T> typeShape)
+        object? ITypeShapeFunc.Invoke<T>(ITypeShape<T> typeShape, object? state)
         {
+            // Check if the type has a built-in converter.
             if (s_defaultConverters.TryGetValue(typeShape.Type, out JsonConverter? defaultConverter))
             {
-                return (JsonConverter<T>)defaultConverter;
+                return defaultConverter;
             }
 
-            return _cache.GetOrAdd<JsonConverter<T>>(
-                typeShape, 
-                this, 
-                delayedValueFactory: self => new DelayedJsonConverter<T>(self));
+            // Otherwise, build a converter using the visitor.
+            return typeShape.Accept(this);
         }
 
         public object? VisitObject<T>(IObjectTypeShape<T> type, object? state)
         {
             if (typeof(T) == typeof(object))
             {
-                return new JsonObjectConverter(type.Provider);
+                return new JsonPolymorphicObjectConverter(generationContext.ParentCache!);
             }
 
             JsonPropertyConverter<T>[] properties = type.GetProperties()
@@ -47,7 +45,7 @@ public static partial class JsonSerializerTS
 
         public object? VisitProperty<TDeclaringType, TPropertyType>(IPropertyShape<TDeclaringType, TPropertyType> property, object? state)
         {
-            JsonConverter<TPropertyType> propertyConverter = BuildJsonConverter(property.PropertyType);
+            JsonConverter<TPropertyType> propertyConverter = GetOrAddConverter(property.PropertyType);
             return new JsonPropertyConverter<TDeclaringType, TPropertyType>(property, propertyConverter);
         }
 
@@ -74,13 +72,13 @@ public static partial class JsonSerializerTS
 
         public object? VisitConstructorParameter<TArgumentState, TParameter>(IConstructorParameterShape<TArgumentState, TParameter> parameter, object? state)
         {
-            JsonConverter<TParameter> paramConverter = BuildJsonConverter(parameter.ParameterType);
+            JsonConverter<TParameter> paramConverter = GetOrAddConverter(parameter.ParameterType);
             return new JsonPropertyConverter<TArgumentState, TParameter>(parameter, paramConverter);
         }
 
         public object? VisitEnumerable<TEnumerable, TElement>(IEnumerableTypeShape<TEnumerable, TElement> enumerableShape, object? state)
         {
-            JsonConverter<TElement> elementConverter = BuildJsonConverter(enumerableShape.ElementType);
+            JsonConverter<TElement> elementConverter = GetOrAddConverter(enumerableShape.ElementType);
 
             if (enumerableShape.Rank > 1)
             {
@@ -114,8 +112,8 @@ public static partial class JsonSerializerTS
 
         public object? VisitDictionary<TDictionary, TKey, TValue>(IDictionaryTypeShape<TDictionary, TKey, TValue> dictionaryShape, object? state) where TKey : notnull
         {
-            JsonConverter<TKey> keyConverter = BuildJsonConverter(dictionaryShape.KeyType);
-            JsonConverter<TValue> valueConverter = BuildJsonConverter(dictionaryShape.ValueType);
+            JsonConverter<TKey> keyConverter = GetOrAddConverter(dictionaryShape.KeyType);
+            JsonConverter<TValue> valueConverter = GetOrAddConverter(dictionaryShape.ValueType);
 
             return dictionaryShape.ConstructionStrategy switch
             {
@@ -147,7 +145,7 @@ public static partial class JsonSerializerTS
 
         public object? VisitNullable<T>(INullableTypeShape<T> nullableShape, object? state) where T : struct
         {
-            JsonConverter<T> elementConverter = BuildJsonConverter(nullableShape.ElementType);
+            JsonConverter<T> elementConverter = GetOrAddConverter(nullableShape.ElementType);
             return new JsonNullableConverter<T>(elementConverter);
         }
 
