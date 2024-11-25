@@ -8,8 +8,6 @@ PolyType is a practical generic programming library for .NET. It facilitates the
 
 The project is a port of the [TypeShape](https://github.com/eiriktsarpalis/TypeShape) library for F#, adapted to patterns and idioms available in C#. The name PolyType is a reference to [polytypic programming](https://en.wikipedia.org/wiki/Polymorphism_(computer_science)#Polytypism), another term for generic programming.
 
-See the [project website](https://eiriktsarpalis.github.io/PolyType) for additional background and [API documentation](https://eiriktsarpalis.github.io/PolyType/api/PolyType.html).
-
 ## Quick Start
 
 You can try the library by installing the `PolyType` NuGet package:
