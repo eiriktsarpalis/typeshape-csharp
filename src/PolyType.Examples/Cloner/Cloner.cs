@@ -30,7 +30,7 @@ public static partial class Cloner
     /// <param name="shapeProvider">The shape provider guiding cloner construction.</param>
     /// <returns>A delegate for cloning instances of type <typeparamref name="T"/>.</returns>
     public static Func<T?, T?> CreateCloner<T>(ITypeShapeProvider shapeProvider) =>
-        CreateCloner<T>(shapeProvider.Resolve<T>());
+        (Func<T?, T?>)s_clonerCache.GetOrAdd(typeof(T), shapeProvider)!;
 
     /// <summary>
     /// Deep clones an instance of type <typeparamref name="T"/> using its <see cref="ITypeShape{T}"/> implementation.

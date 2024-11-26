@@ -46,7 +46,7 @@ public static partial class XmlSerializer
     /// <param name="shapeProvider">The shape provider guiding converter construction.</param>
     /// <returns>An <see cref="XmlConverter{T}"/> instance.</returns>
     public static XmlConverter<T> CreateConverter<T>(ITypeShapeProvider shapeProvider) =>
-        CreateConverter(shapeProvider.Resolve<T>());
+        (XmlConverter<T>)s_converterCaches.GetOrAdd(typeof(T), shapeProvider)!;
 
     /// <summary>
     /// Serializes a value to an XML string using the provided converter.

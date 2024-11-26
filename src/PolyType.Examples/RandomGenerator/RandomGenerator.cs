@@ -31,7 +31,7 @@ public static partial class RandomGenerator
     /// <param name="shapeProvider">The shape provider guiding printer construction.</param>
     /// <returns>An <see cref="RandomGenerator{T}"/> instance.</returns>
     public static RandomGenerator<T> Create<T>(ITypeShapeProvider shapeProvider) =>
-        Create(shapeProvider.Resolve<T>());
+        (RandomGenerator<T>)s_converterCaches.GetOrAdd(typeof(T), shapeProvider)!;
 
     /// <summary>
     /// Generates a random value using the specified parameters.

@@ -32,7 +32,7 @@ public static partial class PrettyPrinter
     /// <param name="shapeProvider">The shape provider guiding printer construction.</param>
     /// <returns>An <see cref="PrettyPrinter{T}"/> instance.</returns>
     public static PrettyPrinter<T> Create<T>(ITypeShapeProvider shapeProvider)
-        => Create(shapeProvider.Resolve<T>());
+        => (PrettyPrinter<T>)s_cache.GetOrAdd(typeof(T), shapeProvider)!;
 
     /// <summary>
     /// Pretty prints the specified value to a string.

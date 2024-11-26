@@ -24,7 +24,7 @@ public static partial class Counter
     /// Creates an object counting delegate using the specified shape provider.
     /// </summary>
     public static Func<T?, long> Create<T>(ITypeShapeProvider shapeProvider)
-        => Create(shapeProvider.Resolve<T>());
+        => (Func<T?, long>)s_cache.GetOrAdd(typeof(T), shapeProvider)!;
 
     /// <summary>
     /// Counts the number of nodes in the object graph using its <see cref="IShapeable{T}"/> implementation.

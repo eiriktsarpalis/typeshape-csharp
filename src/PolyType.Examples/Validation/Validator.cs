@@ -29,7 +29,7 @@ public static partial class Validator
     /// Builds a validator delegate using a shape provider as input.
     /// </summary>
     public static Validator<T> Create<T>(ITypeShapeProvider shapeProvider) =>
-        Create(shapeProvider.Resolve<T>());
+        (Validator<T>?)s_cache.GetOrAdd(typeof(T), shapeProvider) ?? Builder.CreateNullValidator<T>();
 
     /// <summary>
     /// Runs validation against the provided value.

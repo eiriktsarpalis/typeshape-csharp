@@ -52,8 +52,17 @@ public static partial class Mapper
     /// <typeparam name="TTarget">The type to map to.</typeparam>
     /// <param name="shapeProvider">The PolyType provider.</param>
     /// <returns>A mapper delegate.</returns>
-    public static Mapper<TSource, TTarget> Create<TSource, TTarget>(ITypeShapeProvider shapeProvider) =>
-        Create(shapeProvider.Resolve<TSource>(), shapeProvider.Resolve<TTarget>());
+    public static Mapper<TSource, TTarget> Create<TSource, TTarget>(ITypeShapeProvider shapeProvider)
+    {
+        TypeCache providerScopedTypeCache = s_cache.GetScopedCache(shapeProvider);
+        if (providerScopedTypeCache.TryGetValue(typeof(Mapper<TSource, TTarget>), out object? result))
+        {
+            return (Mapper<TSource, TTarget>)result!;
+        }
+
+        ITypeShape mapperShape = new MapperShape<TSource, TTarget>(shapeProvider.Resolve<TSource>(), shapeProvider.Resolve<TTarget>());
+        return (Mapper<TSource, TTarget>)providerScopedTypeCache.GetOrAdd(mapperShape)!;
+    }
 
     /// <summary>
     /// Maps an object of type <typeparamref name="TSource"/> to an object of type <typeparamref name="TTarget"/>.

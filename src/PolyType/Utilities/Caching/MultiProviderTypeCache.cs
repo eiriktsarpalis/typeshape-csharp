@@ -56,4 +56,16 @@ public sealed class MultiProviderTypeCache
         TypeCache cache = GetScopedCache(typeShape.Provider);
         return cache.GetOrAdd(typeShape);
     }
+
+    /// <summary>
+    /// Gets or adds a value keyed on the type represented by <paramref name="provider"/>.
+    /// </summary>
+    /// <param name="type">The type representing the key type.</param>
+    /// <param name="provider">The type shape provider used to resolve the type shape.</param>
+    /// <returns>The final computed value.</returns>
+    public object? GetOrAdd(Type type, ITypeShapeProvider provider)
+    {
+        TypeCache cache = GetScopedCache(provider);
+        return cache.GetOrAdd(type);
+    }
 }

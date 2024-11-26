@@ -35,7 +35,7 @@ public static partial class CborSerializer
     /// <param name="shapeProvider">The shape provider converter construction.</param>
     /// <returns>An <see cref="CborConverter{T}"/> instance.</returns>
     public static CborConverter<T> CreateConverter<T>(ITypeShapeProvider shapeProvider) =>
-        CreateConverter(shapeProvider.Resolve<T>());
+        (CborConverter<T>)s_converterCaches.GetOrAdd(typeof(T), shapeProvider)!;
 
     /// <summary>
     /// Builds a <see cref="JsonConverter"/> instance from the reflection-based shape provider.

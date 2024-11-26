@@ -30,7 +30,7 @@ public static partial class ConfigurationBinderTS
     /// <param name="shapeProvider">The shape provider guiding binder construction.</param>
     /// <returns>A configuration binder delegate.</returns>
     public static Func<IConfiguration, T?> Create<T>(ITypeShapeProvider shapeProvider) =>
-        Create(shapeProvider.Resolve<T>());
+        (Func<IConfiguration, T?>)s_cache.GetOrAdd(typeof(T), shapeProvider)!;
 
     /// <summary>
     /// Builds a configuration binder delegate instance from the specified shape provider.

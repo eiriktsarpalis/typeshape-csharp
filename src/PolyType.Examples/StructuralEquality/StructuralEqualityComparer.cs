@@ -30,7 +30,7 @@ public static partial class StructuralEqualityComparer
     /// <param name="shapeProvider">The shape provider guiding comparer construction.</param>
     /// <returns>An <see cref="IEqualityComparer{T}"/> instance.</returns>
     public static IEqualityComparer<T> Create<T>(ITypeShapeProvider shapeProvider) =>
-        Create(shapeProvider.Resolve<T>());
+        (IEqualityComparer<T>)s_converterCaches.GetOrAdd(typeof(T), shapeProvider)!;
 
     /// <summary>
     /// Gets a structural <see cref="IEqualityComparer{T}"/> instance using its <see cref="IShapeable{T}"/> implementation.

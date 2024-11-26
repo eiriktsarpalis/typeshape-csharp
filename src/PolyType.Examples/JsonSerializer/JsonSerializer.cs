@@ -35,7 +35,7 @@ public static partial class JsonSerializerTS
     /// <typeparam name="T">The type for which to build the converter.</typeparam>
     /// <param name="shapeProvider">The shape provider guiding converter construction.</param>
     /// <returns>An <see cref="JsonConverter{T}"/> instance.</returns>
-    public static JsonConverter<T> CreateConverter<T>(ITypeShapeProvider shapeProvider) => CreateConverter(shapeProvider.Resolve<T>());
+    public static JsonConverter<T> CreateConverter<T>(ITypeShapeProvider shapeProvider) => (JsonConverter<T>)s_converterCaches.GetOrAdd(typeof(T), shapeProvider)!;
 
     /// <summary>
     /// Builds a <see cref="JsonConverter"/> instance from the reflection-based shape provider.
