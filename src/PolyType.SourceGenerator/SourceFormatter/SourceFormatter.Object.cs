@@ -15,11 +15,11 @@ internal sealed partial class SourceFormatter
             {
                 return new global::PolyType.SourceGenModel.SourceGenObjectTypeShape<{{objectShapeModel.Type.FullyQualifiedName}}>
                 {
-                    Provider = this,
-                    IsRecordType = {{FormatBool(objectShapeModel.IsRecordType)}},
-                    IsTupleType = {{FormatBool(objectShapeModel.IsTupleType)}},
                     CreatePropertiesFunc = {{FormatNull(propertiesFactoryMethodName)}},
                     CreateConstructorFunc = {{FormatNull(constructorFactoryMethodName)}},
+                    IsRecordType = {{FormatBool(objectShapeModel.IsRecordType)}},
+                    IsTupleType = {{FormatBool(objectShapeModel.IsTupleType)}},
+                    Provider = this,
                 };
             }
             """, trimNullAssignmentLines: true);

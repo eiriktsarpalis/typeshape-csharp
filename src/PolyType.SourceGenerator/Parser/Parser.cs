@@ -7,6 +7,7 @@ using System.Text;
 using PolyType.Roslyn;
 using PolyType.SourceGenerator.Helpers;
 using PolyType.SourceGenerator.Model;
+using System.Text.RegularExpressions;
 
 namespace PolyType.SourceGenerator;
 
@@ -127,8 +128,9 @@ public sealed partial class Parser : TypeDataModelGenerator
         }
 
         Parser parser = new(knownSymbols.Compilation.Assembly, knownSymbols, cancellationToken);
+        TypeDeclarationModel shapeProviderDeclaration = CreateShapeProviderDeclaration(knownSymbols.Compilation);
         ImmutableEquatableArray<TypeDeclarationModel> generateShapeTypes = parser.IncludeTypesUsingGenerateShapeAttributes(generateShapeDeclarations);
-        return parser.ExportTypeShapeProviderModel(s_globalProviderDeclaration, generateShapeTypes);
+        return parser.ExportTypeShapeProviderModel(shapeProviderDeclaration, generateShapeTypes);
     }
 
     private TypeShapeProviderModel ExportTypeShapeProviderModel(TypeDeclarationModel providerDeclaration, ImmutableEquatableArray<TypeDeclarationModel> generateShapeTypes)
@@ -339,20 +341,29 @@ public sealed partial class Parser : TypeDataModelGenerator
         return null;
     }
 
-    private static readonly TypeDeclarationModel s_globalProviderDeclaration = new()
+    private static TypeDeclarationModel CreateShapeProviderDeclaration(Compilation compilation)
     {
-        Id = new()
+        string typeName = !string.IsNullOrWhiteSpace(compilation.AssemblyName)
+            ? "ShapeProvider_" + s_escapeAssemblyName.Replace(compilation.AssemblyName, "_")
+            : "ShapeProvider";
+
+        return new()
         {
-            FullyQualifiedName = "global::PolyType.SourceGenerator.ShapeProvider",
-            IsValueType = false,
-            SpecialType = SpecialType.None,
-        },
-        Name = "ShapeProvider",
-        Namespace = "PolyType.SourceGenerator",
-        SourceFilenamePrefix = "PolyType.SourceGenerator.ShapeProvider",
-        TypeDeclarationHeader = "internal sealed partial class ShapeProvider",
-        IsWitnessTypeDeclaration = false,
-        ContainingTypes = [],
-        ShapeableOfTImplementations = [],
-    };
+            Id = new()
+            {
+                FullyQualifiedName = $"global::PolyType.SourceGenerator.{typeName}",
+                IsValueType = false,
+                SpecialType = SpecialType.None,
+            },
+            Name = typeName,
+            Namespace = "PolyType.SourceGenerator",
+            SourceFilenamePrefix = "PolyType.SourceGenerator.ShapeProvider",
+            TypeDeclarationHeader = $"internal sealed partial class {typeName}",
+            IsWitnessTypeDeclaration = false,
+            ContainingTypes = [],
+            ShapeableOfTImplementations = [],
+        };
+    }
+
+    private static readonly Regex s_escapeAssemblyName = new(@"[^\w]", RegexOptions.Compiled);
 }
