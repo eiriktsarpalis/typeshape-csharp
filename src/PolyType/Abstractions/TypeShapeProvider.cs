@@ -40,5 +40,5 @@ public static class TypeShapeProvider
     /// <returns>An <see cref="ITypeShape"/> instance describing <paramref name="type"/>.</returns>
     /// <exception cref="NotSupportedException"><paramref name="shapeProvider"/> does not support <paramref name="type"/>.</exception>
     public static ITypeShape Resolve(this ITypeShapeProvider shapeProvider, Type type)
-        => shapeProvider.GetShape(type) ?? throw new NotSupportedException($"The PolyType provider '{shapeProvider.GetType()}' does not support type '{type}'.");
+        => shapeProvider.GetShape(type) ?? throw new NotSupportedException($"The shape provider '{shapeProvider.GetType()}' does not support type '{type}'.");
 }

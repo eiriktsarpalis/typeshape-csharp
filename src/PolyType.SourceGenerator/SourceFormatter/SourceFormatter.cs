@@ -23,8 +23,7 @@ internal sealed partial class SourceFormatter(TypeShapeProviderModel provider)
     private void AddAllSourceFiles(SourceProductionContext context, TypeShapeProviderModel provider)
     {
         context.CancellationToken.ThrowIfCancellationRequested();
-        context.AddSource($"{provider.ProviderDeclaration.SourceFilenamePrefix}.g.cs", FormatProviderMainFile(provider));
-        context.AddSource($"{provider.ProviderDeclaration.SourceFilenamePrefix}.ITypeShapeProvider.g.cs", FormatProviderInterfaceImplementation(provider));
+        context.AddSource($"{provider.ProviderDeclaration.SourceFilenamePrefix}.g.cs", FormatShapeProviderMainFile(provider));
 
         foreach (TypeShapeModel type in provider.ProvidedTypes.Values)
         {
@@ -48,37 +47,6 @@ internal sealed partial class SourceFormatter(TypeShapeProviderModel provider)
                 context.AddSource(sourceFile, FormatIShapeableOfTStub(typeDeclaration, typeToImplement, provider));
             }
         }
-    }
-
-    private static SourceText FormatProviderMainFile(TypeShapeProviderModel provider)
-    {
-        var writer = new SourceWriter();
-        StartFormatSourceFile(writer, provider.ProviderDeclaration);
-
-        writer.WriteLine("""/// <summary>The source generated <see cref="global::PolyType.ITypeShapeProvider"/> implementation for the current assembly.</summary>""");
-        writer.WriteLine($"""[global::System.CodeDom.Compiler.GeneratedCodeAttribute({FormatStringLiteral(PolyTypeGenerator.SourceGeneratorName)}, {FormatStringLiteral(PolyTypeGenerator.SourceGeneratorVersion)})]""");
-        writer.WriteLine(provider.ProviderDeclaration.TypeDeclarationHeader);
-        writer.WriteLine('{');
-        writer.Indentation++;
-
-        writer.WriteLine($$"""
-            private const global::System.Reflection.BindingFlags {{InstanceBindingFlagsConstMember}} = 
-                global::System.Reflection.BindingFlags.Public | 
-                global::System.Reflection.BindingFlags.NonPublic | 
-                global::System.Reflection.BindingFlags.Instance;
-
-            /// <summary>Gets the default instance of the <see cref="{{provider.ProviderDeclaration.Name}}"/> class.</summary>
-            public static {{provider.ProviderDeclaration.Name}} {{ProviderSingletonProperty}} { get; } = new();
-
-            /// <summary>Initializes a new instance of the <see cref="{{provider.ProviderDeclaration.Name}}"/> class.</summary>
-            private {{provider.ProviderDeclaration.Name}}() { }
-            """);
-
-        writer.Indentation--;
-        writer.WriteLine('}');
-        EndFormatSourceFile(writer);
-
-        return writer.ToSourceText();
     }
 
     private static void StartFormatSourceFile(SourceWriter writer, TypeDeclarationModel typeDeclaration)
