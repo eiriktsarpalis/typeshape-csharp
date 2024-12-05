@@ -23,18 +23,6 @@ jobs:
         dotnet-version: 9.0.x
     - name: Build & Test
       run: make
-    - name: Code Coverage Report
-      uses: irongut/CodeCoverageSummary@v1.3.0
-      with:
-        filename: artifacts/**/*.cobertura.xml
-        badge: true
-        fail_below_min: true
-        format: markdown
-        hide_branch_rate: false
-        hide_complexity: true
-        indicators: true
-        output: both
-        thresholds: '60 80'
 
   Windows:
     runs-on: windows-latest
@@ -49,6 +37,18 @@ jobs:
         dotnet-version: 9.0.x
     - name: Build & Test
       run: make
+    - name: Code Coverage Report
+      uses: irongut/CodeCoverageSummary@v1.3.0
+      with:
+        filename: artifacts/**/*.cobertura.xml
+        badge: true
+        fail_below_min: true
+        format: markdown
+        hide_branch_rate: false
+        hide_complexity: true
+        indicators: true
+        output: both
+        thresholds: '60 80'
 
   MacOS:
     runs-on: macos-latest
