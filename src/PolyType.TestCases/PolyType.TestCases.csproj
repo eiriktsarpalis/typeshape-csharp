@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>net8.0;netstandard2.0</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <NoWarn>$(NoWarn);CA1051;CA1715;CA1725;CA1822;CA1825;CA1852;CA1861</NoWarn>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -20,6 +20,11 @@
 
   <ItemGroup>
     <PackageReference Include="FSharp.Core" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Collections.Immutable" />
+    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 
   <Target Name="PackExtraAssemblies" DependsOnTargets="ResolveProjectReferences;DebugSymbolsProjectOutputGroup">

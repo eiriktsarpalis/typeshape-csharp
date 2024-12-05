@@ -1,16 +1,25 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>net9.0;net8.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">$(TargetFrameworks);net462</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <WarningsAsErrors>Nullable</WarningsAsErrors>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\src\PolyType\ReflectionProvider\Helpers\CommonHelpers.cs" Link="Helpers\CommonHelpers.cs" />
-    <Compile Include="..\..\src\PolyType\ReflectionProvider\Helpers\ReflectionHelpers.cs" Link="Helpers\ReflectionHelpers.cs" />
+    <Compile Include="..\..\src\Shared\Helpers\CommonHelpers.cs" Link="Helpers\CommonHelpers.cs" />
+    <Compile Include="..\..\src\Shared\Helpers\DebugExt.cs" Link="Shared\DebugExt.cs" />
+    <Compile Include="..\..\src\Shared\Helpers\ReflectionHelpers.cs" Link="Helpers\ReflectionHelpers.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
+    <Compile Include="..\..\src\Shared\Polyfills\LinkerAttributes\*.cs " Link="Shared\Polyfills\LinkerAttributes\%(Filename).cs" />
+    <Compile Include="..\..\src\Shared\Polyfills\NullabilityInfo\*.cs " Link="Shared\Polyfills\NullabilityInfo\%(Filename).cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,11 +29,11 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="coverlet.collector">
+    <PackageReference Include="JsonSchema.Net" />
+    <PackageReference Include="PolySharp">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="JsonSchema.Net" />
   </ItemGroup>
 
   <ItemGroup>

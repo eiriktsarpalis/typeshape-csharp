@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace PolyType.Examples.Validation;
 
 /// <summary>
-/// Defines an abstract validation attribute in the style of <see cref="System.ComponentModel.DataAnnotations.ValidationAttribute"/>.
+/// Defines an abstract validation attribute in the style of System.ComponentModel validation.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = true, Inherited = true)]
 public abstract class ValidationAttribute : Attribute
@@ -16,7 +16,7 @@ public abstract class ValidationAttribute : Attribute
     public abstract Predicate<TMemberType>? CreateValidationPredicate<TMemberType>();
 }
 
-/// <summary>Defines a required validation attribute in the style of <see cref="System.ComponentModel.DataAnnotations.RequiredAttribute"/>.</summary>
+/// <summary>Defines a required validation attribute in the style of System.ComponentModel RequiredAttribute.</summary>
 public class RequiredAttribute : ValidationAttribute
 {
     /// <inheritdoc/>
@@ -27,7 +27,7 @@ public class RequiredAttribute : ValidationAttribute
         => static value => value is not (null or "");
 }
 
-/// <summary>Defines a length validation attribute in the style of <see cref="System.ComponentModel.DataAnnotations.LengthAttribute"/>.</summary>
+/// <summary>Defines a length validation attribute in the style of System.ComponentModel LengthAttribute.</summary>
 public class LengthAttribute : ValidationAttribute
 {
     /// <inheritdoc/>
@@ -59,7 +59,7 @@ public class LengthAttribute : ValidationAttribute
     }
 }
 
-/// <summary>Defines a range validation attribute in the style of <see cref="System.ComponentModel.DataAnnotations.RangeAttribute"/>.</summary>
+/// <summary>Defines a range validation attribute in the style of System.ComponentModel RangeAttribute.</summary>
 public class RangeAttribute<T> : ValidationAttribute
 {
     /// <inheritdoc/>
@@ -83,7 +83,7 @@ public class RangeAttribute<T> : ValidationAttribute
     }
 }
 
-/// <summary>Defines a regex validation attribute in the style of <see cref="System.ComponentModel.DataAnnotations.RegularExpressionAttribute"/>.</summary>
+/// <summary>Defines a regex validation attribute in the style of System.ComponentModel RegexAttribute.</summary>
 public class RegularExpressionAttribute : ValidationAttribute
 {
     /// <summary>The regex pattern to be used by the validator.</summary>

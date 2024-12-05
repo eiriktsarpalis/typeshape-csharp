@@ -1,6 +1,5 @@
 ﻿using PolyType.Abstractions;
 using PolyType.Utilities;
-using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 
 namespace PolyType.Examples.Validation;
@@ -9,6 +8,12 @@ namespace PolyType.Examples.Validation;
 /// Delegate containing a recursive validator walking the object graph for validation attributes.
 /// </summary>
 public delegate void Validator<in T>(T? value, List<string> path, ref List<string>? errors);
+
+/// <summary>
+/// Exception thrown when validation fails.
+/// </summary>
+/// <param name="message">The validation error message.</param>
+public sealed class ValidationException(string message) : Exception(message);
 
 /// <summary>Provides an object validator for .NET types built on top of PolyType.</summary>
 public static partial class Validator
@@ -53,6 +58,7 @@ public static partial class Validator
         }
     }
 
+#if NET
     /// <summary>
     /// Runs validation against the provided value.
     /// </summary>
@@ -82,4 +88,5 @@ public static partial class Validator
         public static Validator<T> Value => s_value ??= Create(TProvider.GetShape());
         private static Validator<T>? s_value;
     }
+#endif
 }

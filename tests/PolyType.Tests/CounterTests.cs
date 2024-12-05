@@ -3,7 +3,7 @@ using Xunit;
 
 namespace PolyType.Tests;
 
-public abstract partial class CounterTests(IProviderUnderTest providerUnderTest)
+public abstract partial class CounterTests(ProviderUnderTest providerUnderTest)
 {
     [Theory]
     [MemberData(nameof(GetValuesAndExpectedResult))]
@@ -18,21 +18,19 @@ public abstract partial class CounterTests(IProviderUnderTest providerUnderTest)
 
     public static IEnumerable<object?[]> GetValuesAndExpectedResult()
     {
-        SourceGenProvider p = new();
-        yield return Create(p, "string", 1);
-        yield return Create(p, (string?)null, 0);
-        yield return Create(p, -5, 1);
-        yield return Create(p, false, 1);
-        yield return Create(p, (int[])[1, 2, 3, 4, 5], 6);
-        yield return Create(p, (string?[])[null, "str", "str", null, null], 3);
-        yield return Create(p, (List<int>)[1, 2, 3, 4, 5], 6);
-        yield return Create(p, new Dictionary<string, int> { ["k1"] = 1, ["k2"] = 2 }, 5);
-        yield return Create(default(SimpleRecord), new SimpleRecord(42), 2);
-        yield return Create(p, new MyLinkedList<SimpleRecord> { Value = new SimpleRecord(1), Next = new() { Value = new SimpleRecord(2), Next = null } }, 6);
+        ITypeShapeProvider p = Witness.ShapeProvider;
+        yield return Create(TestCase.Create("string", p), 1);
+        yield return Create(TestCase.Create((string?)null, p), 0);
+        yield return Create(TestCase.Create(-5, p), 1);
+        yield return Create(TestCase.Create(false, p), 1);
+        yield return Create(TestCase.Create((int[])[1, 2, 3, 4, 5], p), 6);
+        yield return Create(TestCase.Create((string?[])[null, "str", "str", null, null], p), 3);
+        yield return Create(TestCase.Create((List<int>)[1, 2, 3, 4, 5], p), 6);
+        yield return Create(TestCase.Create(new Dictionary<string, int> { ["k1"] = 1, ["k2"] = 2 }, p), 5);
+        yield return Create(TestCase.Create(new SimpleRecord(42), p), 2);
+        yield return Create(TestCase.Create(new MyLinkedList<SimpleRecord> { Value = new SimpleRecord(1), Next = new() { Value = new SimpleRecord(2), Next = null } }, p), 6);
 
-        static object?[] Create<TProvider, T>(TProvider? provider, T? value, long expectedCount)
-            where TProvider : IShapeable<T> => 
-            [TestCase.Create(provider, value), expectedCount];
+        static object?[] Create<T>(TestCase<T> testCase, long expectedCount) => [testCase, expectedCount];
     }
 
     [Theory]
@@ -47,9 +45,9 @@ public abstract partial class CounterTests(IProviderUnderTest providerUnderTest)
         Assert.Equal(leftCount, rightCount);
     }
 
-    protected Func<T?, long> GetCounterUnderTest<T>(TestCase<T> testCase) => Counter.Create<T>(providerUnderTest.ResolveShape(testCase));
+    protected Func<T?, long> GetCounterUnderTest<T>(TestCase<T> testCase) => Counter.Create(providerUnderTest.ResolveShape(testCase));
 }
 
-public sealed class CounterTests_Reflection() : CounterTests(RefectionProviderUnderTest.Default);
-public sealed class CounterTests_ReflectionEmit() : CounterTests(RefectionProviderUnderTest.NoEmit);
+public sealed class CounterTests_Reflection() : CounterTests(RefectionProviderUnderTest.NoEmit);
+public sealed class CounterTests_ReflectionEmit() : CounterTests(RefectionProviderUnderTest.Emit);
 public sealed class CounterTests_SourceGen() : CounterTests(SourceGenProviderUnderTest.Default);

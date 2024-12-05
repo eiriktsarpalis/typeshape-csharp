@@ -18,8 +18,15 @@ public static class CollectionHelpers
     public static List<T> CreateList<T>(ReadOnlySpan<T> span)
     {
         var list = new List<T>(span.Length);
+#if NET
         CollectionsMarshal.SetCount(list, span.Length);
         span.CopyTo(CollectionsMarshal.AsSpan(list));
+#else
+        for (int i = 0; i < span.Length; i++)
+        {
+            list.Add(span[i]);
+        }
+#endif
         return list;
     }
 
@@ -31,7 +38,13 @@ public static class CollectionHelpers
     /// <returns>A new set containing the specified elements.</returns>
     public static HashSet<T> CreateHashSet<T>(ReadOnlySpan<T> span)
     {
-        var set = new HashSet<T>(span.Length);
+        HashSet<T> set =
+#if NET
+            new(span.Length);
+#else
+            new();
+#endif
+
         for (int i = 0; i < span.Length; i++)
         {
             set.Add(span[i]); // NB duplicates have overwrite semantics.

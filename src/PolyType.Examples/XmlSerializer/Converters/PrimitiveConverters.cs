@@ -70,6 +70,7 @@ internal sealed class UInt64Converter : XmlConverter<ulong>
     }
 }
 
+#if NET
 internal sealed class UInt128Converter : XmlConverter<UInt128>
 {
     public override UInt128 Read(XmlReader reader)
@@ -82,6 +83,7 @@ internal sealed class UInt128Converter : XmlConverter<UInt128>
         writer.WriteEndElement();
     }
 }
+#endif
 
 internal sealed class SByteConverter : XmlConverter<sbyte>
 {
@@ -135,6 +137,7 @@ internal sealed class Int64Converter : XmlConverter<long>
     }
 }
 
+#if NET
 internal sealed class Int128Converter : XmlConverter<Int128>
 {
     public override Int128 Read(XmlReader reader)
@@ -147,6 +150,7 @@ internal sealed class Int128Converter : XmlConverter<Int128>
         writer.WriteEndElement();
     }
 }
+#endif
 
 internal sealed class StringConverter : XmlConverter<string>
 {
@@ -176,6 +180,7 @@ internal sealed class CharConverter : XmlConverter<char>
         => writer.WriteElementString(localName, value.ToString(CultureInfo.InvariantCulture));
 }
 
+#if NET
 internal sealed class RuneConverter : XmlConverter<Rune>
 {
     public override Rune Read(XmlReader reader)
@@ -197,6 +202,7 @@ internal sealed class HalfConverter : XmlConverter<Half>
         writer.WriteEndElement();
     }
 }
+#endif
 
 internal sealed class SingleConverter : XmlConverter<float>
 {
@@ -271,7 +277,7 @@ internal sealed class ByteArrayConverter : XmlConverter<byte[]>
 internal sealed class GuidConverter : XmlConverter<Guid>
 {
     public override Guid Read(XmlReader reader)
-        => Guid.Parse(reader.ReadElementContentAsString(), CultureInfo.InvariantCulture);
+        => Guid.Parse(reader.ReadElementContentAsString());
 
     public override void Write(XmlWriter writer, string localName, Guid value)
     {
@@ -320,6 +326,7 @@ internal sealed class TimeSpanConverter : XmlConverter<TimeSpan>
     }
 }
 
+#if NET
 internal sealed class DateOnlyConverter : XmlConverter<DateOnly>
 {
     public override DateOnly Read(XmlReader reader)
@@ -332,6 +339,7 @@ internal sealed class DateOnlyConverter : XmlConverter<DateOnly>
         writer.WriteEndElement();
     }
 }
+#endif
 
 internal sealed class UriConverter : XmlConverter<Uri>
 {
@@ -371,6 +379,7 @@ internal sealed class VersionConverter : XmlConverter<Version>
     }
 }
 
+#if NET
 internal sealed class TimeOnlyConverter : XmlConverter<TimeOnly>
 {
     public override TimeOnly Read(XmlReader reader)
@@ -383,6 +392,7 @@ internal sealed class TimeOnlyConverter : XmlConverter<TimeOnly>
         writer.WriteEndElement();
     }
 }
+#endif
 
 internal sealed class ObjectConverter : XmlConverter<object>
 {

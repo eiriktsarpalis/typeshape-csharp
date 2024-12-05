@@ -1,7 +1,7 @@
-﻿using System.Diagnostics;
+﻿using PolyType.Abstractions;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using PolyType.Abstractions;
 
 namespace PolyType.ReflectionProvider;
 
@@ -55,7 +55,7 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
 
         PropertyShapeInfo[] allMembers;
         MemberInitializerShapeInfo[] settableMembers;
-        NullabilityInfoContext? nullabilityCtx = Provider.CreateNullabilityInfoContext();
+        NullabilityInfoContext? nullabilityCtx = ReflectionTypeShapeProvider.CreateNullabilityInfoContext();
 
         (ConstructorInfo Ctor, ParameterInfo[] Parameters, bool HasShapeAttribute)[] ctorCandidates = [..GetCandidateConstructors()];
         if (ctorCandidates.Length == 0)
@@ -86,19 +86,22 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
             // In case of ambiguity, pick the constructor that maximizes
             // the number of parameters matching read-only members.
 
-            HashSet<(Type, string)> readonlyMembers = allMembers
-                .Where(m => m.MemberInfo is PropertyInfo { CanWrite: false } or FieldInfo { IsInitOnly: true })
-                .Select(m => (m.MemberInfo.GetMemberType(), m.MemberInfo.Name))
-                .ToHashSet(s_ctorParameterEqualityComparer);
+            HashSet<(Type, string)> readonlyMembers = new(
+                collection: allMembers
+                    .Where(m => m.MemberInfo is PropertyInfo { CanWrite: false } or FieldInfo { IsInitOnly: true })
+                    .Select(m => (m.MemberInfo.GetMemberType(), m.MemberInfo.Name)),
+
+                comparer: s_ctorParameterEqualityComparer);
 
             (constructorInfo, parameters, _) = ctorCandidates
-                .MaxBy(ctor =>
+                .OrderByDescending(ctor =>
                 {
                     int paramsMatchingReadOnlyMembers = ctor.Parameters.Count(p => readonlyMembers.Contains((p.ParameterType, p.Name!)));
 
                     // In the event of a tie, favor the ctor with the smallest arity.
                     return (ctor.HasShapeAttribute, paramsMatchingReadOnlyMembers, -ctor.Parameters.Length);
-                });
+                })
+                .FirstOrDefault();
         }
 
         var parameterShapeInfos = new MethodParameterShapeInfo[parameters.Length];
@@ -225,7 +228,7 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
             yield break;
         }
 
-        NullabilityInfoContext? nullabilityCtx = Provider.CreateNullabilityInfoContext();
+        NullabilityInfoContext? nullabilityCtx = ReflectionTypeShapeProvider.CreateNullabilityInfoContext();
         foreach (PropertyShapeInfo member in GetMembers(nullabilityCtx))
         {
             yield return Provider.CreateProperty(member);
@@ -329,19 +332,21 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
             type == typeof(object) ||
             type == typeof(string) ||
             type == typeof(decimal) ||
-            type == typeof(UInt128) ||
-            type == typeof(Int128) ||
-            type == typeof(Half) ||
             type == typeof(DateTime) ||
             type == typeof(DateTimeOffset) ||
-            type == typeof(DateOnly) ||
             type == typeof(TimeSpan) ||
-            type == typeof(TimeOnly) ||
             type == typeof(Guid) ||
             type == typeof(Version) ||
             type == typeof(Uri) ||
-            type == typeof(System.Text.Rune) ||
             type == typeof(System.Numerics.BigInteger) ||
+#if NET
+            type == typeof(UInt128) ||
+            type == typeof(Int128) ||
+            type == typeof(Half) ||
+            type == typeof(DateOnly) ||
+            type == typeof(TimeOnly) ||
+            type == typeof(System.Text.Rune) ||
+#endif
             typeof(MemberInfo).IsAssignableFrom(type) ||
             typeof(Delegate).IsAssignableFrom(type) ||
             typeof(Exception).IsAssignableFrom(type) ||

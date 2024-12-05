@@ -24,6 +24,7 @@ public static class JsonSchemaGenerator
     public static JsonObject Generate(ITypeShape typeShape)
         => new Generator().GenerateSchema(typeShape);
 
+#if NET
     /// <summary>
     /// Generates a JSON schema using an externally provided <see cref="IShapeable{T}"/> implementation.
     /// </summary>
@@ -38,6 +39,7 @@ public static class JsonSchemaGenerator
     /// <typeparam name="T">The type for which to generate a JSON schema.</typeparam>
     public static JsonObject Generate<T>() where T : IShapeable<T>
         => Generate(T.GetShape());
+#endif
 
     private sealed class Generator
     {
@@ -55,8 +57,8 @@ public static class JsonSchemaGenerator
 
             if (cacheLocation)
             {
-                ref string? location = ref CollectionsMarshal.GetValueRefOrAddDefault(_locations, (typeShape.Type, allowNull), out bool exists);
-                if (exists)
+                var key = (typeShape.Type, allowNull);
+                if (_locations.TryGetValue(key, out string? location))
                 {
                     return new JsonObject
                     {
@@ -65,7 +67,7 @@ public static class JsonSchemaGenerator
                 }
                 else
                 {
-                    location = _path.Count == 0 ? "#" : $"#/{string.Join("/", _path)}";
+                    _locations[key] = _path.Count == 0 ? "#" : $"#/{string.Join("/", _path)}";
                 }
             }
 
@@ -266,9 +268,6 @@ public static class JsonSchemaGenerator
             [typeof(float)] = new("number"),
             [typeof(double)] = new("number"),
             [typeof(decimal)] = new("number"),
-            [typeof(Half)] = new("number"),
-            [typeof(UInt128)] = new("integer"),
-            [typeof(Int128)] = new("integer"),
             [typeof(char)] = new("string"),
             [typeof(string)] = new("string"),
             [typeof(byte[])] = new("string"),
@@ -277,8 +276,13 @@ public static class JsonSchemaGenerator
             [typeof(DateTime)] = new("string", format: "date-time"),
             [typeof(DateTimeOffset)] = new("string", format: "date-time"),
             [typeof(TimeSpan)] = new("string", pattern: @"^-?(\d+\.)?\d{2}:\d{2}:\d{2}(\.\d{1,7})?$"),
+#if NET
+            [typeof(Half)] = new("number"),
+            [typeof(UInt128)] = new("integer"),
+            [typeof(Int128)] = new("integer"),
             [typeof(DateOnly)] = new("string", format: "date"),
             [typeof(TimeOnly)] = new("string", format: "time"),
+#endif
             [typeof(Guid)] = new("string", format: "uuid"),
             [typeof(Uri)] = new("string", format: "uri"),
             [typeof(Version)] = new("string"),

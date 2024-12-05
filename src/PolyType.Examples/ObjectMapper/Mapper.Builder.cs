@@ -15,13 +15,7 @@ public static partial class Mapper
         public Mapper<TSource, TTarget> GetOrAddMapper<TSource, TTarget>(ITypeShape<TSource> fromShape, ITypeShape<TTarget> toShape)
         {
             ITypeShape<Mapper<TSource, TTarget>> mapperShape = new MapperShape<TSource, TTarget>(fromShape, toShape);
-            var mapper = (Mapper<TSource, TTarget>?)generationContext.GetOrAdd(mapperShape);
-            if (mapper is null)
-            {
-                ThrowCannotMapTypes(fromShape.Type, toShape.Type);
-            }
-
-            return mapper;
+            return (Mapper<TSource, TTarget>)generationContext.GetOrAdd(mapperShape)!;
         }
 
         object? ITypeShapeFunc.Invoke<T>(ITypeShape<T> typeShape, object? state) => typeShape.Accept(this, state);
@@ -31,7 +25,7 @@ public static partial class Mapper
             if (sourceShape.Kind != targetShape.Kind)
             {
                 // For simplicity, only map between types of matching kind.
-                return null;
+                ThrowCannotMapTypes(typeof(TSource), typeof(TTarget));
             }
 
             switch (sourceShape.Kind)
@@ -45,9 +39,13 @@ public static partial class Mapper
                     if (ctor is null)
                     {
                         // If TTarget is not constructible, only map if TSource is a subtype of TTarget and has no properties.
-                        return typeof(TTarget).IsAssignableFrom(typeof(TSource)) && !targetObjectShape.HasProperties
-                            ? (Mapper<TSource, TTarget>)(object)new Mapper<TSource, TSource>(source => source)
-                            : null;
+                        if (typeof(TTarget).IsAssignableFrom(typeof(TSource)) && !targetObjectShape.HasProperties)
+                        {
+                            return new Mapper<TSource, TSource>(source => source);
+
+                        }    
+
+                        ThrowCannotMapTypes(typeof(TSource), typeof(TTarget));
                     }
 
                     IPropertyShape[] sourceGetters = sourceObjectShape.GetProperties()
@@ -68,7 +66,7 @@ public static partial class Mapper
 
         public override object? VisitProperty<TSource, TSourceProperty>(IPropertyShape<TSource, TSourceProperty> sourceGetter, object? state = null)
         {
-            Debug.Assert(state is IPropertyShape or IConstructorParameterShape);
+            DebugExt.Assert(state is IPropertyShape or IConstructorParameterShape);
             var visitor = new PropertyScopedVisitor<TSource, TSourceProperty>(this);
             return state is IPropertyShape targetProp
                 ? targetProp.Accept(visitor, sourceGetter)
@@ -273,6 +271,7 @@ public static partial class Mapper
                         });
 
                     default:
+                        ThrowCannotMapTypes(typeof(TSourceEnumerable), typeof(TTargetEnumerable));
                         return null;
                 }       
             }
@@ -301,9 +300,9 @@ public static partial class Mapper
                             }
 
                             var target = defaultCtor();
-                            foreach ((TSourceKey sourceKey, TSourceValue sourceValue) in sourceGetDictionary(source))
+                            foreach (var sourceEntry in sourceGetDictionary(source))
                             {
-                                KeyValuePair<TTargetKey, TTargetValue> entry = new(keyMapper(sourceKey), valueMapper(sourceValue)!);
+                                KeyValuePair<TTargetKey, TTargetValue> entry = new(keyMapper(sourceEntry.Key), valueMapper(sourceEntry.Value)!);
                                 addEntry(ref target, entry);
                             }
 
@@ -336,6 +335,7 @@ public static partial class Mapper
                         });
 
                     default:
+                        ThrowCannotMapTypes(typeof(TSourceDictionary), typeof(TTargetDictionary));
                         return null;
                 }
 
@@ -370,16 +370,7 @@ public static partial class Mapper
         public DelayedValue Create<T>(ITypeShape<T> typeShape) => (DelayedValue)typeShape.Accept(this)!;
         public override object? VisitMapper<TSource, TTarget>(ITypeShape<TSource> left, ITypeShape<TTarget> right, object? state)
         {
-            return new DelayedValue<Mapper<TSource, TTarget>>(self => left =>
-            {
-                Mapper<TSource, TTarget>? mapper = self.Result;
-                if (mapper is null)
-                {
-                    Builder.ThrowCannotMapTypes(typeof(TSource), typeof(TTarget));
-                }
-
-                return mapper(left);
-            });
+            return new DelayedValue<Mapper<TSource, TTarget>>(self => left => self.Result(left));
         }
     }
 }

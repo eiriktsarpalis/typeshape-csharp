@@ -54,7 +54,7 @@ internal sealed partial class SourceFormatter
                 ? "global::System.Array.Empty<global::System.Type>()"
                 : $$"""new[] { {{string.Join(", ", constructor.Parameters.Select(p => $"typeof({p.ParameterType.FullyQualifiedName})"))}} }""";
 
-            return $"static () => typeof({constructor.DeclaringType.FullyQualifiedName}).GetConstructor({InstanceBindingFlagsConstMember}, {parameterTypes})";
+            return $"static () => typeof({constructor.DeclaringType.FullyQualifiedName}).GetConstructor({InstanceBindingFlagsConstMember}, null, {parameterTypes}, null)";
         }
 
         static string FormatArgumentStateCtor(ConstructorShapeModel constructor, string constructorArgumentStateFQN)
@@ -309,7 +309,7 @@ internal sealed partial class SourceFormatter
                     ? "global::System.Array.Empty<global::System.Type>()"
                     : $$"""new[] { {{string.Join(", ", constructor.Parameters.Select(p => $"typeof({p.ParameterType.FullyQualifiedName})"))}} }""";
 
-                return $"static () => typeof({constructor.DeclaringType.FullyQualifiedName}).GetConstructor({InstanceBindingFlagsConstMember}, {parameterTypes})?.GetParameters()[{parameter.Position}]";
+                return $"static () => typeof({constructor.DeclaringType.FullyQualifiedName}).GetConstructor({InstanceBindingFlagsConstMember}, null, {parameterTypes}, null)?.GetParameters()[{parameter.Position}]";
             }
 
             static string FormatSetterBody(ConstructorShapeModel constructor, ConstructorParameterShapeModel parameter)

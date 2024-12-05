@@ -1,11 +1,10 @@
-﻿using System.Collections;
+﻿using PolyType.Abstractions;
+using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
-using PolyType.Abstractions;
 
 namespace PolyType.ReflectionProvider.MemberAccessors;
 
@@ -257,7 +256,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         else
         {
             Debug.Assert(typeof(TArgumentState).IsValueTupleType());
-            int arity = ((ITuple)default(TArgumentState)!).Length;
+            int arity = ReflectionHelpers.GetValueTupleArity<TArgumentState>();
 
             Type? memberFlagType = GetMemberFlagType(ctorInfo, out int totalFlags);
             if (memberFlagType != typeof(BitArray) && ctorInfo.Parameters.All(p => !p.HasDefaultValue))
@@ -406,9 +405,8 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
         {
             if (methodCtor.Parameters is [MethodParameterShapeInfo parameter])
             {
-                Debug.Assert(argumentStateType == parameter.Type);
-
-                Debug.Assert(methodCtor.ConstructorMethod != null);
+                DebugExt.Assert(argumentStateType == parameter.Type);
+                DebugExt.Assert(methodCtor.ConstructorMethod != null);
 
                 // return new TDeclaringType(state);
                 generator.Emit(OpCodes.Ldarg_0);
@@ -428,7 +426,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
                 if (methodCtor.MemberInitializers.Length == 0)
                 {
                     // No member initializers -- just load all tuple elements and call the constructor
-                    Debug.Assert(methodCtor.ConstructorMethod != null);
+                    DebugExt.Assert(methodCtor.ConstructorMethod != null);
 
                     // return new TDeclaringType(state.Item1, state.Item2, ...);
                     int i = 0;
@@ -447,7 +445,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
 
                     (string LogicalName, MemberInfo Member, MemberInfo[]? ParentMembers)[] fieldPaths = ReflectionHelpers.EnumerateTupleMemberPaths(argumentStateType).ToArray();
                     Type? flagType = GetMemberFlagType(ctorInfo, out _);
-                    Debug.Assert(flagType != null);
+                    DebugExt.Assert(flagType != null);
 
                     // var local = new TDeclaringType(state.Item1, state.Item2, ...);
                     LocalBuilder local = generator.DeclareLocal(declaringType);
@@ -553,7 +551,7 @@ internal sealed class ReflectionEmitMemberAccessor : IReflectionMemberAccessor
             switch (memberInitializer.MemberInfo)
             {
                 case PropertyInfo prop:
-                    Debug.Assert(prop.SetMethod != null);
+                    DebugExt.Assert(prop.SetMethod != null);
                     OpCode callOp = declaringType.IsValueType ? OpCodes.Call : OpCodes.Callvirt;
                     generator.Emit(callOp, prop.SetMethod);
                     break;

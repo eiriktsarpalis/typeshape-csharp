@@ -7,7 +7,7 @@ using Xunit;
 
 namespace PolyType.Tests;
 
-public abstract partial class JsonTests(IProviderUnderTest providerUnderTest)
+public abstract partial class JsonTests(ProviderUnderTest providerUnderTest)
 {
     [Theory]
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
@@ -61,7 +61,7 @@ public abstract partial class JsonTests(IProviderUnderTest providerUnderTest)
             return;
         }
 
-        JsonConverter<PocoWithGenericProperty<T>> converter = JsonSerializerTS.CreateConverter(providerUnderTest.UncheckedResolveShape<PocoWithGenericProperty<T>>());
+        JsonConverter<PocoWithGenericProperty<T>> converter = JsonSerializerTS.CreateConverter<PocoWithGenericProperty<T>>(providerUnderTest.Provider);
         PocoWithGenericProperty<T> poco = new PocoWithGenericProperty<T> { Value = testCase.Value };
 
         string json = converter.Serialize(poco);
@@ -106,7 +106,7 @@ public abstract partial class JsonTests(IProviderUnderTest providerUnderTest)
             return;
         }
 
-        var converter = JsonSerializerTS.CreateConverter(providerUnderTest.UncheckedResolveShape<List<T?>>());
+        var converter = JsonSerializerTS.CreateConverter<List<T?>>(providerUnderTest.Provider);
         var list = new List<T?> { testCase.Value, testCase.Value, testCase.Value };
 
         string json = converter.Serialize(list);
@@ -151,7 +151,7 @@ public abstract partial class JsonTests(IProviderUnderTest providerUnderTest)
             return;
         }
 
-        var converter = JsonSerializerTS.CreateConverter(providerUnderTest.UncheckedResolveShape<Dictionary<string, T?>>());
+        var converter = JsonSerializerTS.CreateConverter<Dictionary<string, T?>>(providerUnderTest.Provider);
         var dict = new Dictionary<string, T?> { ["key1"] = testCase.Value, ["key2"] = testCase.Value, ["key3"] = testCase.Value };
 
         string json = converter.Serialize(dict);
@@ -186,21 +186,21 @@ public abstract partial class JsonTests(IProviderUnderTest providerUnderTest)
     public void Serialize_NonNullablePropertyWithNullValue_ThrowsJsonException()
     {
         var invalidValue = new NonNullStringRecord(null!);
-        var converter = JsonSerializerTS.CreateConverter(providerUnderTest.ResolveShape<NonNullStringRecord>());
+        var converter = JsonSerializerTS.CreateConverter<NonNullStringRecord>(providerUnderTest.Provider);
         Assert.Throws<JsonException>(() => converter.Serialize(invalidValue));
     }
 
     [Fact]
     public void Deserialize_NonNullablePropertyWithNullJsonValue_ThrowsJsonException()
     {
-        var converter = JsonSerializerTS.CreateConverter(providerUnderTest.ResolveShape<NonNullStringRecord>());
+        var converter = JsonSerializerTS.CreateConverter<NonNullStringRecord>(providerUnderTest.Provider);
         Assert.Throws<JsonException>(() => converter.Deserialize("""{"value":null}"""));
     }
 
     [Fact]
     public void Serialize_NullablePropertyWithNullValue_WorksAsExpected()
     {
-        var converter = JsonSerializerTS.CreateConverter(providerUnderTest.ResolveShape<NullableStringRecord>());
+        var converter = JsonSerializerTS.CreateConverter<NullableStringRecord>(providerUnderTest.Provider);
         var valueWithNull = new NullableStringRecord(null);
         
         string json = converter.Serialize(valueWithNull);
@@ -211,7 +211,7 @@ public abstract partial class JsonTests(IProviderUnderTest providerUnderTest)
     [Fact]
     public void Serialize_NullablePropertyWithNullJsonValue_WorksAsExpected()
     {
-        var converter = JsonSerializerTS.CreateConverter(providerUnderTest.ResolveShape<NullableStringRecord>());
+        var converter = JsonSerializerTS.CreateConverter<NullableStringRecord>(providerUnderTest.Provider);
         
         NullableStringRecord? result = converter.Deserialize("""{"value":null}""");
 
@@ -235,21 +235,21 @@ public abstract partial class JsonTests(IProviderUnderTest providerUnderTest)
 
     public static IEnumerable<object?[]> GetLongTuplesAndExpectedJson()
     {
-        SourceGenProvider p = new();
-        yield return [TestCase.Create(p,
-            (x1: 1, x2: 2, x3: 3, x4: 4, x5: 5, x6: 6, x7: 7, x8: 8, x9: 9)),
+        ITypeShapeProvider p = Witness.ShapeProvider;
+        yield return [TestCase.Create(
+            (x1: 1, x2: 2, x3: 3, x4: 4, x5: 5, x6: 6, x7: 7, x8: 8, x9: 9),p),
             """{"Item1":1,"Item2":2,"Item3":3,"Item4":4,"Item5":5,"Item6":6,"Item7":7,"Item8":8,"Item9":9}"""];
 
-        yield return [TestCase.Create(p,
-            (x1: 1, x2: 2, x3: 3, x4: 4, x5: 5, x6: 6, x7: 7, x8: 8, x9: 9, x10: 10, x11: 11, x12: 12, x13: 13, x14: 14, x15: 15, x16: 16, x17: 17, x18: 18, x19:19, x20:20, x21:21, x22:22, x23:23, x24:24, x25:25, x26:26, x27:27, x28:28, x29:29, x30:30)),
+        yield return [TestCase.Create(
+            (x1: 1, x2: 2, x3: 3, x4: 4, x5: 5, x6: 6, x7: 7, x8: 8, x9: 9, x10: 10, x11: 11, x12: 12, x13: 13, x14: 14, x15: 15, x16: 16, x17: 17, x18: 18, x19:19, x20:20, x21:21, x22:22, x23:23, x24:24, x25:25, x26:26, x27:27, x28:28, x29:29, x30:30), p),
             """{"Item1":1,"Item2":2,"Item3":3,"Item4":4,"Item5":5,"Item6":6,"Item7":7,"Item8":8,"Item9":9,"Item10":10,"Item11":11,"Item12":12,"Item13":13,"Item14":14,"Item15":15,"Item16":16,"Item17":17,"Item18":18,"Item19":19,"Item20":20,"Item21":21,"Item22":22,"Item23":23,"Item24":24,"Item25":25,"Item26":26,"Item27":27,"Item28":28,"Item29":29,"Item30":30}"""];
 
-        yield return [TestCase.Create(p,
-            new Tuple<int, int, int, int, int, int, int, Tuple<int, int, int>>(1, 2, 3, 4, 5, 6, 7, new(8, 9, 10))),
+        yield return [TestCase.Create(
+            new Tuple<int, int, int, int, int, int, int, Tuple<int, int, int>>(1, 2, 3, 4, 5, 6, 7, new(8, 9, 10)), p),
             """{"Item1":1,"Item2":2,"Item3":3,"Item4":4,"Item5":5,"Item6":6,"Item7":7,"Item8":8,"Item9":9,"Item10":10}"""];
 
-        yield return [TestCase.Create(p,
-            new Tuple<int, int, int, int, int, int, int, Tuple<int, int, int, int, int, int, int, Tuple<int>>>(1, 2, 3, 4, 5, 6, 7, new(8, 9, 10, 11, 12, 13, 14, new(15)))),
+        yield return [TestCase.Create(
+            new Tuple<int, int, int, int, int, int, int, Tuple<int, int, int, int, int, int, int, Tuple<int>>>(1, 2, 3, 4, 5, 6, 7, new(8, 9, 10, 11, 12, 13, 14, new(15))), p),
             """{"Item1":1,"Item2":2,"Item3":3,"Item4":4,"Item5":5,"Item6":6,"Item7":7,"Item8":8,"Item9":9,"Item10":10,"Item11":11,"Item12":12,"Item13":13,"Item14":14,"Item15":15}"""];
     }
 
@@ -267,52 +267,45 @@ public abstract partial class JsonTests(IProviderUnderTest providerUnderTest)
         Assert.Equal(testCase.Value, result);
     }
 
-    [GenerateShape<int[,]>]
-    [GenerateShape<int[,,]>]
-    [GenerateShape<int[,,,,,]>]
-    [GenerateShape<(int, int, int, int, int, int, int, int, int)>]
-    [GenerateShape<(int, int, int, int, int, int, int, int, int, int,
-    int, int, int, int, int, int, int, int, int, int,
-    int, int, int, int, int, int, int, int, int, int)>]
-    [GenerateShape<Tuple<int, int, int, int, int, int, int, Tuple<int, int, int>>>]
-    [GenerateShape<Tuple<int, int, int, int, int, int, int, Tuple<int, int, int, int, int, int, int, Tuple<int>>>>]
-    internal partial class SourceGenProvider;
-
     public static IEnumerable<object?[]> GetMultiDimensionalArraysAndExpectedJson()
     {
-        SourceGenProvider p = new();
-        yield return [TestCase.Create(p, new int[,] { }), """[]"""];
-        yield return [TestCase.Create(p, new int[,,] { }), """[]"""];
-        yield return [TestCase.Create(p, new int[,,,,,] { }), """[]"""];
+#if NET
+        Witness p = new();
+#else
+        ITypeShapeProvider p = Witness.ShapeProvider;
+#endif
+        yield return [TestCase.Create(new int[,] { }, p), """[]"""];
+        yield return [TestCase.Create(new int[,,] { }, p), """[]"""];
+        yield return [TestCase.Create(new int[,,,,,] { }, p), """[]"""];
 
-        yield return [TestCase.Create(p,
-            new int[,] { { 1, 0, }, { 0, 1 } }),
+        yield return [TestCase.Create(
+            new int[,] { { 1, 0, }, { 0, 1 } }, p),
             """[[1,0],[0,1]]"""];
 
-        yield return [TestCase.Create(p,
-            new int[,] { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } }),
+        yield return [TestCase.Create(
+            new int[,] { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } }, p),
             """[[1,0,0],[0,1,0],[0,0,1]]"""];
 
-        yield return [TestCase.Create(p,
-            new int[,] { { 1, 2, 3 }, { 4, 5, 6 } }),
+        yield return [TestCase.Create(
+            new int[,] { { 1, 2, 3 }, { 4, 5, 6 } }, p),
             """[[1,2,3],[4,5,6]]"""];
         
-        yield return [TestCase.Create(p, 
+        yield return [TestCase.Create(
             new int[,,] // 3 x 2 x 2
             {
                 { { 1, 0 }, { 0, 1 } }, 
                 { { 1, 2 }, { 3, 4 } }, 
                 { { 1, 1 }, { 1, 1 } }
-            }),
+            }, p),
             """[[[1,0],[0,1]],[[1,2],[3,4]],[[1,1],[1,1]]]"""];
         
-        yield return [TestCase.Create(p,
+        yield return [TestCase.Create(
             new int[,,] // 3 x 2 x 5
             {
                 { { 1, 0, 0, 0, 0 }, { 0, 1, 0, 0, 0 } }, 
                 { { 1, 2, 3, 4, 5 }, { 6, 7, 8, 9, 10 } }, 
                 { { 1, 1, 1, 1, 1 }, { 1, 1, 1, 1, 1 } }
-            }),
+            }, p),
             """[[[1,0,0,0,0],[0,1,0,0,0]],[[1,2,3,4,5],[6,7,8,9,10]],[[1,1,1,1,1],[1,1,1,1,1]]]"""];
     }
 
@@ -320,7 +313,7 @@ public abstract partial class JsonTests(IProviderUnderTest providerUnderTest)
     public void Roundtrip_DerivedClassWithVirtualProperties()
     {
         const string ExpectedJson = """{"X":42,"Y":"str","Z":42,"W":0}""";
-        var converter = JsonSerializerTS.CreateConverter(providerUnderTest.ResolveShape<DerivedClassWithVirtualProperties>());
+        var converter = JsonSerializerTS.CreateConverter<DerivedClassWithVirtualProperties>(providerUnderTest.Provider);
 
         var value = new DerivedClassWithVirtualProperties();
         string json = converter.Serialize(value);
@@ -330,7 +323,7 @@ public abstract partial class JsonTests(IProviderUnderTest providerUnderTest)
     [Fact]
     public void ClassWithInitOnlyProperties_MissingPayloadPreservesDefaultValues()
     {
-        var converter = JsonSerializerTS.CreateConverter(providerUnderTest.ResolveShape<ClassWithInitOnlyProperties>());
+        var converter = JsonSerializerTS.CreateConverter<ClassWithInitOnlyProperties>(providerUnderTest.Provider);
         int expectedValue = new ClassWithInitOnlyProperties().Value;
         List<int> expectedValues = new ClassWithInitOnlyProperties().Values;
 
@@ -352,12 +345,14 @@ public abstract partial class JsonTests(IProviderUnderTest providerUnderTest)
         { 
             new JsonStringEnumConverter(),
             new BigIntegerConverter(),
+#if NET
             new RuneConverter(),
+#endif
         },
     };
 
     private JsonConverter<T> GetConverterUnderTest<T>(TestCase<T> testCase) =>
-        JsonSerializerTS.CreateConverter<T>(providerUnderTest.ResolveShape(testCase));
+        JsonSerializerTS.CreateConverter(providerUnderTest.ResolveShape(testCase));
 
     private protected static bool IsUnsupportedBySTJ<T>(TestCase<T> value) => 
         value.IsMultiDimensionalArray ||
@@ -366,6 +361,6 @@ public abstract partial class JsonTests(IProviderUnderTest providerUnderTest)
         value.Value is DerivedClassWithVirtualProperties; // https://github.com/dotnet/runtime/issues/96996
 }
 
-public sealed class JsonTests_Reflection() : JsonTests(RefectionProviderUnderTest.Default);
-public sealed class JsonTests_ReflectionEmit() : JsonTests(RefectionProviderUnderTest.NoEmit);
+public sealed class JsonTests_Reflection() : JsonTests(RefectionProviderUnderTest.NoEmit);
+public sealed class JsonTests_ReflectionEmit() : JsonTests(RefectionProviderUnderTest.Emit);
 public sealed class JsonTests_SourceGen() : JsonTests(SourceGenProviderUnderTest.Default);

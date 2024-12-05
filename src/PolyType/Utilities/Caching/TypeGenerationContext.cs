@@ -73,7 +73,7 @@ public sealed partial class TypeGenerationContext : IReadOnlyDictionary<Type, ob
     /// <returns>The final computed value.</returns>
     public object? GetOrAdd<TKey>(ITypeShape<TKey> typeShape, object? state = null)
     {
-        ArgumentNullException.ThrowIfNull(typeShape);
+        Throw.IfNull(typeShape);
         if (ValueBuilder is null)
         {
             throw new InvalidOperationException($"Calling this method requires specifying a {ValueBuilder} property.");
@@ -98,7 +98,7 @@ public sealed partial class TypeGenerationContext : IReadOnlyDictionary<Type, ob
     /// <returns>True if either a completed or delayed value have been returned.</returns>
     public bool TryGetValue<TKey>(ITypeShape<TKey> typeShape, [MaybeNullWhen(false)] out object? value)
     {
-        ArgumentNullException.ThrowIfNull(typeShape);
+        Throw.IfNull(typeShape);
         ParentCache?.ValidateProvider(typeShape.Provider);
 
         // Consult the parent cache first to avoid creating duplicate values.
@@ -107,8 +107,14 @@ public sealed partial class TypeGenerationContext : IReadOnlyDictionary<Type, ob
             return true;
         }
 
-        ref Entry entryRef = ref CollectionsMarshal.GetValueRefOrNullRef(_entries, typeof(TKey));
-        if (Unsafe.IsNullRef(ref entryRef))
+#if NET
+        ref Entry entry = ref CollectionsMarshal.GetValueRefOrNullRef(_entries, typeof(TKey));
+        bool exists = !Unsafe.IsNullRef(ref entry);
+#else
+        bool exists = _entries.TryGetValue(typeof(TKey), out Entry entry);
+#endif
+
+        if (!exists)
         {
             if (DelayedValueFactory is not null)
             {
@@ -121,28 +127,31 @@ public sealed partial class TypeGenerationContext : IReadOnlyDictionary<Type, ob
             return false;
         }
 
-        switch (entryRef.Kind)
+        switch (entry.Kind)
         {
             case EntryKind.Empty:
                 // Second time visiting this type without a value being created, we have a recursive type.
-                Debug.Assert(DelayedValueFactory is not null);
+                DebugExt.Assert(DelayedValueFactory is not null);
 
                 // Create a delayed value and return the uninitialized result.
-                DelayedValue delayedValue = DelayedValueFactory.Create<TKey>(typeShape);
+                DelayedValue delayedValue = DelayedValueFactory.Create(typeShape);
                 value = delayedValue.PotentiallyDelayedResult;
-                entryRef = new(EntryKind.DelayedValue, delayedValue);
+                entry = new(EntryKind.DelayedValue, delayedValue);
+#if !NET
+                _entries[typeof(TKey)] = entry;
+#endif
                 return true;
 
             case EntryKind.DelayedValue:
                 // The stored value is an uninitialized result, return it.
-                value = ((DelayedValue)entryRef.Value!).PotentiallyDelayedResult;
+                value = ((DelayedValue)entry.Value!).PotentiallyDelayedResult;
                 return true;
 
             default:
-                Debug.Assert(entryRef.Kind is EntryKind.CompletedValue);
+                Debug.Assert(entry.Kind is EntryKind.CompletedValue);
 
                 // A completed value is being stored, return it.
-                value = entryRef.Value;
+                value = entry.Value;
                 return true;
         }
     }
@@ -155,28 +164,39 @@ public sealed partial class TypeGenerationContext : IReadOnlyDictionary<Type, ob
     /// <param name="overwrite">Whether to overwrite existing entries.</param>
     public void Add(Type key, object? value, bool overwrite = false)
     {
-        ArgumentNullException.ThrowIfNull(key);
+        Throw.IfNull(key);
 
-        ref Entry entryRef = ref CollectionsMarshal.GetValueRefOrAddDefault(_entries, key, out bool _);
+#if NET
+        ref Entry entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_entries, key, out bool exists);
+#else
+        bool exists = _entries.TryGetValue(key, out Entry entry);
+#endif
+        Debug.Assert(exists || entry.Kind is EntryKind.Empty);
 
-        switch (entryRef.Kind)
+        switch (entry.Kind)
         {
             case EntryKind.Empty:
                 // Missing or empty entry, update it with the value.
-                entryRef = new(EntryKind.CompletedValue, value);
+                entry = new(EntryKind.CompletedValue, value);
+#if !NET
+                _entries[key] = entry;
+#endif
                 _totalCompletedEntries++;
                 break;
 
             case EntryKind.DelayedValue:
                 // The existing entry is a delayed value from recursive occurrences,
                 // complete it and then replace the entry with the actual value.
-                ((DelayedValue)entryRef.Value!).CompleteValue(value);
-                entryRef = new(EntryKind.CompletedValue, value);
+                ((DelayedValue)entry.Value!).CompleteValue(value);
+                entry = new(EntryKind.CompletedValue, value);
+#if !NET
+                _entries[key] = entry;
+#endif
                 _totalCompletedEntries++;
                 break;
 
             default:
-                Debug.Assert(entryRef.Kind is EntryKind.CompletedValue);
+                Debug.Assert(entry.Kind is EntryKind.CompletedValue);
 
                 if (!overwrite)
                 {
@@ -184,7 +204,10 @@ public sealed partial class TypeGenerationContext : IReadOnlyDictionary<Type, ob
                 }
 
                 // The entry is a regular value, overwrite it.
-                entryRef = new(EntryKind.CompletedValue, value);
+                entry = new(EntryKind.CompletedValue, value);
+#if !NET
+                _entries[key] = entry;
+#endif
                 break;
         }
     }

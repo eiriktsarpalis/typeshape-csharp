@@ -26,6 +26,7 @@ public static partial class Counter
     public static Func<T?, long> Create<T>(ITypeShapeProvider shapeProvider)
         => (Func<T?, long>)s_cache.GetOrAdd(typeof(T), shapeProvider)!;
 
+#if NET
     /// <summary>
     /// Counts the number of nodes in the object graph using its <see cref="IShapeable{T}"/> implementation.
     /// </summary>
@@ -43,4 +44,5 @@ public static partial class Counter
         public static Func<T?, long> Value => s_value ??= Create(TProvider.GetShape());
         private static Func<T?, long>? s_value;
     }
+#endif
 }

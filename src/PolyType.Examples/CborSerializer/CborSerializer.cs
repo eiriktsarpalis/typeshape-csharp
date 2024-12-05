@@ -1,5 +1,6 @@
 ﻿using PolyType.Abstractions;
 using PolyType.Examples.CborSerializer.Converters;
+using PolyType.Examples.Utilities;
 using PolyType.Utilities;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -86,7 +87,7 @@ public static partial class CborSerializer
     public static string EncodeToHex<T>(this CborConverter<T> converter, T? value)
     {
         byte[] encoding = converter.Encode(value);
-        return Convert.ToHexString(encoding);
+        return Helpers.ConvertBytesToHexString(encoding);
     }
 
     /// <summary>
@@ -98,10 +99,11 @@ public static partial class CborSerializer
     /// <returns>The deserialized value.</returns>
     public static T? DecodeFromHex<T>(this CborConverter<T> converter, string hexEncoding)
     {
-        byte[] encoding = Convert.FromHexString(hexEncoding);
+        byte[] encoding = Helpers.ConvertHexStringToBytes(hexEncoding);
         return converter.Decode(encoding);
     }
 
+#if NET
     /// <summary>
     /// Serializes a value to a CBOR encoding using its <see cref="IShapeable{T}"/> implementation.
     /// </summary>
@@ -183,4 +185,5 @@ public static partial class CborSerializer
         public static CborConverter<T> Value => s_value ??= CreateConverter(TProvider.GetShape());
         private static CborConverter<T>? s_value;
     }
+#endif
 }

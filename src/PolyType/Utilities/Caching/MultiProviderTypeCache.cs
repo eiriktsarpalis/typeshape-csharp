@@ -41,7 +41,7 @@ public sealed class MultiProviderTypeCache
     /// <returns>A <see cref="TypeCache"/> scoped to <paramref name="shapeProvider"/>.</returns>
     public TypeCache GetScopedCache(ITypeShapeProvider shapeProvider)
     {
-        ArgumentNullException.ThrowIfNull(shapeProvider);
+        Throw.IfNull(shapeProvider);
         return _providerCaches.GetValue(shapeProvider, _createProviderCache);
     }
 
@@ -52,7 +52,7 @@ public sealed class MultiProviderTypeCache
     /// <returns>The final computed value.</returns>
     public object? GetOrAdd(ITypeShape typeShape)
     {
-        ArgumentNullException.ThrowIfNull(typeShape);
+        Throw.IfNull(typeShape);
         TypeCache cache = GetScopedCache(typeShape.Provider);
         return cache.GetOrAdd(typeShape);
     }

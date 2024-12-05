@@ -1,11 +1,10 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using PolyType.Roslyn;
+using PolyType.SourceGenerator.Model;
 using System.Collections;
 using System.Collections.Immutable;
 using System.Reflection;
-using System.Text.Encodings.Web;
-using PolyType.Roslyn;
-using PolyType.SourceGenerator.Model;
 using Xunit;
 
 namespace PolyType.SourceGenerator.UnitTests;
@@ -21,7 +20,9 @@ public record PolyTypeSourceGeneratorResult
 public static class CompilationHelpers
 {
     private static readonly CSharpParseOptions s_defaultParseOptions = CreateParseOptions();
+#if NET
     private static readonly Assembly systemRuntimeAssembly = Assembly.Load(new AssemblyName("System.Runtime"));
+#endif
 
     public static CSharpParseOptions CreateParseOptions(
         LanguageVersion? version = null,
@@ -43,17 +44,29 @@ public static class CompilationHelpers
         parseOptions ??= s_defaultParseOptions;
         additionalReferences ??= [];
         
-        SyntaxTree[] syntaxTrees = [ CSharpSyntaxTree.ParseText(source, parseOptions) ];
+        SyntaxTree[] syntaxTrees = 
+        [ 
+            CSharpSyntaxTree.ParseText(source, parseOptions),
+#if !NET
+            CSharpSyntaxTree.ParseText(NetfxPolyfillAttributes, parseOptions),
+#endif
+        ];
+
         MetadataReference[] references = 
         [
-            MetadataReference.CreateFromFile(typeof(int).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(System.Linq.Enumerable).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(System.Collections.Immutable.ImmutableArray<>).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(JavaScriptEncoder).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(System.Collections.Immutable.ImmutableArray).Assembly.Location),
+#if NET
             MetadataReference.CreateFromFile(typeof(LinkedList<>).Assembly.Location),
             MetadataReference.CreateFromFile(systemRuntimeAssembly.Location),
-            MetadataReference.CreateFromFile(typeof(PolyType.Abstractions.ITypeShape).Assembly.Location),
+#else
+            MetadataReference.CreateFromFile(typeof(ReadOnlySpan<>).Assembly.Location),
+            MetadataReference.CreateFromFile(Path.Combine(Path.GetDirectoryName(typeof(object).Assembly.Location), "netstandard.dll")),
+            MetadataReference.CreateFromFile(typeof(System.CodeDom.Compiler.GeneratedCodeAttribute).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(System.Runtime.CompilerServices.Unsafe).Assembly.Location),
+#endif
+            MetadataReference.CreateFromFile(typeof(PolyType.Abstractions.ITypeShape).Assembly.Location),
             .. additionalReferences,
         ];
 
@@ -220,4 +233,28 @@ public static class CompilationHelpers
         FileLinePositionSpan lineSpan = location.GetLineSpan();
         return (lineSpan.EndLinePosition.Line, lineSpan.EndLinePosition.Character);
     }
+
+#if !NET
+        private const string NetfxPolyfillAttributes = """
+            namespace System.Runtime.CompilerServices
+            {
+                internal static class IsExternalInit { }
+
+                [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
+                internal sealed class RequiredMemberAttribute : Attribute { }
+
+                [AttributeUsage(AttributeTargets.All, AllowMultiple = true, Inherited = false)]
+                internal sealed class CompilerFeatureRequiredAttribute : Attribute
+                {
+                    public CompilerFeatureRequiredAttribute(string featureName) { }
+                }
+            }
+
+            namespace System.Diagnostics.CodeAnalysis
+            {
+                [AttributeUsage(AttributeTargets.All, AllowMultiple = true, Inherited = false)]
+                internal sealed class SetsRequiredMembersAttribute : Attribute { }
+            }
+            """;
+#endif
 }

@@ -48,6 +48,7 @@ public static partial class PrettyPrinter
         return sb.ToString();
     }
 
+#if NET
     /// <summary>
     /// Pretty prints the specified value to a string using its <see cref="IShapeable{T}"/> implementation.
     /// </summary>
@@ -72,4 +73,5 @@ public static partial class PrettyPrinter
         public static PrettyPrinter<T> Value => s_value ??= Create(TProvider.GetShape());
         private static PrettyPrinter<T>? s_value;
     }
+#endif
 }

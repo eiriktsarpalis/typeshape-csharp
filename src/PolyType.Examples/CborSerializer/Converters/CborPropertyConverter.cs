@@ -50,7 +50,7 @@ internal sealed class CborPropertyConverter<TDeclaringType, TPropertyType> : Cbo
 
     public override void Read(CborReader reader, ref TDeclaringType declaringType)
     {
-        Debug.Assert(_setter != null);
+        DebugExt.Assert(_setter != null);
 
         TPropertyType? result = _propertyConverter.Read(reader);
         _setter(ref declaringType, result!);
@@ -58,7 +58,7 @@ internal sealed class CborPropertyConverter<TDeclaringType, TPropertyType> : Cbo
 
     public override void Write(CborWriter writer, ref TDeclaringType declaringType)
     {
-        Debug.Assert(_getter != null);
+        DebugExt.Assert(_getter != null);
 
         TPropertyType value = _getter(ref declaringType);
         _propertyConverter.Write(writer, value);

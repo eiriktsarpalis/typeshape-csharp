@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
 
 namespace PolyType.SourceGenerator.UnitTests;
@@ -251,5 +252,49 @@ public static class DiagnosticTests
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
         Assert.Equal((2, 0), diagnostic.Location.GetStartPosition());
         Assert.Equal((3, 29), diagnostic.Location.GetEndPosition());
+    }
+
+    [Theory]
+    [InlineData(LanguageVersion.CSharp2)]
+    [InlineData(LanguageVersion.CSharp7_3)]
+    [InlineData(LanguageVersion.CSharp8)]
+    [InlineData(LanguageVersion.CSharp10)]
+    [InlineData(LanguageVersion.CSharp11)]
+    public static void UnsupportedLanguageVersions_ErrorDiagnostic(LanguageVersion langVersion)
+    {
+        CSharpParseOptions parseOptions = CompilationHelpers.CreateParseOptions(langVersion);
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+            using PolyType;
+
+            [GenerateShape]
+            partial class Default
+            {
+            }
+            """, parseOptions: parseOptions);
+
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation, disableDiagnosticValidation: true);
+
+        Diagnostic diagnostic = Assert.Single(result.Diagnostics);
+
+        Assert.Equal("TS0008", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Same(Location.None, diagnostic.Location);
+    }
+
+    [Theory]
+    [InlineData(LanguageVersion.CSharp12)]
+    [InlineData(LanguageVersion.CSharp13)]
+    public static void SupportedLanguageVersions_NoErrorDiagnostics(LanguageVersion langVersion)
+    {
+        CSharpParseOptions parseOptions = CompilationHelpers.CreateParseOptions(langVersion);
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+            using PolyType;
+
+            [GenerateShape]
+            partial class Default;
+            """, parseOptions: parseOptions);
+
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        Assert.Empty(result.Diagnostics);
     }
 }

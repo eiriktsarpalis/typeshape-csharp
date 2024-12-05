@@ -15,7 +15,7 @@ internal class JsonObjectConverter<T>(JsonPropertyConverter<T>[] properties) : J
 
     public sealed override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
     {
-        Debug.Assert(_propertiesToWrite != null);
+        DebugExt.Assert(_propertiesToWrite != null);
 
         if (value is null)
         {

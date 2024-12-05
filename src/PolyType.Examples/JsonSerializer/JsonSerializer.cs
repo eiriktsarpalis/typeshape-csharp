@@ -1,9 +1,9 @@
 ﻿using PolyType.Abstractions;
 using PolyType.Examples.JsonSerializer.Converters;
+using PolyType.Examples.Utilities;
 using PolyType.Utilities;
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -47,14 +47,6 @@ public static partial class JsonSerializerTS
     public static JsonConverter<T> CreateConverterUsingReflection<T>() => CreateConverter<T>(ReflectionProvider.ReflectionTypeShapeProvider.Default);
 
     /// <summary>
-    /// Builds an <see cref="JsonConverter{T}"/> instance using its <see cref="IShapeable{T}"/> implementation.
-    /// </summary>
-    /// <typeparam name="T">The type for which to build the converter.</typeparam>
-    /// <returns>An <see cref="JsonConverter{T}"/> instance.</returns>
-    public static JsonConverter<T> CreateConverter<T>() where T : IShapeable<T> =>
-        CreateConverter(T.GetShape());
-
-    /// <summary>
     /// Serializes a value to a JSON string using the provided converter.
     /// </summary>
     /// <typeparam name="T">The type of the value to serialize.</typeparam>
@@ -64,11 +56,11 @@ public static partial class JsonSerializerTS
     /// <returns>A JSON encoded string containing the serialized value.</returns>
     public static string Serialize<T>(this JsonConverter<T> converter, T? value, JsonWriterOptions options = default)
     {
-        Utf8JsonWriter writer = JsonHelpers.GetPooledJsonWriter(options, out ArrayBufferWriter<byte> bufferWriter);
+        Utf8JsonWriter writer = JsonHelpers.GetPooledJsonWriter(options, out ByteBufferWriter bufferWriter);
         try
         {
             converter.Serialize(writer, value);
-            return Encoding.UTF8.GetString(bufferWriter.WrittenSpan);
+            return JsonHelpers.DecodeFromUtf8(bufferWriter.WrittenSpan);
         }
         finally
         {
@@ -120,6 +112,19 @@ public static partial class JsonSerializerTS
         }
     }
 
+#if !NET
+    /// <summary>
+    /// Deserializes a value from a JSON string using the provided converter.
+    /// </summary>
+    /// <typeparam name="T">The type of the value to deserialize.</typeparam>
+    /// <param name="converter">The converter used to deserialize the value.</param>
+    /// <param name="json">The JSON encoding to be deserialized.</param>
+    /// <param name="options">The options object guiding JSON reading.</param>
+    /// <returns>The deserialized value.</returns>
+    public static T? Deserialize<T>(this JsonConverter<T> converter, [StringSyntax(StringSyntaxAttribute.Json)] string json, JsonReaderOptions options = default) =>
+        Deserialize(converter, json.AsSpan(), options);
+#endif
+
     /// <summary>
     /// Deserializes a value from a JSON string using the provided converter.
     /// </summary>
@@ -134,6 +139,15 @@ public static partial class JsonSerializerTS
         reader.EnsureRead();
         return default(T) is null && reader.TokenType is JsonTokenType.Null ? default : converter.Read(ref reader, typeof(T), s_options);
     }
+
+#if NET
+    /// <summary>
+    /// Builds an <see cref="JsonConverter{T}"/> instance using its <see cref="IShapeable{T}"/> implementation.
+    /// </summary>
+    /// <typeparam name="T">The type for which to build the converter.</typeparam>
+    /// <returns>An <see cref="JsonConverter{T}"/> instance.</returns>
+    public static JsonConverter<T> CreateConverter<T>() where T : IShapeable<T> =>
+        CreateConverter(T.GetShape());
 
     /// <summary>
     /// Serializes a value to a JSON string using its <see cref="IShapeable{T}"/> implementation.
@@ -182,4 +196,5 @@ public static partial class JsonSerializerTS
         public static JsonConverter<T> Value => s_value ??= CreateConverter(TProvider.GetShape());
         private static JsonConverter<T>? s_value;
     }
+#endif
 }

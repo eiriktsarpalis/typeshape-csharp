@@ -49,7 +49,7 @@ public static partial class RandomGenerator
             static void Throw() => throw new ArgumentOutOfRangeException(nameof(size));
         }
 
-        Random random = seed is null ? Random.Shared : new Random(seed.Value);
+        Random random = CreateRandom(seed);
         return generator(random, size);
     }
 
@@ -72,7 +72,7 @@ public static partial class RandomGenerator
 
         int size = minSize ?? 64;
         int max = maxSize ?? 4096;
-        Random random = seed is null ? Random.Shared : new Random(seed.Value);
+        Random random = CreateRandom(seed);
 
         while (true)
         {
@@ -84,6 +84,15 @@ public static partial class RandomGenerator
         }
     }
 
+    private static Random CreateRandom(int? seed) => seed is null
+#if NET
+        ? Random.Shared
+#else
+        ? new Random()
+#endif
+        : new Random(seed.Value);
+
+#if NET
     /// <summary>
     /// Generates a random value using its <see cref="IShapeable{T}"/> implementation.
     /// </summary>
@@ -133,4 +142,5 @@ public static partial class RandomGenerator
         public static RandomGenerator<T> Value => s_value ??= Create(TProvider.GetShape());
         private static RandomGenerator<T>? s_value;
     }
+#endif
 }

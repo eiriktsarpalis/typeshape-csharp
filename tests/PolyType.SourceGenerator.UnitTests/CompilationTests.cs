@@ -11,7 +11,6 @@ public static class CompilationTests
     {
         Compilation compilation = CompilationHelpers.CreateCompilation("""
             using PolyType;
-            using PolyType.Abstractions;
             using System.Collections.Generic;
 
             [GenerateShape]
@@ -28,8 +27,10 @@ public static class CompilationTests
                 public List<int> List { get; set; }
                 public Dictionary<string, int> Dict { get; set; }
 
-                public static ITypeShape<MyPoco> Test()
-                    => TypeShapeProvider.Resolve<MyPoco>();
+            #if NET
+                public static PolyType.Abstractions.ITypeShape<MyPoco> Test()
+                    => PolyType.Abstractions.TypeShapeProvider.Resolve<MyPoco>();
+            #endif
             }
             """);
 
@@ -118,6 +119,7 @@ public static class CompilationTests
         Assert.Empty(result.Diagnostics);
     }
 
+#if NET
     [Fact]
     public static void UseTypesWithNullableAnnotations_NoWarnings()
     {
@@ -148,6 +150,7 @@ public static class CompilationTests
         PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation);
         Assert.Empty(result.Diagnostics);
     }
+#endif
 
     [Fact]
     public static void DerivedClassWithShadowedMembers_NoErrors()
@@ -183,16 +186,17 @@ public static class CompilationTests
     {
         Compilation compilation = CompilationHelpers.CreateCompilation("""
             using PolyType;
-            using PolyType.Abstractions;
 
+            #if NET
             public static class Test
             {
                 public static void TestMethod()
                 {
-                    ITypeShape<string> stringShape = TypeShapeProvider.Resolve<string, MyWitness>();
-                    ITypeShape<int> intShape = TypeShapeProvider.Resolve<int, MyWitness>();
+                    PolyType.Abstractions.ITypeShape<string> stringShape = PolyType.Abstractions.TypeShapeProvider.Resolve<string, MyWitness>();
+                    PolyType.Abstractions.ITypeShape<int> intShape = PolyType.Abstractions.TypeShapeProvider.Resolve<int, MyWitness>();
                 }
             }
+            #endif
             
             [GenerateShape<int>]
             public partial class MyWitness;
@@ -323,7 +327,9 @@ public static class CompilationTests
             using PolyType.Abstractions;
 
             ITypeShape<MyPoco> shape;
+            #if NET
             shape = TypeShapeProvider.Resolve<MyPoco, Witness>();
+            #endif
             shape = TypeShapeProvider.Resolve<MyPoco>(Witness.ShapeProvider);
 
             record MyPoco(string[] Values);

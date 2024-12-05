@@ -5,7 +5,7 @@ using Xunit;
 
 namespace PolyType.Tests;
 
-public abstract class RandomGeneratorTests(IProviderUnderTest providerUnderTest)
+public abstract class RandomGeneratorTests(ProviderUnderTest providerUnderTest)
 {
     [Theory]
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
@@ -31,6 +31,6 @@ public abstract class RandomGeneratorTests(IProviderUnderTest providerUnderTest)
     }
 }
 
-public sealed class RandomGeneratorTests_Reflection() : RandomGeneratorTests(RefectionProviderUnderTest.Default);
-public sealed class RandomGeneratorTests_ReflectionEmit() : RandomGeneratorTests(RefectionProviderUnderTest.NoEmit);
+public sealed class RandomGeneratorTests_Reflection() : RandomGeneratorTests(RefectionProviderUnderTest.NoEmit);
+public sealed class RandomGeneratorTests_ReflectionEmit() : RandomGeneratorTests(RefectionProviderUnderTest.Emit);
 public sealed class RandomGeneratorTests_SourceGen() : RandomGeneratorTests(SourceGenProviderUnderTest.Default);

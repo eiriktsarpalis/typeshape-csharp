@@ -5,7 +5,7 @@ using Xunit;
 
 namespace PolyType.Tests;
 
-public abstract class ClonerTests(IProviderUnderTest providerUnderTest)
+public abstract class ClonerTests(ProviderUnderTest providerUnderTest)
 {
     [Theory]
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
@@ -47,6 +47,6 @@ public abstract class ClonerTests(IProviderUnderTest providerUnderTest)
     }
 }
 
-public sealed class ClonerTests_Reflection() : ClonerTests(RefectionProviderUnderTest.Default);
-public sealed class ClonerTests_ReflectionEmit() : ClonerTests(RefectionProviderUnderTest.NoEmit);
+public sealed class ClonerTests_Reflection() : ClonerTests(RefectionProviderUnderTest.NoEmit);
+public sealed class ClonerTests_ReflectionEmit() : ClonerTests(RefectionProviderUnderTest.Emit);
 public sealed class ClonerTests_SourceGen() : ClonerTests(SourceGenProviderUnderTest.Default);

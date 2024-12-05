@@ -3,7 +3,7 @@ using Xunit;
 
 namespace PolyType.Tests;
 
-public abstract partial class StructuralEqualityTests(IProviderUnderTest providerUnderTest)
+public abstract partial class StructuralEqualityTests(ProviderUnderTest providerUnderTest)
 {
     [Theory]
     [MemberData(nameof(TestTypes.GetEqualValuePairs), MemberType = typeof(TestTypes))]
@@ -22,7 +22,7 @@ public abstract partial class StructuralEqualityTests(IProviderUnderTest provide
             }
         }
 
-        IEqualityComparer<T> cmp = GetEqualityComparerUnderTest(left);
+        IEqualityComparer<T> cmp = GetEqualityComparerUnderTest<T>();
 
         if (left.Value is not null)
         {
@@ -35,41 +35,40 @@ public abstract partial class StructuralEqualityTests(IProviderUnderTest provide
 
     [Theory]
     [MemberData(nameof(GetNotEqualValues))]
-    public void EqualityComparer_NotEqualValues<T>(TestCase<T> left, TestCase<T> right)
+    public void EqualityComparer_NotEqualValues<T>(T left, T right)
     {
-        IEqualityComparer<T> cmp = GetEqualityComparerUnderTest(left);
+        IEqualityComparer<T> cmp = GetEqualityComparerUnderTest<T>();
         
-        Assert.NotEqual(left.Value, right.Value, cmp!);
-        Assert.NotEqual(right.Value, left.Value, cmp!);
+        Assert.NotEqual(left, right, cmp!);
+        Assert.NotEqual(right, left, cmp!);
     }
 
-    public static IEnumerable<object[]> GetNotEqualValues()
+    public static IEnumerable<object?[]> GetNotEqualValues()
     {
-        SourceGenProvider p = new();
-        yield return NotEqual(p, false, true);
-        yield return NotEqual(p, null, "");
-        yield return NotEqual(p, -1, 4);
-        yield return NotEqual(p, 3.14, -7.5);
-        yield return NotEqual(p, DateTime.MinValue, DateTime.MaxValue);
-        yield return NotEqual(p, (int[])[1, 2, 3], []);
-        yield return NotEqual(p, (int[])[1, 2, 3], [1, 2, 0]);
-        yield return NotEqual(p,
-            (int[][])[[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+        yield return NotEqual(false, true);
+        yield return NotEqual(null, "");
+        yield return NotEqual(-1, 4);
+        yield return NotEqual(3.14, -7.5);
+        yield return NotEqual(DateTime.MinValue, DateTime.MaxValue);
+        yield return NotEqual((int[])[1, 2, 3], []);
+        yield return NotEqual((int[])[1, 2, 3], [1, 2, 0]);
+        yield return NotEqual<int[][]>(
+            [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
             [[1, 0, 0], [0, 0, 0], [0, 0, 1]]);
 
-        yield return NotEqual(p,
+        yield return NotEqual(
             new Dictionary<string, int> { ["key1"] = 42, ["key2"] = -1 },
             new Dictionary<string, int> { ["key1"] = 42, ["key2"] = 1 });
 
-        yield return NotEqual(p,
+        yield return NotEqual(
             new Dictionary<string, int> { ["key1"] = 42, ["key5"] = -1 },
             new Dictionary<string, int> { ["key1"] = 42, ["key2"] = -1 });
 
-        yield return NotEqual(default(DerivedClass),
+        yield return NotEqual(
             new DerivedClass { X = 1, Y = 2 },
             new DerivedClass { X = 1, Y = -1 });
 
-        yield return NotEqual(p,
+        yield return NotEqual(
             new MyLinkedList<int>
             {
                 Value = 1,
@@ -93,14 +92,13 @@ public abstract partial class StructuralEqualityTests(IProviderUnderTest provide
                 }
             });
 
-        static object[] NotEqual<TProvider, T>(TProvider? provider, T left, T right) where TProvider : IShapeable<T> =>
-            [TestCase.Create(provider, left), TestCase.Create(provider, right)];
+        static object?[] NotEqual<T>(T left, T right) => [left, right];
     }
 
-    private IEqualityComparer<T> GetEqualityComparerUnderTest<T>(TestCase<T> testCase) =>
-        StructuralEqualityComparer.Create(providerUnderTest.ResolveShape(testCase));
+    private IEqualityComparer<T> GetEqualityComparerUnderTest<T>() =>
+        StructuralEqualityComparer.Create<T>(providerUnderTest.Provider);
 }
 
-public sealed class StructuralEqualityTests_Reflection() : StructuralEqualityTests(RefectionProviderUnderTest.Default);
-public sealed class StructuralEqualityTests_ReflectionEmit() : StructuralEqualityTests(RefectionProviderUnderTest.NoEmit);
+public sealed class StructuralEqualityTests_Reflection() : StructuralEqualityTests(RefectionProviderUnderTest.NoEmit);
+public sealed class StructuralEqualityTests_ReflectionEmit() : StructuralEqualityTests(RefectionProviderUnderTest.Emit);
 public sealed class StructuralEqualityTests_SourceGen() : StructuralEqualityTests(SourceGenProviderUnderTest.Default);

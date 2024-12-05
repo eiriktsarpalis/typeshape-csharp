@@ -32,6 +32,7 @@ public static partial class Cloner
     public static Func<T?, T?> CreateCloner<T>(ITypeShapeProvider shapeProvider) =>
         (Func<T?, T?>)s_clonerCache.GetOrAdd(typeof(T), shapeProvider)!;
 
+#if NET
     /// <summary>
     /// Deep clones an instance of type <typeparamref name="T"/> using its <see cref="ITypeShape{T}"/> implementation.
     /// </summary>
@@ -56,4 +57,5 @@ public static partial class Cloner
         public static Func<T?, T?> Value => s_value ??= CreateCloner(TProvider.GetShape());
         private static Func<T?, T?>? s_value;
     }
+#endif
 }

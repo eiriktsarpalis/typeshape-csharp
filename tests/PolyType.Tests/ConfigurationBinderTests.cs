@@ -9,7 +9,7 @@ using Xunit;
 
 namespace PolyType.Tests;
 
-public abstract class ConfigurationBinderTests(IProviderUnderTest providerUnderTest)
+public abstract class ConfigurationBinderTests(ProviderUnderTest providerUnderTest)
 {
     [Theory]
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
@@ -46,7 +46,7 @@ public abstract class ConfigurationBinderTests(IProviderUnderTest providerUnderT
         string json = converter.Serialize(testCase.Value);
         if (testCase.IsStack)
         {
-            T? value = converter.Deserialize(json);
+            T? value = converter.Deserialize(json.AsSpan());
             json = converter.Serialize(value);
         }
         
@@ -58,6 +58,6 @@ public abstract class ConfigurationBinderTests(IProviderUnderTest providerUnderT
     }
 }
 
-public sealed class ConfigurationBinderTests_Reflection() : ConfigurationBinderTests(RefectionProviderUnderTest.Default);
-public sealed class ConfigurationBinderTests_ReflectionEmit() : ConfigurationBinderTests(RefectionProviderUnderTest.NoEmit);
+public sealed class ConfigurationBinderTests_Reflection() : ConfigurationBinderTests(RefectionProviderUnderTest.NoEmit);
+public sealed class ConfigurationBinderTests_ReflectionEmit() : ConfigurationBinderTests(RefectionProviderUnderTest.Emit);
 public sealed class ConfigurationBinderTests_SourceGen() : ConfigurationBinderTests(SourceGenProviderUnderTest.Default);

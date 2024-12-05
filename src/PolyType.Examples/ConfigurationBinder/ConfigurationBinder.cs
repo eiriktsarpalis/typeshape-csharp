@@ -41,6 +41,7 @@ public static partial class ConfigurationBinderTS
     [RequiresDynamicCode("PolyType reflection provider requires dynamic code")]
     public static Func<IConfiguration, T?> Create<T>() => Create<T>(ReflectionProvider.ReflectionTypeShapeProvider.Default);
 
+#if NET
     /// <summary>
     /// Binds an <see cref="IConfiguration"/> to the specified type using its <see cref="IShapeable{T}"/> implementation.
     /// </summary>
@@ -65,4 +66,5 @@ public static partial class ConfigurationBinderTS
         public static Func<IConfiguration, T?> Value => s_value ??= Create(TProvider.GetShape());
         private static Func<IConfiguration, T?>? s_value;
     }
+#endif
 }

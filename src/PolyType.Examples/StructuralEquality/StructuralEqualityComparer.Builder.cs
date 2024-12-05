@@ -1,5 +1,6 @@
 ﻿using PolyType.Abstractions;
 using PolyType.Examples.StructuralEquality.Comparers;
+using PolyType.Examples.Utilities;
 using PolyType.Utilities;
 using System.Runtime.CompilerServices;
 
@@ -16,7 +17,7 @@ public static partial class StructuralEqualityComparer
 
         public override object? VisitObject<T>(IObjectTypeShape<T> type, object? state)
         {
-            if (!RuntimeHelpers.IsReferenceOrContainsReferences<T>() ||
+            if (!Helpers.IsReferenceOrContainsReferences<T>() ||
                 (typeof(IEquatable<T>).IsAssignableFrom(typeof(T)) && !type.IsRecordType))
             {
                 // Use default comparison for types that don't contain references
@@ -64,7 +65,7 @@ public static partial class StructuralEqualityComparer
         {
             IEqualityComparer<TKey> keyComparer = GetOrAddEqualityComparer(dictionaryShape.KeyType);
             IEqualityComparer<TValue> valueComparer = GetOrAddEqualityComparer(dictionaryShape.ValueType);
-            if (typeof(TDictionary).IsAssignableTo(typeof(Dictionary<TKey, TValue>)))
+            if (typeof(Dictionary<TKey, TValue>).IsAssignableFrom(typeof(TDictionary)))
             {
                 return new DictionaryOfKVEqualityComparer<TKey, TValue>
                 {

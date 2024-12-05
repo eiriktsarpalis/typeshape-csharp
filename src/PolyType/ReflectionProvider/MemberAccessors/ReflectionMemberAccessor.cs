@@ -20,11 +20,11 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                 if (p.DeclaringType!.IsValueType)
                 {
                     // If a struct we can wrap the getter in the getter delegate directly.
-                    return ReflectionHelpers.CreateDelegate<Getter<TDeclaringType, TPropertyType>>(p.GetMethod!);
+                    return p.GetMethod!.CreateDelegate<Getter<TDeclaringType, TPropertyType>>();
                 }
 
                 // Reference types can't be wrapped directly, so we create an intermediate func delegate.
-                Func<TDeclaringType, TPropertyType> getterDelegate = ReflectionHelpers.CreateDelegate<Func<TDeclaringType, TPropertyType>>(p.GetMethod!);
+                Func<TDeclaringType, TPropertyType> getterDelegate = p.GetMethod!.CreateDelegate<Func<TDeclaringType, TPropertyType>>();
                 return (ref TDeclaringType obj) => getterDelegate(obj);
             }
 
@@ -85,11 +85,11 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                 if (p.DeclaringType!.IsValueType)
                 {
                     // If a struct we can wrap the setter in the setter delegate directly.
-                    return ReflectionHelpers.CreateDelegate<Setter<TDeclaringType, TPropertyType>>(setter);
+                    return setter.CreateDelegate<Setter<TDeclaringType, TPropertyType>>();
                 }
 
                 // Reference types can't be wrapped directly, so we create an intermediate action delegate.
-                Action<TDeclaringType, TPropertyType> setterDelegate = ReflectionHelpers.CreateDelegate<Action<TDeclaringType, TPropertyType>>(setter);
+                Action<TDeclaringType, TPropertyType> setterDelegate = setter.CreateDelegate<Action<TDeclaringType, TPropertyType>>();
                 return (ref TDeclaringType obj, TPropertyType value) => setterDelegate(obj, value);
             }
 
@@ -262,7 +262,13 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
                     object?[] localParams;
                     if (i == state.Length)
                     {
+#if NET
                         localParams = state[^arity..];
+#else
+                        // https://github.com/Sergio0694/PolySharp/issues/104
+                        localParams = new object?[arity];
+                        state.AsSpan(state.Length - arity).CopyTo(localParams);
+#endif
                     }
                     else
                     {
@@ -333,8 +339,8 @@ internal sealed class ReflectionMemberAccessor : IReflectionMemberAccessor
             {
                 if (methodCtor.Parameters is [MethodParameterShapeInfo pI])
                 {
-                    Debug.Assert(typeof(TArgumentState) == pI.Type);
-                    Debug.Assert(methodCtor.ConstructorMethod != null);
+                    DebugExt.Assert(typeof(TArgumentState) == pI.Type);
+                    DebugExt.Assert(methodCtor.ConstructorMethod != null);
                     MethodBase ctor = methodCtor.ConstructorMethod;
                     return (ref TArgumentState state) => (TDeclaringType)ctor.Invoke([state]);
                 }
