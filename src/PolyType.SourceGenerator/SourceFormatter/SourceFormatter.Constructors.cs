@@ -51,8 +51,8 @@ internal sealed partial class SourceFormatter
             }
 
             string parameterTypes = constructor.Parameters.Length == 0
-                ? "global::System.Array.Empty<global::System.Type>()"
-                : $$"""new[] { {{string.Join(", ", constructor.Parameters.Select(p => $"typeof({p.ParameterType.FullyQualifiedName})"))}} }""";
+                ? "[]"
+                : $$"""[{{string.Join(", ", constructor.Parameters.Select(p => $"typeof({p.ParameterType.FullyQualifiedName})"))}}]""";
 
             return $"static () => typeof({constructor.DeclaringType.FullyQualifiedName}).GetConstructor({InstanceBindingFlagsConstMember}, null, {parameterTypes}, null)";
         }
@@ -306,8 +306,8 @@ internal sealed partial class SourceFormatter
                 }
 
                 string parameterTypes = constructor.Parameters.Length == 0
-                    ? "global::System.Array.Empty<global::System.Type>()"
-                    : $$"""new[] { {{string.Join(", ", constructor.Parameters.Select(p => $"typeof({p.ParameterType.FullyQualifiedName})"))}} }""";
+                    ? "[]"
+                    : $$"""[{{string.Join(", ", constructor.Parameters.Select(p => $"typeof({p.ParameterType.FullyQualifiedName})"))}}]""";
 
                 return $"static () => typeof({constructor.DeclaringType.FullyQualifiedName}).GetConstructor({InstanceBindingFlagsConstMember}, null, {parameterTypes}, null)?.GetParameters()[{parameter.Position}]";
             }
@@ -445,8 +445,8 @@ internal sealed partial class SourceFormatter
         {
             // Emit a reflection-based workaround.
             string parameterTypes = constructorModel.Parameters.Length == 0
-                ? "global::System.Array.Empty<global::System.Type>()"
-                : $$"""new[] { {{string.Join(", ", constructorModel.Parameters.Select(FormatParameterType))}} }""";
+                ? "[]"
+                : $$"""[{{string.Join(", ", constructorModel.Parameters.Select(FormatParameterType))}}]""";
 
             static string FormatParameterType(ConstructorParameterShapeModel parameter)
             {
