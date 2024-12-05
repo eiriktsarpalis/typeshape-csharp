@@ -2,6 +2,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace PolyType.ReflectionProvider;
@@ -10,6 +12,30 @@ internal static class ReflectionHelpers
 {
     private const string RequiresUnreferencedCodeMessage = "The method requires unreferenced code.";
     private const string RequiresDynamicCodeMessage = "The method requires dynamic code generation.";
+
+    public static bool IsDynamicCodeSupported { get; } = IsDynamicCodeSupportedCore();
+    private static bool IsDynamicCodeSupportedCore()
+    {
+#if NET
+        return RuntimeFeature.IsDynamicCodeSupported;
+#else
+        if (RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.Ordinal))
+        {
+            return true; // .NET Framework supports dynamic code generation.
+        }
+
+        // Check for the presence of the property in .NET 6+.
+        PropertyInfo? prop = Type.GetType("System.Runtime.CompilerServices.RuntimeFeature")?.GetProperty("IsDynamicCodeSupported", BindingFlags.Public | BindingFlags.Static);
+        return prop is not null && (bool)prop.GetValue(null);
+#endif
+    }
+
+    public static bool IsNullabilityInfoContextSupported { get; } =
+#if NET
+        !AppContext.TryGetSwitch("System.Reflection.NullabilityInfoContext.IsSupported", out bool isSupported) || isSupported;
+#else
+        true; // The ns2.0 build uses a polyfill that always supports NRTs.
+#endif
 
     public static bool IsNullableStruct(this Type type)
     {
@@ -41,8 +67,10 @@ internal static class ReflectionHelpers
         }
     }
 
-    public static TDelegate CreateDelegate<TDelegate>(MethodInfo methodInfo) where TDelegate : Delegate
+#if !NET
+    public static TDelegate CreateDelegate<TDelegate>(this MethodInfo methodInfo) where TDelegate : Delegate
         => (TDelegate)Delegate.CreateDelegate(typeof(TDelegate), methodInfo);
+#endif
 
     public static bool IsNonNullableAnnotation(this ParameterInfo parameterInfo, NullabilityInfoContext? ctx)
     {
@@ -153,7 +181,7 @@ internal static class ReflectionHelpers
     public static ParameterInfo GetGenericParameterDefinition(this ParameterInfo parameter)
     {
         if (parameter.Member is { DeclaringType.IsConstructedGenericType: true }
-                             or MethodInfo { IsConstructedGenericMethod: true })
+                             or MethodInfo { IsGenericMethod: true })
         {
             var genericMethod = (MethodBase)parameter.Member.GetGenericMemberDefinition();
             return genericMethod.GetParameters()[parameter.Position];
@@ -183,7 +211,7 @@ internal static class ReflectionHelpers
                 .First(m => m.MetadataToken == member.MetadataToken);
         }
 
-        if (member is MethodInfo { IsConstructedGenericMethod: true } method)
+        if (member is MethodInfo { IsGenericMethod: true } method)
         {
             return method.GetGenericMethodDefinition();
         }
@@ -193,17 +221,39 @@ internal static class ReflectionHelpers
 
     public static bool CanBeGenericArgument(this Type type)
     {
-        return !(type == typeof(void) || type.IsPointer || type.IsByRef || type.IsByRefLike || type.ContainsGenericParameters);
+        return !(type == typeof(void) || type.IsPointer || type.IsByRef || IsByRefLike(type) || type.ContainsGenericParameters);
+    }
+
+    private static bool IsByRefLike(Type type)
+    {
+#if NET
+        return type.IsByRefLike;
+#else
+        if (!type.IsValueType)
+        {
+            return false;
+        }
+
+        foreach (var attributeData in type.GetCustomAttributesData())
+        {
+            if (attributeData.AttributeType.FullName == "System.Runtime.CompilerServices.IsByRefLikeAttribute")
+            {
+                return true;
+            }
+        }
+
+        return false;
+#endif
     }
 
     public static object Invoke(this MethodBase methodBase, params object?[]? args)
     {
-        Debug.Assert(methodBase is ConstructorInfo or MethodInfo { IsStatic: true });
+        DebugExt.Assert(methodBase is ConstructorInfo or MethodBase { IsStatic: true });
         object? result = methodBase is ConstructorInfo ctor
             ? ctor.Invoke(args)
             : methodBase.Invoke(null, args);
 
-        Debug.Assert(result != null);
+        DebugExt.Assert(result != null);
         return result;
     }
 
@@ -237,20 +287,20 @@ internal static class ReflectionHelpers
     {
         return !type.IsValueType
             ? type.GetMethod("<Clone>$", BindingFlags.Public | BindingFlags.Instance) is not null
-            : type.GetMethod("PrintMembers", BindingFlags.NonPublic | BindingFlags.Instance, [typeof(StringBuilder)]) is { } method
+            : type.GetMethod("PrintMembers", BindingFlags.NonPublic | BindingFlags.Instance, null, [typeof(StringBuilder)], null) is { } method
                 && method.ReturnType == typeof(bool)
                 && method.GetCustomAttributesData().Any(attr => attr.AttributeType.Name == "CompilerGeneratedAttribute");
     }
 
     public static Type GetMemberType(this MemberInfo memberInfo)
     {
-        Debug.Assert(memberInfo is FieldInfo or PropertyInfo);
+        DebugExt.Assert(memberInfo is FieldInfo or PropertyInfo);
         return memberInfo is FieldInfo f ? f.FieldType : ((PropertyInfo)memberInfo).PropertyType;
     }
 
     public static void ResolveAccessibility(this MemberInfo memberInfo, out bool isGetterPublic, out bool isSetterPublic)
     {
-        Debug.Assert(memberInfo is FieldInfo or PropertyInfo);
+        DebugExt.Assert(memberInfo is FieldInfo or PropertyInfo);
         if (memberInfo is PropertyInfo propertyInfo)
         {
             isGetterPublic = propertyInfo.GetMethod?.IsPublic is true;
@@ -322,7 +372,7 @@ internal static class ReflectionHelpers
 
     public static bool IsRequired(this MemberInfo memberInfo)
     {
-        Debug.Assert(memberInfo is FieldInfo or PropertyInfo);
+        DebugExt.Assert(memberInfo is FieldInfo or PropertyInfo);
         return memberInfo.CustomAttributes.Any(static attr => attr.AttributeType.FullName == "System.Runtime.CompilerServices.RequiredMemberAttribute");
     }
 
@@ -333,7 +383,7 @@ internal static class ReflectionHelpers
 
     public static Type MemberType(this MemberInfo memberInfo)
     {
-        Debug.Assert(memberInfo is FieldInfo or PropertyInfo);
+        DebugExt.Assert(memberInfo is FieldInfo or PropertyInfo);
         return memberInfo is FieldInfo f ? f.FieldType : ((PropertyInfo)memberInfo).PropertyType;
     }
 
@@ -371,7 +421,7 @@ internal static class ReflectionHelpers
 
     public static bool IsExplicitInterfaceImplementation(this MethodInfo methodInfo)
     {
-        Debug.Assert(!methodInfo.IsStatic);
+        DebugExt.Assert(!methodInfo.IsStatic);
         return methodInfo is { IsPrivate: true, IsVirtual: true } && methodInfo.Name.Contains('.');
     }
 
@@ -386,7 +436,7 @@ internal static class ReflectionHelpers
     public static PropertyInfo GetBaseDefinition(this PropertyInfo propertyInfo)
     {
         MethodInfo? getterOrSetter = propertyInfo.GetMethod ?? propertyInfo.SetMethod;
-        Debug.Assert(getterOrSetter != null);
+        DebugExt.Assert(getterOrSetter != null);
         if (getterOrSetter.IsVirtual)
         {
             MethodInfo baseDefinition = getterOrSetter.GetBaseDefinition();
@@ -414,7 +464,7 @@ internal static class ReflectionHelpers
             return !parameterType.IsValueType || parameterType.IsNullableStruct();
         }
 
-        Debug.Assert(defaultValue is not DBNull, "should have been caught by the HasDefaultValue check.");
+        DebugExt.Assert(defaultValue is not DBNull, "should have been caught by the HasDefaultValue check.");
 
         if (parameterType.IsEnum)
         {
@@ -466,13 +516,13 @@ internal static class ReflectionHelpers
 
     public static bool IsTupleType(this Type type)
     {
-        if (type.Assembly != typeof(ValueTuple<int>).Assembly || type.Namespace != "System")
+        if (type is not { Namespace: "System", Name: string name })
         {
             return false;
         }
 
-        return type.Name.StartsWith("ValueTuple", StringComparison.Ordinal) ||
-            type.Name.StartsWith("Tuple", StringComparison.Ordinal);
+        return name.StartsWith("ValueTuple", StringComparison.Ordinal) ||
+            name.StartsWith("Tuple", StringComparison.Ordinal);
     }
 
     public static bool IsValueTupleType(this Type type)
@@ -504,15 +554,40 @@ internal static class ReflectionHelpers
             5 => typeof(ValueTuple<,,,,>).MakeGenericType(elementTypes),
             6 => typeof(ValueTuple<,,,,,>).MakeGenericType(elementTypes),
             7 => typeof(ValueTuple<,,,,,,>).MakeGenericType(elementTypes),
-            _ => typeof(ValueTuple<,,,,,,,>).MakeGenericType([.. elementTypes[..7], CreateValueTupleType(elementTypes[7..])]),
+            _ => typeof(ValueTuple<,,,,,,,>).MakeGenericType([.. elementTypes.Take(7), CreateValueTupleType(elementTypes.Skip(7).ToArray())]),
         };
+    }
+
+    public static int GetValueTupleArity<TupleType>()
+    {
+        Debug.Assert(typeof(TupleType).IsValueTupleType());
+#if NET
+        return ((ITuple)default(TupleType)!).Length;
+#else
+        return GetArityCore(typeof(TupleType));
+        static int GetArityCore(Type type)
+        {
+            int count = 0;
+            while (true)
+            {
+                Type[] genericParams = type.GetGenericArguments();
+                if (genericParams.Length < 8)
+                {
+                    return count + genericParams.Length;
+                }
+
+                type = genericParams[7];
+                count += 7;
+            }
+        }
+#endif
     }
 
     [RequiresUnreferencedCode(RequiresUnreferencedCodeMessage)]
     public static IEnumerable<(string LogicalName, MemberInfo Member, MemberInfo[]? ParentMembers)> EnumerateTupleMemberPaths(Type tupleType)
     {
         // Walks the nested tuple representation, returning every element field and the parent "Rest" fields needed to access the value.
-        Debug.Assert(tupleType.IsTupleType());
+        DebugExt.Assert(tupleType.IsTupleType());
         List<MemberInfo>? nestedMembers = null;
         bool hasNestedTuple;
         int i = 0;

@@ -1,11 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <IsAotCompatible>true</IsAotCompatible>
+    <TargetFrameworks>net8.0;netstandard2.0</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' != 'netstandard2.0'">
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Shared\Helpers\DebugExt.cs" Link="Shared\Helpers\%(Filename).cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <Compile Include="..\Shared\Polyfills\LinkerAttributes\*.cs " Link="Shared\Polyfills\LinkerAttributes\%(Filename).cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Include="README.md" pack="true" PackagePath="." />
@@ -14,6 +26,11 @@
   <ItemGroup>
     <PackageReference Include="System.Formats.Cbor" />
     <PackageReference Include="Microsoft.Extensions.Configuration" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Text.Json" />
+    <PackageReference Include="Microsoft.Bcl.HashCode" />
   </ItemGroup>
 
   <ItemGroup>

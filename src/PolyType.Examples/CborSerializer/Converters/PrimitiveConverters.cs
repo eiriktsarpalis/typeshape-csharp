@@ -51,6 +51,7 @@ internal sealed class UInt64Converter : CborConverter<ulong>
         => writer.WriteUInt64(value);
 }
 
+#if NET
 internal sealed class UInt128Converter : CborConverter<UInt128>
 {
     public override UInt128 Read(CborReader reader)
@@ -59,6 +60,7 @@ internal sealed class UInt128Converter : CborConverter<UInt128>
     public override void Write(CborWriter writer, UInt128 value)
         => writer.WriteBigInteger(value);
 }
+#endif
 
 internal sealed class SByteConverter : CborConverter<sbyte>
 {
@@ -96,6 +98,7 @@ internal sealed class Int64Converter : CborConverter<long>
         => writer.WriteInt64(value);
 }
 
+#if NET
 internal sealed class Int128Converter : CborConverter<Int128>
 {
     public override Int128 Read(CborReader reader)
@@ -104,6 +107,7 @@ internal sealed class Int128Converter : CborConverter<Int128>
     public override void Write(CborWriter writer, Int128 value)
         => writer.WriteBigInteger(value);
 }
+#endif
 
 internal sealed class StringConverter : CborConverter<string>
 {
@@ -206,6 +210,7 @@ internal sealed class CharConverter : CborConverter<char>
     }
 }
 
+#if NET
 internal sealed class RuneConverter : CborConverter<Rune>
 {
     public override Rune Read(CborReader reader)
@@ -227,6 +232,7 @@ internal sealed class HalfConverter : CborConverter<Half>
     public override void Write(CborWriter writer, Half value)
         => writer.WriteHalf(value);
 }
+#endif
 
 internal sealed class SingleConverter : CborConverter<float>
 {
@@ -301,14 +307,22 @@ internal sealed class GuidConverter : CborConverter<Guid>
     {
         reader.EnsureTag(UUID);
         ReadOnlyMemory<byte> data = reader.ReadDefiniteLengthByteString();
+#if NET
         return new Guid(data.Span);
+#else
+        return new Guid(data.ToArray());
+#endif
     }
 
     public override void Write(CborWriter writer, Guid value)
     {
+#if NET
         Span<byte> bytes = stackalloc byte[16];
         bool success = value.TryWriteBytes(bytes);
         Debug.Assert(success);
+#else
+        byte[] bytes = value.ToByteArray();
+#endif
         writer.WriteTag(UUID);
         writer.WriteByteString(bytes);
     }
@@ -352,12 +366,22 @@ internal sealed class TimeSpanConverter : CborConverter<TimeSpan>
         return reader.PeekState() switch
         {
             CborReaderState.UnsignedInteger or
-            CborReaderState.NegativeInteger => TimeSpan.FromSeconds(reader.ReadInt64()),
+            CborReaderState.NegativeInteger => SafeFromSeconds(reader.ReadInt64()),
             CborReaderState.HalfPrecisionFloat or
             CborReaderState.SinglePrecisionFloat or
-            CborReaderState.DoublePrecisionFloat => TimeSpan.FromSeconds(reader.ReadDouble()),
+            CborReaderState.DoublePrecisionFloat => SafeFromSeconds(reader.ReadDouble()),
             var state => CborHelpers.ThrowInvalidToken<TimeSpan>(state),
         };
+
+        static TimeSpan SafeFromSeconds(double totalSeconds)
+        {
+            return
+#if !NET
+                totalSeconds == TimeSpan.MaxValue.TotalSeconds ? TimeSpan.MaxValue :
+                totalSeconds == TimeSpan.MinValue.TotalSeconds ? TimeSpan.MinValue :
+#endif
+                TimeSpan.FromSeconds(totalSeconds);
+        }
     }
 
     public override void Write(CborWriter writer, TimeSpan value)
@@ -367,6 +391,7 @@ internal sealed class TimeSpanConverter : CborConverter<TimeSpan>
     }
 }
 
+#if NET
 internal sealed class DateOnlyConverter : CborConverter<DateOnly>
 {
     public override DateOnly Read(CborReader reader)
@@ -386,6 +411,7 @@ internal sealed class TimeOnlyConverter : CborConverter<TimeOnly>
     public override void Write(CborWriter writer, TimeOnly value)
         => s_timeSpanConverter.Write(writer, value.ToTimeSpan());
 }
+#endif
 
 internal sealed class ObjectConverter : CborConverter<object>
 {

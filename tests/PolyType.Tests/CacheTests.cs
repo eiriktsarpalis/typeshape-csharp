@@ -48,7 +48,7 @@ public static class CacheTests
     [Fact]
     public static void TypeGenerationContext_TryGetValue()
     {
-        ITypeShape<int> key = TypeShapeProvider.Resolve<int, SourceGenProvider>();
+        ITypeShape<int> key = Witness.ShapeProvider.Resolve<int>();
         TypeGenerationContext context = new();
 
         Assert.DoesNotContain(typeof(int), context);
@@ -71,7 +71,7 @@ public static class CacheTests
     [Fact]
     public static void TypeGenerationContext_TryGetValue_DelayedValueFactory()
     {
-        ITypeShape<int> key = TypeShapeProvider.Resolve<int, SourceGenProvider>();
+        ITypeShape<int> key = Witness.ShapeProvider.Resolve<int>();
         TestDelayedValueFactory factory = new();
         TypeGenerationContext context = new() { DelayedValueFactory = factory };
 
@@ -130,9 +130,9 @@ public static class CacheTests
     [Fact]
     public static void TypeCache_DefaultValue()
     {
-        TypeCache cache = new(provider: SourceGenProvider.ShapeProvider);
+        TypeCache cache = new(provider: Witness.ShapeProvider);
 
-        Assert.Same(SourceGenProvider.ShapeProvider, cache.Provider);
+        Assert.Same(Witness.ShapeProvider, cache.Provider);
         Assert.Null(cache.ValueBuilderFactory);
         Assert.Null(cache.DelayedValueFactory);
         Assert.False(cache.CacheExceptions);
@@ -142,7 +142,7 @@ public static class CacheTests
     [Fact]
     public static void TypeCache_AddValues()
     {
-        TypeCache cache = new(provider: SourceGenProvider.ShapeProvider);
+        TypeCache cache = new(provider: Witness.ShapeProvider);
         TypeGenerationContext generationContext = cache.CreateGenerationContext();
         Assert.Empty(generationContext);
         Assert.Same(cache, generationContext.ParentCache);
@@ -187,7 +187,7 @@ public static class CacheTests
     [Fact]
     public static void TypeCache_DelayedValueFactory()
     {
-        TypeCache cache = new(SourceGenProvider.ShapeProvider) { DelayedValueFactory = new TestDelayedValueFactory() };
+        TypeCache cache = new(Witness.ShapeProvider) { DelayedValueFactory = new TestDelayedValueFactory() };
         TypeGenerationContext generationContext = cache.CreateGenerationContext();
         Assert.Same(cache.DelayedValueFactory, generationContext.DelayedValueFactory);
 
@@ -195,7 +195,7 @@ public static class CacheTests
         Assert.Empty(cache);
 
         // Register an incomplete value in the cache.
-        ITypeShape<int> key = TypeShapeProvider.Resolve<int, SourceGenProvider>();
+        ITypeShape<int> key = Witness.ShapeProvider.Resolve<int>();
         Assert.False(generationContext.TryGetValue(key, out object? result));
         Assert.Null(result);
         Assert.Throws<InvalidOperationException>(() => generationContext.TryCommitResults());
@@ -229,7 +229,7 @@ public static class CacheTests
     [Fact]
     public static void TypeGenerationContext_InvalidMethodParameters_ThrowsArgumentException()
     {
-        TypeCache cache = new(SourceGenProvider.ShapeProvider) { ValueBuilderFactory = _ => new IdBuilderFactory() };
+        TypeCache cache = new(Witness.ShapeProvider) { ValueBuilderFactory = _ => new IdBuilderFactory() };
         TypeGenerationContext generationContext = cache.CreateGenerationContext();
         ITypeShape<int> shapeFromOtherProvider = ReflectionTypeShapeProvider.Default.Resolve<int>();
         Assert.NotNull(generationContext.ValueBuilder);
@@ -246,9 +246,9 @@ public static class CacheTests
     [Fact]
     public static void TypeGenerationContext_NoValueBuilder_GetOrAddThrowsInvalidOperationException()
     {
-        TypeCache cache = new(SourceGenProvider.ShapeProvider);
+        TypeCache cache = new(Witness.ShapeProvider);
         TypeGenerationContext generationContext = cache.CreateGenerationContext();
-        ITypeShape<int> key = TypeShapeProvider.Resolve<int, SourceGenProvider>();
+        ITypeShape<int> key = Witness.ShapeProvider.Resolve<int>();
 
         Assert.Throws<InvalidOperationException>(() => generationContext.GetOrAdd(key));
     }
@@ -263,13 +263,13 @@ public static class CacheTests
     [InlineData(true)]
     public static void TypeCache_CacheExceptions(bool cacheExceptions)
     {
-        TypeCache cache = new(SourceGenProvider.ShapeProvider) 
+        TypeCache cache = new(Witness.ShapeProvider) 
         { 
             CacheExceptions = cacheExceptions,
             ValueBuilderFactory = _ => new ThrowingBuilder() 
         };
 
-        ITypeShape<int> key = TypeShapeProvider.Resolve<int, SourceGenProvider>();
+        ITypeShape<int> key = Witness.ShapeProvider.Resolve<int>();
 
         var ex1 = Assert.Throws<NotFiniteNumberException>(() => cache.GetOrAdd(key));
         var ex2 = Assert.Throws<NotFiniteNumberException>(() => cache.GetOrAdd(key));
@@ -294,9 +294,9 @@ public static class CacheTests
     {
         MultiProviderTypeCache cache = new();
 
-        Assert.Same(cache.GetScopedCache(SourceGenProvider.ShapeProvider), cache.GetScopedCache(SourceGenProvider.ShapeProvider));
+        Assert.Same(cache.GetScopedCache(Witness.ShapeProvider), cache.GetScopedCache(Witness.ShapeProvider));
         Assert.Same(cache.GetScopedCache(ReflectionTypeShapeProvider.Default), cache.GetScopedCache(ReflectionTypeShapeProvider.Default));
-        Assert.NotSame(cache.GetScopedCache(SourceGenProvider.ShapeProvider), cache.GetScopedCache(ReflectionTypeShapeProvider.Default));
+        Assert.NotSame(cache.GetScopedCache(Witness.ShapeProvider), cache.GetScopedCache(ReflectionTypeShapeProvider.Default));
     }
 
     [Fact]
@@ -309,8 +309,8 @@ public static class CacheTests
             ValueBuilderFactory = _ => new IdBuilderFactory(),
         };
 
-        TypeCache sourceGenCache = cache.GetScopedCache(SourceGenProvider.ShapeProvider);
-        Assert.Same(SourceGenProvider.ShapeProvider, sourceGenCache.Provider);
+        TypeCache sourceGenCache = cache.GetScopedCache(Witness.ShapeProvider);
+        Assert.Same(Witness.ShapeProvider, sourceGenCache.Provider);
         Assert.Equal(cache.CacheExceptions, sourceGenCache.CacheExceptions);
         Assert.Same(cache.DelayedValueFactory, sourceGenCache.DelayedValueFactory);
         Assert.Same(cache.ValueBuilderFactory, sourceGenCache.ValueBuilderFactory);

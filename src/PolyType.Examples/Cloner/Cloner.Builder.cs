@@ -1,4 +1,5 @@
 ﻿using PolyType.Abstractions;
+using PolyType.Examples.Utilities;
 using PolyType.Utilities;
 
 namespace PolyType.Examples.Cloner;
@@ -8,7 +9,7 @@ public static partial class Cloner
     private sealed class Builder(TypeGenerationContext generationContext) : TypeShapeVisitor, ITypeShapeFunc
     {
         private delegate void PropertyCloner<TSource, TTarget>(ref TSource source, ref TTarget target);
-        private static readonly Dictionary<Type, object> s_builtInCloners = new(GetBuiltInCloners());
+        private static readonly Dictionary<Type, object> s_builtInCloners = GetBuiltInCloners().ToDictionary();
 
         public Func<T?, T?> GetOrAddCloner<T>(ITypeShape<T> shape) => (Func<T?,T?>)generationContext.GetOrAdd(shape)!;
 

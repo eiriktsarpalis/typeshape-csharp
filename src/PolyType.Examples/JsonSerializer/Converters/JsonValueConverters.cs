@@ -1,4 +1,5 @@
-﻿using PolyType.Utilities;
+﻿using PolyType.Examples.Utilities;
+using PolyType.Utilities;
 using System.Buffers;
 using System.Diagnostics;
 using System.Globalization;
@@ -22,6 +23,7 @@ public sealed class BigIntegerConverter : JsonConverter<BigInteger>
             reader.GetInt32(); // force a token type exception.
         }
 
+#if NET
         char[]? rentedBuffer = null;
         int bytesLength = reader.ValueSpan.Length;
         Span<char> destination = bytesLength <= 128
@@ -42,11 +44,15 @@ public sealed class BigIntegerConverter : JsonConverter<BigInteger>
                 ArrayPool<char>.Shared.Return(rentedBuffer);
             }
         }
+#else
+        return BigInteger.Parse(Encoding.UTF8.GetString(reader.ValueSpan), CultureInfo.InvariantCulture);
+#endif
     }
 
     /// <inheritdoc/>
     public sealed override void Write(Utf8JsonWriter writer, BigInteger value, JsonSerializerOptions options)
     {
+#if NET
         char[]? rentedBuffer = null;
         int maxLength = (int)Math.Ceiling(value.GetByteCount() * 8.0 / Math.Log10(2));
 
@@ -63,9 +69,13 @@ public sealed class BigIntegerConverter : JsonConverter<BigInteger>
             rentedBuffer.AsSpan(0, charsWritten).Clear();
             ArrayPool<char>.Shared.Return(rentedBuffer);
         }
+#else
+        writer.WriteRawValue(Encoding.UTF8.GetBytes(value.ToString(CultureInfo.InvariantCulture)));
+#endif
     }
 }
 
+#if NET
 /// <summary>Defines a converter for <see cref="Rune"/>.</summary>
 public sealed class RuneConverter : JsonConverter<Rune>
 {
@@ -81,6 +91,7 @@ public sealed class RuneConverter : JsonConverter<Rune>
         writer.WriteStringValue(value.ToString());
     }
 }
+#endif
 
 internal sealed class JsonPolymorphicObjectConverter(TypeCache typeCache) : JsonConverter<object?>
 {

@@ -1,8 +1,8 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Text;
 using PolyType.Roslyn;
 using PolyType.SourceGenerator.Model;
+using System.Diagnostics;
 
 namespace PolyType.SourceGenerator;
 
@@ -22,6 +22,12 @@ internal sealed partial class SourceFormatter(TypeShapeProviderModel provider)
 
     private void AddAllSourceFiles(SourceProductionContext context, TypeShapeProviderModel provider)
     {
+        if (provider is { ProvidedTypes.Count: 0, AnnotatedTypes.Length: 0 })
+        {
+            Debug.Assert(provider.Diagnostics.Count > 0);
+            return;
+        }
+
         context.CancellationToken.ThrowIfCancellationRequested();
         context.AddSource($"{provider.ProviderDeclaration.SourceFilenamePrefix}.g.cs", FormatShapeProviderMainFile(provider));
 

@@ -88,6 +88,7 @@ public static partial class XmlSerializer
         return result;
     }
 
+#if NET
     /// <summary>
     /// Serializes a value to an XML string using its <see cref="IShapeable{T}"/> implementation.
     /// </summary>
@@ -135,4 +136,5 @@ public static partial class XmlSerializer
         public static XmlConverter<T> Value => s_value ??= CreateConverter(TProvider.GetShape());
         private static XmlConverter<T>? s_value;
     }
+#endif
 }

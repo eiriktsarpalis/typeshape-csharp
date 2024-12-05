@@ -5,7 +5,7 @@ CONFIGURATION ?= Release
 NUGET_SOURCE ?= "https://api.nuget.org/v3/index.json"
 NUGET_API_KEY ?= ""
 ADDITIONAL_ARGS ?= -p:ContinuousIntegrationBuild=true
-CODECOV_ARGS ?= --collect:"XPlat Code Coverage" --results-directory $(ARTIFACT_PATH)
+CODECOV_ARGS ?= --collect "Code Coverage;Format=cobertura" --results-directory $(ARTIFACT_PATH)
 DOCKER_IMAGE_NAME ?= "polytype-docker-build"
 DOCKER_CMD ?= make CONFIGURATION=$(CONFIGURATION)
 VERSION_FILE = $(SOURCE_DIRECTORY)version.json

@@ -5,7 +5,7 @@
 /// </summary>
 public enum TargetFramework
 {
-    Netstandard20 = 20, // Placeholder value, not yet supported.
-    Net80 = 80, // The default baseline supported by the generator.
+    Legacy = 20, // netstandard, netfx, or older .NET Core targets.
+    Net80 = 80, // The modern .NET baseline supported by PolyType.
     Net90 = 90,
 }

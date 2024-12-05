@@ -69,7 +69,7 @@ public partial class TypeDataModelGenerator
             kind = EnumerableKind.IEnumerableOfT;
             elementType = enumerableOfT.TypeArguments[0];
 
-            if (namedType.TryGetCollectionBuilderAttribute(elementType, out IMethodSymbol? builderMethod))
+            if (KnownSymbols.Compilation.TryGetCollectionBuilderAttribute(namedType, elementType, out IMethodSymbol? builderMethod, CancellationToken))
             {
                 constructionStrategy = CollectionModelConstructionStrategy.Span;
                 factoryMethod = builderMethod;

@@ -168,7 +168,8 @@ internal sealed class JsonMDArrayConverter<TArray, TElement>(JsonConverter<TElem
             ReadSubArray(ref reader, ref buffer, dimensions, options);
             dimensions.AsSpan().Replace(-1, 0);
             Array result = Array.CreateInstance(typeof(TElement), dimensions);
-            buffer.AsSpan().CopyTo(AsSpan(result));
+            using Helpers.UnsafeArraySpan<TElement> unsafeArraySpan = new(result);
+            buffer.AsSpan().CopyTo(unsafeArraySpan.Span);
             return (TArray)(object)result;
         }
         finally
@@ -188,7 +189,8 @@ internal sealed class JsonMDArrayConverter<TArray, TElement>(JsonConverter<TElem
             dimensions[i] = array.GetLength(i); 
         }
 
-        WriteSubArray(writer, dimensions, AsSpan(array), options);
+        using Helpers.UnsafeArraySpan<TElement> unsafeArraySpan = new(array);
+        WriteSubArray(writer, dimensions, unsafeArraySpan.Span, options);
     }
 
     private void ReadSubArray(
@@ -258,9 +260,4 @@ internal sealed class JsonMDArrayConverter<TArray, TElement>(JsonConverter<TElem
             
         writer.WriteEndArray();
     }
-    
-    private static Span<TElement> AsSpan(Array array) =>
-        MemoryMarshal.CreateSpan(
-            ref Unsafe.As<byte, TElement>(ref MemoryMarshal.GetArrayDataReference(array)), 
-            array.Length);
 }

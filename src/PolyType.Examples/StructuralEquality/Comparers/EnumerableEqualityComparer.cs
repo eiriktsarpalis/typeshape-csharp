@@ -17,7 +17,7 @@ internal sealed class EnumerableEqualityComparer<TEnumerable, TElement> : Equali
         return GetEnumerable(x).SequenceEqual(GetEnumerable(y), ElementComparer);
     }
 
-    public override int GetHashCode([DisallowNull] TEnumerable obj)
+    public override int GetHashCode(TEnumerable obj)
     {
         var hc = new HashCode();
         foreach (var element in GetEnumerable(obj))

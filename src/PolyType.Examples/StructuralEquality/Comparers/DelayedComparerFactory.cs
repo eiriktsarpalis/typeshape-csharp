@@ -11,7 +11,7 @@ internal sealed class DelayedEqualityComparerFactory : IDelayedValueFactory
 
     private sealed class DelayedEqualityComparer<T>(DelayedValue<IEqualityComparer<T>> self) : EqualityComparer<T>
     {
-        public override bool Equals(T? x, T? y) => self.Result.Equals(x, y);
-        public override int GetHashCode([DisallowNull] T obj) => self.Result.GetHashCode(obj);
+        public override bool Equals(T? x, T? y) => self.Result.Equals(x!, y!);
+        public override int GetHashCode(T obj) => self.Result.GetHashCode(obj!);
     }
 }

@@ -23,7 +23,7 @@ public sealed partial class TypeCache : IReadOnlyDictionary<Type, object?>
     /// <param name="provider">The shape provider associated with the current cache.</param>
     public TypeCache(ITypeShapeProvider provider)
     {
-        ArgumentNullException.ThrowIfNull(provider);
+        Throw.IfNull(provider);
         Provider = provider;
     }
 
@@ -111,7 +111,7 @@ public sealed partial class TypeCache : IReadOnlyDictionary<Type, object?>
     /// <returns>The final computed value.</returns>
     public object? GetOrAdd(Type type)
     {
-        ArgumentNullException.ThrowIfNull(type);
+        Throw.IfNull(type);
 
         if (_cache.TryGetValue(type, out Entry entry))
         {
@@ -128,7 +128,7 @@ public sealed partial class TypeCache : IReadOnlyDictionary<Type, object?>
     /// <returns>The final computed value.</returns>
     public object? GetOrAdd(ITypeShape typeShape)
     {
-        ArgumentNullException.ThrowIfNull(typeShape);
+        Throw.IfNull(typeShape);
 
         if (_cache.TryGetValue(typeShape.Type, out Entry entry))
         {

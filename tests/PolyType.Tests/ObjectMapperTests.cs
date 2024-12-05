@@ -5,7 +5,7 @@ using Xunit;
 
 namespace PolyType.Tests;
 
-public abstract class ObjectMapperTests(IProviderUnderTest providerUnderTest)
+public abstract class ObjectMapperTests(ProviderUnderTest providerUnderTest)
 {
     [Theory]
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
@@ -41,6 +41,7 @@ public abstract class ObjectMapperTests(IProviderUnderTest providerUnderTest)
         Assert.Equal(testCase.Value, mappedValue, comparer!);
     }
 
+#if NET
     [Fact]
     public void MapsToMatchingType()
     {
@@ -73,10 +74,8 @@ public abstract class ObjectMapperTests(IProviderUnderTest providerUnderTest)
         Assert.Null(weatherForecast.UnmatchedProperty);
     }
 
-    private Mapper<TFrom, TTo> GetMapper<TFrom, TTo>() 
-        where TFrom : IShapeable<TFrom>
-        where TTo : IShapeable<TTo> => 
-        Mapper.Create(providerUnderTest.ResolveShape<TFrom>(), providerUnderTest.ResolveShape<TTo>());
+    private Mapper<TFrom, TTo> GetMapper<TFrom, TTo>()  => Mapper.Create<TFrom, TTo>(providerUnderTest.Provider);
+#endif
 
     private (Mapper<T, T>, IEqualityComparer<T>, ITypeShape<T>) GetMapperAndEqualityComparer<T>(TestCase<T> testCase)
     {
@@ -85,6 +84,6 @@ public abstract class ObjectMapperTests(IProviderUnderTest providerUnderTest)
     }
 }
 
-public sealed class MapperTests_Reflection() : ObjectMapperTests(RefectionProviderUnderTest.Default);
-public sealed class MapperTests_ReflectionEmit() : ObjectMapperTests(RefectionProviderUnderTest.NoEmit);
+public sealed class MapperTests_Reflection() : ObjectMapperTests(RefectionProviderUnderTest.NoEmit);
+public sealed class MapperTests_ReflectionEmit() : ObjectMapperTests(RefectionProviderUnderTest.Emit);
 public sealed class MapperTests_SourceGen() : ObjectMapperTests(SourceGenProviderUnderTest.Default);

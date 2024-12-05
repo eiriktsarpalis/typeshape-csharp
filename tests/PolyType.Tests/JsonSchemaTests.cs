@@ -10,7 +10,7 @@ using Xunit.Sdk;
 
 namespace PolyType.Tests;
 
-public abstract class JsonSchemaTests(IProviderUnderTest providerUnderTest)
+public abstract class JsonSchemaTests(ProviderUnderTest providerUnderTest)
 {
     [Theory]
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
@@ -95,11 +95,13 @@ public abstract class JsonSchemaTests(IProviderUnderTest providerUnderTest)
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void SchemaMatchesJsonSerializer<T>(TestCase<T> testCase)
     {
+#if NET
         if (typeof(T) == typeof(Int128) || typeof(T) == typeof(UInt128) ||
             typeof(T) == typeof(Int128?) || typeof(T) == typeof(UInt128?))
         {
             return; // Not supported by JsonSchema.NET
         }
+#endif
 
         ITypeShape<T> shape = providerUnderTest.ResolveShape(testCase);
         JsonObject schema = JsonSchemaGenerator.Generate(shape);
@@ -127,6 +129,6 @@ public abstract class JsonSchemaTests(IProviderUnderTest providerUnderTest)
     }
 }
 
-public sealed class JsonSchemaTests_Reflection() : JsonSchemaTests(RefectionProviderUnderTest.Default);
-public sealed class JsonSchemaTests_ReflectionEmit() : JsonSchemaTests(RefectionProviderUnderTest.NoEmit);
+public sealed class JsonSchemaTests_Reflection() : JsonSchemaTests(RefectionProviderUnderTest.NoEmit);
+public sealed class JsonSchemaTests_ReflectionEmit() : JsonSchemaTests(RefectionProviderUnderTest.Emit);
 public sealed class JsonSchemaTests_SourceGen() : JsonSchemaTests(SourceGenProviderUnderTest.Default);

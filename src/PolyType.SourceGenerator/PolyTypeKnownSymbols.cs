@@ -39,6 +39,6 @@ public sealed class PolyTypeKnownSymbols(Compilation compilation) : KnownSymbols
             return TargetFramework.Net80;
         }
 
-        return TargetFramework.Netstandard20;
+        return TargetFramework.Legacy;
     }
 }

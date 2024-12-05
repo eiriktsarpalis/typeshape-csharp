@@ -9,8 +9,10 @@ using Xunit;
 
 namespace PolyType.Tests;
 
-public abstract class TypeShapeProviderTests(IProviderUnderTest providerUnderTest)
+public abstract class TypeShapeProviderTests(ProviderUnderTest providerUnderTest)
 {
+    protected ITypeShapeProvider Provider => providerUnderTest.Provider;
+
     [Theory]
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void TypeShapeReportsExpectedInfo<T>(TestCase<T> testCase)
@@ -617,7 +619,7 @@ public abstract class TypeShapeProviderTests(IProviderUnderTest providerUnderTes
     }
 }
 
-public static class ReflectionHelpers
+public static class ReflectionExtensions
 {
     public static Type[]? GetDictionaryKeyValueTypes(this Type type)
     {
@@ -656,30 +658,38 @@ public static class ReflectionHelpers
 
         return null;
     }
-
-    public static bool IsImmutableArray(this Type type)
-        => type.IsValueType && type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ImmutableArray<>);
 }
 
-public sealed class TypeShapeProviderTests_Reflection() : TypeShapeProviderTests(RefectionProviderUnderTest.Default);
-public sealed class TypeShapeProviderTests_ReflectionEmit() : TypeShapeProviderTests(RefectionProviderUnderTest.NoEmit);
-public sealed class TypeShapeProviderTests_NoNullableAnnotations() : TypeShapeProviderTests(RefectionProviderUnderTest.NoNullableAnnotations);
+public sealed class TypeShapeProviderTests_Reflection() : TypeShapeProviderTests(RefectionProviderUnderTest.NoEmit);
+public sealed class TypeShapeProviderTests_ReflectionEmit() : TypeShapeProviderTests(RefectionProviderUnderTest.Emit);
 public sealed class TypeShapeProviderTests_SourceGen() : TypeShapeProviderTests(SourceGenProviderUnderTest.Default)
 {
     [Fact]
     public void WitnessType_ShapeProvider_IsSingleton()
     {
-        ITypeShapeProvider provider = SourceGenProvider.ShapeProvider;
+        ITypeShapeProvider provider = Witness.ShapeProvider;
 
         Assert.NotNull(provider);
-        Assert.Same(provider, SourceGenProvider.ShapeProvider);
+        Assert.Same(provider, Witness.ShapeProvider);
     }
 
     [Theory]
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void WitnessType_ShapeProvider_MatchesGeneratedShapes(ITestCase testCase)
     {
-        Assert.Same(SourceGenProvider.ShapeProvider, testCase.DefaultShape.Provider);
-        Assert.Same(testCase.DefaultShape, SourceGenProvider.ShapeProvider.GetShape(testCase.Type));
+        Assert.Same(Witness.ShapeProvider, testCase.DefaultShape.Provider);
+        Assert.Same(testCase.DefaultShape, Witness.ShapeProvider.GetShape(testCase.Type));
     }
+
+#if NET
+    [Theory]
+    [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
+    public void IShapeableOfT_ReturnsExpectedSingleton<T, TProvider>(TestCase<T, TProvider> testCase)
+        where TProvider : IShapeable<T>
+    {
+        Assert.Same(TProvider.GetShape(), TProvider.GetShape());
+        Assert.Same(testCase.DefaultShape, TProvider.GetShape());
+        Assert.Same(Provider.GetShape(typeof(T)), TProvider.GetShape());
+    }
+#endif
 }

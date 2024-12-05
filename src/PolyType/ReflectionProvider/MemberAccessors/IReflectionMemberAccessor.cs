@@ -1,5 +1,5 @@
-﻿using System.Reflection;
-using PolyType.Abstractions;
+﻿using PolyType.Abstractions;
+using System.Reflection;
 
 namespace PolyType.ReflectionProvider.MemberAccessors;
 

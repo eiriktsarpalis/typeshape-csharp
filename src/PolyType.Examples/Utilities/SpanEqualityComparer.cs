@@ -1,4 +1,6 @@
-﻿namespace PolyType.Examples.Utilities;
+﻿using System.Diagnostics;
+
+namespace PolyType.Examples.Utilities;
 
 /// <summary>Defines a span-based equality comparer.</summary>
 public interface ISpanEqualityComparer<T>
@@ -40,7 +42,37 @@ public static class CharSpanEqualityComparer
     private sealed class StringComparisonEqualityComparer(StringComparison comparison) : ISpanEqualityComparer<char>
     {
         public int GetHashCode(ReadOnlySpan<char> buffer)
-            => string.GetHashCode(buffer, comparison);
+        {
+#if NET
+            return string.GetHashCode(buffer.ToString(), comparison);
+#else
+            Debug.Assert(comparison is StringComparison.Ordinal or StringComparison.OrdinalIgnoreCase);
+            return comparison is StringComparison.Ordinal
+                ? GetOrdinalHashCode(buffer)
+                : GetOrdinalCaseInsensitiveHashCode(buffer);
+
+            static int GetOrdinalHashCode(ReadOnlySpan<char> span)
+            {
+                HashCode hashCode = new();
+                foreach (char c in span)
+                {
+                    hashCode.Add(c);
+                }
+
+                return hashCode.ToHashCode();
+            }
+
+            static int GetOrdinalCaseInsensitiveHashCode(ReadOnlySpan<char> span)
+            {
+                HashCode hashCode = new();
+                foreach (char c in span)
+                {
+                    hashCode.Add(char.ToLowerInvariant(c));
+                }
+                return hashCode.ToHashCode();
+            }
+#endif
+        }
 
         public bool Equals(ReadOnlySpan<char> x, ReadOnlySpan<char> y)
             => x.Equals(y, comparison);

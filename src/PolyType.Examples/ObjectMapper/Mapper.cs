@@ -64,6 +64,7 @@ public static partial class Mapper
         return (Mapper<TSource, TTarget>)providerScopedTypeCache.GetOrAdd(mapperShape)!;
     }
 
+#if NET
     /// <summary>
     /// Maps an object of type <typeparamref name="TSource"/> to an object of type <typeparamref name="TTarget"/>.
     /// </summary>
@@ -84,4 +85,5 @@ public static partial class Mapper
         public static Mapper<TSource, TTarget> Value => s_value ??= Create(TSource.GetShape(), TTarget.GetShape());
         private static Mapper<TSource, TTarget>? s_value;
     }
+#endif
 }

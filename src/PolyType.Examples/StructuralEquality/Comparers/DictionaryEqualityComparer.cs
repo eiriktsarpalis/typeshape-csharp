@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using PolyType.Examples.Utilities;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace PolyType.Examples.StructuralEquality.Comparers;
@@ -47,10 +48,10 @@ internal sealed class DictionaryEqualityComparer<TDictionary, TKey, TValue> : Di
             return false;
         }
 
-        return AreEqual(new(xDict, KeyComparer), yDict);
+        return AreEqual(xDict.ToDictionary(KeyComparer), yDict);
     }
 
-    public override int GetHashCode([DisallowNull] TDictionary obj)
+    public override int GetHashCode(TDictionary obj)
     {
         int hashCode = 0;
         foreach (KeyValuePair<TKey, TValue> kvp in GetDictionary(obj))

@@ -28,12 +28,12 @@ internal sealed class ObjectEqualityComparer<T> : EqualityComparer<T>
         return true;
     }
 
-    public override int GetHashCode([DisallowNull] T obj)
+    public override int GetHashCode(T obj)
     {
         var hashCode = new HashCode();
         foreach (IEqualityComparer<T> prop in PropertyComparers)
         {
-            hashCode.Add(prop.GetHashCode(obj));
+            hashCode.Add(prop.GetHashCode(obj!));
         }
 
         return hashCode.ToHashCode();
@@ -47,11 +47,11 @@ internal sealed class PropertyEqualityComparer<TDeclaringType, TPropertyType> : 
 
     public override bool Equals(TDeclaringType? x, TDeclaringType? y)
     {
-        Debug.Assert(x != null && y != null);
+        DebugExt.Assert(x != null && y != null);
         return PropertyTypeEqualityComparer.Equals(Getter(ref x), Getter(ref y));
     }
 
-    public override int GetHashCode([DisallowNull] TDeclaringType obj)
+    public override int GetHashCode(TDeclaringType obj)
     {
         TPropertyType? propertyValue = Getter(ref obj);
         return propertyValue is not null ? PropertyTypeEqualityComparer.GetHashCode(propertyValue) : 0;

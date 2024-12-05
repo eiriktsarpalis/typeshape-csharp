@@ -5,6 +5,7 @@
 /// </summary>
 public static class TypeShapeProvider
 {
+#if NET
     /// <summary>
     /// Resolves the <see cref="ITypeShape"/> provided by the given type.
     /// </summary>
@@ -21,6 +22,7 @@ public static class TypeShapeProvider
     /// <returns>An <see cref="ITypeShape"/> instance describing <typeparamref name="T"/>.</returns>
     public static ITypeShape<T> Resolve<T, TProvider>() where TProvider : IShapeable<T>
         => TProvider.GetShape();
+#endif
 
     /// <summary>
     /// Resolves the <see cref="ITypeShape{T}"/> corresponding to <typeparamref name="T"/>.

@@ -1,10 +1,10 @@
-﻿using System.Collections;
+﻿using PolyType.Abstractions;
+using PolyType.ReflectionProvider.MemberAccessors;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using PolyType.Abstractions;
-using PolyType.ReflectionProvider.MemberAccessors;
 
 namespace PolyType.ReflectionProvider;
 
@@ -18,23 +18,46 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
     internal const string RequiresUnreferencedCodeMessage = "PolyType Reflection provider requires unreferenced code.";
     internal const string RequiresDynamicCodeMessage = "PolyType Reflection provider requires dynamic code.";
 
+    private static readonly ConcurrentDictionary<ReflectionTypeShapeProviderOptions, ReflectionTypeShapeProvider> s_providers = new();
+
     /// <summary>
     /// Gets the default provider instance using configuration supported by the current platform.
     /// </summary>
-    public static ReflectionTypeShapeProvider Default { get; } = new ReflectionTypeShapeProvider();
-
-    private readonly ConcurrentDictionary<Type, ITypeShape> _cache = new();
+    public static ReflectionTypeShapeProvider Default { get; } = new ReflectionTypeShapeProvider(ReflectionTypeShapeProviderOptions.Default);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ReflectionTypeShapeProvider"/> class.
     /// </summary>
-    /// <param name="options">Specifies configuration to be used by the provider.</param>
-    public ReflectionTypeShapeProvider(ReflectionTypeShapeProviderOptions? options = null)
+    /// <param name="options">The options governing the shape provider instance.</param>
+    /// <returns>A <see cref="ReflectionTypeShapeProviderOptions"/> corresponding to the specified options.</returns>
+    public static ReflectionTypeShapeProvider Create(ReflectionTypeShapeProviderOptions options)
     {
-        Options = options ??= ReflectionTypeShapeProviderOptions.Default;
+        Throw.IfNull(options);
+
+        if (options == ReflectionTypeShapeProviderOptions.Default)
+        {
+            return Default;
+        }
+
+        return s_providers.GetOrAdd(options, _ => new ReflectionTypeShapeProvider(options));
+    }
+
+    private readonly ConcurrentDictionary<Type, ITypeShape> _cache = new();
+    private readonly Func<Type, ITypeShape> _typeShapeFactory;
+
+    private ReflectionTypeShapeProvider(ReflectionTypeShapeProviderOptions options)
+    {
+        if (options.UseReflectionEmit && !ReflectionHelpers.IsDynamicCodeSupported)
+        {
+            throw new PlatformNotSupportedException("Dynamic code generation is not supported on the current platform.");
+        }
+
+        Options = options;
         MemberAccessor = options.UseReflectionEmit
             ? new ReflectionEmitMemberAccessor()
             : new ReflectionMemberAccessor();
+
+        _typeShapeFactory = CreateTypeShape;
     }
 
     /// <summary>
@@ -64,13 +87,13 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
     /// <exception cref="ArgumentException">The <paramref name="type"/> cannot be a generic argument.</exception>
     public ITypeShape GetShape(Type type)
     {
-        ArgumentNullException.ThrowIfNull(type);
-        return _cache.GetOrAdd(type, CreateType, this);
+        Throw.IfNull(type);
+        return _cache.GetOrAdd(type, _typeShapeFactory);
     }
 
-    private static ITypeShape CreateType(Type type, ReflectionTypeShapeProvider provider)
+    private ITypeShape CreateTypeShape(Type type)
     {
-        Debug.Assert(type != null);
+        DebugExt.Assert(type != null);
 
         if (!type.CanBeGenericArgument())
         {
@@ -79,11 +102,11 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
 
         return DetermineTypeKind(type) switch
         {
-          TypeShapeKind.Enumerable => provider.CreateEnumerableShape(type),
-          TypeShapeKind.Dictionary => provider.CreateDictionaryShape(type),
-          TypeShapeKind.Enum => provider.CreateEnumShape(type),
-          TypeShapeKind.Nullable => provider.CreateNullableShape(type),
-          _ => provider.CreateObjectShape(type),
+          TypeShapeKind.Enumerable => CreateEnumerableShape(type),
+          TypeShapeKind.Dictionary => CreateDictionaryShape(type),
+          TypeShapeKind.Enum => CreateEnumShape(type),
+          TypeShapeKind.Nullable => CreateNullableShape(type),
+          _ => CreateObjectShape(type),
         };
     }
 
@@ -296,8 +319,8 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
         }
     }
 
-    internal NullabilityInfoContext? CreateNullabilityInfoContext()
+    internal static NullabilityInfoContext? CreateNullabilityInfoContext()
     {
-        return Options.ResolveNullableAnnotations ? new() : null;
+        return ReflectionHelpers.IsNullabilityInfoContextSupported ? new() : null;
     }
 }

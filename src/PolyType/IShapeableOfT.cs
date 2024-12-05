@@ -2,6 +2,7 @@
 
 namespace PolyType;
 
+#if NET
 /// <summary>
 /// Defines a static abstract factory providing a <see cref="ITypeShape{T}"/> instance.
 /// </summary>
@@ -14,3 +15,4 @@ public interface IShapeable<T>
     /// <returns>The shape for <typeparamref name="T"/>.</returns>
     static abstract ITypeShape<T> GetShape();
 }
+#endif

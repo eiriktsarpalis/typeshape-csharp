@@ -17,7 +17,7 @@ public static class ReflectionUtilities
     public static bool IsDefined<TAttribute>(this ICustomAttributeProvider attributeProvider, bool inherit = false)
         where TAttribute : Attribute
     {
-        ArgumentNullException.ThrowIfNull(attributeProvider);
+        Throw.IfNull(attributeProvider);
         return attributeProvider.IsDefined(typeof(TAttribute), inherit);
     }
 
@@ -31,7 +31,7 @@ public static class ReflectionUtilities
     public static TAttribute? GetCustomAttribute<TAttribute>(this ICustomAttributeProvider attributeProvider, bool inherit = false)
         where TAttribute : Attribute
     {
-        ArgumentNullException.ThrowIfNull(attributeProvider);
+        Throw.IfNull(attributeProvider);
         return attributeProvider.GetCustomAttributes(typeof(TAttribute), inherit).OfType<TAttribute>().FirstOrDefault();
     }
 
@@ -45,7 +45,7 @@ public static class ReflectionUtilities
     public static IEnumerable<TAttribute> GetCustomAttributes<TAttribute>(this ICustomAttributeProvider attributeProvider, bool inherit = false)
         where TAttribute : Attribute
     {
-        ArgumentNullException.ThrowIfNull(attributeProvider);
+        Throw.IfNull(attributeProvider);
         return attributeProvider.GetCustomAttributes(typeof(TAttribute), inherit).OfType<TAttribute>();
     }
 }

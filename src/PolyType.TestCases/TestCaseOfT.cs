@@ -1,9 +1,8 @@
-﻿using System.Collections;
-using System.Runtime.CompilerServices;
-using PolyType.Abstractions;
+﻿using PolyType.Abstractions;
 
 namespace PolyType.Tests;
 
+#if NET
 /// <summary>
 /// Represents a test case whose shape is provided by an <see cref="IShapeable{T}"/> implementation.
 /// </summary>
@@ -12,6 +11,7 @@ namespace PolyType.Tests;
 /// <param name="Value">The value being tested.</param>
 public sealed record TestCase<T, TProvider>(T? Value) : TestCase<T>(Value, TProvider.GetShape())
     where TProvider : IShapeable<T>;
+#endif
 
 /// <summary>
 /// Represents a test case instance.
@@ -19,8 +19,38 @@ public sealed record TestCase<T, TProvider>(T? Value) : TestCase<T>(Value, TProv
 /// <typeparam name="T">The type of the value being tested.</typeparam>
 /// <param name="Value">The value being tested.</param>
 /// <param name="DefaultShape">The default type shape of the value, typically source generated.</param>
-public record TestCase<T>(T? Value, ITypeShape<T> DefaultShape) : ITestCase
+public record TestCase<T> : ITestCase
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TestCase{T}"/> class.
+    /// </summary>
+    /// <param name="value">The value being tested.</param>
+    /// <param name="defaultShape">The default type shape of the value, typically source generated.</param>
+    public TestCase(T? value, ITypeShape<T> defaultShape)
+    {
+        Value = value;
+        DefaultShape = defaultShape;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TestCase{T}"/> class.
+    /// </summary>
+    /// <param name="value">The value being tested.</param>
+    /// <param name="shapeProvider">The default type shape provider of the value, typically source generated.</param>
+    public TestCase(T? value, ITypeShapeProvider shapeProvider) : this(value, shapeProvider.Resolve<T>())
+    {
+    }
+
+    /// <summary>
+    /// The value under test for the test case.
+    /// </summary>
+    public T? Value { get; init; }
+
+    /// <summary>
+    /// The default shape for the test case, typically produced by a source generator.
+    /// </summary>
+    public ITypeShape<T> DefaultShape { get; init; }
+
     /// <summary>
     /// Additional test values to be used by the <see cref="ITestCase.ExpandCases"/> implementation.
     /// </summary>
@@ -58,12 +88,12 @@ public record TestCase<T>(T? Value, ITypeShape<T> DefaultShape) : ITestCase
     /// <summary>
     /// Gets a value indicating whether the type is a tuple.
     /// </summary>
-    public bool IsTuple => typeof(ITuple).IsAssignableFrom(typeof(T));
+    public bool IsTuple => typeof(T).IsTupleType();
 
     /// <summary>
-    /// Gets a value indicating whether the type is a tuple containing > 8 elements.
+    /// Gets a value indicating whether the type is a tuple containing >= 8 elements.
     /// </summary>
-    public bool IsLongTuple => IsTuple && typeof(T).GetMember("Rest").Length > 0;
+    public bool IsLongTuple => IsTuple && typeof(T).GetGenericArguments().Length >= 8;
 
     /// <summary>
     /// Gets a value indicating whether the type is a multi-dimensional array.

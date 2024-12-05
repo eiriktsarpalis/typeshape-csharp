@@ -13,6 +13,9 @@ namespace PolyType.SourceGenerator;
 
 public sealed partial class Parser : TypeDataModelGenerator
 {
+    // C# 12 is the minimum LTS version that supports static abstracts and generic attributes.
+    private const LanguageVersion MinimumSupportedLanguageVersion = LanguageVersion.CSharp12;
+
     private static readonly IEqualityComparer<(ITypeSymbol Type, string Name)> s_ctorParamComparer =
         CommonHelpers.CreateTupleComparer<ITypeSymbol, string>(
             SymbolEqualityComparer.Default,
@@ -150,6 +153,12 @@ public sealed partial class Parser : TypeDataModelGenerator
 
     private ImmutableEquatableArray<TypeDeclarationModel> IncludeTypesUsingGenerateShapeAttributes(ImmutableArray<TypeWithAttributeDeclarationContext> generateShapeDeclarations)
     {
+        if (_knownSymbols.Compilation.GetLanguageVersion() is null or < MinimumSupportedLanguageVersion)
+        {
+            ReportDiagnostic(UnsupportedLanguageVersion, location: null);
+            return [];
+        }
+
         List<TypeDeclarationModel>? typeDeclarations = null;
         foreach (TypeWithAttributeDeclarationContext ctx in generateShapeDeclarations)
         {
@@ -232,7 +241,11 @@ public sealed partial class Parser : TypeDataModelGenerator
                     continue;
             }
 
-            (shapeableOfTImplementations ??= new()).Add(typeIdToInclude);
+            if (_knownSymbols.TargetFramework >= TargetFramework.Net80)
+            {
+                // IShapeable<T> has static abstracts and is only defined in newer TFMs.
+                (shapeableOfTImplementations ??= new()).Add(typeIdToInclude);
+            }
         }
 
         return new TypeDeclarationModel

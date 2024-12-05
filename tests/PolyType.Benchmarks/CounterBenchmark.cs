@@ -7,8 +7,8 @@ namespace PolyType.Benchmarks;
 [MemoryDiagnoser]
 public partial class CounterBenchmark
 {
-    private static readonly ReflectionTypeShapeProvider EmitProvider = new(new() { UseReflectionEmit = true });
-    private static readonly ReflectionTypeShapeProvider NoEmitProvider = new(new() { UseReflectionEmit = false });
+    private static readonly ReflectionTypeShapeProvider EmitProvider = ReflectionTypeShapeProvider.Create(new() { UseReflectionEmit = true });
+    private static readonly ReflectionTypeShapeProvider NoEmitProvider = ReflectionTypeShapeProvider.Create(new() { UseReflectionEmit = false });
 
     private readonly MyPoco _value = new MyPoco(@string: "myString")
     {

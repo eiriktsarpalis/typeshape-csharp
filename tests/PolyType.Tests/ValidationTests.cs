@@ -3,7 +3,7 @@ using Xunit;
 
 namespace PolyType.Tests;
 
-public abstract partial class ValidationTests(IProviderUnderTest providerUnderTest)
+public abstract partial class ValidationTests(ProviderUnderTest providerUnderTest)
 {
     [Theory]
     [MemberData(nameof(GetValidatorScenaria))]
@@ -31,6 +31,7 @@ public abstract partial class ValidationTests(IProviderUnderTest providerUnderTe
 
     public static IEnumerable<object?[]> GetValidatorScenaria()
     {
+        ITypeShapeProvider provider = ModelProvider.ShapeProvider;
         var validModel = new BindingModel
         {
             Id = "id",
@@ -39,21 +40,21 @@ public abstract partial class ValidationTests(IProviderUnderTest providerUnderTe
             PhoneNumber = "+447777777777",
         };
 
-        yield return Create(validModel);
-        yield return Create(validModel with { Id = null }, ["$.Id: value is null or empty."]);
-        yield return Create(validModel with { Components = ["1"] }, ["$.Components: contains less than 2 or more than 5 elements."]);
-        yield return Create(validModel with { Components = ["1", "2", "3", "4", "5", "6"] }, ["$.Components: contains less than 2 or more than 5 elements."]);
-        yield return Create(validModel with { Sample = -1 }, ["$.Sample: value is either less than 0 or greater than 1."]);
-        yield return Create(validModel with { Sample = 5 }, ["$.Sample: value is either less than 0 or greater than 1."]);
-        yield return Create(validModel with { PhoneNumber = "NaN" }, [@"$.PhoneNumber: value does not match regex pattern '^\+?[0-9]{7,14}$'."]);
+        yield return Create(TestCase.Create(validModel, provider));
+        yield return Create(TestCase.Create(validModel with { Id = null }, provider), ["$.Id: value is null or empty."]);
+        yield return Create(TestCase.Create(validModel with { Components = ["1"] }, provider), ["$.Components: contains less than 2 or more than 5 elements."]);
+        yield return Create(TestCase.Create(validModel with { Components = ["1", "2", "3", "4", "5", "6"] }, provider), ["$.Components: contains less than 2 or more than 5 elements."]);
+        yield return Create(TestCase.Create(validModel with { Sample = -1 }, provider), ["$.Sample: value is either less than 0 or greater than 1."]);
+        yield return Create(TestCase.Create(validModel with { Sample = 5 }, provider), ["$.Sample: value is either less than 0 or greater than 1."]);
+        yield return Create(TestCase.Create(validModel with { PhoneNumber = "NaN" }, provider), [@"$.PhoneNumber: value does not match regex pattern '^\+?[0-9]{7,14}$'."]);
 
-        yield return Create(new BindingModel
+        yield return Create(TestCase.Create(new BindingModel
         {
             Id = null,
             Components = ["1"],
             Sample = 1.1,
             PhoneNumber = "NaN"
-        },
+        }, provider),
         expectedErrors:
         [
             "$.Id: value is null or empty.",
@@ -62,31 +63,26 @@ public abstract partial class ValidationTests(IProviderUnderTest providerUnderTe
             @"$.PhoneNumber: value does not match regex pattern '^\+?[0-9]{7,14}$'."
         ]);
 
-        var provider = new ModelProvider();
-        yield return CreateWithProvider(provider,
-            value: new GenericRecord<BindingModel>(validModel with { Id = null }),
+        yield return Create(
+            TestCase.Create(new GenericRecord<BindingModel>(validModel with { Id = null }), provider),
             expectedErrors: ["$.value.Id: value is null or empty.",]
         );
 
-        yield return CreateWithProvider(provider,
-            value: new List<BindingModel> { validModel with { Id = null } },
+        yield return Create(
+            TestCase.Create(new List<BindingModel> { validModel with { Id = null } }, provider),
             expectedErrors: ["$.[0].Id: value is null or empty.",]
         );
 
-        yield return CreateWithProvider(provider,
-            value: new Dictionary<string, BindingModel> { ["key"] = validModel with { Id = null }},
+        yield return Create(
+            TestCase.Create(new Dictionary<string, BindingModel> { ["key"] = validModel with { Id = null } }, provider),
             expectedErrors: ["$.key.Id: value is null or empty.",]
         );
         
-        static object?[] Create<T>(T? value, List<string>? expectedErrors = null) where T : IShapeable<T> =>
-            CreateWithProvider(value, value, expectedErrors);
-
-        static object?[] CreateWithProvider<TProvider, T>(TProvider? provider, T? value, List<string>? expectedErrors = null) where TProvider : IShapeable<T> =>
-            [TestCase.Create(provider, value), expectedErrors];
+        static object?[] Create<T>(TestCase<T> value, List<string>? expectedErrors = null) => [value, expectedErrors];
     }
 
     private Validator<T> GetValidatorUnderTest<T>(TestCase<T> testCase) =>
-        Validator.Create<T>(providerUnderTest.ResolveShape(testCase));
+        Validator.Create(providerUnderTest.ResolveShape(testCase));
 
     [GenerateShape]
     public partial record BindingModel
@@ -97,12 +93,15 @@ public abstract partial class ValidationTests(IProviderUnderTest providerUnderTe
         [Length(Min = 2, Max = 5)]
         public List<string>? Components { get; set; }
 
-        [Range<double>(Min = 0, Max = 1)]
+        [RangeDouble(Min = 0, Max = 1)]
         public double Sample { get; set; }
 
         [RegularExpression(Pattern = @"^\+?[0-9]{7,14}$")]
         public string? PhoneNumber { get; set; }
     }
+    
+    // Workaround for .NET Framework not supporting generic attributes.
+    public class RangeDoubleAttribute : RangeAttribute<double>;
 
     [GenerateShape<GenericRecord<BindingModel>>]
     [GenerateShape<List<BindingModel>>]
@@ -110,6 +109,6 @@ public abstract partial class ValidationTests(IProviderUnderTest providerUnderTe
     public partial class ModelProvider;
 }
 
-public sealed class ValidationTests_Reflection() : ValidationTests(RefectionProviderUnderTest.Default);
-public sealed class ValidationTests_ReflectionEmit() : ValidationTests(RefectionProviderUnderTest.NoEmit);
+public sealed class ValidationTests_Reflection() : ValidationTests(RefectionProviderUnderTest.NoEmit);
+public sealed class ValidationTests_ReflectionEmit() : ValidationTests(RefectionProviderUnderTest.Emit);
 public sealed class ValidationTests_SourceGen() : ValidationTests(SourceGenProviderUnderTest.Default);

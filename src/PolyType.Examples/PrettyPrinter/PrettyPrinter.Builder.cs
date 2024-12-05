@@ -1,4 +1,5 @@
 ﻿using PolyType.Abstractions;
+using PolyType.Examples.Utilities;
 using PolyType.Utilities;
 using System.Diagnostics;
 using System.Numerics;
@@ -10,7 +11,7 @@ public static partial class PrettyPrinter
 {
     private sealed class Builder(TypeGenerationContext generationContext) : TypeShapeVisitor, ITypeShapeFunc
     {
-        private static readonly Dictionary<Type, object> s_defaultPrinters = new(CreateDefaultPrinters());
+        private static readonly Dictionary<Type, object> s_defaultPrinters = CreateDefaultPrinters().ToDictionary();
         public PrettyPrinter<T> GetOrAddPrettyPrinter<T>(ITypeShape<T> typeShape) =>
             (PrettyPrinter<T>)generationContext.GetOrAdd(typeShape)!;
 
@@ -72,7 +73,7 @@ public static partial class PrettyPrinter
             PrettyPrinter<TPropertyType> propertyTypePrinter = GetOrAddPrettyPrinter(property.PropertyType);
             return new PrettyPrinter<TDeclaringType>((sb, indentation, obj) =>
             {
-                Debug.Assert(obj != null);
+                DebugExt.Assert(obj != null);
                 sb.Append(property.Name).Append(" = ");
                 propertyTypePrinter(sb, indentation, getter(ref obj));
             });
@@ -255,8 +256,10 @@ public static partial class PrettyPrinter
             yield return Create<DateTime>((builder, _, d) => WriteStringLiteral(builder, d));
             yield return Create<DateTimeOffset>((builder, _, d) => WriteStringLiteral(builder, d));
             yield return Create<TimeSpan>((builder, _, t) => WriteStringLiteral(builder, t));
+#if NET
             yield return Create<DateOnly>((builder, _, d) => WriteStringLiteral(builder, d));
             yield return Create<TimeOnly>((builder, _, d) => WriteStringLiteral(builder, d));
+#endif
             yield return Create<Guid>((builder, _, g) => WriteStringLiteral(builder, g));
 
             static KeyValuePair<Type, object> Create<T>(PrettyPrinter<T> printer)

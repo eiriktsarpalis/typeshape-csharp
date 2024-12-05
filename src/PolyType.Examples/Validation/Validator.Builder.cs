@@ -60,7 +60,7 @@ public static partial class Validator
             Getter<TDeclaringType, TPropertyType> getter = property.GetGetter();
             return new Validator<TDeclaringType>((TDeclaringType? obj, List<string> path, ref List<string>? errors) =>
             {
-                Debug.Assert(obj != null);
+                DebugExt.Assert(obj != null);
 
                 // Step 1. get the property value
                 TPropertyType propertyValue = getter(ref obj);

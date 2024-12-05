@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -222,22 +223,19 @@ internal static class RoslynHelpers
                 ns.ToDisplayString() == "System.Diagnostics.CodeAnalysis");
     }
 
-    public static bool TryGetCollectionBuilderAttribute(this INamedTypeSymbol type, ITypeSymbol elementType, [NotNullWhen(true)] out IMethodSymbol? builderMethod)
+    public static bool TryGetCollectionBuilderAttribute(
+        this Compilation compilation, 
+        INamedTypeSymbol type, 
+        ITypeSymbol elementType, 
+        [NotNullWhen(true)] out IMethodSymbol? builderMethod, 
+        CancellationToken cancellationToken)
     {
         builderMethod = null;
-        AttributeData? attributeData = type.GetAttributes().FirstOrDefault(attr => 
-            attr.AttributeClass?.Name == "CollectionBuilderAttribute" &&
+        AttributeData? attributeData = type.GetAttributes().FirstOrDefault(static attr =>
+            attr is { AttributeClass.Name: "CollectionBuilderAttribute" } &&
             attr.AttributeClass.ContainingNamespace.ToDisplayString() == "System.Runtime.CompilerServices");
 
-        if (attributeData is null)
-        {
-            return false;
-        }
-
-        INamedTypeSymbol builderType = (INamedTypeSymbol)attributeData.ConstructorArguments[0].Value!;
-        string methodName = (string)attributeData.ConstructorArguments[1].Value!;
-
-        if (builderType.IsGenericType)
+        if (!TryParseAttributeData(attributeData, out INamedTypeSymbol? builderType, out string? methodName))
         {
             return false;
         }
@@ -269,6 +267,72 @@ internal static class RoslynHelpers
         }
 
         return builderMethod != null;
+
+        bool TryParseAttributeData(
+            AttributeData? attributeData, 
+            [NotNullWhen(true)] out INamedTypeSymbol? builderType,
+            [NotNullWhen(true)] out string? builderMethod)
+        {
+            builderType = null;
+            builderMethod = null;
+
+            if (attributeData is null)
+            {
+                return false;
+            }
+
+            if (attributeData.AttributeClass is { TypeKind: TypeKind.Error })
+            {
+                // In certain cases, the attribute class may not be resolved because it might have been polyfilled
+                // by a source generator such as PolySharp. In such cases, parse attribute data from the syntax trees manually.
+                if (attributeData.ApplicationSyntaxReference?.GetSyntax(cancellationToken) is AttributeSyntax attrSyntax &&
+                    attrSyntax is { ArgumentList.Arguments: { Count: 2 } arguments, SyntaxTree: { } syntaxTree })
+                {
+                    SemanticModel semanticModel = compilation.GetSemanticModel(syntaxTree);
+                    foreach (AttributeArgumentSyntax attrArgumentSyntax in arguments)
+                    {
+                        switch (attrArgumentSyntax.Expression)
+                        {
+                            case TypeOfExpressionSyntax typeOfExpr:
+                                builderType = semanticModel.GetTypeInfo(typeOfExpr.Type, cancellationToken).Type as INamedTypeSymbol;
+                                break;
+
+                            case LiteralExpressionSyntax literalExpr when literalExpr.IsKind(SyntaxKind.StringLiteralExpression):
+                                builderMethod = literalExpr.Token.ValueText;
+                                break;
+
+                            case InvocationExpressionSyntax 
+                            {
+                                Expression: IdentifierNameSyntax { Identifier.Text: "nameof" },
+                                ArgumentList.Arguments: [ArgumentSyntax argument]
+                            }:
+                                switch (argument.Expression)
+                                {
+                                    case MemberAccessExpressionSyntax memberAccessExpr:
+                                        builderMethod = memberAccessExpr.Name.Identifier.Text;
+                                        break;
+
+                                    case IdentifierNameSyntax identifierName:
+                                        builderMethod = identifierName.Identifier.Text;
+                                        break;
+                                }
+
+                                break;
+                        }
+                    }
+                }
+            } 
+            else if (
+                attributeData.ConstructorArguments.Length == 2 &&
+                attributeData.ConstructorArguments[0].Value is INamedTypeSymbol typeParam &&
+                attributeData.ConstructorArguments[1].Value is string methodName)
+            {
+                builderType = typeParam;
+                builderMethod = methodName;
+            }
+
+            return builderType is { IsGenericType: false } && builderMethod is not null;
+        }
     }
 
     /// <summary>

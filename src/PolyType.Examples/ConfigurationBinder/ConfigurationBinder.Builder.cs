@@ -12,7 +12,7 @@ public static partial class ConfigurationBinderTS
     private sealed class Builder(TypeGenerationContext generationContext) : TypeShapeVisitor, ITypeShapeFunc
     {
         private delegate void PropertyBinder<T>(ref T obj, IConfigurationSection section);
-        private static readonly Dictionary<Type, object> s_builtInParsers = new(GetBuiltInParsers());
+        private static readonly Dictionary<Type, object> s_builtInParsers = GetBuiltInParsers().ToDictionary();
 
         public Func<IConfiguration, T?> GetOrAddBinder<T>(ITypeShape<T> shape) =>
             (Func<IConfiguration, T?>)generationContext.GetOrAdd(shape)!;
@@ -265,7 +265,11 @@ public static partial class ConfigurationBinderTS
 
         public override object? VisitEnum<TEnum, TUnderlying>(IEnumTypeShape<TEnum, TUnderlying> enumShape, object? state = null)
         {
+#if NET
             return CreateValueBinder(Enum.Parse<TEnum>);
+#else
+            return CreateValueBinder(text => (TEnum)Enum.Parse(typeof(TEnum), text));
+#endif
         }
 
         private static IEnumerable<KeyValuePair<Type, object>> GetBuiltInParsers()
@@ -275,29 +279,31 @@ public static partial class ConfigurationBinderTS
             yield return Create(text => ushort.Parse(text, NumberStyles.Integer, CultureInfo.InvariantCulture));
             yield return Create(text => uint.Parse(text, NumberStyles.Integer, CultureInfo.InvariantCulture));
             yield return Create(text => ulong.Parse(text, NumberStyles.Integer, CultureInfo.InvariantCulture));
-            yield return Create(text => UInt128.Parse(text, NumberStyles.Integer, CultureInfo.InvariantCulture));
             yield return Create(text => sbyte.Parse(text, NumberStyles.Integer, CultureInfo.InvariantCulture));
             yield return Create(text => short.Parse(text, NumberStyles.Integer, CultureInfo.InvariantCulture));
             yield return Create(text => int.Parse(text, NumberStyles.Integer, CultureInfo.InvariantCulture));
             yield return Create(text => long.Parse(text, NumberStyles.Integer, CultureInfo.InvariantCulture));
-            yield return Create(text => Int128.Parse(text, NumberStyles.Integer, CultureInfo.InvariantCulture));
             yield return Create(text => BigInteger.Parse(text, NumberStyles.Integer, CultureInfo.InvariantCulture));
-            yield return Create(text => Half.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture));
             yield return Create(text => float.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture));
             yield return Create(text => double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture));
             yield return Create(text => decimal.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture));
             yield return Create(text => string.IsNullOrEmpty(text) ? null : text);
             yield return Create(char.Parse);
-            yield return Create(text => System.Text.Rune.GetRuneAt(text, 0));
+            yield return Create(Guid.Parse);
             yield return Create(text => TimeSpan.Parse(text, CultureInfo.InvariantCulture));
             yield return Create(text => DateTime.Parse(text, CultureInfo.InvariantCulture));
             yield return Create(text => DateTimeOffset.Parse(text, CultureInfo.InvariantCulture));
-            yield return Create(text => DateOnly.Parse(text, CultureInfo.InvariantCulture));
-            yield return Create(text => TimeOnly.Parse(text, CultureInfo.InvariantCulture));
-            yield return Create(text => Guid.Parse(text, CultureInfo.InvariantCulture));
             yield return Create(text => text is "" ? null : new Uri(text, UriKind.RelativeOrAbsolute));
             yield return Create(text => text is "" ? null : Version.Parse(text));
             yield return Create(text => text is "" ? null : Convert.FromBase64String(text));
+#if NET
+            yield return Create(text => UInt128.Parse(text, NumberStyles.Integer, CultureInfo.InvariantCulture));
+            yield return Create(text => Int128.Parse(text, NumberStyles.Integer, CultureInfo.InvariantCulture));
+            yield return Create(text => Half.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture));
+            yield return Create(text => DateOnly.Parse(text, CultureInfo.InvariantCulture));
+            yield return Create(text => TimeOnly.Parse(text, CultureInfo.InvariantCulture));
+            yield return Create(text => System.Text.Rune.GetRuneAt(text, 0));
+#endif
 
             yield return Create<object?>(text =>
                 text is null ? new object() :

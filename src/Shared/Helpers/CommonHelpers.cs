@@ -143,7 +143,7 @@ internal static class CommonHelpers
 
             static int GetOrdinalHashCode(ReadOnlySpan<char> span)
             {
-#if NETCOREAPP
+#if NET
                 return string.GetHashCode(span, StringComparison.Ordinal);
 #else
                 const int prime = 31;

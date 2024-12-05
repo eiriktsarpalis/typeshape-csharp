@@ -1,10 +1,10 @@
-﻿using System.Collections;
+﻿using PolyType.Abstractions;
+using PolyType.SourceGenModel;
+using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using PolyType.Abstractions;
-using PolyType.SourceGenModel;
 
 namespace PolyType.ReflectionProvider;
 
@@ -35,7 +35,7 @@ internal abstract class ReflectionEnumerableTypeShape<TEnumerable, TElement>(Ref
             throw new InvalidOperationException("The current enumerable shape does not support mutation.");
         }
 
-        Debug.Assert(_addMethod != null);
+        DebugExt.Assert(_addMethod != null);
         return Provider.MemberAccessor.CreateEnumerableAddDelegate<TEnumerable, TElement>(_addMethod);
     }
 
@@ -57,7 +57,7 @@ internal abstract class ReflectionEnumerableTypeShape<TEnumerable, TElement>(Ref
             throw new InvalidOperationException("The current enumerable shape does not support enumerable constructors.");
         }
 
-        Debug.Assert(_enumerableCtor != null);
+        DebugExt.Assert(_enumerableCtor != null);
         return _enumerableCtor switch
         {
             ConstructorInfo ctorInfo => Provider.MemberAccessor.CreateFuncDelegate<IEnumerable<TElement>, TEnumerable>(ctorInfo),
@@ -78,7 +78,7 @@ internal abstract class ReflectionEnumerableTypeShape<TEnumerable, TElement>(Ref
             return span => listCtorDelegate(CollectionHelpers.CreateList(span));
         }
 
-        Debug.Assert(_spanCtor != null);
+        DebugExt.Assert(_spanCtor != null);
         return _spanCtor switch
         {
             ConstructorInfo ctorInfo => Provider.MemberAccessor.CreateSpanConstructorDelegate<TElement, TEnumerable>(ctorInfo),
@@ -156,6 +156,78 @@ internal abstract class ReflectionEnumerableTypeShape<TEnumerable, TElement>(Ref
                 _spanCtor = gm?.MakeGenericMethod(typeof(object));
                 return _spanCtor != null ? CollectionConstructionStrategy.Span : CollectionConstructionStrategy.None;
             }
+        }
+
+        if (typeof(TEnumerable) is { Name: "ImmutableArray`1", Namespace: "System.Collections.Immutable" })
+        {
+            Type? factoryType = typeof(TEnumerable).Assembly.GetType("System.Collections.Immutable.ImmutableArray");
+            _enumerableCtor = factoryType?.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(m => m.Name is "CreateRange")
+                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                .Select(m => m.MakeGenericMethod(typeof(TElement)))
+                .FirstOrDefault();
+
+            return _enumerableCtor != null ? CollectionConstructionStrategy.Enumerable : CollectionConstructionStrategy.None;
+        }
+
+        if (typeof(TEnumerable) is { Name: "ImmutableList`1", Namespace: "System.Collections.Immutable" })
+        {
+            Type? factoryType = typeof(TEnumerable).Assembly.GetType("System.Collections.Immutable.ImmutableList");
+            _enumerableCtor = factoryType?.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(m => m.Name is "CreateRange")
+                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                .Select(m => m.MakeGenericMethod(typeof(TElement)))
+                .FirstOrDefault();
+
+            return _enumerableCtor != null ? CollectionConstructionStrategy.Enumerable : CollectionConstructionStrategy.None;
+        }
+
+        if (typeof(TEnumerable) is { Name: "ImmutableQueue`1", Namespace: "System.Collections.Immutable" })
+        {
+            Type? factoryType = typeof(TEnumerable).Assembly.GetType("System.Collections.Immutable.ImmutableQueue");
+            _enumerableCtor = factoryType?.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(m => m.Name is "CreateRange")
+                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                .Select(m => m.MakeGenericMethod(typeof(TElement)))
+                .FirstOrDefault();
+
+            return _enumerableCtor != null ? CollectionConstructionStrategy.Enumerable : CollectionConstructionStrategy.None;
+        }
+
+        if (typeof(TEnumerable) is { Name: "ImmutableStack`1", Namespace: "System.Collections.Immutable" })
+        {
+            Type? factoryType = typeof(TEnumerable).Assembly.GetType("System.Collections.Immutable.ImmutableStack");
+            _enumerableCtor = factoryType?.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(m => m.Name is "CreateRange")
+                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                .Select(m => m.MakeGenericMethod(typeof(TElement)))
+                .FirstOrDefault();
+
+            return _enumerableCtor != null ? CollectionConstructionStrategy.Enumerable : CollectionConstructionStrategy.None;
+        }
+
+        if (typeof(TEnumerable) is { Name: "ImmutableHashSet`1", Namespace: "System.Collections.Immutable" })
+        {
+            Type? factoryType = typeof(TEnumerable).Assembly.GetType("System.Collections.Immutable.ImmutableHashSet");
+            _enumerableCtor = factoryType?.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(m => m.Name is "CreateRange")
+                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                .Select(m => m.MakeGenericMethod(typeof(TElement)))
+                .FirstOrDefault();
+
+            return _enumerableCtor != null ? CollectionConstructionStrategy.Enumerable : CollectionConstructionStrategy.None;
+        }
+
+        if (typeof(TEnumerable) is { Name: "ImmutableSortedSet`1", Namespace: "System.Collections.Immutable" })
+        {
+            Type? factoryType = typeof(TEnumerable).Assembly.GetType("System.Collections.Immutable.ImmutableSortedSet");
+            _enumerableCtor = factoryType?.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(m => m.Name is "CreateRange")
+                .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
+                .Select(m => m.MakeGenericMethod(typeof(TElement)))
+                .FirstOrDefault();
+
+            return _enumerableCtor != null ? CollectionConstructionStrategy.Enumerable : CollectionConstructionStrategy.None;
         }
 
         if (typeof(TEnumerable) is { Name: "FSharpList`1", Namespace: "Microsoft.FSharp.Collections" })

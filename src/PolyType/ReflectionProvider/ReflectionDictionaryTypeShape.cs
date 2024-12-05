@@ -1,10 +1,9 @@
-﻿using System.Collections;
-using System.Collections.Immutable;
+﻿using PolyType.Abstractions;
+using PolyType.SourceGenModel;
+using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using PolyType.Abstractions;
-using PolyType.SourceGenModel;
 
 namespace PolyType.ReflectionProvider;
 
@@ -39,7 +38,7 @@ internal abstract class ReflectionDictionaryTypeShape<TDictionary, TKey, TValue>
             throw new InvalidOperationException("The current dictionary shape does not support mutation.");
         }
 
-        Debug.Assert(_addMethod != null);
+        DebugExt.Assert(_addMethod != null);
         return Provider.MemberAccessor.CreateDictionaryAddDelegate<TDictionary, TKey, TValue>(_addMethod);
     }
 
@@ -61,7 +60,7 @@ internal abstract class ReflectionDictionaryTypeShape<TDictionary, TKey, TValue>
             throw new InvalidOperationException("The current dictionary shape does not support enumerable constructors.");
         }
 
-        Debug.Assert(_enumerableCtor != null);
+        DebugExt.Assert(_enumerableCtor != null);
 
         if (_isFSharpMap)
         {
@@ -89,7 +88,7 @@ internal abstract class ReflectionDictionaryTypeShape<TDictionary, TKey, TValue>
             return span => dictionaryCtorDelegate(CollectionHelpers.CreateDictionary(span));
         }
 
-        Debug.Assert(_spanCtor != null);
+        DebugExt.Assert(_spanCtor != null);
         return _spanCtor switch
         {
             ConstructorInfo ctorInfo => Provider.MemberAccessor.CreateSpanConstructorDelegate<KeyValuePair<TKey, TValue>, TDictionary>(ctorInfo),
@@ -108,7 +107,8 @@ internal abstract class ReflectionDictionaryTypeShape<TDictionary, TKey, TValue>
                     m.Name is "set_Item" or "Add" &&
                     m.GetParameters() is [ParameterInfo key, ParameterInfo value] &&
                     key.ParameterType == typeof(TKey) && value.ParameterType == typeof(TValue))
-                .MaxBy(m => m.Name); // Prefer set_Item over Add
+                .OrderByDescending(m => m.Name) // Prefer set_Item over Add
+                .FirstOrDefault();
 
             if (addMethod != null)
             {
@@ -162,10 +162,11 @@ internal abstract class ReflectionDictionaryTypeShape<TDictionary, TKey, TValue>
             return CollectionConstructionStrategy.None;
         }
 
-        if (typeof(TDictionary) == typeof(ImmutableDictionary<TKey, TValue>))
+        if (typeof(TDictionary) is { Name: "ImmutableDictionary`2", Namespace: "System.Collections.Immutable" })
         {
-            _enumerableCtor = typeof(ImmutableDictionary).GetMethods(BindingFlags.Public | BindingFlags.Static)
-                .Where(m => m.Name is nameof(ImmutableDictionary.CreateRange))
+            Type? factoryType = typeof(TDictionary).Assembly.GetType("System.Collections.Immutable.ImmutableDictionary");
+            _enumerableCtor = factoryType?.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(m => m.Name is "CreateRange")
                 .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
                 .Select(m => m.MakeGenericMethod(typeof(TKey), typeof(TValue)))
                 .FirstOrDefault();
@@ -173,10 +174,11 @@ internal abstract class ReflectionDictionaryTypeShape<TDictionary, TKey, TValue>
             return _enumerableCtor != null ? CollectionConstructionStrategy.Enumerable : CollectionConstructionStrategy.None;
         }
 
-        if (typeof(TDictionary) == typeof(ImmutableSortedDictionary<TKey, TValue>))
+        if (typeof(TDictionary) is { Name: "ImmutableSortedDictionary`2", Namespace: "System.Collections.Immutable" })
         {
-            _enumerableCtor = typeof(ImmutableSortedDictionary).GetMethods(BindingFlags.Public | BindingFlags.Static)
-                .Where(m => m.Name is nameof(ImmutableSortedDictionary.CreateRange))
+            Type? factoryType = typeof(TDictionary).Assembly.GetType("System.Collections.Immutable.ImmutableSortedDictionary");
+            _enumerableCtor = factoryType?.GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(m => m.Name is "CreateRange")
                 .Where(m => m.GetParameters() is [ParameterInfo p] && p.ParameterType.IsIEnumerable())
                 .Select(m => m.MakeGenericMethod(typeof(TKey), typeof(TValue)))
                 .FirstOrDefault();

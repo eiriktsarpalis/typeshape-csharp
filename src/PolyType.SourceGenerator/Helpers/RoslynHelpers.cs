@@ -10,6 +10,9 @@ namespace PolyType.SourceGenerator.Helpers;
 
 internal static partial class RoslynHelpers
 {
+    public static LanguageVersion? GetLanguageVersion(this Compilation compilation) =>
+        compilation is CSharpCompilation csc ? csc.LanguageVersion : null;
+
     public static ITypeSymbol GetMemberType(this ISymbol memberSymbol)
     {
         Debug.Assert(memberSymbol is IPropertySymbol or IFieldSymbol);

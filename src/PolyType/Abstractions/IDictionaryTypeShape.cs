@@ -31,9 +31,6 @@ public interface IDictionaryTypeShape : ITypeShape
     /// Gets the construction strategy for the given collection.
     /// </summary>
     CollectionConstructionStrategy ConstructionStrategy { get; }
-
-    /// <inheritdoc/>
-    TypeShapeKind ITypeShape.Kind => TypeShapeKind.Dictionary;
 }
 
 /// <summary>

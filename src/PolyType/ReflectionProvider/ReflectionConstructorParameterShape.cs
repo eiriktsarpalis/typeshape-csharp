@@ -1,7 +1,6 @@
-﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+﻿using PolyType.Abstractions;
+using System.Diagnostics;
 using System.Reflection;
-using PolyType.Abstractions;
 
 namespace PolyType.ReflectionProvider;
 
@@ -63,7 +62,7 @@ internal sealed class MethodParameterShapeInfo : IParameterShapeInfo
     public MethodParameterShapeInfo(ParameterInfo parameterInfo, bool isNonNullable, MemberInfo? matchingMember = null, string? logicalName = null)
     {
         string? name = logicalName ?? parameterInfo.Name;
-        Debug.Assert(name != null);
+        DebugExt.Assert(name != null);
         Name = name;
 
         Type = parameterInfo.GetEffectiveParameterType();

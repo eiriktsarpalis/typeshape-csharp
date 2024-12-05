@@ -57,7 +57,7 @@ internal sealed class JsonPropertyConverter<TDeclaringType, TPropertyType> : Jso
 
     public override void Read(ref Utf8JsonReader reader, ref TDeclaringType declaringType, JsonSerializerOptions options)
     {
-        Debug.Assert(_setter != null);
+        DebugExt.Assert(_setter != null);
 
         TPropertyType? result = _propertyTypeConverter.Read(ref reader, typeof(TPropertyType), options);
         if (result is null && _setterDisallowsNull)
@@ -71,7 +71,7 @@ internal sealed class JsonPropertyConverter<TDeclaringType, TPropertyType> : Jso
 
     public override void Write(Utf8JsonWriter writer, ref TDeclaringType declaringType, JsonSerializerOptions options)
     {
-        Debug.Assert(_getter != null);
+        DebugExt.Assert(_getter != null);
 
         TPropertyType value = _getter(ref declaringType);
         if (value is null && _getterDisallowsNull)
