@@ -1,4 +1,5 @@
 ﻿using PolyType.Abstractions;
+using PolyType.Examples.Utilities;
 using PolyType.Utilities;
 using System.Diagnostics;
 using System.Numerics;
@@ -10,7 +11,7 @@ public static partial class PrettyPrinter
 {
     private sealed class Builder(TypeGenerationContext generationContext) : TypeShapeVisitor, ITypeShapeFunc
     {
-        private static readonly Dictionary<Type, object> s_defaultPrinters = CreateDefaultPrinters().ToDictionary(e => e.Key, e => e.Value);
+        private static readonly Dictionary<Type, object> s_defaultPrinters = CreateDefaultPrinters().ToDictionary();
         public PrettyPrinter<T> GetOrAddPrettyPrinter<T>(ITypeShape<T> typeShape) =>
             (PrettyPrinter<T>)generationContext.GetOrAdd(typeShape)!;
 
