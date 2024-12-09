@@ -59,11 +59,29 @@ internal sealed partial class SourceFormatter
                     FormatPropertyGetterAccessor(writer, objectShapeModel, property);
                 }
 
-                if (property is { EmitSetter: true, IsSetterAccessible: false } || 
-                    (objectShapeModel.Constructor is not null && property.IsInitOnly))
+                if ((!property.IsSetterAccessible || property.IsInitOnly) && 
+                    (property.EmitSetter || IsUsedByConstructor(property)))
                 {
                     writer.WriteLine();
                     FormatPropertySetterAccessor(writer, objectShapeModel, property);
+                }
+
+                bool IsUsedByConstructor(PropertyShapeModel property)
+                {
+                    if (objectShapeModel.Constructor is not {} ctor)
+                    {
+                        return false;
+                    }
+                    
+                    foreach (var parameter in ctor.RequiredMembers.Concat(ctor.OptionalMembers))
+                    {
+                        if (parameter.Name == property.Name)
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
                 }
             }
         }
