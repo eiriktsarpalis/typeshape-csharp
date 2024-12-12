@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using PolyType.Abstractions;
 using PolyType.Roslyn;
 using PolyType.SourceGenerator.Helpers;
 using PolyType.SourceGenerator.Model;
@@ -388,6 +389,40 @@ public sealed partial class Parser
                 DefaultValueExpr = null,
             };
         }
+    }
+
+    private void ParseTypeShapeAttribute(ITypeSymbol typeSymbol, out TypeShapeKind? kind, out Location? location)
+    {
+        kind = null;
+        location = null;
+
+        if (typeSymbol.GetAttribute(_knownSymbols.TypeShapeAttribute) is AttributeData propertyAttr)
+        {
+            location = propertyAttr.GetLocation();
+            foreach (KeyValuePair<string, TypedConstant> namedArgument in propertyAttr.NamedArguments)
+            {
+                switch (namedArgument.Key)
+                {
+                    case "Kind":
+                        kind = (TypeShapeKind)namedArgument.Value.Value!;
+                        break;
+                }
+            }
+        }
+    }
+
+    private static TypeDataKind? MapTypeShapeKindToDataKind(TypeShapeKind? kind)
+    {
+        return kind switch
+        {
+            null => null,
+            TypeShapeKind.Enum => TypeDataKind.Enum,
+            TypeShapeKind.Nullable => TypeDataKind.Nullable,
+            TypeShapeKind.Enumerable => TypeDataKind.Enumerable,
+            TypeShapeKind.Dictionary => TypeDataKind.Dictionary,
+            TypeShapeKind.Object => TypeDataKind.Object,
+            _ => TypeDataKind.None,
+        };
     }
 
     private void ParsePropertyShapeAttribute(ISymbol propertySymbol, out string propertyName, out int order)

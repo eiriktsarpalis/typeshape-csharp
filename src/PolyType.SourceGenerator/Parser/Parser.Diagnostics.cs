@@ -67,4 +67,12 @@ public sealed partial class Parser
         category: "PolyType.SourceGenerator",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    private static DiagnosticDescriptor InvalidTypeShapeKind { get; } = new DiagnosticDescriptor(
+        id: "TS0009",
+        title: "The specified TypeShapeKind is not supported for the type.",
+        messageFormat: "The TypeShapeKind '{0}' is not supported for type '{1}'.",
+        category: "PolyType.SourceGenerator",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }

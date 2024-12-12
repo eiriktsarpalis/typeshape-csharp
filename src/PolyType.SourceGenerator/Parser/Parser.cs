@@ -1,12 +1,12 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Collections.Immutable;
-using System.Diagnostics;
-using System.Text;
+using PolyType.Abstractions;
 using PolyType.Roslyn;
 using PolyType.SourceGenerator.Helpers;
 using PolyType.SourceGenerator.Model;
+using System.Collections.Immutable;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace PolyType.SourceGenerator;
@@ -34,6 +34,13 @@ public sealed partial class Parser : TypeDataModelGenerator
     // Erase nullable annotations and tuple labels from generated types.
     protected override ITypeSymbol NormalizeType(ITypeSymbol type)
         => KnownSymbols.Compilation.EraseCompilerMetadata(type);
+
+    // Resolve the desired kind of a type using the [TypeShape] attribute.
+    protected override TypeDataKind? ResolveRequestedKind(ITypeSymbol type)
+    {
+        ParseTypeShapeAttribute(type, out TypeShapeKind? desiredKind, out _);
+        return MapTypeShapeKindToDataKind(desiredKind);
+    }
 
     // Ignore properties with the [PropertyShape] attribute set to Ignore = true.
     protected override bool IncludeProperty(IPropertySymbol property, out bool includeGetter, out bool includeSetter)
@@ -296,6 +303,13 @@ public sealed partial class Parser : TypeDataModelGenerator
                 // We can't have duplicate types with the same fully qualified name.
                 ReportDiagnostic(TypeNameConflict, location: null, typeId.FullyQualifiedName);
                 continue;
+            }
+
+            ParseTypeShapeAttribute(entry.Key, out TypeShapeKind? desiredKind, out Location? location);
+            if (MapTypeShapeKindToDataKind(desiredKind) is { } dataKind && entry.Value.Kind != dataKind)
+            {
+                // The TypeShapeKind specified in the attribute is not supported for the type.
+                ReportDiagnostic(InvalidTypeShapeKind, location, desiredKind, entry.Key.ToDisplayString());
             }
 
             // Generate a property name for the type. Start with a short-form name that

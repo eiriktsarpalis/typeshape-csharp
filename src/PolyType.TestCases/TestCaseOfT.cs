@@ -1,4 +1,5 @@
 ﻿using PolyType.Abstractions;
+using System.Reflection;
 
 namespace PolyType.Tests;
 
@@ -104,6 +105,18 @@ public record TestCase<T> : ITestCase
     /// Gets a value indicating whether the type is an abstract class or an interface.
     /// </summary>
     public bool IsAbstract => typeof(T).IsAbstract || typeof(T).IsInterface;
+
+    /// <summary>
+    /// Gets a value indicating whether the type configuration specifies a custom kind.
+    /// </summary>
+    public TypeShapeKind? CustomKind
+    {
+        get
+        {
+            TypeShapeKind? kind = typeof(T).GetCustomAttribute<TypeShapeAttribute>()?.Kind;
+            return kind == (TypeShapeKind)(-1) ? null : kind;
+        }
+    }
 
     Type ITestCase.Type => typeof(T);
     object? ITestCase.Value => Value;

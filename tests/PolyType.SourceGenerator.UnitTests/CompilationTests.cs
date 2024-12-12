@@ -413,4 +413,19 @@ public static class CompilationTests
         PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation);
         Assert.Empty(result.Diagnostics);
     }
+
+    [Fact]
+    public static void CustomTypeShapeKind_NoErrors()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+            using PolyType;
+            using PolyType.Abstractions;
+
+            [GenerateShape, TypeShape(Kind = TypeShapeKind.None)]
+            public partial record ObjectAsNone(string Name, int Age);
+            """);
+
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
 }

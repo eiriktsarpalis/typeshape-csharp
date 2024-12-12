@@ -3,8 +3,18 @@
 /// <summary>
 /// Defines kinds of an <see cref="ITypeShape"/> instance.
 /// </summary>
-public enum TypeShapeKind
+#if IS_MAIN_POLYTYPE_PROJECT
+public
+#else
+internal
+#endif
+enum TypeShapeKind
 {
+    /// <summary>
+    /// Default value not representing any specific shape.
+    /// </summary>
+    None = 0,
+
     /// <summary>
     /// Shape represents an object type using <see cref="IObjectTypeShape"/>.
     /// </summary>

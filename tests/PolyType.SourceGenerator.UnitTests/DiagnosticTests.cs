@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using PolyType.Abstractions;
 using Xunit;
 
 namespace PolyType.SourceGenerator.UnitTests;
@@ -295,6 +296,157 @@ public static class DiagnosticTests
             """, parseOptions: parseOptions);
 
         PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(TypeShapeKind.Enum)]
+    [InlineData(TypeShapeKind.Nullable)]
+    [InlineData(TypeShapeKind.Dictionary)]
+    [InlineData(TypeShapeKind.Enumerable)]
+    public static void TypeShapeAttribute_ClassWithInvalidKind_ProducesDiagnostic(TypeShapeKind kind)
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation($"""
+            using PolyType;
+            using PolyType.Abstractions;
+
+            [TypeShape(Kind = TypeShapeKind.{kind})]
+            class MyPoco;
+
+            [GenerateShape<MyPoco>]
+            partial class Witness;
+            """);
+
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        
+        Diagnostic diagnostic = Assert.Single(result.Diagnostics);
+
+        Assert.Equal("TS0009", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Equal((3, 1), diagnostic.Location.GetStartPosition());
+        Assert.Equal(3, diagnostic.Location.GetEndPosition().startLine);
+    }
+
+    [Theory]
+    [InlineData(TypeShapeKind.Enum)]
+    [InlineData(TypeShapeKind.Nullable)]
+    public static void TypeShapeAttribute_DictionaryWithInvalidKind_ProducesDiagnostic(TypeShapeKind kind)
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation($"""
+            using PolyType;
+            using PolyType.Abstractions;
+            using System.Collections.Generic;
+
+            [TypeShape(Kind = TypeShapeKind.{kind})]
+            class MyPoco : Dictionary<string, string>;
+
+            [GenerateShape<MyPoco>]
+            partial class Witness;
+            """);
+
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation, disableDiagnosticValidation: true);
+
+        Diagnostic diagnostic = Assert.Single(result.Diagnostics);
+
+        Assert.Equal("TS0009", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Equal((4, 1), diagnostic.Location.GetStartPosition());
+        Assert.Equal(4, diagnostic.Location.GetEndPosition().startLine);
+    }
+
+    [Theory]
+    [InlineData(TypeShapeKind.Enum)]
+    [InlineData(TypeShapeKind.Nullable)]
+    [InlineData(TypeShapeKind.Dictionary)]
+    public static void TypeShapeAttribute_EnumerableWithInvalidKind_ProducesDiagnostic(TypeShapeKind kind)
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation($"""
+            using PolyType;
+            using PolyType.Abstractions;
+            using System.Collections.Generic;
+
+            [TypeShape(Kind = TypeShapeKind.{kind})]
+            class MyPoco : List<string>;
+
+            [GenerateShape<MyPoco>]
+            partial class Witness;
+            """);
+
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation, disableDiagnosticValidation: true);
+
+        Diagnostic diagnostic = Assert.Single(result.Diagnostics);
+
+        Assert.Equal("TS0009", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Equal((4, 1), diagnostic.Location.GetStartPosition());
+        Assert.Equal(4, diagnostic.Location.GetEndPosition().startLine);
+    }
+
+    [Theory]
+    [InlineData(TypeShapeKind.Object)]
+    [InlineData(TypeShapeKind.None)]
+    public static void TypeShapeAttribute_ClassWithValidKind_NoDiagnostic(TypeShapeKind kind)
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation($"""
+            using PolyType;
+            using PolyType.Abstractions;
+
+            [TypeShape(Kind = TypeShapeKind.{kind})]
+            class MyPoco;
+
+            [GenerateShape<MyPoco>]
+            partial class Witness;
+            """);
+
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation, disableDiagnosticValidation: true);
+        
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(TypeShapeKind.Enumerable)]
+    [InlineData(TypeShapeKind.Dictionary)]
+    [InlineData(TypeShapeKind.Object)]
+    [InlineData(TypeShapeKind.None)]
+    public static void TypeShapeAttribute_DictionaryWithValidKind_NoDiagnostic(TypeShapeKind kind)
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation($"""
+            using PolyType;
+            using PolyType.Abstractions;
+            using System.Collections.Generic;
+
+            [TypeShape(Kind = TypeShapeKind.{kind})]
+            class MyPoco : Dictionary<string, string>;
+
+            [GenerateShape<MyPoco>]
+            partial class Witness;
+            """);
+
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation, disableDiagnosticValidation: true);
+
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(TypeShapeKind.Enumerable)]
+    [InlineData(TypeShapeKind.Object)]
+    [InlineData(TypeShapeKind.None)]
+    public static void TypeShapeAttribute_EnumerableWithValidKind_NoDiagnostic(TypeShapeKind kind)
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation($"""
+            using PolyType;
+            using PolyType.Abstractions;
+            using System.Collections.Generic;
+
+            [TypeShape(Kind = TypeShapeKind.{kind})]
+            class MyPoco : List<string>;
+
+            [GenerateShape<MyPoco>]
+            partial class Witness;
+            """);
+
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation, disableDiagnosticValidation: true);
+
         Assert.Empty(result.Diagnostics);
     }
 }

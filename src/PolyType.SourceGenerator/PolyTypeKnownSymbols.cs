@@ -11,6 +11,9 @@ public sealed class PolyTypeKnownSymbols(Compilation compilation) : KnownSymbols
     public INamedTypeSymbol? GenerateShapeAttributeOfT => GetOrResolveType("PolyType.GenerateShapeAttribute`1", ref _GenerateShapeAttributeOfT);
     private Option<INamedTypeSymbol?> _GenerateShapeAttributeOfT;
 
+    public INamedTypeSymbol? TypeShapeAttribute => GetOrResolveType("PolyType.TypeShapeAttribute", ref _TypeShapeAttribute);
+    private Option<INamedTypeSymbol?> _TypeShapeAttribute;
+
     public INamedTypeSymbol? PropertyShapeAttribute => GetOrResolveType("PolyType.PropertyShapeAttribute", ref _PropertyShapeAttribute);
     private Option<INamedTypeSymbol?> _PropertyShapeAttribute;
 
