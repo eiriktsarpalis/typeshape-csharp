@@ -92,8 +92,8 @@ public partial class TypeDataModelGenerator
     {
         if (location is not null && !KnownSymbols.Compilation.ContainsLocation(location))
         {
-            // If the location outside of the current compilation,
-            // fall back to the default location of the generator class.
+            // If the location is outside of the current compilation,
+            // fall back to the default location for the generator.
             location = DefaultLocation;
         }
 
