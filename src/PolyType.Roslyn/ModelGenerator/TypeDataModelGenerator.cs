@@ -106,14 +106,7 @@ public partial class TypeDataModelGenerator
     protected virtual ITypeSymbol NormalizeType(ITypeSymbol type) => type;
 
     /// <summary>
-    /// When overridden, resolves the requested kind of the type as specified by configuration.
-    /// </summary>
-    /// <param name="type">The type symbol for which to resolve the requested kind.</param>
-    /// <returns>The requested kind for <paramref name="type"/>.</returns>
-    protected virtual TypeDataKind? ResolveRequestedKind(ITypeSymbol type) => null;
-
-    /// <summary>
-    /// Wraps the <see cref="MapType(ITypeSymbol, ref TypeDataModelGenerationContext, out TypeDataModel?)"/> method
+    /// Wraps the <see cref="MapType(ITypeSymbol, TypeDataKind?, ref TypeDataModelGenerationContext, out TypeDataModel?)"/> method
     /// with pre- and post-processing steps necessary for a type graph traversal.
     /// </summary>
     /// <param name="type">The type for which to generate a data model.</param>
@@ -150,7 +143,7 @@ public partial class TypeDataModelGenerator
         // Create a new snapshot with the current type pushed onto the stack.
         // Only commit the generated model if the type is successfully mapped.
         TypeDataModelGenerationContext scopedCtx = ctx.Push(type);
-        TypeDataModelGenerationStatus status = MapType(type, ref scopedCtx, out model);
+        TypeDataModelGenerationStatus status = MapType(type, requestedKind: null, ref scopedCtx, out model);
 
         if (status is TypeDataModelGenerationStatus.Success != model is not null)
         {
@@ -170,6 +163,7 @@ public partial class TypeDataModelGenerator
     /// The core, overridable data model mapping method for a given type.
     /// </summary>
     /// <param name="type">The type for which to generate a data model.</param>
+    /// <param name="requestedKind">The target kind as specified in configuration.</param>
     /// <param name="ctx">The context token holding state for the current type graph traversal.</param>
     /// <param name="model">The model that the current symbol is being mapped to.</param>
     /// <returns>The model generation status for the given type.</returns>
@@ -177,11 +171,15 @@ public partial class TypeDataModelGenerator
     /// The method should only be overridden but not invoked directly. 
     /// Call <see cref="IncludeNestedType(ITypeSymbol, ref TypeDataModelGenerationContext)"/> instead.
     /// </remarks>
-    protected virtual TypeDataModelGenerationStatus MapType(ITypeSymbol type, ref TypeDataModelGenerationContext ctx, out TypeDataModel? model)
+    protected virtual TypeDataModelGenerationStatus MapType(
+        ITypeSymbol type, 
+        TypeDataKind? requestedKind,
+        ref TypeDataModelGenerationContext ctx,
+        out TypeDataModel? model)
     {
         TypeDataModelGenerationStatus status;
 
-        switch (ResolveRequestedKind(type))
+        switch (requestedKind)
         {
             // If the configuration specifies an explicit kind, try to resolve that or fall back to no shape.
             case TypeDataKind.Enum:

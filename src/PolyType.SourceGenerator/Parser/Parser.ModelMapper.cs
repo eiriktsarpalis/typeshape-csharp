@@ -3,6 +3,7 @@ using PolyType.Abstractions;
 using PolyType.Roslyn;
 using PolyType.SourceGenerator.Helpers;
 using PolyType.SourceGenerator.Model;
+using System.Diagnostics;
 
 namespace PolyType.SourceGenerator;
 
@@ -151,6 +152,22 @@ public sealed partial class Parser
         {
             return method?.Parameters is [{ Type: INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Collections_Generic_IEnumerable_T } }];
         }
+    }
+
+    protected override TypeDataModelGenerationStatus MapType(ITypeSymbol type, TypeDataKind? requestedKind, ref TypeDataModelGenerationContext ctx, out TypeDataModel? model)
+    {
+        Debug.Assert(requestedKind is null);
+        ParseTypeShapeAttribute(type, out TypeShapeKind? requestedTypeShapeKind, out Location? location);
+        requestedKind = MapTypeShapeKindToDataKind(requestedTypeShapeKind);
+
+        TypeDataModelGenerationStatus status = base.MapType(type, requestedKind, ref ctx, out model);
+
+        if (requestedKind is not null && model is { Kind: TypeDataKind actualKind } && requestedKind != actualKind)
+        {
+            ReportDiagnostic(InvalidTypeShapeKind, location, requestedKind.Value, type.ToDisplayString());
+        }
+
+        return status;
     }
 
     private PropertyShapeModel MapProperty(ITypeSymbol parentType, TypeId parentTypeId, PropertyDataModel property, bool isClassTupleType = false, int tupleElementIndex = -1)
