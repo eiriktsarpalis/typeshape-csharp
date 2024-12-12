@@ -108,8 +108,8 @@ public partial class TypeDataModelGenerator
     /// <summary>
     /// When overridden, resolves the requested kind of the type as specified by configuration.
     /// </summary>
-    /// <param name="type"></param>
-    /// <returns></returns>
+    /// <param name="type">The type symbol for which to resolve the requested kind.</param>
+    /// <returns>The requested kind for <paramref name="type"/>.</returns>
     protected virtual TypeDataKind? ResolveRequestedKind(ITypeSymbol type) => null;
 
     /// <summary>
