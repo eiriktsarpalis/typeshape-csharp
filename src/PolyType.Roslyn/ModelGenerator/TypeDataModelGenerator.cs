@@ -1,6 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
-using System.Collections.Immutable;
 using PolyType.Roslyn.Helpers;
+using System.Collections.Immutable;
 
 namespace PolyType.Roslyn;
 
@@ -31,6 +31,11 @@ public partial class TypeDataModelGenerator
     /// The context symbol used to determine accessibility for processed types.
     /// </summary>
     public ISymbol GenerationScope { get; }
+
+    /// <summary>
+    /// The default location to be used for diagnostics.
+    /// </summary>
+    public virtual Location? DefaultLocation => GenerationScope.Locations.FirstOrDefault();
 
     /// <summary>
     /// The known symbols cache constructed from the current <see cref="Compilation" />.
@@ -85,6 +90,13 @@ public partial class TypeDataModelGenerator
     /// </summary>
     public void ReportDiagnostic(DiagnosticDescriptor descriptor, Location? location, params object?[] messageArgs)
     {
+        if (location is not null && !KnownSymbols.Compilation.ContainsLocation(location))
+        {
+            // If the location is outside of the current compilation,
+            // fall back to the default location for the generator.
+            location = DefaultLocation;
+        }
+
         Diagnostics.Add(new EquatableDiagnostic(descriptor, location, messageArgs));
     }
 
@@ -94,7 +106,7 @@ public partial class TypeDataModelGenerator
     protected virtual ITypeSymbol NormalizeType(ITypeSymbol type) => type;
 
     /// <summary>
-    /// Wraps the <see cref="MapType(ITypeSymbol, ref TypeDataModelGenerationContext, out TypeDataModel?)"/> method
+    /// Wraps the <see cref="MapType(ITypeSymbol, TypeDataKind?, ref TypeDataModelGenerationContext, out TypeDataModel?)"/> method
     /// with pre- and post-processing steps necessary for a type graph traversal.
     /// </summary>
     /// <param name="type">The type for which to generate a data model.</param>
@@ -131,7 +143,7 @@ public partial class TypeDataModelGenerator
         // Create a new snapshot with the current type pushed onto the stack.
         // Only commit the generated model if the type is successfully mapped.
         TypeDataModelGenerationContext scopedCtx = ctx.Push(type);
-        TypeDataModelGenerationStatus status = MapType(type, ref scopedCtx, out model);
+        TypeDataModelGenerationStatus status = MapType(type, requestedKind: null, ref scopedCtx, out model);
 
         if (status is TypeDataModelGenerationStatus.Success != model is not null)
         {
@@ -151,6 +163,7 @@ public partial class TypeDataModelGenerator
     /// The core, overridable data model mapping method for a given type.
     /// </summary>
     /// <param name="type">The type for which to generate a data model.</param>
+    /// <param name="requestedKind">The target kind as specified in configuration.</param>
     /// <param name="ctx">The context token holding state for the current type graph traversal.</param>
     /// <param name="model">The model that the current symbol is being mapped to.</param>
     /// <returns>The model generation status for the given type.</returns>
@@ -158,9 +171,64 @@ public partial class TypeDataModelGenerator
     /// The method should only be overridden but not invoked directly. 
     /// Call <see cref="IncludeNestedType(ITypeSymbol, ref TypeDataModelGenerationContext)"/> instead.
     /// </remarks>
-    protected virtual TypeDataModelGenerationStatus MapType(ITypeSymbol type, ref TypeDataModelGenerationContext ctx, out TypeDataModel? model)
+    protected virtual TypeDataModelGenerationStatus MapType(
+        ITypeSymbol type, 
+        TypeDataKind? requestedKind,
+        ref TypeDataModelGenerationContext ctx,
+        out TypeDataModel? model)
     {
-        if (TryMapEnum(type, ref ctx, out model, out TypeDataModelGenerationStatus status))
+        TypeDataModelGenerationStatus status;
+
+        switch (requestedKind)
+        {
+            // If the configuration specifies an explicit kind, try to resolve that or fall back to no shape.
+            case TypeDataKind.Enum:
+                if (TryMapEnum(type, ref ctx, out model, out status))
+                {
+                    return status;
+                }
+                goto None;
+
+            case TypeDataKind.Nullable:
+                if (TryMapNullable(type, ref ctx, out model, out status))
+                {
+                    return status;
+                }
+                goto None;
+
+            case TypeDataKind.Dictionary:
+                if (TryMapDictionary(type, ref ctx, out model, out status))
+                {
+                    return status;
+                }
+                goto None;
+
+            case TypeDataKind.Enumerable:
+                if (TryMapEnumerable(type, ref ctx, out model, out status))
+                {
+                    return status;
+                }
+                goto None;
+
+            case TypeDataKind.Tuple:
+                if (TryMapTuple(type, ref ctx, out model, out status))
+                {
+                    return status;
+                }
+                goto None;
+
+            case TypeDataKind.Object:
+                if (TryMapObject(type, ref ctx, out model, out status))
+                {
+                    return status;
+                }
+                goto None;
+
+            case TypeDataKind.None:
+                goto None;
+        }
+
+        if (TryMapEnum(type, ref ctx, out model, out status))
         {
             return status;
         }
@@ -192,12 +260,9 @@ public partial class TypeDataModelGenerator
             return status;
         }
 
+    None:
         // A supported type of unrecognized kind, do not include any metadata.
-        model = new TypeDataModel
-        {
-            Type = type,
-        };
-
+        model = new TypeDataModel { Type = type };
         return TypeDataModelGenerationStatus.Success;
     }
 

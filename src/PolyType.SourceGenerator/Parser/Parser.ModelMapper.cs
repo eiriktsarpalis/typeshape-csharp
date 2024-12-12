@@ -1,7 +1,9 @@
 ﻿using Microsoft.CodeAnalysis;
+using PolyType.Abstractions;
 using PolyType.Roslyn;
 using PolyType.SourceGenerator.Helpers;
 using PolyType.SourceGenerator.Model;
+using System.Diagnostics;
 
 namespace PolyType.SourceGenerator;
 
@@ -150,6 +152,22 @@ public sealed partial class Parser
         {
             return method?.Parameters is [{ Type: INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Collections_Generic_IEnumerable_T } }];
         }
+    }
+
+    protected override TypeDataModelGenerationStatus MapType(ITypeSymbol type, TypeDataKind? requestedKind, ref TypeDataModelGenerationContext ctx, out TypeDataModel? model)
+    {
+        Debug.Assert(requestedKind is null);
+        ParseTypeShapeAttribute(type, out TypeShapeKind? requestedTypeShapeKind, out Location? location);
+        requestedKind = MapTypeShapeKindToDataKind(requestedTypeShapeKind);
+
+        TypeDataModelGenerationStatus status = base.MapType(type, requestedKind, ref ctx, out model);
+
+        if (requestedKind is not null && model is { Kind: TypeDataKind actualKind } && requestedKind != actualKind)
+        {
+            ReportDiagnostic(InvalidTypeShapeKind, location, requestedKind.Value, type.ToDisplayString());
+        }
+
+        return status;
     }
 
     private PropertyShapeModel MapProperty(ITypeSymbol parentType, TypeId parentTypeId, PropertyDataModel property, bool isClassTupleType = false, int tupleElementIndex = -1)
@@ -388,6 +406,40 @@ public sealed partial class Parser
                 DefaultValueExpr = null,
             };
         }
+    }
+
+    private void ParseTypeShapeAttribute(ITypeSymbol typeSymbol, out TypeShapeKind? kind, out Location? location)
+    {
+        kind = null;
+        location = null;
+
+        if (typeSymbol.GetAttribute(_knownSymbols.TypeShapeAttribute) is AttributeData propertyAttr)
+        {
+            location = propertyAttr.GetLocation();
+            foreach (KeyValuePair<string, TypedConstant> namedArgument in propertyAttr.NamedArguments)
+            {
+                switch (namedArgument.Key)
+                {
+                    case "Kind":
+                        kind = (TypeShapeKind)namedArgument.Value.Value!;
+                        break;
+                }
+            }
+        }
+    }
+
+    private static TypeDataKind? MapTypeShapeKindToDataKind(TypeShapeKind? kind)
+    {
+        return kind switch
+        {
+            null => null,
+            TypeShapeKind.Enum => TypeDataKind.Enum,
+            TypeShapeKind.Nullable => TypeDataKind.Nullable,
+            TypeShapeKind.Enumerable => TypeDataKind.Enumerable,
+            TypeShapeKind.Dictionary => TypeDataKind.Dictionary,
+            TypeShapeKind.Object => TypeDataKind.Object,
+            _ => TypeDataKind.None,
+        };
     }
 
     private void ParsePropertyShapeAttribute(ISymbol propertySymbol, out string propertyName, out int order)

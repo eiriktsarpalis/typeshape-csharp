@@ -7,7 +7,7 @@ namespace PolyType.ReflectionProvider;
 
 [RequiresUnreferencedCode(ReflectionTypeShapeProvider.RequiresUnreferencedCodeMessage)]
 [RequiresDynamicCode(ReflectionTypeShapeProvider.RequiresDynamicCodeMessage)]
-internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider provider) : ReflectionTypeShape<T>(provider), IObjectTypeShape<T>
+internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider provider, bool disableMemberResolution) : ReflectionTypeShape<T>(provider), IObjectTypeShape<T>
 {
     private static readonly EqualityComparer<(Type Type, string Name)> s_ctorParameterEqualityComparer =
         CommonHelpers.CreateTupleComparer(
@@ -324,11 +324,12 @@ internal sealed class ReflectionObjectTypeShape<T>(ReflectionTypeShapeProvider p
 
     private const BindingFlags AllInstanceMembers = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly;
 
-    private static bool DetermineIsSimpleType(Type type)
+    private bool DetermineIsSimpleType(Type type)
     {
         // A primitive or self-contained value type that
         // shouldn't expose its properties or constructors.
-        return type.IsPrimitive ||
+        return disableMemberResolution ||
+            type.IsPrimitive ||
             type == typeof(object) ||
             type == typeof(string) ||
             type == typeof(decimal) ||

@@ -68,6 +68,11 @@ public interface ITestCase
     public bool IsAbstract { get; }
 
     /// <summary>
+    /// Gets the value specified in <see cref="TypeShapeAttribute.Kind"/>.
+    /// </summary>
+    public TypeShapeKind? CustomKind { get; }
+
+    /// <summary>
     /// Expands the test case into multiple test cases.
     /// </summary>
     IEnumerable<ITestCase> ExpandCases();

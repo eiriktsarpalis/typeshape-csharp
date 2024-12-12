@@ -1,5 +1,6 @@
 ﻿using PolyType.Abstractions;
 using PolyType.ReflectionProvider.MemberAccessors;
+using PolyType.Utilities;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -106,14 +107,15 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
           TypeShapeKind.Dictionary => CreateDictionaryShape(type),
           TypeShapeKind.Enum => CreateEnumShape(type),
           TypeShapeKind.Nullable => CreateNullableShape(type),
-          _ => CreateObjectShape(type),
+          TypeShapeKind.Object => CreateObjectShape(type, disableMemberResolution: false),
+          TypeShapeKind.None or _ => CreateObjectShape(type, disableMemberResolution: true),
         };
     }
 
-    private ITypeShape CreateObjectShape(Type type)
+    private ITypeShape CreateObjectShape(Type type, bool disableMemberResolution)
     {
         Type objectShapeTy = typeof(ReflectionObjectTypeShape<>).MakeGenericType(type);
-        return (ITypeShape)Activator.CreateInstance(objectShapeTy, this)!;
+        return (ITypeShape)Activator.CreateInstance(objectShapeTy, this, disableMemberResolution)!;
     }
 
     private IEnumerableTypeShape CreateEnumerableShape(Type type)
@@ -214,6 +216,35 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
 
     private static TypeShapeKind DetermineTypeKind(Type type)
     {
+        TypeShapeKind builtInKind = DetermineBuiltInTypeKind(type);
+
+        if (type.GetCustomAttribute<TypeShapeAttribute>()?.GetRequestedKind() is TypeShapeKind requestedKind)
+        {
+            Debug.Assert(
+                builtInKind is TypeShapeKind.Dictionary or TypeShapeKind.Enumerable or TypeShapeKind.Object,
+                "Custom kinds can only be specified on types that are objects, interfaces, or structs.");
+
+            bool isCustomKindSupported = requestedKind switch
+            {
+                TypeShapeKind.Enum or TypeShapeKind.Nullable => false,
+                TypeShapeKind.Dictionary => builtInKind is TypeShapeKind.Dictionary,
+                TypeShapeKind.Enumerable => builtInKind is TypeShapeKind.Dictionary or TypeShapeKind.Enumerable,
+                TypeShapeKind.Object or TypeShapeKind.None or _ => true,
+            };
+
+            if (!isCustomKindSupported)
+            {
+                throw new NotSupportedException($"TypeShapeKind '{requestedKind}' is not supported for type '{type}'.");
+            }
+
+            return requestedKind;
+        }
+
+        return builtInKind;
+    }
+
+    private static TypeShapeKind DetermineBuiltInTypeKind(Type type)
+    {
         if (type.IsEnum)
         {
             return TypeShapeKind.Enum;
@@ -228,18 +259,16 @@ public class ReflectionTypeShapeProvider : ITypeShapeProvider
         {
             return TypeShapeKind.Dictionary;
         }
-        else
+
+        foreach (Type interfaceTy in type.GetAllInterfaces())
         {
-            foreach (Type interfaceTy in type.GetAllInterfaces())
+            if (interfaceTy.IsGenericType)
             {
-                if (interfaceTy.IsGenericType)
+                Type genericInterfaceTy = interfaceTy.GetGenericTypeDefinition();
+                if (genericInterfaceTy == typeof(IDictionary<,>) ||
+                    genericInterfaceTy == typeof(IReadOnlyDictionary<,>))
                 {
-                    Type genericInterfaceTy = interfaceTy.GetGenericTypeDefinition();
-                    if (genericInterfaceTy == typeof(IDictionary<,>) ||
-                        genericInterfaceTy == typeof(IReadOnlyDictionary<,>))
-                    {
-                        return TypeShapeKind.Dictionary;
-                    }
+                    return TypeShapeKind.Dictionary;
                 }
             }
         }

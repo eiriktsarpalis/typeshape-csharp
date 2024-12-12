@@ -7,6 +7,7 @@
   </PropertyGroup>
     
   <ItemGroup>
+    <Compile Include="..\PolyType\Abstractions\TypeShapeKind.cs" Link="Shared\PolyType\Abstractions\%(Filename).cs" />
     <Compile Include="..\Shared\Helpers\CommonHelpers.cs" Link="PolyType.Roslyn\Shared\Helpers\%(Filename).cs" />
     <Compile Include="..\Shared\Helpers\DebugExt.cs" Link="Shared\Helpers\%(Filename).cs" />
     <Compile Include="..\PolyType.Roslyn\**\*.cs" Exclude="**\bin\**;**\obj\**" Link="PolyType.Roslyn\%(RecursiveDir)%(Filename)%(Extension)" />

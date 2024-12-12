@@ -224,6 +224,16 @@ internal static class ReflectionHelpers
         return !(type == typeof(void) || type.IsPointer || type.IsByRef || IsByRefLike(type) || type.ContainsGenericParameters);
     }
 
+    public static bool IsEnumDefined<TEnum>(TEnum value)
+        where TEnum : struct, Enum
+    {
+#if NET
+        return Enum.IsDefined<TEnum>(value);
+#else
+        return Enum.IsDefined(typeof(TEnum), value);
+#endif
+    }
+
     private static bool IsByRefLike(Type type)
     {
 #if NET

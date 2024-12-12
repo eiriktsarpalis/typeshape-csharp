@@ -358,6 +358,7 @@ public abstract partial class JsonTests(ProviderUnderTest providerUnderTest)
         value.IsMultiDimensionalArray ||
         value.IsLongTuple ||
         value.HasRefConstructorParameters ||
+        value.CustomKind is not null ||
         value.Value is DerivedClassWithVirtualProperties; // https://github.com/dotnet/runtime/issues/96996
 }
 

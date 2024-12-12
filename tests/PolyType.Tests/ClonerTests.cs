@@ -11,7 +11,7 @@ public abstract class ClonerTests(ProviderUnderTest providerUnderTest)
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void Cloner_ProducesEqualCopy<T>(TestCase<T> testCase)
     {
-        if (!providerUnderTest.HasConstructor(testCase))
+        if (!providerUnderTest.HasConstructor(testCase) && testCase.CustomKind is not TypeShapeKind.None)
         {
             Assert.Throws<NotSupportedException>(() => Cloner.CreateCloner(providerUnderTest.ResolveShape(testCase)));
             return;
@@ -27,7 +27,7 @@ public abstract class ClonerTests(ProviderUnderTest providerUnderTest)
             return;
         }
 
-        if (typeof(T) != typeof(string))
+        if (typeof(T) != typeof(string) && testCase.CustomKind is not TypeShapeKind.None)
         {
             Assert.NotSame((object?)testCase.Value, (object?)clonedValue);
         }

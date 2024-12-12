@@ -20,6 +20,7 @@ public abstract class ProviderUnderTest
         !(testCase.IsAbstract && !typeof(IEnumerable).IsAssignableFrom(testCase.Type)) &&
         !testCase.IsMultiDimensionalArray &&
         !testCase.HasOutConstructorParameters &&
+        testCase.CustomKind is not TypeShapeKind.None &&
         (!testCase.UsesSpanConstructor || Kind is not ProviderKind.ReflectionNoEmit);
 }
 

@@ -1,12 +1,11 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Collections.Immutable;
-using System.Diagnostics;
-using System.Text;
 using PolyType.Roslyn;
 using PolyType.SourceGenerator.Helpers;
 using PolyType.SourceGenerator.Model;
+using System.Collections.Immutable;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace PolyType.SourceGenerator;
@@ -28,12 +27,12 @@ public sealed partial class Parser : TypeDataModelGenerator
     protected override bool FlattenSystemTupleTypes => true;
 
     // All types used as generic parameters so we must exclude ref structs.
-    protected override bool IsSupportedType(ITypeSymbol type)
-        => base.IsSupportedType(type) && !type.IsRefLikeType && !type.IsStatic;
+    protected override bool IsSupportedType(ITypeSymbol type) =>
+        base.IsSupportedType(type) && !type.IsRefLikeType && !type.IsStatic;
 
     // Erase nullable annotations and tuple labels from generated types.
-    protected override ITypeSymbol NormalizeType(ITypeSymbol type)
-        => KnownSymbols.Compilation.EraseCompilerMetadata(type);
+    protected override ITypeSymbol NormalizeType(ITypeSymbol type) =>
+        KnownSymbols.Compilation.EraseCompilerMetadata(type);
 
     // Ignore properties with the [PropertyShape] attribute set to Ignore = true.
     protected override bool IncludeProperty(IPropertySymbol property, out bool includeGetter, out bool includeSetter)

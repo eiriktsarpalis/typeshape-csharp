@@ -31,11 +31,16 @@ public abstract class TypeShapeProviderTests(ProviderUnderTest providerUnderTest
             Assert.Same(providerUnderTest.Provider, shape.Provider);
         }
 
-        TypeShapeKind expectedKind = GetExpectedTypeKind();
+        TypeShapeKind expectedKind = GetExpectedTypeKind(testCase);
         Assert.Equal(expectedKind, shape.Kind);
 
-        static TypeShapeKind GetExpectedTypeKind()
+        static TypeShapeKind GetExpectedTypeKind(TestCase<T> testCase)
         {
+            if (testCase.CustomKind is { } kind and not TypeShapeKind.None)
+            {
+                return kind;
+            }
+
             if (typeof(T).IsEnum)
             {
                 return TypeShapeKind.Enum;
@@ -661,7 +666,44 @@ public static class ReflectionExtensions
 }
 
 public sealed class TypeShapeProviderTests_Reflection() : TypeShapeProviderTests(RefectionProviderUnderTest.NoEmit);
-public sealed class TypeShapeProviderTests_ReflectionEmit() : TypeShapeProviderTests(RefectionProviderUnderTest.Emit);
+public sealed class TypeShapeProviderTests_ReflectionEmit() : TypeShapeProviderTests(RefectionProviderUnderTest.Emit)
+{
+    [Theory]
+    [InlineData(typeof(ClassWithEnumKind))]
+    [InlineData(typeof(ClassWithNullableKind))]
+    [InlineData(typeof(ClassWithDictionaryKind))]
+    [InlineData(typeof(ClassWithEnumerableKind))]
+    [InlineData(typeof(EnumerableWithDictionaryKind))]
+    [InlineData(typeof(EnumerableWithEnumKind))]
+    [InlineData(typeof(DictionaryWithNullableKind))]
+    public void TypesWithInvalidTypeShapeKindAnnotations_ThrowsNotSupportedException(Type type)
+    {
+        NotSupportedException ex = Assert.Throws<NotSupportedException>(() => Provider.GetShape(type));
+        Assert.Contains("TypeShapeKind", ex.Message);
+    }
+
+    [TypeShape(Kind = TypeShapeKind.Enum)]
+    private class ClassWithEnumKind;
+
+    [TypeShape(Kind = TypeShapeKind.Nullable)]
+    private class ClassWithNullableKind;
+
+    [TypeShape(Kind = TypeShapeKind.Dictionary)]
+    private class ClassWithDictionaryKind;
+
+    [TypeShape(Kind = TypeShapeKind.Enumerable)]
+    private class ClassWithEnumerableKind;
+
+    [TypeShape(Kind = TypeShapeKind.Dictionary)]
+    private class EnumerableWithDictionaryKind : List<int>;
+
+    [TypeShape(Kind = TypeShapeKind.Enum)]
+    private class EnumerableWithEnumKind : List<int>;
+
+    [TypeShape(Kind = TypeShapeKind.Nullable)]
+    private class DictionaryWithNullableKind : Dictionary<int, int>;
+}
+
 public sealed class TypeShapeProviderTests_SourceGen() : TypeShapeProviderTests(SourceGenProviderUnderTest.Default)
 {
     [Fact]

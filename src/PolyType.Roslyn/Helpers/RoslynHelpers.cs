@@ -26,6 +26,9 @@ internal static class RoslynHelpers
         return property;
     }
 
+    public static bool ContainsLocation(this Compilation compilation, Location location) =>
+        location.SourceTree != null && compilation.ContainsSyntaxTree(location.SourceTree);
+
     public static void ResolveNullableAnnotation(this ISymbol member, out bool isGetterNonNullable, out bool isSetterNonNullable)
     {
         Debug.Assert(member is IFieldSymbol or IPropertySymbol);

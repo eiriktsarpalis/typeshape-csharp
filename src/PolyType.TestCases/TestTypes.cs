@@ -1,4 +1,5 @@
 ﻿using Microsoft.FSharp.Collections;
+using PolyType.Abstractions;
 using PolyType.Tests.FSharp;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -181,6 +182,10 @@ public static class TestTypes
         yield return TestCase.Create(new MyKeyedCollection<string> { "1", "2", "3" }, p);
         yield return TestCase.Create(new ReadOnlyCollection<int>([1, 2, 3]), p);
         yield return TestCase.Create(new ReadOnlyDictionary<int, int>(new Dictionary<int, int> { [1] = 1, [2] = 2 }), p);
+
+        yield return TestCase.Create(new EnumerableAsObject { Value = 42 });
+        yield return TestCase.Create(new DictionaryAsEnumerable { new("key", "value") });
+        yield return TestCase.Create(new ObjectAsNone { Name = "me", Age = 7 });
 
         yield return TestCase.Create(ImmutableArray.Create(1, 2, 3), p);
         yield return TestCase.Create(ImmutableList.Create("1", "2", "3"), p);
@@ -1968,6 +1973,32 @@ partial class @class
     public string @string { get; set; }
     public int @__makeref { get; set; }
     public bool @yield { get; set; }
+}
+
+[GenerateShape, TypeShape(Kind = TypeShapeKind.Object)]
+public partial class EnumerableAsObject : IEnumerable<int>
+{
+    public int Value { get; set; }
+
+    public IEnumerator<int> GetEnumerator() => Enumerable.Repeat(Value, 10).GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+}
+
+[GenerateShape, TypeShape(Kind = TypeShapeKind.Enumerable)]
+public partial class DictionaryAsEnumerable : List<KeyValuePair<string, string>>, IReadOnlyDictionary<string, string>
+{
+    string IReadOnlyDictionary<string, string>.this[string key] => throw new NotImplementedException();
+    IEnumerable<string> IReadOnlyDictionary<string, string>.Keys => throw new NotImplementedException();
+    IEnumerable<string> IReadOnlyDictionary<string, string>.Values => throw new NotImplementedException();
+    bool IReadOnlyDictionary<string, string>.ContainsKey(string key) => throw new NotImplementedException();
+    bool IReadOnlyDictionary<string, string>.TryGetValue(string key, out string value) => throw new NotImplementedException();
+}
+
+[GenerateShape, TypeShape(Kind = TypeShapeKind.None)]
+public partial class ObjectAsNone
+{
+    public required string Name { get; init; }
+    public required int Age { get; init; }
 }
 
 [GenerateShape<object>]
