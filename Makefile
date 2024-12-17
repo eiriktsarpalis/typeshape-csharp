@@ -28,7 +28,7 @@ restore-tools:
 	dotnet tool restore
 
 generate-docs: restore-tools
-	docfx $(DOCS_PATH)/docfx.json
+	dotnet docfx $(DOCS_PATH)/docfx.json
 
 bump-version: restore-tools
 	test -n "$(VERSION)" || (echo "must specify VERSION" && exit 1)
