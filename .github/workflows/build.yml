@@ -40,9 +40,7 @@ jobs:
     - name: Upload to Codecov
       uses: codecov/codecov-action@v5
       with:
-        files: artifacts/coverage.cobertura.xml
-        directory: artifacts,
-        disable_search: true,
+        files: artifacts/*/*.cobertura.xml
         verbose: true
         token: ${{ secrets.CODECOV_TOKEN }}
 
