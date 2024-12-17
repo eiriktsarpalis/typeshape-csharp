@@ -24,15 +24,18 @@ test: build
 pack: test
 	dotnet pack -c $(CONFIGURATION) $(ADDITIONAL_ARGS)
 
-generate-docs: clean
-	dotnet tool update -g docfx
+restore-tools:
+	dotnet tool restore
+
+generate-docs: restore-tools
 	docfx $(DOCS_PATH)/docfx.json
 
-bump-version:
-	test -n "$(VERSION)" || (echo "must specify VERSION" && exit 1) 
-	nbgv set-version $(VERSION)
+bump-version: restore-tools
+	test -n "$(VERSION)" || (echo "must specify VERSION" && exit 1)
+	git diff --quiet && git diff --cached --quiet || (echo "repo contains uncommitted changes" && exit 1)
+	dotnet nbgv set-version $(VERSION)
 	git commit -m "Bump version to $(VERSION)"
-	nbgv tag
+	dotnet nbgv tag
 
 push:
 	for nupkg in `ls $(ARTIFACT_PATH)/*.nupkg`; do \
