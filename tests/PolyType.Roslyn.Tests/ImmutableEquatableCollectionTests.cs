@@ -131,6 +131,7 @@ public static class ImmutableEquatableCollectionTests
         set2.CopyTo(buffer, 0);
         Assert.Equal(set2, buffer);
         
+        Assert.Throws<InvalidOperationException>(() => ((ICollection<int>)set2).Add(5));
         Assert.Throws<InvalidOperationException>(() => set2.Add(5));
         Assert.Throws<InvalidOperationException>(() => set2.Remove(2));
         Assert.Throws<InvalidOperationException>(() => set2.Clear());
@@ -214,6 +215,7 @@ public static class ImmutableEquatableCollectionTests
         Assert.True(dictionary2.Contains(new KeyValuePair<int, int>(1, 1)));
         Assert.True(dictionary2.TryGetValue(1, out int _));
         Assert.Equal(4, dictionary2[4]);
+        Assert.True(dictionary2.IsReadOnly);
         
         KeyValuePair<int, int>[] buffer = new KeyValuePair<int, int>[10];
         dictionary2.CopyTo(buffer, 0);
@@ -243,6 +245,8 @@ public static class ImmutableEquatableCollectionTests
         Assert.Equal(4, dictionary2[4]);
         Assert.True(dictionary2.IsReadOnly);
         Assert.True(dictionary2.IsFixedSize);
+        Assert.False(dictionary2.IsSynchronized);
+        Assert.Same(dictionary2, dictionary2.SyncRoot);
         
         Assert.Throws<InvalidOperationException>(() => dictionary2.Remove(1));
         Assert.Throws<InvalidOperationException>(() => dictionary2.Clear());
@@ -251,5 +255,31 @@ public static class ImmutableEquatableCollectionTests
         
         Assert.Throws<InvalidOperationException>(() => dictionary2[2] = 42);
         Assert.Throws<InvalidOperationException>(() => dictionary2.Remove(new KeyValuePair<int, int>(1, 42)));
+    }
+
+    [Fact]
+    public static void ImmutableEquatableDictionary_Empty()
+    {
+        Assert.Same(ImmutableEquatableDictionary.Empty<int, int>(), ImmutableEquatableDictionary.Empty<int, int>());
+        var empty = ImmutableEquatableDictionary.Empty<int, int>();
+        Assert.Empty(empty);
+    }
+    
+    [Fact]
+    public static void ImmutableEquatableDictionary_KeyProjection()
+    {
+        var dict = Enumerable.Range(1, 10).ToImmutableEquatableDictionary(i => i);
+        var dict2 = Enumerable.Range(1, 10).ToDictionary(i => i);
+        Assert.Equal(dict, dict2);
+    }
+    
+    [Fact]
+    public static void ImmutableEquatableDictionary_FromKeyValuePairs()
+    {
+        var dict = Enumerable.Range(1, 10)
+            .Select(i => new KeyValuePair<int, int>(i, i))
+            .ToImmutableEquatableDictionary();
+        var dict2 = Enumerable.Range(1, 10).ToDictionary(i => i);
+        Assert.Equal(dict, dict2);
     }
 }
