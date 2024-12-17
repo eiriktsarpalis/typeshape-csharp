@@ -77,6 +77,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PolyType.TestCases", "src\P
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "PolyType.TestCases.FSharp", "src\PolyType.TestCases.FSharp\PolyType.TestCases.FSharp.fsproj", "{7BC73596-FF6B-5933-D061-4E651B15B43E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PolyType.Roslyn.Tests", "tests\PolyType.Roslyn.Tests\PolyType.Roslyn.Tests.csproj", "{7AC19067-A998-4BB1-AC64-8F8902A8C3CE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -143,6 +145,10 @@ Global
 		{7BC73596-FF6B-5933-D061-4E651B15B43E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7BC73596-FF6B-5933-D061-4E651B15B43E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7BC73596-FF6B-5933-D061-4E651B15B43E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7AC19067-A998-4BB1-AC64-8F8902A8C3CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7AC19067-A998-4BB1-AC64-8F8902A8C3CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7AC19067-A998-4BB1-AC64-8F8902A8C3CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7AC19067-A998-4BB1-AC64-8F8902A8C3CE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -164,6 +170,7 @@ Global
 		{CDF25596-D7B5-4FF0-B42D-610AEEC33B6A} = {E712CC73-2B97-4F4C-840D-4C82F5C07936}
 		{9C5EE30D-663C-42FF-B0B0-A7C240FF0BEE} = {F2C95E2E-AED7-46E4-A93E-831FA658BD2B}
 		{7BC73596-FF6B-5933-D061-4E651B15B43E} = {F2C95E2E-AED7-46E4-A93E-831FA658BD2B}
+		{7AC19067-A998-4BB1-AC64-8F8902A8C3CE} = {1EAD80C8-8E21-4173-9438-67CE9A7A3292}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F4A4EE41-24B8-4815-9861-9B54CC34F311}
