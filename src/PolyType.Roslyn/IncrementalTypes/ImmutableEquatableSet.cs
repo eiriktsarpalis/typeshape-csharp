@@ -102,7 +102,7 @@ public sealed class ImmutableEquatableSet<T> :
 
     bool ICollection<T>.IsReadOnly => true;
     void ICollection<T>.CopyTo(T[] array, int arrayIndex) => _values.CopyTo(array, arrayIndex);
-    void ICollection.CopyTo(Array array, int index) => ((ICollection)_values).CopyTo(array, index);
+    void ICollection.CopyTo(Array array, int index) => throw new InvalidOperationException();
     bool ICollection.IsSynchronized => false;
     object ICollection.SyncRoot => this;
 
