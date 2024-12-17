@@ -41,6 +41,8 @@ jobs:
       uses: codecov/codecov-action@v5
       with:
         files: artifacts/coverage.cobertura.xml
+        directory: artifacts,
+        disable_search: true,
         verbose: true
         token: ${{ secrets.CODECOV_TOKEN }}
 
