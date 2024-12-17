@@ -47,7 +47,7 @@ public interface IDictionaryTypeShape<TDictionary, TKey, TValue> : ITypeShape<TD
     where TKey : notnull
 {
     /// <summary>
-    /// The shape of the underlying key type.
+    /// Gets the shape of the underlying key type.
     /// </summary>
     /// <remarks>
     /// For non-generic dictionaries this returns the shape for <see cref="object"/>.
@@ -55,7 +55,7 @@ public interface IDictionaryTypeShape<TDictionary, TKey, TValue> : ITypeShape<TD
     new ITypeShape<TKey> KeyType { get; }
 
     /// <summary>
-    /// The shape of the underlying value type.
+    /// Gets the shape of the underlying value type.
     /// </summary>
     /// <remarks>
     /// For non-generic dictionaries this returns the shape for <see cref="object"/>.
@@ -79,8 +79,7 @@ public interface IDictionaryTypeShape<TDictionary, TKey, TValue> : ITypeShape<TD
     Func<TDictionary> GetDefaultConstructor();
 
     /// <summary>
-    /// Creates a setter delegate used for appending a
-    /// <see cref="KeyValuePair{TKey, TValue}"/> to a mutable dictionary.
+    /// Creates a setter delegate used for appending a <see cref="KeyValuePair{TKey, TValue}"/> to a mutable dictionary.
     /// </summary>
     /// <exception cref="InvalidOperationException">The collection is not <see cref="CollectionConstructionStrategy.Mutable"/>.</exception>
     /// <returns>A setter delegate used for appending entries to a mutable dictionary.</returns>

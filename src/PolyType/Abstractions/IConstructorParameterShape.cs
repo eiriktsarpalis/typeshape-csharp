@@ -10,37 +10,37 @@ namespace PolyType.Abstractions;
 public interface IConstructorParameterShape
 {
     /// <summary>
-    /// The 0-indexed position of the current constructor parameter.
+    /// Gets the 0-indexed position of the current constructor parameter.
     /// </summary>
     int Position { get; }
 
     /// <summary>
-    /// The shape of the constructor parameter type.
+    /// Gets the shape of the constructor parameter type.
     /// </summary>
     ITypeShape ParameterType { get; }
 
     /// <summary>
-    /// The name of the constructor parameter.
+    /// Gets the name of the constructor parameter.
     /// </summary>
     string Name { get; }
 
     /// <summary>
-    /// Specifies the kind of the current parameter.
+    /// Gets specifies the kind of the current parameter.
     /// </summary>
     ConstructorParameterKind Kind { get; }
 
     /// <summary>
-    /// Indicates whether the parameter specifies a default value.
+    /// Gets a value indicating whether the parameter has a default value.
     /// </summary>
     bool HasDefaultValue { get; }
 
     /// <summary>
-    /// The default value specified by the parameter, if applicable.
+    /// Gets the default value specified by the parameter, if applicable.
     /// </summary>
     object? DefaultValue { get; }
 
     /// <summary>
-    /// Indicates whether a value is required by the current parameter.
+    /// Gets a value indicating whether a value is required for the current parameter.
     /// </summary>
     /// <remarks>
     /// A parameter is reported as required if it is either a
@@ -49,7 +49,7 @@ public interface IConstructorParameterShape
     bool IsRequired { get; }
 
     /// <summary>
-    /// Specifies whether the parameter requires non-null values.
+    /// Gets a value indicating whether the parameter requires non-null values.
     /// </summary>
     /// <remarks>
     /// Returns <see langword="true" /> if the parameter type is a non-nullable struct, a non-nullable reference type
@@ -61,12 +61,12 @@ public interface IConstructorParameterShape
     bool IsNonNullable { get; }
 
     /// <summary>
-    /// Returns true if a public property or field initializer.
+    /// Gets a value indicating whether the parameter is a public property or field initializer.
     /// </summary>
     bool IsPublic { get; }
 
     /// <summary>
-    /// The provider used for parameter-level attribute resolution.
+    /// Gets the provider used for parameter-level attribute resolution.
     /// </summary>
     ICustomAttributeProvider? AttributeProvider { get; }
 
@@ -88,9 +88,14 @@ public interface IConstructorParameterShape
 public interface IConstructorParameterShape<TArgumentState, TParameterType> : IConstructorParameterShape
 {
     /// <summary>
-    /// The shape of the constructor parameter type.
+    /// Gets the shape of the constructor parameter type.
     /// </summary>
     new ITypeShape<TParameterType> ParameterType { get; }
+
+    /// <summary>
+    /// Gets the default value specified by the parameter, if applicable.
+    /// </summary>
+    new TParameterType? DefaultValue { get; }
 
     /// <summary>
     /// Creates a setter delegate for configuring a state object
@@ -98,9 +103,4 @@ public interface IConstructorParameterShape<TArgumentState, TParameterType> : IC
     /// </summary>
     /// <returns>A <see cref="Setter{TDeclaringType, TPropertyType}"/> delegate.</returns>
     Setter<TArgumentState, TParameterType> GetSetter();
-
-    /// <summary>
-    /// The default value specified by the parameter, if applicable.
-    /// </summary>
-    new TParameterType? DefaultValue { get; }
 }

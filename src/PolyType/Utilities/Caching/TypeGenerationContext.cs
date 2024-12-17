@@ -10,7 +10,7 @@ namespace PolyType.Utilities;
 /// <summary>
 /// Defines a thread-local context for generating values requiring type graph traversal.
 /// </summary>
-public sealed partial class TypeGenerationContext : IReadOnlyDictionary<Type, object?>, ITypeShapeFunc
+public sealed class TypeGenerationContext : IReadOnlyDictionary<Type, object?>, ITypeShapeFunc
 {
     /// <summary>The local cache used to store results during the generation process.</summary>
     private readonly Dictionary<Type, Entry> _entries = new();
@@ -29,17 +29,17 @@ public sealed partial class TypeGenerationContext : IReadOnlyDictionary<Type, ob
     }
 
     /// <summary>
-    /// A parent cache to which the completed results can eventually be committed.
+    /// Gets the parent cache to which the completed results can eventually be committed.
     /// </summary>
     public TypeCache? ParentCache { get; }
 
     /// <summary>
-    /// A factory method governing the creation of values when invoking the <see cref="GetOrAdd" /> method.
+    /// Gets a factory method governing the creation of values when invoking the <see cref="GetOrAdd{TKey}" /> method.
     /// </summary>
     public ITypeShapeFunc? ValueBuilder { get; init; }
 
     /// <summary>
-    /// A factory method governing value initialization in case of recursive types.
+    /// Gets a factory method governing value initialization in case of recursive types.
     /// </summary>
     public IDelayedValueFactory? DelayedValueFactory { get; init; }
 

@@ -6,7 +6,7 @@
 public interface IEnumTypeShape : ITypeShape
 {
     /// <summary>
-    /// The shape of the underlying type used to represent the enum.
+    /// Gets the shape of the underlying type used to represent the enum.
     /// </summary>
     ITypeShape UnderlyingType { get; }
 }
@@ -20,7 +20,7 @@ public interface IEnumTypeShape<TEnum, TUnderlying> : ITypeShape<TEnum>, IEnumTy
     where TEnum : struct, Enum
 {
     /// <summary>
-    /// The shape of the underlying type used to represent the enum.
+    /// Gets the shape of the underlying type used to represent the enum.
     /// </summary>
     new ITypeShape<TUnderlying> UnderlyingType { get; }
 }

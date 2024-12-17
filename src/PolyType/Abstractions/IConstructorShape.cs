@@ -8,12 +8,12 @@ namespace PolyType.Abstractions;
 public interface IConstructorShape
 {
     /// <summary>
-    /// The shape of the declaring type for the constructor.
+    /// Gets the shape of the declaring type for the constructor.
     /// </summary>
     IObjectTypeShape DeclaringType { get; }
 
     /// <summary>
-    /// The total number of parameters required by the constructor.
+    /// Gets the total number of parameters required by the constructor.
     /// </summary>
     /// <remarks>
     /// This number includes both constructor parameters and
@@ -22,12 +22,12 @@ public interface IConstructorShape
     int ParameterCount { get; }
 
     /// <summary>
-    /// Specifies whether the constructor is declared public.
+    /// Gets a value indicating whether the constructor is declared public.
     /// </summary>
     bool IsPublic { get; }
 
     /// <summary>
-    /// The provider used for method-level attribute resolution.
+    /// Gets the provider used for method-level attribute resolution.
     /// </summary>
     ICustomAttributeProvider? AttributeProvider { get; }
 
@@ -54,7 +54,7 @@ public interface IConstructorShape
 public interface IConstructorShape<TDeclaringType, TArgumentState> : IConstructorShape
 {
     /// <summary>
-    /// The shape of the declaring type for the constructor.
+    /// Gets the shape of the declaring type for the constructor.
     /// </summary>
     new IObjectTypeShape<TDeclaringType> DeclaringType { get; }
 

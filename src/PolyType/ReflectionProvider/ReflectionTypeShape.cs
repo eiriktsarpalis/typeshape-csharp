@@ -12,5 +12,5 @@ internal abstract class ReflectionTypeShape<T>(ReflectionTypeShapeProvider provi
 
     ITypeShapeProvider ITypeShape.Provider => provider;
     ICustomAttributeProvider? ITypeShape.AttributeProvider => typeof(T);
-    object? ITypeShape.Invoke(ITypeShapeFunc function, object? state) => function.Invoke(this, state);
+    object? ITypeShape.Invoke(ITypeShapeFunc func, object? state) => func.Invoke(this, state);
 }

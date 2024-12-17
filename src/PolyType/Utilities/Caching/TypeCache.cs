@@ -13,7 +13,7 @@ namespace PolyType.Utilities;
 /// Facilitates workflows common to generating values during type graph traversal,
 /// including support delayed value creation in case of recursive types.
 /// </remarks>
-public sealed partial class TypeCache : IReadOnlyDictionary<Type, object?>
+public sealed class TypeCache : IReadOnlyDictionary<Type, object?>
 {
     private readonly ConcurrentDictionary<Type, Entry> _cache = new();
 
@@ -42,17 +42,17 @@ public sealed partial class TypeCache : IReadOnlyDictionary<Type, object?>
     public ITypeShapeProvider Provider { get; }
 
     /// <summary>
-    /// A factory method governing the creation of values when invoking the <see cref="GetOrAdd(ITypeShape)" /> method.
+    /// Gets a factory method governing the creation of values when invoking the <see cref="GetOrAdd(ITypeShape)" /> method.
     /// </summary>
     public Func<TypeGenerationContext, ITypeShapeFunc>? ValueBuilderFactory { get; init; }
 
     /// <summary>
-    /// A factory method governing value initialization in case of recursive types.
+    /// Gets a factory method governing value initialization in case of recursive types.
     /// </summary>
     public IDelayedValueFactory? DelayedValueFactory { get; init; }
 
     /// <summary>
-    /// Specifies whether exceptions should be cached.
+    /// Gets a value indicating whether exceptions should be cached.
     /// </summary>
     public bool CacheExceptions { get; init; }
 

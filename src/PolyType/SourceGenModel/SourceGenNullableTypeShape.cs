@@ -10,7 +10,7 @@ public sealed class SourceGenNullableTypeShape<T> : SourceGenTypeShape<T?>, INul
     where T : struct
 {
     /// <summary>
-    /// The shape of the element type.
+    /// Gets the shape of the element type.
     /// </summary>
     public required ITypeShape<T> ElementType { get; init; }
 

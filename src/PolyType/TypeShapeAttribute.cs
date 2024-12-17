@@ -13,7 +13,7 @@ public sealed class TypeShapeAttribute : Attribute
     private readonly TypeShapeKind _kind = Undefined;
 
     /// <summary>
-    /// Specifies the kind that should be generated for the annotated type.
+    /// Gets the kind that should be generated for the annotated type.
     /// </summary>
     /// <remarks>
     /// Passing <see cref="TypeShapeKind.None"/> will result in the generation of

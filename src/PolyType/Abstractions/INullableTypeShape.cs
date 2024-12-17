@@ -6,7 +6,7 @@
 public interface INullableTypeShape : ITypeShape
 {
     /// <summary>
-    /// The shape of the element type of the nullable.
+    /// Gets the shape of the element type of the nullable.
     /// </summary>
     ITypeShape ElementType { get; }
 }
@@ -19,7 +19,7 @@ public interface INullableTypeShape<T> : ITypeShape<T?>, INullableTypeShape
     where T : struct
 {
     /// <summary>
-    /// The shape of the element type of the nullable.
+    /// Gets the shape of the element type of the nullable.
     /// </summary>
     new ITypeShape<T> ElementType { get; }
 }

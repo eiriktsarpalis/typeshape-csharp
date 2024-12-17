@@ -1,6 +1,5 @@
 ﻿using PolyType.Abstractions;
 using PolyType.ReflectionProvider.MemberAccessors;
-using PolyType.Utilities;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Diagnostics;

@@ -11,7 +11,7 @@ namespace PolyType.Abstractions;
 public interface IEnumerableTypeShape : ITypeShape
 {
     /// <summary>
-    /// The shape of the underlying element type.
+    /// Gets the shape of the underlying element type.
     /// </summary>
     /// <remarks>
     /// For non-generic <see cref="IEnumerable"/> this returns the shape for <see cref="object"/>.
@@ -24,7 +24,7 @@ public interface IEnumerableTypeShape : ITypeShape
     CollectionConstructionStrategy ConstructionStrategy { get; }
 
     /// <summary>
-    /// Gets the rank of the enumerable, if a multi-dimensional array.
+    /// Gets the rank of the enumerable, if a multidimensional array.
     /// </summary>
     int Rank { get; }
 }
@@ -42,7 +42,7 @@ public interface IEnumerableTypeShape : ITypeShape
 public interface IEnumerableTypeShape<TEnumerable, TElement> : ITypeShape<TEnumerable>, IEnumerableTypeShape
 {
     /// <summary>
-    /// The shape of the underlying element type.
+    /// Gets the shape of the underlying element type.
     /// </summary>
     /// <remarks>
     /// For non-generic <see cref="IEnumerable"/> this returns the shape for <see cref="object"/>.

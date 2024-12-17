@@ -11,7 +11,7 @@ namespace PolyType.SourceGenModel;
 public sealed class SourceGenConstructorShape<TDeclaringType, TArgumentState> : IConstructorShape<TDeclaringType, TArgumentState>
 {
     /// <summary>
-    /// Gets whether the constructor is public.
+    /// Gets a value indicating whether the constructor is public.
     /// </summary>
     public required bool IsPublic { get; init; }
 

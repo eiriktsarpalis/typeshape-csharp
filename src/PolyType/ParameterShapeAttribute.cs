@@ -7,7 +7,7 @@
 public class ParameterShapeAttribute : Attribute
 {
     /// <summary>
-    /// Specifies a custom name to be used for the particular parameter.
+    /// Gets a custom name to be used for the particular parameter.
     /// </summary>
     public string? Name { get; init; }
 }

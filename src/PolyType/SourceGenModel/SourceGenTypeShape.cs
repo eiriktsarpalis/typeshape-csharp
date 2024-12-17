@@ -10,12 +10,12 @@ namespace PolyType.SourceGenModel;
 public abstract class SourceGenTypeShape<T> : ITypeShape<T>
 {
     /// <summary>
-    /// Determines the <see cref="TypeShapeKind"/> that the current shape supports.
+    /// Gets the <see cref="TypeShapeKind"/> that the current shape supports.
     /// </summary>
     public abstract TypeShapeKind Kind { get; }
 
     /// <summary>
-    /// The provider used to generate this instance.
+    /// Gets the provider used to generate this instance.
     /// </summary>
     public required ITypeShapeProvider Provider { get; init; }
 
@@ -31,5 +31,5 @@ public abstract class SourceGenTypeShape<T> : ITypeShape<T>
     public abstract object? Accept(ITypeShapeVisitor visitor, object? state = null);
 
     /// <inheritdoc/>
-    object? ITypeShape.Invoke(ITypeShapeFunc function, object? state) => function.Invoke(this, state);
+    object? ITypeShape.Invoke(ITypeShapeFunc func, object? state) => func.Invoke(this, state);
 }

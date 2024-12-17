@@ -12,42 +12,42 @@ public sealed class SourceGenDictionaryTypeShape<TDictionary, TKey, TValue> : So
     where TKey : notnull
 {
     /// <summary>
-    /// The type shape of the dictionary key.
+    /// Gets the type shape of the dictionary key.
     /// </summary>
     public required ITypeShape<TKey> KeyType { get; init; }
 
     /// <summary>
-    /// The type shape of the dictionary value.
+    /// Gets the type shape of the dictionary value.
     /// </summary>
     public required ITypeShape<TValue> ValueType { get; init; }
 
     /// <summary>
-    /// The function extracts an IDictionary from an instance of the dictionary type.
+    /// Gets the function that extracts a <see cref="IReadOnlyDictionary{TKey,TValue}"/> from an instance of the dictionary type.
     /// </summary>
     public required Func<TDictionary, IReadOnlyDictionary<TKey, TValue>> GetDictionaryFunc { get; init; }
 
     /// <summary>
-    /// The construction strategy for the dictionary.
+    /// Gets the construction strategy for the dictionary.
     /// </summary>
     public required CollectionConstructionStrategy ConstructionStrategy { get; init; }
 
     /// <summary>
-    /// The function that constructs a default instance of the dictionary type.
+    /// Gets the function that constructs a default instance of the dictionary type.
     /// </summary>
     public Func<TDictionary>? DefaultConstructorFunc { get; init; }
 
     /// <summary>
-    /// The function that adds a key-value pair to the dictionary.
+    /// Gets the function that adds a key-value pair to the dictionary.
     /// </summary>
     public Setter<TDictionary, KeyValuePair<TKey, TValue>>? AddKeyValuePairFunc { get; init; }
 
     /// <summary>
-    /// The function that constructs a dictionary from an enumerable of key-value pairs.
+    /// Gets the function that constructs a dictionary from an enumerable of key-value pairs.
     /// </summary>
     public Func<IEnumerable<KeyValuePair<TKey, TValue>>, TDictionary>? EnumerableConstructorFunc { get; init; }
 
     /// <summary>
-    /// The function that constructs a dictionary from a span of key-value pairs.
+    /// Gets the function that constructs a dictionary from a span of key-value pairs.
     /// </summary>
     public SpanConstructor<KeyValuePair<TKey, TValue>, TDictionary>? SpanConstructorFunc { get; init; }
 

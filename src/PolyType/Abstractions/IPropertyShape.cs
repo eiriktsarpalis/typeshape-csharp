@@ -9,52 +9,52 @@ namespace PolyType.Abstractions;
 public interface IPropertyShape
 {
     /// <summary>
-    /// The name of the property.
+    /// Gets the name of the property.
     /// </summary>
     string Name { get; }
 
     /// <summary>
-    /// The provider used for property-level attribute resolution.
+    /// Gets the provider used for property-level attribute resolution.
     /// </summary>
     ICustomAttributeProvider? AttributeProvider { get; }
 
     /// <summary>
-    /// The shape of the declaring type.
+    /// Gets the shape of the declaring type.
     /// </summary>
     IObjectTypeShape DeclaringType { get; }
 
     /// <summary>
-    /// The shape of the property type.
+    /// Gets the shape of the property type.
     /// </summary>
     ITypeShape PropertyType { get; }
 
     /// <summary>
-    /// Specifies whether the property has an accessible getter.
+    /// Gets a value indicating whether the property has an accessible getter.
     /// </summary>
     bool HasGetter { get; }
 
     /// <summary>
-    /// Specifies whether the property has an accessible setter.
+    /// Gets a value indicating whether the property has an accessible setter.
     /// </summary>
     bool HasSetter { get; }
 
     /// <summary>
-    /// Specifies whether the shape represents a .NET field.
+    /// Gets a value indicating whether the shape represents a .NET field.
     /// </summary>
     bool IsField { get; }
 
     /// <summary>
-    /// Specifies whether the property getter is declared public.
+    /// Gets a value indicating whether the property getter is declared public.
     /// </summary>
     bool IsGetterPublic { get; }
 
     /// <summary>
-    /// Specifies whether the property setter is declared public.
+    /// Gets a value indicating whether the property setter is declared public.
     /// </summary>
     bool IsSetterPublic { get; }
 
     /// <summary>
-    /// Specifies whether the getter returns non-null values.
+    /// Gets a value indicating whether the getter returns non-null values.
     /// </summary>
     /// <remarks>
     /// Returns <see langword="true" /> if the property type is a non-nullable struct, a non-nullable reference type
@@ -66,7 +66,7 @@ public interface IPropertyShape
     bool IsGetterNonNullable { get; }
 
     /// <summary>
-    /// Specifies whether the setter requires non-null values.
+    /// Gets a value indicating whether the setter requires non-null values.
     /// </summary>
     /// <remarks>
     /// Returns <see langword="true" /> if the property type is a non-nullable struct, a non-nullable reference type
@@ -94,12 +94,12 @@ public interface IPropertyShape
 public interface IPropertyShape<TDeclaringType, TPropertyType> : IPropertyShape
 {
     /// <summary>
-    /// The shape of the declaring type.
+    /// Gets the shape of the declaring type.
     /// </summary>
     new IObjectTypeShape<TDeclaringType> DeclaringType { get; }
 
     /// <summary>
-    /// The shape of the property type.
+    /// Gets the shape of the property type.
     /// </summary>
     new ITypeShape<TPropertyType> PropertyType { get; }
 

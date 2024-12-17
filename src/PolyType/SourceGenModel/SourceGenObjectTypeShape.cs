@@ -9,22 +9,22 @@ namespace PolyType.SourceGenModel;
 public sealed class SourceGenObjectTypeShape<TObject> : SourceGenTypeShape<TObject>, IObjectTypeShape<TObject>
 {
     /// <summary>
-    /// Whether the type represents a record.
+    /// Gets a value indicating whether the type represents a record.
     /// </summary>
     public required bool IsRecordType { get; init; }
 
     /// <summary>
-    /// Whether the type represents a tuple.
+    /// Gets a value indicating whether the type represents a tuple.
     /// </summary>
     public required bool IsTupleType { get; init; }
 
     /// <summary>
-    /// The factory method for creating property shapes.
+    /// Gets the factory method for creating property shapes.
     /// </summary>
     public Func<IEnumerable<IPropertyShape>>? CreatePropertiesFunc { get; init; }
 
     /// <summary>
-    /// The factory method for creating constructor shapes.
+    /// Gets the factory method for creating constructor shapes.
     /// </summary>
     public Func<IConstructorShape>? CreateConstructorFunc { get; init; }
 

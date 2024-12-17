@@ -14,7 +14,7 @@ public sealed record ReflectionTypeShapeProviderOptions
     public static ReflectionTypeShapeProviderOptions Default { get; } = new();
 
     /// <summary>
-    /// Whether System.Reflection.Emit should be used when generating member accessors.
+    /// Gets a value indicating whether System.Reflection.Emit should be used when generating member accessors.
     /// </summary>
     /// <remarks>
     /// Defaults to <c>true</c> if the runtime supports dynamic code generation.

@@ -8,22 +8,22 @@ namespace PolyType.Abstractions;
 public interface ITypeShape
 {
     /// <summary>
-    /// The underlying <see cref="Type"/> that this instance represents.
+    /// Gets the underlying <see cref="Type"/> that this instance represents.
     /// </summary>
     Type Type { get; }
 
     /// <summary>
-    /// Determines the <see cref="TypeShapeKind"/> that the current shape supports.
+    /// Gets determines the <see cref="TypeShapeKind"/> that the current shape supports.
     /// </summary>
     TypeShapeKind Kind { get; }
 
     /// <summary>
-    /// The provider used to generate this instance.
+    /// Gets the provider used to generate this instance.
     /// </summary>
     public ITypeShapeProvider Provider { get; }
 
     /// <summary>
-    /// The provider used for type-level attribute resolution.
+    /// Gets the provider used for type-level attribute resolution.
     /// </summary>
     public ICustomAttributeProvider? AttributeProvider { get; }
 
@@ -38,10 +38,10 @@ public interface ITypeShape
     /// <summary>
     /// Invokes the specified generic function with the given state.
     /// </summary>
-    /// <param name="function">The generic function to be invoked.</param>
+    /// <param name="func">The generic function to be invoked.</param>
     /// <param name="state">The state to be passed to the function.</param>
     /// <returns>The result produced by the function.</returns>
-    object? Invoke(ITypeShapeFunc function, object? state = null);
+    object? Invoke(ITypeShapeFunc func, object? state = null);
 }
 
 /// <summary>

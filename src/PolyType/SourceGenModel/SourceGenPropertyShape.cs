@@ -11,57 +11,57 @@ namespace PolyType.SourceGenModel;
 public sealed class SourceGenPropertyShape<TDeclaringType, TPropertyType> : IPropertyShape<TDeclaringType, TPropertyType>
 {
     /// <summary>
-    /// The name of the property.
+    /// Gets the name of the property.
     /// </summary>
     public required string Name { get; init; }
 
     /// <summary>
-    /// The custom attribute provider for the property.
+    /// Gets the custom attribute provider for the property.
     /// </summary>
     public Func<ICustomAttributeProvider?>? AttributeProviderFunc { get; init; }
 
     /// <summary>
-    /// The shape of the declaring type.
+    /// Gets the shape of the declaring type.
     /// </summary>
     public required IObjectTypeShape<TDeclaringType> DeclaringType { get; init; }
 
     /// <summary>
-    /// The shape of the property type.
+    /// Gets the shape of the property type.
     /// </summary>
     public required ITypeShape<TPropertyType> PropertyType { get; init; }
 
     /// <summary>
-    /// The getter delegate for the property.
+    /// Gets the getter delegate for the property.
     /// </summary>
     public Getter<TDeclaringType, TPropertyType>? Getter { get; init; }
 
     /// <summary>
-    /// The setter delegate for the property.
+    /// Gets the setter delegate for the property.
     /// </summary>
     public Setter<TDeclaringType, TPropertyType>? Setter { get; init; }
 
     /// <summary>
-    /// Whether the getter is declared public.
+    /// Gets a value indicating whether the getter is declared public.
     /// </summary>
     public required bool IsGetterPublic { get; init; }
 
     /// <summary>
-    /// Whether the setter is declared public.
+    /// Gets a value indicating whether the setter is declared public.
     /// </summary>
     public required bool IsSetterPublic { get; init; }
 
     /// <summary>
-    /// Whether the getter is non-nullable.
+    /// Gets a value indicating whether the getter is non-nullable.
     /// </summary>
     public required bool IsGetterNonNullable { get; init; }
 
     /// <summary>
-    /// Whether the setter is non-nullable.
+    /// Gets a value indicating whether the setter is non-nullable.
     /// </summary>
     public required bool IsSetterNonNullable { get; init; }
 
     /// <summary>
-    /// Whether the shape represents a field.
+    /// Gets a value indicating whether the shape represents a field.
     /// </summary>
     public bool IsField { get; init; }
 

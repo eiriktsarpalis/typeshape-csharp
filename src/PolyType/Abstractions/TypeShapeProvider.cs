@@ -27,7 +27,7 @@ public static class TypeShapeProvider
     /// <summary>
     /// Resolves the <see cref="ITypeShape{T}"/> corresponding to <typeparamref name="T"/>.
     /// </summary>
-    /// <typeparam name="T">The ty</typeparam>
+    /// <typeparam name="T">The type whose shape we need to resolve.</typeparam>
     /// <param name="shapeProvider">The provider from which to extract the <see cref="ITypeShape"/>.</param>
     /// <returns>An <see cref="ITypeShape{T}"/> instance describing <typeparamref name="T"/>.</returns>
     /// <exception cref="NotSupportedException"><paramref name="shapeProvider"/> does not support <typeparamref name="T"/>.</exception>
