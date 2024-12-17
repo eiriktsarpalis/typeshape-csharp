@@ -20,6 +20,7 @@ build: clean
 
 test: build
 	dotnet test -c $(CONFIGURATION) $(ADDITIONAL_ARGS) $(CODECOV_ARGS)
+	find $(ARTIFACT_PATH) -name "*.cobertura.xml" -exec cp {} $(ARTIFACT_PATH)/coverage.cobertura.xml \;
 
 pack: test
 	dotnet pack -c $(CONFIGURATION) $(ADDITIONAL_ARGS)

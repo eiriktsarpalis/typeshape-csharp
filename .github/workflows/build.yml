@@ -41,6 +41,8 @@ jobs:
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        files: artifacts/coverage.cobertura.xml
+        verbose: true
 
   MacOS:
     runs-on: macos-latest
