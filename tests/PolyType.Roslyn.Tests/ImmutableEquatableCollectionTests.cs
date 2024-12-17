@@ -248,6 +248,10 @@ public static class ImmutableEquatableCollectionTests
         Assert.False(dictionary2.IsSynchronized);
         Assert.Same(dictionary2, dictionary2.SyncRoot);
         
+        KeyValuePair<int, int>[] buffer = new KeyValuePair<int, int>[10];
+        dictionary2.CopyTo(buffer, 0);
+        Assert.Equal(dictionary1, buffer);
+        
         Assert.Throws<InvalidOperationException>(() => dictionary2.Remove(1));
         Assert.Throws<InvalidOperationException>(() => dictionary2.Clear());
         Assert.Throws<InvalidOperationException>(() => dictionary2.Add(55, 5));

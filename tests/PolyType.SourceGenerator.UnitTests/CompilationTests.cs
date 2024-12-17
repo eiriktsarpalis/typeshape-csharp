@@ -531,6 +531,13 @@ public static class CompilationTests
                 private int PrivateField;
                 [PropertyShape]
                 private int PrivateProperty { get; set; }
+                
+                [ConstructorShape]
+                private MyPoco(int privateField, int privateProperty)
+                {
+                    PrivateField = privateField;
+                    PrivateProperty = privateProperty;
+                }
             }
             """);
 
