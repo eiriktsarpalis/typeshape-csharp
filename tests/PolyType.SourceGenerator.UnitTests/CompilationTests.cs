@@ -497,6 +497,7 @@ public static class CompilationTests
            using System.Collections;
            using System.Collections.Generic;
            using System.Collections.Immutable;
+           using System.Linq;
 
            [GenerateShape<Dictionary<string, int>>]
            [GenerateShape<ImmutableDictionary<string, int>>]
@@ -507,14 +508,14 @@ public static class CompilationTests
            [GenerateShape<CustomDictionary1>]
            partial class Witness;
            
-           class CustomDictionary1(IEnumerable<KeyValuePair<string, int>> inner) : Dictionary<string, int>(inner);
+           class CustomDictionary1(IEnumerable<KeyValuePair<string, int>> inner) : Dictionary<string, int>(inner.ToDictionary(kv => kv.Key, kv => kv.Value));
            class CustomDictionary2(Dictionary<string, int> inner) : Dictionary<string, int>(inner);
            """);
 
         PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation);
         Assert.Empty(result.Diagnostics);
     }
-    
+
     [Fact]
     public static void PrivateMemberAccessors_NoErrors()
     {
