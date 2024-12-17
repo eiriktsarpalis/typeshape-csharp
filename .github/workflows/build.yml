@@ -40,9 +40,9 @@ jobs:
     - name: Upload to Codecov
       uses: codecov/codecov-action@v5
       with:
-        token: ${{ secrets.CODECOV_TOKEN }}
         files: artifacts/coverage.cobertura.xml
         verbose: true
+        token: ${{ secrets.CODECOV_TOKEN }}
 
   MacOS:
     runs-on: macos-latest
