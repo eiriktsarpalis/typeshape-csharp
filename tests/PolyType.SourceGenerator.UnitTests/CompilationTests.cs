@@ -428,4 +428,113 @@ public static class CompilationTests
         PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation);
         Assert.Empty(result.Diagnostics);
     }
+    
+    [Fact]
+    public static void TupleTypes_NoErrors()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+           using PolyType;
+           using System;
+
+           [GenerateShape<(int, int, int, int, int, int, int, int, int, int)>]
+           [GenerateShape<System.Tuple<int, int, int, int, int, int, int, Tuple<int, int, int>>>]
+           partial class Witness;
+           """);
+
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
+    
+    [Fact]
+    public static void NullableTypes_NoErrors()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+           using PolyType;
+           using System;
+
+           [GenerateShape<int?>]
+           [GenerateShape<Guid?>]
+           partial class Witness;
+           """);
+
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
+    
+    [Fact]
+    public static void EnumerableTypes_NoErrors()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+           using PolyType;
+           using System;
+           using System.Collections.Generic;
+           using System.Collections.Immutable;
+
+           [GenerateShape<int[,]>]
+           [GenerateShape<ReadOnlyMemory<int>>]
+           [GenerateShape<Memory<int>>]
+           [GenerateShape<ImmutableArray<int>>]
+           [GenerateShape<ImmutableList<int>>]
+           [GenerateShape<ImmutableQueue<int>>]
+           [GenerateShape<ImmutableStack<int>>]
+           [GenerateShape<ImmutableHashSet<int>>]
+           [GenerateShape<ImmutableSortedSet<int>>]
+           [GenerateShape<IEnumerable<int>>]
+           [GenerateShape<ISet<int>>]
+           [GenerateShape<List<int>>]
+           partial class Witness;
+           """);
+
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
+    
+    [Fact]
+    public static void DictionaryTypes_NoErrors()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+           using PolyType;
+           using System.Collections;
+           using System.Collections.Generic;
+           using System.Collections.Immutable;
+           using System.Linq;
+
+           [GenerateShape<Dictionary<string, int>>]
+           [GenerateShape<ImmutableDictionary<string, int>>]
+           [GenerateShape<ImmutableSortedDictionary<string, int>>]
+           [GenerateShape<IReadOnlyDictionary<string, int>>]
+           [GenerateShape<IDictionary>]
+           [GenerateShape<Hashtable>]
+           [GenerateShape<CustomDictionary1>]
+           partial class Witness;
+           
+           class CustomDictionary1(IEnumerable<KeyValuePair<string, int>> inner) : Dictionary<string, int>(inner.ToDictionary(kv => kv.Key, kv => kv.Value));
+           class CustomDictionary2(Dictionary<string, int> inner) : Dictionary<string, int>(inner);
+           """);
+
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Fact]
+    public static void PrivateMemberAccessors_NoErrors()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+            using PolyType;
+            
+            #pragma warning disable CS0169
+           
+            [GenerateShape]
+            partial class MyPoco
+            {
+                [PropertyShape]
+                private int PrivateField;
+                [PropertyShape]
+                private int PrivateProperty { get; set; }
+            }
+            """);
+
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
 }
