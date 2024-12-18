@@ -55,7 +55,7 @@ public abstract partial class CborTests(ProviderUnderTest providerUnderTest)
         yield return [TestCase.Create(Guid.Empty, p), "D903EA5000000000000000000000000000000000"];
         yield return [TestCase.Create(TimeSpan.MinValue, p), "D825FBC26AD7F29ABCAF48"];
         yield return [TestCase.Create(DateTimeOffset.MinValue, p), "C074303030312D30312D30315430303A30303A30305A"];
-#if NET
+#if NET8_0_OR_GREATER
         yield return [TestCase.Create(Int128.MaxValue, p), "C2507FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"];
         yield return [TestCase.Create((Half)3.14, p), "F94248"];
         yield return [TestCase.Create(DateOnly.MaxValue, p), "C074393939392D31322D33315430303A30303A30305A"];

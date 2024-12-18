@@ -27,8 +27,8 @@
     <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
     <!-- Use a pre .NET 8 build of S.C.Immutable that doesn't support literals. -->
     <PackageVersion Include="System.Collections.Immutable" Version="7.0.0" />
-    <PackageVersion Include="System.Formats.Cbor" Version="9.0.0" />
-    <PackageVersion Include="System.Text.Json" Version="9.0.0" />
+    <PackageVersion Include="System.Formats.Cbor" Version="8.0.0" />
+    <PackageVersion Include="System.Text.Json" Version="8.0.5" />
     <PackageVersion Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
     <PackageVersion Include="JsonSchema.Net" Version="7.2.3" />
     <PackageVersion Include="FSharp.Core" Version="8.0.401" />

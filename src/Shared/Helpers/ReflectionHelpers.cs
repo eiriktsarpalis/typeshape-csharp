@@ -76,11 +76,12 @@ internal static class ReflectionHelpers
     {
         if (GetNullabilityInfo(parameterInfo, ctx) is NullabilityInfo info)
         {
-#if NET8_0
+#if NET6_0 || NET8_0
             // Workaround for https://github.com/dotnet/runtime/issues/92487
             // The fix has been incorporated into .NET 9 (and the polyfilled implementations in netfx).
             // Should be removed once .NET 8 support is dropped.
-            if (parameterInfo.GetGenericParameterDefinition() is { ParameterType: { IsGenericTypeParameter: true } typeParam })
+            if (parameterInfo.GetGenericParameterDefinition() is ParameterInfo genericParam &&
+                genericParam.GetParameterType() is { IsGenericTypeParameter: true } typeParam)
             {
                 // Step 1. Look for nullable annotations on the type parameter.
                 if (GetNullableFlags(typeParam) is byte[] flags)
@@ -170,7 +171,7 @@ internal static class ReflectionHelpers
                 case FieldInfo field when field.FieldType.IsNullable():
                     return context.Create(field);
 
-                case ParameterInfo parameter when parameter.ParameterType.IsNullable():
+                case ParameterInfo parameter when parameter.GetParameterType().IsNullable():
                     return context.Create(parameter);
             }
         }
@@ -188,6 +189,17 @@ internal static class ReflectionHelpers
         }
 
         return parameter;
+    }
+
+    public static Type GetParameterType(this ParameterInfo parameter)
+    {
+        Type parameterType = parameter.ParameterType;
+        if (parameterType.IsByRef)
+        {
+            parameterType = parameterType.GetElementType()!;
+        }
+
+        return parameterType;
     }
 
     public static Type GetEffectiveParameterType(this ParameterInfo type)

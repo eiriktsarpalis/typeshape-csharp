@@ -723,7 +723,7 @@ public sealed class TypeShapeProviderTests_SourceGen() : TypeShapeProviderTests(
         Assert.Same(testCase.DefaultShape, Witness.ShapeProvider.GetShape(testCase.Type));
     }
 
-#if NET
+#if NET8_0_OR_GREATER
     [Theory]
     [MemberData(nameof(TestTypes.GetTestCases), MemberType = typeof(TestTypes))]
     public void IShapeableOfT_ReturnsExpectedSingleton<T, TProvider>(TestCase<T, TProvider> testCase)
