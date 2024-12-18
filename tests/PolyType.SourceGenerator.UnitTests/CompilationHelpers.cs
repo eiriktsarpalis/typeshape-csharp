@@ -246,7 +246,7 @@ public static class CompilationHelpers
         return (lineSpan.EndLinePosition.Line, lineSpan.EndLinePosition.Character);
     }
 
-#if !NET || !NET8_0_OR_GREATER
+#if !NET || NET6_0
     private const string PolyfillAttributes = """
         namespace System.Runtime.CompilerServices
         {
