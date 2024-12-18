@@ -27,7 +27,7 @@ public static class CompilationTests
                 public List<int> List { get; set; }
                 public Dictionary<string, int> Dict { get; set; }
 
-            #if NET
+            #if NET8_0_OR_GREATER
                 public static PolyType.Abstractions.ITypeShape<MyPoco> Test()
                     => PolyType.Abstractions.TypeShapeProvider.Resolve<MyPoco>();
             #endif
@@ -119,7 +119,7 @@ public static class CompilationTests
         Assert.Empty(result.Diagnostics);
     }
 
-#if NET
+#if NET8_0_OR_GREATER
     [Fact]
     public static void UseTypesWithNullableAnnotations_NoWarnings()
     {
@@ -187,7 +187,7 @@ public static class CompilationTests
         Compilation compilation = CompilationHelpers.CreateCompilation("""
             using PolyType;
 
-            #if NET
+            #if NET8_0_OR_GREATER
             public static class Test
             {
                 public static void TestMethod()
@@ -327,7 +327,7 @@ public static class CompilationTests
             using PolyType.Abstractions;
 
             ITypeShape<MyPoco> shape;
-            #if NET
+            #if NET8_0_OR_GREATER
             shape = TypeShapeProvider.Resolve<MyPoco, Witness>();
             #endif
             shape = TypeShapeProvider.Resolve<MyPoco>(Witness.ShapeProvider);

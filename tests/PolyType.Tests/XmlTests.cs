@@ -69,7 +69,7 @@ public abstract class XmlTests(ProviderUnderTest providerUnderTest)
         yield return [TestCase.Create(Guid.Empty, p), "<value>00000000-0000-0000-0000-000000000000</value>"];
         yield return [TestCase.Create(TimeSpan.MinValue, p), "<value>-10675199.02:48:05.4775808</value>"];
         yield return [TestCase.Create(DateTimeOffset.MinValue, p), "<value>0001-01-01T00:00:00Z</value>"];
-#if NET
+#if NET8_0_OR_GREATER
         yield return [TestCase.Create(Int128.MaxValue, p), "<value>170141183460469231731687303715884105727</value>"];
         yield return [TestCase.Create((Half)1, p), "<value>1</value>"];
         yield return [TestCase.Create(DateOnly.MaxValue, p), "<value>9999-12-31</value>"];

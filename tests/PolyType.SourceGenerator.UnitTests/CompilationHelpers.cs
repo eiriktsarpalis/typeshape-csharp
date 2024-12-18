@@ -23,6 +23,8 @@ public static class CompilationHelpers
 #if NET
     private static readonly Assembly systemRuntimeAssembly = Assembly.Load(new AssemblyName("System.Runtime"));
 #endif
+    private static string GetAssemblyFromSharedFrameworkDirectory(string assemblyName) =>
+        Path.Combine(Path.GetDirectoryName(typeof(object).Assembly.Location)!, assemblyName);
 
     public static CSharpParseOptions CreateParseOptions(
         LanguageVersion? version = null,
@@ -31,7 +33,11 @@ public static class CompilationHelpers
         return new CSharpParseOptions(
             kind: SourceCodeKind.Regular,
             languageVersion: version ?? LanguageVersion.CSharp12,
-            documentationMode: documentationMode ?? DocumentationMode.Parse);
+#if NET
+            preprocessorSymbols: ["NET"],
+#endif
+            documentationMode: documentationMode ?? DocumentationMode.Parse
+            );
     }
 
     public static Compilation CreateCompilation(
@@ -47,8 +53,8 @@ public static class CompilationHelpers
         SyntaxTree[] syntaxTrees = 
         [ 
             CSharpSyntaxTree.ParseText(source, parseOptions),
-#if !NET
-            CSharpSyntaxTree.ParseText(NetfxPolyfillAttributes, parseOptions),
+#if !NET || NET6_0
+            CSharpSyntaxTree.ParseText(PolyfillAttributes, parseOptions),
 #endif
         ];
 
@@ -62,10 +68,15 @@ public static class CompilationHelpers
             MetadataReference.CreateFromFile(systemRuntimeAssembly.Location),
 #else
             MetadataReference.CreateFromFile(typeof(ReadOnlySpan<>).Assembly.Location),
-            MetadataReference.CreateFromFile(Path.Combine(Path.GetDirectoryName(typeof(object).Assembly.Location), "netstandard.dll")),
+            MetadataReference.CreateFromFile(GetAssemblyFromSharedFrameworkDirectory("netstandard.dll")),
             MetadataReference.CreateFromFile(typeof(System.CodeDom.Compiler.GeneratedCodeAttribute).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(System.Runtime.CompilerServices.Unsafe).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(System.Collections.Immutable.ImmutableArray).Assembly.Location),
+#endif
+#if NET6_0
+            // net6.0 is consuming the ns2.0 build of PolyType
+            MetadataReference.CreateFromFile(GetAssemblyFromSharedFrameworkDirectory("netstandard.dll")),
+            MetadataReference.CreateFromFile(GetAssemblyFromSharedFrameworkDirectory("System.Memory.dll")),
 #endif
             MetadataReference.CreateFromFile(typeof(PolyType.Abstractions.ITypeShape).Assembly.Location),
             .. additionalReferences,
@@ -235,8 +246,8 @@ public static class CompilationHelpers
         return (lineSpan.EndLinePosition.Line, lineSpan.EndLinePosition.Character);
     }
 
-#if !NET
-    private const string NetfxPolyfillAttributes = """
+#if !NET || !NET8_0_OR_GREATER
+    private const string PolyfillAttributes = """
         namespace System.Runtime.CompilerServices
         {
             internal static class IsExternalInit { }
@@ -256,6 +267,7 @@ public static class CompilationHelpers
             [AttributeUsage(AttributeTargets.All, AllowMultiple = true, Inherited = false)]
             internal sealed class SetsRequiredMembersAttribute : Attribute { }
 
+        #if !NET
             [AttributeUsage (AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.Property, Inherited = false)]
             internal sealed class AllowNullAttribute : Attribute { }
 
@@ -267,6 +279,7 @@ public static class CompilationHelpers
 
             [AttributeUsage (AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.Property | AttributeTargets.ReturnValue, Inherited = false)]
             internal sealed class NotNullAttribute : Attribute { }
+        #endif
         }
         """;
 #endif

@@ -269,7 +269,7 @@ public abstract partial class JsonTests(ProviderUnderTest providerUnderTest)
 
     public static IEnumerable<object?[]> GetMultiDimensionalArraysAndExpectedJson()
     {
-#if NET
+#if NET8_0_OR_GREATER
         Witness p = new();
 #else
         ITypeShapeProvider p = Witness.ShapeProvider;
@@ -345,7 +345,7 @@ public abstract partial class JsonTests(ProviderUnderTest providerUnderTest)
         { 
             new JsonStringEnumConverter(),
             new BigIntegerConverter(),
-#if NET
+#if NET8_0_OR_GREATER
             new RuneConverter(),
 #endif
         },

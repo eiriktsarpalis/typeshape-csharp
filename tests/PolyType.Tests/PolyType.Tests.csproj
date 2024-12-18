@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   
   <PropertyGroup>
-    <TargetFrameworks>net9.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>net9.0;net8.0;net6.0</TargetFrameworks>
     <TargetFrameworks Condition="'$(OS)' == 'Windows_NT'">$(TargetFrameworks);net462</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -20,6 +20,10 @@
   <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
     <Compile Include="..\..\src\Shared\Polyfills\LinkerAttributes\*.cs " Link="Shared\Polyfills\LinkerAttributes\%(Filename).cs" />
     <Compile Include="..\..\src\Shared\Polyfills\NullabilityInfo\*.cs " Link="Shared\Polyfills\NullabilityInfo\%(Filename).cs" />
+  </ItemGroup>
+  
+  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+    <Compile Include="..\..\src\Shared\Polyfills\LinkerAttributes\RequiresDynamicCodeAttribute.cs" Link="Shared\Polyfills\LinkerAttributes\%(Filename).cs" />
   </ItemGroup>
 
   <ItemGroup>
