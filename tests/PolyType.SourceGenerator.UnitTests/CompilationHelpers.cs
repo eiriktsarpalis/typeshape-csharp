@@ -236,26 +236,38 @@ public static class CompilationHelpers
     }
 
 #if !NET
-        private const string NetfxPolyfillAttributes = """
-            namespace System.Runtime.CompilerServices
+    private const string NetfxPolyfillAttributes = """
+        namespace System.Runtime.CompilerServices
+        {
+            internal static class IsExternalInit { }
+
+            [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
+            internal sealed class RequiredMemberAttribute : Attribute { }
+
+            [AttributeUsage(AttributeTargets.All, AllowMultiple = true, Inherited = false)]
+            internal sealed class CompilerFeatureRequiredAttribute : Attribute
             {
-                internal static class IsExternalInit { }
-
-                [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
-                internal sealed class RequiredMemberAttribute : Attribute { }
-
-                [AttributeUsage(AttributeTargets.All, AllowMultiple = true, Inherited = false)]
-                internal sealed class CompilerFeatureRequiredAttribute : Attribute
-                {
-                    public CompilerFeatureRequiredAttribute(string featureName) { }
-                }
+                public CompilerFeatureRequiredAttribute(string featureName) { }
             }
+        }
 
-            namespace System.Diagnostics.CodeAnalysis
-            {
-                [AttributeUsage(AttributeTargets.All, AllowMultiple = true, Inherited = false)]
-                internal sealed class SetsRequiredMembersAttribute : Attribute { }
-            }
-            """;
+        namespace System.Diagnostics.CodeAnalysis
+        {
+            [AttributeUsage(AttributeTargets.All, AllowMultiple = true, Inherited = false)]
+            internal sealed class SetsRequiredMembersAttribute : Attribute { }
+
+            [AttributeUsage (AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.Property, Inherited = false)]
+            internal sealed class AllowNullAttribute : Attribute { }
+
+            [AttributeUsage (AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.Property, Inherited = false)]
+            internal sealed class DisallowNullAttribute : Attribute { }
+
+            [AttributeUsage (AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.Property | AttributeTargets.ReturnValue, Inherited = false)]
+            internal sealed class MaybeNullAttribute : Attribute { }
+
+            [AttributeUsage (AttributeTargets.Field | AttributeTargets.Parameter | AttributeTargets.Property | AttributeTargets.ReturnValue, Inherited = false)]
+            internal sealed class NotNullAttribute : Attribute { }
+        }
+        """;
 #endif
 }

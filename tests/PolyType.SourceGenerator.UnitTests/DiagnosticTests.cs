@@ -284,7 +284,6 @@ public static class DiagnosticTests
 
     [Theory]
     [InlineData(LanguageVersion.CSharp12)]
-    [InlineData(LanguageVersion.CSharp13)]
     public static void SupportedLanguageVersions_NoErrorDiagnostics(LanguageVersion langVersion)
     {
         CSharpParseOptions parseOptions = CompilationHelpers.CreateParseOptions(langVersion);

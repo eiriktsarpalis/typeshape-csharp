@@ -544,4 +544,110 @@ public static class CompilationTests
         PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation);
         Assert.Empty(result.Diagnostics);
     }
+
+    [Fact]
+    public static void DefaultConstructorParameters_NoErrors()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+            using PolyType;
+            using System;
+            #nullable enable
+
+            [GenerateShape]
+            public partial record RecordWithNullableDefaultParams2(ulong? x1 = 10, float? x2 = 3.1f, double? x3 = 3.1d, decimal? x4 = -3.1415926m, string? x5 = "str", string? x6 = null, object? x7 = null);
+            
+            [GenerateShape]
+            public partial record RecordWithSpecialValueDefaultParams(
+                double d1 = double.PositiveInfinity, double d2 = double.NegativeInfinity, double d3 = double.NaN,
+                double? dn1 = double.PositiveInfinity, double? dn2 = double.NegativeInfinity, double? dn3 = double.NaN,
+                float f1 = float.PositiveInfinity, float f2 = float.NegativeInfinity, float f3 = float.NaN,
+                float? fn1 = float.PositiveInfinity, float? fn2 = float.NegativeInfinity, float? fn3 = float.NaN,
+                string s = "\"😀葛🀄\r\n🤯𐐀𐐨\"", char c = '\'');
+            
+            [Flags]
+            public enum MyEnum { A = 1, B = 2, C = 4, D = 8, E = 16, F = 32, G = 64, H = 128 }
+            
+            [GenerateShape]
+            public partial record RecordWithEnumAndNullableParams(MyEnum flags1, MyEnum? flags2, MyEnum flags3 = MyEnum.A, MyEnum? flags4 = null);
+            
+            [GenerateShape]
+            public partial record RecordWithNullableDefaultEnum(MyEnum? flags = MyEnum.A | MyEnum.B);
+            
+            [GenerateShape]
+            public partial record LargeClassRecord(
+                int x0 = 0, int x1 = 1, int x2 = 2, int x3 = 3, int x4 = 4, int x5 = 5, int x6 = 5,
+                int x7 = 7, int x8 = 8, string x9 = "str", LargeClassRecord? nested = null);                                                                                                                      
+            """);
+        
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
+    
+    [Fact]
+    public static void NullabilityAttributes_NoErrors()
+    {
+        Compilation compilation = CompilationHelpers.CreateCompilation("""
+            using PolyType;
+            using System.Diagnostics.CodeAnalysis;
+
+            #nullable enable
+            
+            [GenerateShape]
+            public partial class ClassWithNullabilityAttributes
+            {
+                private string? _maybeNull = "str";
+                private string? _allowNull = "str";
+                private string? _notNull = "str";
+                private string? _disallowNull = "str";
+            
+                public ClassWithNullabilityAttributes() { }
+            
+                public ClassWithNullabilityAttributes([AllowNull] string allowNull, [DisallowNull] string? disallowNull)
+                {
+                    _allowNull = allowNull;
+                    _disallowNull = disallowNull;
+                }
+            
+                [MaybeNull]
+                public string MaybeNullProperty
+                {
+                    get => _maybeNull;
+                    set => _maybeNull = value;
+                }
+            
+                [AllowNull]
+                public string AllowNullProperty
+                {
+                    get => _allowNull ?? "str";
+                    set => _allowNull = value;
+                }
+            
+                [NotNull]
+                public string? NotNullProperty
+                {
+                    get => _notNull ?? "str";
+                    set => _notNull = value;
+                }
+            
+                [DisallowNull]
+                public string? DisallowNullProperty
+                {
+                    get => _disallowNull;
+                    set => _disallowNull = value;
+                }
+            
+                [MaybeNull]
+                public string MaybeNullField = "str";
+                [AllowNull]
+                public string AllowNullField = "str";
+                [NotNull]
+                public string? NotNullField = "str";
+                [DisallowNull]
+                public string? DisallowNullField = "str";
+            }                                                                                                         
+            """);
+        
+        PolyTypeSourceGeneratorResult result = CompilationHelpers.RunPolyTypeSourceGenerator(compilation);
+        Assert.Empty(result.Diagnostics);
+    }
 }
